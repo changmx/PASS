@@ -118,6 +118,8 @@
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -622,6 +624,22 @@ GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局�
 </pre></div>
 </div>
 <p>绝对场误差的单位、实例匹配规则，以及逐元件分布误差与 Twiss 出口的集中动量增量的区别，见 <a class="reference internal" href="element/error.html#zh-error"><span class="std std-ref">元件误差</span></a>。</p>
+<p>两个 Twiss 读取函数都会将原生 MAD-X 的动量导数转换为 PASS 的
+<span class="math notranslate nohighlight">\(\delta=P/P_0-1\)</span> 约定。MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 使用
+<span class="math notranslate nohighlight">\(\mathrm{PT}=(E-E_0)/(P_0c)\simeq\beta_0\delta\)</span>，因此导入的
+<code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DPX</span></code> 以及从文件读取的 <code class="docutils literal notranslate"><span class="pre">DQ1</span></code>/<code class="docutils literal notranslate"><span class="pre">DQ2</span></code> 均乘以 <span class="math notranslate nohighlight">\(\beta_0\)</span>。
+显式数值参数 <code class="docutils literal notranslate"><span class="pre">dqx</span></code>/<code class="docutils literal notranslate"><span class="pre">dqy</span></code> 已表示 <span class="math notranslate nohighlight">\(dQ/d\delta\)</span>，保持不变；
+原始 TFS 表本身保留原单位。使用文件色品时应以 <code class="docutils literal notranslate"><span class="pre">twiss,</span> <span class="pre">chrom</span></code> 导出。</p>
+<p>这些读取函数要求原生 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 输出。对于可识别的 <code class="docutils literal notranslate"><span class="pre">PTC_TWISS</span></code> 表会明确拒绝：
+其导数约定取决于 PTC 的 <code class="docutils literal notranslate"><span class="pre">TIME</span></code> 模式，而 TFS 头信息未记录该模式；
+相位列也可能不同。此传输模型应使用原生 <code class="docutils literal notranslate"><span class="pre">TWISS,</span> <span class="pre">CHROM</span></code> 表。
+该单位换算不意味着原生 TWISS 与精确 PTC 元件模型等价。</p>
+<p>参考速度优先由 <code class="docutils literal notranslate"><span class="pre">GAMMA</span></code> 计算，缺少时由 <code class="docutils literal notranslate"><span class="pre">ENERGY/MASS</span></code> 计算。
+两种信息均缺失时，为兼容旧表仍允许读取，但发出警告并采用超相对论近似
+<span class="math notranslate nohighlight">\(\beta_0=1\)</span>；非超相对论束流应补充参考能量头信息。
+无效的参考参数会被拒绝。已有输入需要重新生成才能应用此修正；
+800 MeV 动能质子的换算因子约为 0.84181。定义参见
+<a class="reference external" href="https://cds.cern.ch/record/2928179/files/document.pdf">MAD-X 坐标与导数约定</a>。</p>
 <p>如需均匀基础网格，改用重采样读取函数：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
 
@@ -648,8 +666,9 @@ p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
 \alpha(s)=\frac{p_{tt}}{4\pi p_t^2}.\]</div>
 <p>这在每个区间内保持 <span class="math notranslate nohighlight">\(\beta'=-2\alpha\)</span>、<span class="math notranslate nohighlight">\(\mu'=1/(2\pi\beta)\)</span>，
 同时在端点匹配源 beta、alpha 和累计相位。相位导数在两端及全部内部极值点接受检查，
-排除非正 beta。DX/DPX 使用成对的三次 Hermite 插值，沿用无耦合、参考轨道近轴约定
-及 TFS 色散归一化，不进行耦合或闭轨坐标转换。源数据精度与间距限制插值精度。</p>
+排除非正 beta。DX/DPX 使用成对的三次 Hermite 插值，沿用无耦合、参考轨道近轴约定。
+插值内部保持源单位，构建 <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> 时将色散转换为对 <span class="math notranslate nohighlight">\(\delta\)</span> 的导数。
+不进行耦合或闭轨坐标转换。源数据精度与间距限制插值精度。</p>
 <p>表中必须包含 S=0、S=LENGTH，光学量有限、beta 为正、相位保持展开。
 完整相位差与 Q1/Q2 的核对允许 TFS 输出舍入误差：相对容差
 <span class="math notranslate nohighlight">\(2\times10^{-8}\)</span>，绝对容差 <span class="math notranslate nohighlight">\(2\times10^{-9}\)</span>。

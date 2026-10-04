@@ -1,0 +1,472 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynamic-aperture scans &mdash; PASS 0.5.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Spectral analysis and frequency maps" href="spectral_analysis.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.5.0</span>
+    
+      
+      
+    
+    <a href="../zh/dynamic_aperture.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slow_extraction.html">Slow extraction (SlowExtraction)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Dynamic-aperture scans</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#initial-coordinates">Initial coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#recording-and-reading">Recording and reading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#analysis-plots-and-export">Analysis, plots and export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#portable-python-file">Portable Python file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#numerical-convergence">Numerical convergence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gui-workflow">GUI workflow</a></li>
+</ul>
+</li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS User Manual</a></li>
+      <li class="breadcrumb-item active">Dynamic-aperture scans</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dynamic-aperture-scans">
+<h1>Dynamic-aperture scans<a class="headerlink" href="#dynamic-aperture-scans" title="Link to this heading"></a></h1>
+<p>A complete input-generation, tracking and plotting workflow is available in
+<code class="docutils literal notranslate"><span class="pre">example/07_dynamic_aperture/README.md</span></code> in the source checkout.</p>
+<p>Dynamic aperture (DA) is analyzed from tracked particles. It does not replace
+the user-defined sequence or insert, remove, or reorder physical effects.
+The same scan may therefore include lattice elements, RF, collective effects,
+and any explicitly configured apertures. A surviving particle is one observed
+alive at the requested monitor event; finite tracking does not establish
+indefinite stability.</p>
+<section id="initial-coordinates">
+<h2>Initial coordinates<a class="headerlink" href="#initial-coordinates" title="Link to this heading"></a></h2>
+<p>The first scan generator uses a Cartesian grid of physical coordinates:</p>
+<div class="math notranslate nohighlight">
+\[(x_i,\;0,\;y_j,\;0,\;z_0,\;\delta_k),\qquad
+N=N_xN_yN_{\delta}.\]</div>
+<p>Every initial <code class="docutils literal notranslate"><span class="pre">dp</span></code> receives the full x-y grid in the same simulation.
+<code class="docutils literal notranslate"><span class="pre">px</span></code> and <code class="docutils literal notranslate"><span class="pre">py</span></code> default to zero, and <code class="docutils literal notranslate"><span class="pre">z</span></code> defaults to zero. The Python
+generator and schema also accept explicit fixed values. Positions use metres;
+<code class="docutils literal notranslate"><span class="pre">px</span></code> and <code class="docutils literal notranslate"><span class="pre">py</span></code> are mechanical momenta divided by reference momentum, and
+<code class="docutils literal notranslate"><span class="pre">dp=(P-P0)/P0</span></code>. This is a two-dimensional transverse phase-space slice,
+not a scan over all transverse phases. No quadrant symmetry is assumed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.utils.scan_grid.generate_scan_grid(x_values,</span> <span class="pre">y_values,</span> <span class="pre">dp_values,</span>
+<span class="pre">px=0,</span> <span class="pre">py=0,</span> <span class="pre">z=0)</span></code> returns <code class="docutils literal notranslate"><span class="pre">coordinates</span></code> with columns x, px, y, py, z, dp,
+and <code class="docutils literal notranslate"><span class="pre">indices</span></code> containing dp, y, x indices. Ordering is dp-major, then y,
+with x changing fastest. Axis values must be finite and unique, and the
+longitudinal mechanical momentum must be real and positive.</p>
+<p>An Injection bunch can use the compact <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> configuration:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"X range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"Y range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"Number of x points"</span><span class="p">:</span><span class="w"> </span><span class="mi">41</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Number of y points"</span><span class="p">:</span><span class="w"> </span><span class="mi">41</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"dp values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"px"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"py"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"z (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This belongs inside the bunch’s <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> field, not in ParticleMonitor.
+It is mutually exclusive with <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code>. Explicit coordinates occupy configured macroparticle
+slots in the first injection batch; they do not increase the beam population.
+The batch must have at least the number of scan points. For a pure scan, set
+its population to exactly that number.</p>
+<p>Explicit coordinates are written after ordinary distribution offsets and
+dispersion. They are defined in the incoming reference; the subsequent
+reference transformation preserves physical momenta and arrival times.
+Consequently a different target reference can change the stored coordinate
+numbers. ParticleMonitor records the actual coordinates captured
+at injection, with their injection reference and turn. DA grouping uses this
+saved initial <code class="docutils literal notranslate"><span class="pre">dp</span></code>, never the final <code class="docutils literal notranslate"><span class="pre">dp</span></code> after RF or other effects.
+Use a consistent injection reference for a directly comparable grid.</p>
+<p>ParticleMonitor associates each captured coordinate row with its particle ID.
+HDF5 stores these rows in <code class="docutils literal notranslate"><span class="pre">initial</span></code>, including <code class="docutils literal notranslate"><span class="pre">initial/dp</span></code>; TFS uses its
+initial records. DA groups the saved initial values exactly, without inferring
+groups from particle order or rounding values into bins. Particle reordering,
+negative loss tags and later momentum changes retain the same initial group.
+A continuous random momentum distribution therefore does not automatically
+become a few discrete dp scans.</p>
+<p>All macroparticles participate in the configured effects. With collective
+effects, the combined dp groups form one source distribution. Their survival
+regions describe that distribution; they are not equivalent to independently
+simulated monoenergetic beams. Changing grid density or range may also change
+the source distribution. <code class="docutils literal notranslate"><span class="pre">z=0</span></code> places the particles at one longitudinal
+coordinate; configure a different distribution when that model is unsuitable.</p>
+</section>
+<section id="recording-and-reading">
+<h2>Recording and reading<a class="headerlink" href="#recording-and-reading" title="Link to this heading"></a></h2>
+<p>Use <a class="reference internal" href="monitor/particlemonitor.html"><span class="doc">ParticleMonitor</span></a> to retain turn-by-turn trajectories.
+It stores one HDF5 or TFS file per beam and monitor with bounded write buffers.
+HDF5 is recommended for large scans: it preserves typed arrays and permits
+selected-row reads without parsing an entire text file. Initial coordinates
+are separate from the first trajectory
+sample: the monitor may be downstream of physical elements.
+For HDF5, the DA reader reads only the required trajectory row and initial
+arrays, not every recorded coordinate on every turn.
+For streamed HDF5, <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> identifies the committed prefix. Trailing
+uncommitted rows are ignored; any required dataset shorter than that prefix
+is rejected as an inconsistent file.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_dynamic_aperture</span><span class="p">,</span> <span class="n">export_dynamic_aperture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_dynamic_aperture</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">read_dynamic_aperture</span><span class="p">(</span><span class="s2">"output/particle/run_particles.h5"</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">dp</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"dynamic_aperture.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+<span class="n">export_dynamic_aperture</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s2">"dynamic_aperture.npz"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The filename above is a placeholder for the actual monitor file.
+<code class="docutils literal notranslate"><span class="pre">read_dynamic_aperture(path,</span> <span class="pre">requested_turn=None,</span> <span class="pre">cancel=None,</span> <span class="pre">clamp_to_available=False)</span></code> accepts
+one current ParticleMonitor HDF5 or finalized TFS file, identified by
+<code class="docutils literal notranslate"><span class="pre">Layout=&quot;single_file&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>. The same file contains
+particle IDs, captured injection coordinates and turns, and trajectory samples.
+Select that file explicitly in scripts or in the GUI’s <strong>ParticleMonitor file</strong> field.</p>
+<p>The reader never treats the first trajectory row as injection data. IDs are
+matched by absolute signed tag within the beam; missing initial records or
+results remain unavailable. Recorded states and losses cannot precede a known
+injection turn. These checks reject contradictory events without inferring
+unknown injection ages or same-turn event ordering.</p>
+<p>Injection’s separate saved distribution is a current bunch snapshot at the
+last injection event. During multi-turn injection, earlier particles may
+already have moved. DA therefore uses the birth coordinates captured inside
+the PM file, without a separate initial snapshot or DistMonitor input.</p>
+<p><code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> is an inclusive simulation turn index at the selected
+monitor. Its default is <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn-1</span></code>, otherwise <code class="docutils literal notranslate"><span class="pre">EndTurn-1</span></code>,
+otherwise the last observed turn. This flags unfinished runs without silently
+reducing the target horizon. The location and order of the monitor still
+determine which physical actions have occurred. For example, a monitor at the
+beginning of the last turn has not observed the remaining actions on that turn.
+There is no artificial sample on finalization and no implicit claim that
+turn index N means N completed revolutions.</p>
+</section>
+<section id="analysis-plots-and-export">
+<h2>Analysis, plots and export<a class="headerlink" href="#analysis-plots-and-export" title="Link to this heading"></a></h2>
+<p>The array function <code class="docutils literal notranslate"><span class="pre">compute_dynamic_aperture</span></code> accepts initial coordinates
+<code class="docutils literal notranslate"><span class="pre">(particles,</span> <span class="pre">6)</span></code>, aligned signed <code class="docutils literal notranslate"><span class="pre">tag</span></code> values <code class="docutils literal notranslate"><span class="pre">(samples,</span> <span class="pre">particles)</span></code>,
+and integer <code class="docutils literal notranslate"><span class="pre">sample_turn</span></code> labels. Optional sampled coordinates have shape
+<code class="docutils literal notranslate"><span class="pre">(samples,</span> <span class="pre">particles,</span> <span class="pre">6)</span></code>. Additional arguments include <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">lost_turn</span></code>, <code class="docutils literal notranslate"><span class="pre">lost_position</span></code>, <code class="docutils literal notranslate"><span class="pre">injection_turn</span></code>, <code class="docutils literal notranslate"><span class="pre">initial_valid</span></code>,
+<code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> and <code class="docutils literal notranslate"><span class="pre">metadata</span></code>. It classifies the last supplied sample
+at or before the requested turn:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Status</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">survived</span></code></p></td>
+<td><p>Alive in a sample on the requested turn.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lost</span></code></p></td>
+<td><p>A negative tag records loss at or before the sampled event.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">invalid</span></code></p></td>
+<td><p>Supplied sampled coordinates are nonfinite or have nonpositive/nonreal longitudinal momentum.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">incomplete</span></code></p></td>
+<td><p>A live sample exists, but does not reach the requested turn.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">unavailable</span></code></p></td>
+<td><p>No usable initial coordinates or observed particle state is available, or injection lies after the target.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Numerical validity refers only to the selected sample, and is not a scan of
+the full trajectory history. Without sampled coordinates the array function
+cannot check numerical validity. It does not modify tags or add a loss model.
+Loss turns remain absolute simulation indices, so particles injected on
+different turns do not automatically have the same tracking age.</p>
+<p>Results retain all initial points, IDs, status, observed turn, loss turn and
+position, selected final coordinates, distinct initial dp groups, and metadata.
+<code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture(result,</span> <span class="pre">dp=None,</span> <span class="pre">mode=&quot;status&quot;,</span> <span class="pre">ax=None,</span>
+<span class="pre">boundary=True)</span></code> selects one exact initial dp value and displays initial x-y
+in mm. <code class="docutils literal notranslate"><span class="pre">loss_turn</span></code> colors known losses by simulation turn; other states
+remain explicitly distinguished. The default dp is the first available group.</p>
+<p>Dashed aperture contours are enabled by default; <code class="docutils literal notranslate"><span class="pre">boundary=False</span></code> retains
+only the sampled points. A contour requires a complete, unique Cartesian grid
+with fixed initial <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code> and <code class="docutils literal notranslate"><span class="pre">z</span></code> within the selected dp group.
+Contours are interpolated halfway between adjacent survived/lost values.
+The scatter points remain visible, including stable islands and losses inside
+the surviving region. Unknown states are masked, and curves reaching the scan
+edge remain open. The legend identifies the sampled aperture boundary;
+no smoothing or convex hull is applied. This is an estimate at the chosen grid
+resolution and tracking horizon, not a separately fitted physical acceptance
+boundary. If all points survive, all are lost, or no valid survived/lost
+transition can be drawn, the plot explains why it has no contour.
+The outer scan rectangle is never substituted for the DA boundary.</p>
+<p>A complete Cartesian grid can cover only a half-plane, such as <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">&gt;=</span> <span class="pre">0</span></code>,
+or a quadrant. Completeness refers to the selected x/y values, not to the
+whole plane. At least two distinct values on each axis are required to draw
+a two-dimensional contour. A contour reaching <code class="docutils literal notranslate"><span class="pre">y=0</span></code> stays open: no segment
+is added along that axis and no untracked negative-y points are mirrored.
+The scan-edge message describes unclassified space outside the scan; survival
+on the intentionally selected <code class="docutils literal notranslate"><span class="pre">y=0</span></code> edge alone does not require extending
+the scan. Interpreting the untracked half-plane would require a separately
+justified symmetry assumption.</p>
+<p><code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture_boundaries(result,</span> <span class="pre">dp_values=None,</span> <span class="pre">ax=None)</span></code> overlays
+the boundaries of all initial dp groups, or a selected subset. Each group has
+its own colour, line style and legend entry; groups with no drawable boundary
+are identified explicitly. This view shows curves without superposing all
+groups’ scatter points. Switch to a single-dp plot to inspect individual losses.
+Repeated boundary notes are combined; for more than twelve selected groups the
+legend moves outside the axes so it does not obscure curves. For substantially
+larger selections, increase the figure size or display a subset of dp groups.
+Outer contours, internal loss holes and disconnected stable islands are all
+retained. An isolated loss inside a surviving region remains a hole; it is not
+filled in or treated as noise. All boundaries use the same target monitor event.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_dynamic_aperture_boundaries</span>
+
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"dynamic_aperture_dp_overlay.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+<span class="c1"># A subset must use exact values from result["dp_values"].</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">dp_values</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">"dp_values"</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">export_dynamic_aperture</span></code> exports the analysis for all particles and initial
+dp groups, independently of the groups currently displayed in the GUI:</p>
+<ul class="simple">
+<li><p>CSV is a per-particle table containing ID, six initial coordinates, initial
+validity, injection turn, classification, observed turn, loss turn and loss
+position. A same-stem JSON file stores the analysis metadata.</p></li>
+<li><p>NPZ stores every result array, including the selected final coordinates and
+dp values, plus <code class="docutils literal notranslate"><span class="pre">metadata_json</span></code>. Load it with <code class="docutils literal notranslate"><span class="pre">numpy.load</span></code> using
+<code class="docutils literal notranslate"><span class="pre">allow_pickle=False</span></code>. It is an uncompressed NumPy archive for further
+Python analysis.</p></li>
+</ul>
+<p>These are classified point results, not a second copy of the full turn history
+or exported contour vertices. Keep the ParticleMonitor file to analyze another
+turn. Figure export saves the current Matplotlib figure, including the chosen
+dp groups and display settings, as PNG, PDF or SVG; it does not export Python
+source code or a GUI screenshot. Large scatter layers may be rasterized inside
+PDF/SVG. Preserve the sequence, reference, apertures, injection conditions and
+requested horizon alongside comparisons.</p>
+<p>Numeric exports are fully written to temporary files before replacing their
+destinations. If publishing the CSV/JSON pair fails, prior files are restored;
+if restoration is also blocked, the error identifies the retained recovery
+directory. This is recovery from caught write errors, not a multi-file
+transaction across a process or machine crash. NPZ extensions are case-insensitive
+and the requested filename is preserved.</p>
+</section>
+<section id="portable-python-file">
+<h2>Portable Python file<a class="headerlink" href="#portable-python-file" title="Link to this heading"></a></h2>
+<p>Copy <code class="docutils literal notranslate"><span class="pre">example/07_dynamic_aperture/standalone/dynamic_aperture.py</span></code> to another
+directory or computer. The copied file requires Python 3.11 or newer, NumPy,
+h5py and Matplotlib; it does not require PASS, Qt or a simulation backend.
+It supports the same current ParticleMonitor HDF5 and finalized TFS files,
+classification, holes, islands, half-plane grids and multi-dp boundaries.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_dynamic_aperture</span><span class="p">,</span> <span class="n">plot_dynamic_aperture_boundaries</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">read_dynamic_aperture</span><span class="p">(</span><span class="s2">"run_particles.h5"</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"da_overlay.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The module also exports <code class="docutils literal notranslate"><span class="pre">compute_dynamic_aperture</span></code>, <code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture</span></code>
+and <code class="docutils literal notranslate"><span class="pre">export_dynamic_aperture</span></code> with their normal signatures. Importing it does
+not select a Matplotlib backend. For a single initial dp, call
+<code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture(result,</span> <span class="pre">dp=0.0)</span></code>. It can also run directly:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png</span>
+</pre></div>
+</div>
+<p>The distributed file is generated from the same reader, analysis and plotting
+sources used by the GUI. After changing these sources, maintainers regenerate
+it with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span></code> and verify it with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span> <span class="pre">--check</span></code>. Copies already taken to
+another location remain snapshots until replaced.</p>
+</section>
+<section id="numerical-convergence">
+<h2>Numerical convergence<a class="headerlink" href="#numerical-convergence" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">float64</span></code> for long-term DA comparisons and record the backend and particle
+precision. Match coordinate normalization, element order and strengths, aperture
+boundary conventions, and the monitor event before comparing programs.</p>
+<p>Chaotic trajectories can amplify floating-point rounding enough to change a
+loss turn or even finite-turn survival, including between CPU and GPU tracking.
+Check short trajectories and individual maps first, then test sensitive points
+with small initial-coordinate perturbations or an independent higher-precision
+reference. Also assess the chosen tracking horizon and grid resolution.
+<code class="docutils literal notranslate"><span class="pre">survived</span></code> and <code class="docutils literal notranslate"><span class="pre">lost</span></code> describe the observed run; they do not estimate
+numerical uncertainty. A smooth plotted contour does not remove this sensitivity.</p>
+</section>
+<section id="gui-workflow">
+<h2>GUI workflow<a class="headerlink" href="#gui-workflow" title="Link to this heading"></a></h2>
+<p>Configure x-y ranges, point counts, initial dp values and fixed coordinates in
+the selected <strong>Injection</strong> bunch. ParticleMonitor only records the configured
+particles. Configure it and the sequence through the existing editors.
+Preparing a grid does not launch tracking.</p>
+<p>For results, open <strong>Analysis → Dynamic aperture</strong> and select one current
+ParticleMonitor file. <strong>End turn (-1 automatic)</strong> chooses the
+zero-based simulation turn at this monitor, not a new tracking length. For a
+run recording turns 0 through 999, use 999 to analyze its planned end or 499
+to analyze the earlier monitor event. Automatic mode uses the planned horizon
+described above; a live record short of that event remains incomplete.
+If a manually entered turn exceeds the last committed sample, the GUI analyzes
+that last sample, updates the input and displays a notice: entering 1100 for a
+file ending at 999 uses 999. The figure and exported <code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> use the
+effective turn; <code class="docutils literal notranslate"><span class="pre">requested_turn_input</span></code> retains the original entry and
+<code class="docutils literal notranslate"><span class="pre">last_sample_turn</span></code> records the file’s last committed sample (or <code class="docutils literal notranslate"><span class="pre">None</span></code> for
+an empty history). No second read of the particle history is needed.
+Automatic mode is not clamped, so an interrupted run cannot silently appear
+complete. A missing sample within the recorded range also remains incomplete;
+an empty history supplies no endpoint to clamp to.
+Python and the portable module preserve strict requested-turn behavior by
+default; pass <code class="docutils literal notranslate"><span class="pre">clamp_to_available=True</span></code> to opt into the GUI’s manual upper
+limit behavior and inspect the returned metadata for the adjustment.
+Choose the initial dp and status/loss
+coloring. <strong>Show aperture boundary</strong> is on by default and can be disabled.
+Choose <strong>Multiple dp: boundary overlay</strong> under <strong>Plot mode</strong> to compare groups.
+The checkable dp list initially selects all groups and provides Select all/Clear;
+single-dp colour and boundary controls apply only to the single-dp view.
+Data and figure exports use the
+same analysis and plotting functions as Python scripts. Reading runs in the
+background and supports cancellation.
+If the file contains no valid captured initial coordinates, the plot explicitly
+reports that no initial dp group is available instead of showing an empty figure.
+After changing the source file or end turn, a notice identifies the displayed
+and exportable result as the previous analysis until a new analysis succeeds.
+Export requires an analyzed result; a filename without an extension uses the
+selected export format. Before replacing existing outputs, the GUI confirms
+their resolved filenames, including the metadata JSON paired with CSV.
+Figure writes are staged before replacing an existing image.
+Close initial dp groups use enough label precision to remain distinct
+in both single-group plots and overlays.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="spectral_analysis.html" class="btn btn-neutral float-left" title="Spectral analysis and frequency maps" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

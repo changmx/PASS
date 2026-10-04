@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动力学孔径扫描 &mdash; PASS 0.5.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="PASS User Manual" href="../en/index.html" />
+    <link rel="prev" title="频谱分析与频率图" href="spectral_analysis.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.5.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/dynamic_aperture.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slow_extraction.html">慢引出（SlowExtraction）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">动力学孔径扫描</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">初始坐标</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">记录与读取</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">分析、绘图与导出</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python">独立 Python 文件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">数值收敛</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gui">GUI 工作流</a></li>
+</ul>
+</li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">动力学孔径扫描</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>动力学孔径扫描<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>源码目录中的 <code class="docutils literal notranslate"><span class="pre">example/07_dynamic_aperture/README.md</span></code> 提供完整的输入生成、
+追踪和绘图工作流。</p>
+<p>动力学孔径（DA）由粒子追踪结果分析得到，不替换用户配置的 sequence，
+也不自动插入、删除或调整物理效应。扫描可以包含元件、RF、集体效应和用户
+配置的孔径。存活表示粒子在指定监测事件仍被观测为存活，有限圈追踪不能证明
+无限时间稳定性。</p>
+<section id="id2">
+<h2>初始坐标<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>第一版生成器采用物理坐标的直角网格：</p>
+<div class="math notranslate nohighlight">
+\[(x_i,\;0,\;y_j,\;0,\;z_0,\;\delta_k),\qquad
+N=N_xN_yN_{\delta}.\]</div>
+<p>每个初始 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 对应完整的 x-y 网格，所有组合在同一次模拟中追踪。
+<code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code> 和 <code class="docutils literal notranslate"><span class="pre">z</span></code> 默认均为零；Python 生成器和 schema 也允许指定固定值。
+位置单位为米；<code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code> 是以参考动量归一化的机械动量，
+<code class="docutils literal notranslate"><span class="pre">dp=(P-P0)/P0</span></code>。这定义了横向相空间的一个二维切片，并不覆盖全部横向相位，
+也不假定象限对称。</p>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.utils.scan_grid.generate_scan_grid(x_values,</span> <span class="pre">y_values,</span> <span class="pre">dp_values,</span>
+<span class="pre">px=0,</span> <span class="pre">py=0,</span> <span class="pre">z=0)</span></code> 返回 <code class="docutils literal notranslate"><span class="pre">coordinates</span></code>，列顺序为 x、px、y、py、z、dp；
+<code class="docutils literal notranslate"><span class="pre">indices</span></code> 保存 dp、y、x 索引。排列顺序为 dp 最外层、y 次之、x 变化最快。
+每个轴的数值必须有限且不重复，纵向机械动量必须为实数且为正。</p>
+<p>Injection 的束团可使用紧凑的 <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> 配置：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"X range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"Y range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"Number of x points"</span><span class="p">:</span><span class="w"> </span><span class="mi">41</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Number of y points"</span><span class="p">:</span><span class="w"> </span><span class="mi">41</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"dp values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"px"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"py"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"z (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>该对象放在束团的 <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> 字段中，不属于 ParticleMonitor 参数。
+它与 <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code>、<code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code> 互斥。
+明确坐标占用第一批注入中已经配置的宏粒子名额，不隐式增加束流粒子数。
+第一批的数量至少应等于扫描点数；纯扫描时将其设为扫描点总数。</p>
+<p>明确坐标在普通分布的偏移和色散处理之后写入，以入射参考定义。
+之后的参考转换保持物理动量和到达时间，因此目标参考不同时，最终存储的
+坐标数字可能改变。ParticleMonitor 单独记录注入时捕获的实际初值、
+注入参考和注入圈数。DA 按保存的初始 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 分组，不按 RF 等效应作用后的
+最终 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 分组。直接比较网格时应使用一致的注入参考。</p>
+<p>ParticleMonitor 用粒子 ID 关联每一条捕获的初值。HDF5 的 <code class="docutils literal notranslate"><span class="pre">initial</span></code> 组中包含
+<code class="docutils literal notranslate"><span class="pre">initial/dp</span></code>，TFS 则使用初始记录。DA 按保存的初始数值精确分组，不根据粒子
+排列位置猜测，也不通过舍入划分区间。粒子重排、丢失后的负 tag 以及后续动量变化
+不会改变其初始分组。因此连续随机的动量分布不会自动变成几个离散的 dp 扫描组。</p>
+<p>所有宏粒子均参与配置的物理作用。有集体效应时，各 dp 组共同构成一个源分布，
+所得存活区对应这个混合分布，不等同于分别模拟的单能束流。
+改变网格密度或范围也可能改变源分布。<code class="docutils literal notranslate"><span class="pre">z=0</span></code> 将粒子放在同一纵向坐标；
+若该模型不适合所研究问题，应另行配置纵向分布。</p>
+</section>
+<section id="id3">
+<h2>记录与读取<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>使用 <a class="reference internal" href="monitor/particlemonitor.html"><span class="doc">粒子监视器（ParticleMonitor）</span></a> 保留逐圈轨迹。
+每个 beam、每个监测器写一个 HDF5 或 TFS 文件，使用有界写入缓冲。
+大规模扫描推荐 HDF5：它保留数值类型，并能选择读取特定记录，不需要解析整个文本文件。
+初始坐标与第一条轨迹记录分开保存，因为监测器前可能已经执行了物理元件。
+对于 HDF5，DA 读取器只读取所需的轨迹行和初值数组，不将所有圈的坐标整体载入内存。
+流式 HDF5 的 <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> 指定已提交的前缀；未提交的尾部行被忽略。
+任一必需数据集短于该前缀时，读取器会拒绝该不一致文件。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_dynamic_aperture</span><span class="p">,</span> <span class="n">export_dynamic_aperture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_dynamic_aperture</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">read_dynamic_aperture</span><span class="p">(</span><span class="s2">"output/particle/run_particles.h5"</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">dp</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"dynamic_aperture.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+<span class="n">export_dynamic_aperture</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s2">"dynamic_aperture.npz"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>上例文件名是实际监测文件的占位示例。
+<code class="docutils literal notranslate"><span class="pre">read_dynamic_aperture(path,</span> <span class="pre">requested_turn=None,</span> <span class="pre">cancel=None,</span> <span class="pre">clamp_to_available=False)</span></code> 接受一个当前
+ParticleMonitor HDF5 或完成导出的 TFS 文件，标识为 <code class="docutils literal notranslate"><span class="pre">Layout=&quot;single_file&quot;</span></code>、
+<code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>。同一文件包含粒子 ID、捕获的注入坐标和注入圈，以及轨迹样本。
+在脚本中明确指定此文件，GUI 则通过 <strong>ParticleMonitor 文件</strong> 选择它。</p>
+<p>读取器不会把 PM 第一条轨迹记录当成注入初值。匹配使用 beam 范围内 <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code>；
+缺少初值或结果的粒子保持不可用。粒子记录和丢失不得早于已知注入圈。
+这些检查拒绝相互矛盾的事件，不推断未知注入时长或同一圈内的事件顺序。</p>
+<p>Injection 单独保存的分布是最后一次注入事件时的当前束团快照；多圈注入中，
+早期粒子可能已经运动。因此 DA 使用 PM 文件内捕获的出生坐标，
+不需要另行提供初始快照，也不通过 DistMonitor 文件分析。</p>
+<p><code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> 是所选监测器处包含在内的模拟圈索引，默认依次取
+<code class="docutils literal notranslate"><span class="pre">RequestedEndTurn-1</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn-1</span></code> 或最后实际记录的圈。
+这使提前结束的运行被标为覆盖不足，而不会静默降低目标追踪范围。
+监测位置和执行顺序仍决定该样本之前已经发生的物理作用。例如，最后一圈开头
+的监测器尚未观测到该圈剩余的作用。结束清理不补造样本，也不自动把圈索引 N
+解释为已经完成 N 个回旋周期。</p>
+</section>
+<section id="id4">
+<h2>分析、绘图与导出<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>数组函数 <code class="docutils literal notranslate"><span class="pre">compute_dynamic_aperture</span></code> 接受形状为 <code class="docutils literal notranslate"><span class="pre">(particles,</span> <span class="pre">6)</span></code> 的初值、
+已对齐的 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 数组 <code class="docutils literal notranslate"><span class="pre">(samples,</span> <span class="pre">particles)</span></code> 和整数 <code class="docutils literal notranslate"><span class="pre">sample_turn</span></code>。
+可选的采样坐标为 <code class="docutils literal notranslate"><span class="pre">(samples,</span> <span class="pre">particles,</span> <span class="pre">6)</span></code>。其他参数包括 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>、
+<code class="docutils literal notranslate"><span class="pre">lost_turn</span></code>、<code class="docutils literal notranslate"><span class="pre">lost_position</span></code>、<code class="docutils literal notranslate"><span class="pre">injection_turn</span></code>、<code class="docutils literal notranslate"><span class="pre">initial_valid</span></code>、
+<code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">metadata</span></code>。函数在不晚于目标圈的最后样本上分类：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>状态</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">survived</span></code></p></td>
+<td><p>目标圈的样本中粒子仍存活。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lost</span></code></p></td>
+<td><p>负 tag 表示粒子在采样事件或之前已丢失。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">invalid</span></code></p></td>
+<td><p>提供的采样坐标非有限，或纵向机械动量非实数/非正。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">incomplete</span></code></p></td>
+<td><p>有存活样本，但尚未覆盖目标圈。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">unavailable</span></code></p></td>
+<td><p>缺少可用初值或粒子状态，或注入晚于目标圈。</p></td>
+</tr>
+</tbody>
+</table>
+<p>数值有效性检查仅针对所选样本，不检查完整历史轨迹。
+不提供采样坐标时，数组函数不能检查数值有效性。分析不修改 tag，也不添加
+丢失模型。丢失圈数仍是模拟的绝对索引；不同圈注入的粒子不自动具有相同追踪时长。</p>
+<p>结果保留所有初始点、ID、状态、观测圈、丢失圈和位置、所选终态坐标、
+初始 dp 分组和元数据。<code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture(result,</span> <span class="pre">dp=None,</span>
+<span class="pre">mode=&quot;status&quot;,</span> <span class="pre">ax=None,</span> <span class="pre">boundary=True)</span></code> 按一个精确的初始 dp 值选择分组，
+以 mm 显示初始 x-y。<code class="docutils literal notranslate"><span class="pre">loss_turn</span></code> 模式按绝对丢失圈着色，并单独区分其他状态。
+不指定 dp 时选择第一个可用组。</p>
+<p>默认在散点上叠加虚线孔径边界；<code class="docutils literal notranslate"><span class="pre">boundary=False</span></code> 可关闭边界显示。
+边界要求所选 dp 组构成完整、唯一的直角网格，且初始 <code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code> 固定。
+按相邻存活/丢失值的中点插值过渡线，同时保留稳定岛及存活区内部的丢失点。
+未知状态被遮罩，到达扫描边缘的曲线保持开放。图例标识采样孔径边界，不进行平滑或凸包包络。
+这是所选网格分辨率和追踪范围下的边界估计，不是额外拟合出的物理接受度边界。
+全部存活、全部丢失或没有可绘制的有效存活/丢失过渡时，图中说明原因；
+不会把扫描矩形外沿当成 DA 边界。</p>
+<p>完整直角网格可以只覆盖 <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">&gt;=</span> <span class="pre">0</span></code> 的半平面或某个象限；“完整”指所选 x/y
+数值的组合，不要求覆盖整个平面。每个轴至少需要两个不同数值才能绘制二维轮廓。
+到达 <code class="docutils literal notranslate"><span class="pre">y=0</span></code> 的边界保持开放，不沿横轴补线闭合，也不镜像生成未追踪的负 y 点。
+扫描边缘提示表示区域以外尚未分类；若 <code class="docutils literal notranslate"><span class="pre">y=0</span></code> 是有意选择的截取边缘，仅该边缘
+有存活点不要求扩大扫描。推断未扫描的另一半平面需要单独确认模型的对称性。</p>
+<p><code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture_boundaries(result,</span> <span class="pre">dp_values=None,</span> <span class="pre">ax=None)</span></code> 将全部初始
+dp 组的边界叠加，也可以选择其中一部分。每组使用独立颜色、线型和图例；无法绘制
+边界的组会明确标注。叠加模式只显示曲线，查看个别粒子的状态时切回单 dp 散点图。
+相同的边界说明合并显示；选择超过 12 组时，图例移至坐标轴外，避免遮挡曲线。
+若选择的组数更多，可增大图形尺寸或仅显示部分 dp 组。
+外轮廓、内部丢失孔洞及分离的稳定岛均保留；存活区内的孤立丢失点仍形成孔洞，
+不会被填补或作为噪声删除。所有边界对应同一个目标监测事件。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_dynamic_aperture_boundaries</span>
+
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"dynamic_aperture_dp_overlay.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+<span class="c1"># 从结果中的精确 dp 值选择部分组。</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">dp_values</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">"dp_values"</span><span class="p">][:</span><span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">export_dynamic_aperture</span></code> 导出所有粒子、所有初始 dp 组的分析结果，
+不受 GUI 当前显示的分组限制：</p>
+<ul class="simple">
+<li><p>CSV 每个粒子一行，包含 ID、六维初值、初值有效性、注入圈、分类、观测圈、
+丢失圈及丢失位置。同名 JSON 文件保存分析元数据。</p></li>
+<li><p>NPZ 保存全部结果数组，包括所选终态坐标、dp 列表及 <code class="docutils literal notranslate"><span class="pre">metadata_json</span></code>。
+使用 <code class="docutils literal notranslate"><span class="pre">numpy.load</span></code> 并设置 <code class="docutils literal notranslate"><span class="pre">allow_pickle=False</span></code> 即可读取。
+这是用于后续 Python 分析的未压缩 NumPy 归档。</p></li>
+</ul>
+<p>这些文件保存分类后的点数据，不是全部逐圈轨迹的另一份副本，也不是边界顶点表。
+分析其他圈仍需保留 ParticleMonitor 文件。图形导出保存当前 Matplotlib 图，
+包含选定的 dp 分组和显示设置，格式为 PNG、PDF 或 SVG；不导出 Python 源码，
+也不是 GUI 截图。大量散点在 PDF/SVG 中可能以栅格图层保存。
+比较结果时应同时保存 sequence、参考、孔径、注入条件和目标追踪范围。</p>
+<p>数值导出先完整写入临时文件，再替换目标文件。发布 CSV/JSON 文件对失败时会
+恢复原有文件；若恢复也被阻止，错误信息会指出保留的恢复目录。这是针对已捕获
+写入异常的恢复机制，不保证进程或机器崩溃时的多文件事务。
+NPZ 扩展名不区分大小写，并保留指定文件名。</p>
+</section>
+<section id="python">
+<h2>独立 Python 文件<a class="headerlink" href="#python" title="Link to this heading"></a></h2>
+<p>将 <code class="docutils literal notranslate"><span class="pre">example/07_dynamic_aperture/standalone/dynamic_aperture.py</span></code> 复制到其他
+目录或电脑即可使用。该文件需要 Python 3.11 及以上版本、NumPy、h5py 和
+Matplotlib，不需要安装 PASS、Qt 或模拟后端。它支持相同的当前
+ParticleMonitor HDF5 和完成导出的 TFS 文件、状态分类、孔洞、稳定岛、
+半平面网格以及多 dp 边界。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dynamic_aperture</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_dynamic_aperture</span><span class="p">,</span> <span class="n">plot_dynamic_aperture_boundaries</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">read_dynamic_aperture</span><span class="p">(</span><span class="s2">"run_particles.h5"</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_dynamic_aperture_boundaries</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"da_overlay.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>该模块也提供 <code class="docutils literal notranslate"><span class="pre">compute_dynamic_aperture</span></code>、<code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">export_dynamic_aperture</span></code>，参数与原接口一致。导入模块不会选择或更改
+Matplotlib 后端。单个初始 dp 可用 <code class="docutils literal notranslate"><span class="pre">plot_dynamic_aperture(result,</span> <span class="pre">dp=0.0)</span></code>。
+也可以直接运行：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png</span>
+</pre></div>
+</div>
+<p>此文件从 GUI 使用的同一套读取、分析和绘图源码生成。维护者修改这些源码后，
+运行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span></code> 更新，再用
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span> <span class="pre">--check</span></code> 检查一致性。
+已复制到其他位置的文件是当时的版本，需要重新复制才能更新。</p>
+</section>
+<section id="id5">
+<h2>数值收敛<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>长期 DA 对比应使用 <code class="docutils literal notranslate"><span class="pre">float64</span></code>，并记录计算后端和粒子精度。
+跨程序比较前，应对齐坐标归一化、元件顺序与强度、孔径边界约定以及监测事件。</p>
+<p>混沌轨迹可能放大浮点舍入，进而改变丢失圈数，甚至有限圈数下的存活状态；
+CPU 与 GPU 之间也可能出现这种差异。应先检查短程轨迹和单个元件映射，再用
+微小初值扰动或独立的更高精度参考复核敏感点，并检查追踪圈数和网格分辨率。
+<code class="docutils literal notranslate"><span class="pre">survived</span></code>、<code class="docutils literal notranslate"><span class="pre">lost</span></code> 描述本次运行的实际观测，不估计数值不确定性。
+平滑的绘图边界不会消除这种敏感性。</p>
+</section>
+<section id="gui">
+<h2>GUI 工作流<a class="headerlink" href="#gui" title="Link to this heading"></a></h2>
+<p>在选定的 <strong>Injection</strong> 束团中配置 x-y 范围、点数、初始 dp 列表及固定坐标。
+ParticleMonitor 只记录已配置的粒子；通过现有编辑器配置监测器和 sequence。
+准备网格不会自动启动模拟。</p>
+<p>在 <strong>分析 → 动力学孔径</strong> 中选择一个当前 ParticleMonitor 文件。
+<strong>终点圈数（-1 自动）</strong> 按该监测器处从 0 开始的文件圈数填写，不是新的追踪时长。
+例如记录圈号为 0 至 999 时，选 999 分析计划末次事件，选 499 分析较早的事件。
+自动模式采用上文所述的计划截止圈；存活记录未覆盖该事件时仍标为覆盖不足。
+手动输入超过文件最后已提交采样圈时，GUI 使用最后采样圈分析，同时修改输入框
+并显示提示：例如文件最后记录为 999，输入 1100 会改为 999。图形和导出元数据中的
+<code class="docutils literal notranslate"><span class="pre">requested_turn</span></code> 使用实际分析圈，<code class="docutils literal notranslate"><span class="pre">requested_turn_input</span></code> 保留原始输入，
+<code class="docutils literal notranslate"><span class="pre">last_sample_turn</span></code> 保存文件的最后已提交采样圈（空历史为 <code class="docutils literal notranslate"><span class="pre">None</span></code>）。
+此调整不需要再次读取粒子历史。
+自动模式不进行此下调，避免将中断运行误认为完成；记录范围内缺失目标圈时仍按
+覆盖不足处理。空历史没有可供调整的终点。
+Python 和独立模块默认保留严格的指定圈语义；传入 <code class="docutils literal notranslate"><span class="pre">clamp_to_available=True</span></code>
+即可启用与 GUI 相同的手动输入上限处理，并从返回的元数据查看调整情况。
+再选择初始 dp、
+状态/丢失圈着色；<strong>显示孔径边界</strong> 默认开启，也可关闭。数值与图片导出复用 Python 脚本的同一组分析和
+绘图函数。读取在后台执行，支持取消。
+若文件没有有效的已捕获注入初值，图中会明确提示没有可用的初始 dp 分组，
+不再只显示空白图形。
+在 <strong>绘图方式</strong> 中选择 <strong>多个 dp：边界叠加</strong> 后，勾选需要比较的 dp 组；初始全选，
+并提供全选与清空按钮。单 dp 的着色和边界开关仅用于单 dp 视图。
+更改源文件或终点圈数后，会提示当前显示及可导出的仍是上次分析结果，直到新的
+分析成功。导出前须已有分析结果；文件名没有扩展名时，按所选格式补齐。
+替换已有输出前，GUI 会确认补齐扩展名后的实际文件路径，包括 CSV 配套的
+JSON 元数据文件。图片先写入临时文件，成功后再替换原图片。对于非常接近的初始 dp，单组图和
+叠加图均提高标签精度，避免不同分组显示成相同数值。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="spectral_analysis.html" class="btn btn-neutral float-left" title="频谱分析与频率图" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS User Manual" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

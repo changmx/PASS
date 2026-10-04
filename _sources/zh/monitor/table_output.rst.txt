@@ -10,7 +10,8 @@
 - ``"hdf5"``：不压缩的 HDF5，也不启用 shuffle。
 - ``"tfs"``：TFS 文本输出。
 
-监视器、Injection 与 Slicer 省略此选项时使用 ``"hdf5-gzip1"``。
+省略此选项时，ParticleMonitor 与 Injection 使用不压缩的 ``"hdf5"``；
+其他监视器与 Slicer 使用 ``"hdf5-gzip1"``。
 :doc:`BeamBeam 亮度 <../beam_beam>` 的共享 ``Luminosity`` 配置则默认 ``"tfs"``。
 格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。
@@ -33,8 +34,8 @@
      - 每个束团、每个完成窗口一个表格
      - 无
    * - ParticleMonitor
-     - 每个选定粒子一个逐圈历史文件
-     - 无
+     - 每个监视器与束流一个文件，包含所选粒子的全部记录圈
+     - HDF5 数组或 TFS 长表；均包含注入初值
    * - StatMonitor
      - 每个束团、每个监视器位置一个统计历史文件
      - 包含相同行的 CSV
@@ -61,9 +62,9 @@ SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。
 HDF5 结构与元数据
 -----------------
 
-每个数值或布尔列对应文件根目录下的一个 **一维 dataset**，保留原列名和
+普通表格布局的每个数值或布尔列对应文件根目录下的一个 **一维 dataset**，保留原列名和
 数据类型，各列长度相同。分布表的一行对应一个粒子；StatMonitor 的一行
-对应一个记录圈；ParticleMonitor 的一行对应文件所标识粒子的一个记录圈。
+对应一个记录圈。
 例如，统计文件包含::
 
    /turn                  (N,)
@@ -77,12 +78,21 @@ HDF5 结构与元数据
 表格头信息保存为 **文件根属性**，包括名称、现有元数据中的
 单位、参考约定和监视器位置。StatMonitor 随圈变化的参考量始终作为逐行列保存，
 保留完整历史；快照中的参考 attributes 只描述该次快照。ParticleMonitor
-仍然仅在 ``"Include reference": true`` 时保存参考量列。
+仅在 ``"Include reference": true`` 时保存逐圈参考量列；HDF5 文件中的 ``initial``
+组始终保存注入时的参考量。
+
+:doc:`ParticleMonitor <particlemonitor>` 的 HDF5 文件使用
+二维 (sample, particle) dataset、一维 ``turn`` 和 ``particle_id`` 轴，以及
+``initial`` 组。它使用 ``FormatVersion=2``、``ValidSamples`` 元数据和专用 DA／
+频谱读取接口，不通过普通 ``read_table`` 函数读取。TFS 输出则使用长表，
+明确保存 ``record``、``turn`` 和 ``particle_id`` 列。record 为 0 表示注入初值，
+为 1 表示逐圈轨迹样本。两种格式均以有界缓冲保留每个记录圈。HDF5 在追踪期间
+分块追加；TFS 在追踪期间使用私有 HDF5 存储，结束清理时导出标准文本表。
+PM 读取器要求一个当前第 2 版文件。完成状态元数据与各格式读取接口详见 ParticleMonitor 页面。
 
 另有两个保留属性描述表格格式：``_pass_table_version=1`` 和
 ``_pass_table_columns``（按输出顺序排列的列名 JSON 数组）。用户 headers
-不能以 ``_pass_table_`` 开头。统一读取器也支持没有这些属性的旧 PASS
-HDF5 分布快照。SpaceCharge 多维场文件需使用专用场数据读取器。
+不能以 ``_pass_table_`` 开头。SpaceCharge 多维场文件需使用专用场数据读取器。
 
 ``"hdf5-gzip1"`` 使用无损 gzip level 1 压缩并启用 shuffle。
 shuffle 在压缩前重排字节，不改变保存的数值或粒子顺序。

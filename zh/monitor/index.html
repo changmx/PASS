@@ -98,6 +98,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -179,7 +181,9 @@
 <p>分布文件头保存 <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code>、<code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code>、
 <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span></code>、<code class="docutils literal notranslate"><span class="pre">CoordinateDefinition</span></code> 和元件出口事件标识。
 统计监视器逐行保存相应参考参数。ParticleMonitor 仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时
-保存这些列，默认在数据列和 headers 中均不保存参考量。必须使用同行参考信息重建存活粒子时间，
+保存逐圈参考量。其 HDF5 <code class="docutils literal notranslate"><span class="pre">initial</span></code> 组或 TFS 初值行始终保存注入参考量，
+它不能代替后续每个样本的参考量。TFS 在关闭此选项时仍保留参考列，轨迹行对应值为 NaN。
+必须使用同行参考信息重建存活粒子时间，
 不能使用其他圈的参考值。损失坐标是冻结的诊断记录，不能用后续存活束团参考系解释。</p>
 <p>物理坐标定义见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>，通用文件格式与读取方法见 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。</p>
 </section>

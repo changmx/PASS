@@ -21,6 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Spectral analysis and frequency maps" href="../spectral_analysis.html" />
     <link rel="prev" title="PhaseAdvanceMonitor" href="phaseadvancemonitor.html" /> 
 </head>
 
@@ -104,6 +105,8 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -144,7 +147,10 @@ count its events twice.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">Source</span></code> value must exactly match a <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> sequence name
 in the same beam. The monitor must execute after that source at the same
 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>. Default priorities 850 and 860 provide this order; if explicit
-<code class="docutils literal notranslate"><span class="pre">Order</span></code> is used at that position, set distinct values on every node there.</p>
+<code class="docutils literal notranslate"><span class="pre">Order</span></code> is used at that position, set distinct values on every node there.
+The monitor must consume every source invocation from its first batch, including
+turns outside its statistical window. Missing a batch raises an error; the monitor
+does not recover skipped events from the source file.</p>
 <section id="windows-and-bin-definitions">
 <h2>Windows and bin definitions<a class="headerlink" href="#windows-and-bin-definitions" title="Link to this heading"></a></h2>
 <p>Turn and physical-time windows are independently optional and intersect
@@ -163,6 +169,10 @@ can occupy different time bins, and later tracking turns can add events to
 earlier time bins. Therefore time histograms remain provisional during a
 run; writing a snapshot does not close their bins.</p>
 <p>Nominal <code class="docutils literal notranslate"><span class="pre">bin_start</span></code> and <code class="docutils literal notranslate"><span class="pre">bin_end</span></code> stay fixed between snapshots.
+Time edges are evaluated in float64 as <code class="docutils literal notranslate"><span class="pre">origin</span> <span class="pre">+</span> <span class="pre">k</span> <span class="pre">*</span> <span class="pre">width</span></code>. Assignment uses
+exact left-closed, right-open comparisons against these same stored edges,
+without snapping nearby times to a boundary. A width too small to resolve
+distinct edges at the observed times raises an error.
 <code class="docutils literal notranslate"><span class="pre">observed_start</span></code>, <code class="docutils literal notranslate"><span class="pre">observed_end</span></code> and <code class="docutils literal notranslate"><span class="pre">observed_width</span></code> separately describe
 the portion covered by the observations so far. Turn coverage is the range
 of executed turns inside the monitor’s turn window. Time coverage is the
@@ -360,6 +370,7 @@ distributions, particle-level arrival times or different offline binning.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="phaseadvancemonitor.html" class="btn btn-neutral float-left" title="PhaseAdvanceMonitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../spectral_analysis.html" class="btn btn-neutral float-right" title="Spectral analysis and frequency maps" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

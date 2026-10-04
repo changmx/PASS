@@ -89,23 +89,24 @@
 <li class="toctree-l2"><a class="reference internal" href="#zh-multiturn-injection">多圈注入与横向涂抹</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id15">注入时序与粒子数量</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id16">入射分布与偏置</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">笛卡尔扫描坐标</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bump">Bump 磁铁与横向涂抹</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id17">注入过程的观测</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18">注入过程的观测</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id18">粒子分布类型简介</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id19">横向粒子分布</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id20">纵向粒子分布</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id21">多束团纵向坐标</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id22">束团填充方案</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id23">色散耦合</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id24">动量偏差</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id19">粒子分布类型简介</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id20">横向粒子分布</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id21">纵向粒子分布</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id22">多束团纵向坐标</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id23">束团填充方案</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id24">色散耦合</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id25">动量偏差</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id25">分布类型选择</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id26">分布类型选择</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#d">1D 投影理论曲线</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id26">模拟结果</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id27">初始分布输出格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id27">模拟结果</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id28">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
@@ -129,6 +130,8 @@
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -544,6 +547,20 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>在偏置施加后替换首批的前若干行，格式为 <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code>；这些粒子计入计划总数</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particle_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code></p></td>
+<td><p>str 或 null</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>含 <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp</span></code> 列的 TFS/HDF5 文件，在偏置施加后替换首批坐标</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_grid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code></p></td>
+<td><p>object 或 null</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>为每个初始 dp 生成完整的 x/y 笛卡尔网格，在偏置施加后替换首批坐标</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -642,7 +659,7 @@
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">'hdf5-gzip1'</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'hdf5'</span></code></p></td>
 <td><p>初始分布表格式：hdf5-gzip1、hdf5 或 tfs。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_x</span></code></p></td>
@@ -826,12 +843,55 @@ N_{\mathrm{event}}=\left\lceil\frac{T}{\Delta n}\right\rceil.\]</div>
 注入圈号或入射参考粒子通过时间处线性插值。位置与动量列分别为
 <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">px</span> <span class="pre">(rad)</span></code> 或 <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">(rad)</span></code>。
 节点必须严格递增、数值必须有限，时间范围必须覆盖所有需要查询的注入事件。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> 在上述偏置施加后、转换到环流参考系之前，
-替换首批的前若干行；首批必须有足够的行数容纳这些指定粒子。
-文件行数不足、坐标含非有限值或纵向动量非正时，会在激活该批之前报错。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code>、<code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> 是
+互斥的三种显式坐标来源，均在上述偏置施加后、转换到环流参考系之前，替换首批的
+前若干行。首批必须有足够的预留粒子；替换不会增加计划粒子数或改变宏粒子权重。
+显式坐标文件使用与普通分布文件相同的六个小写坐标列，但其坐标不再施加动量偏移、
+色散或横向偏置。文件全部行只在首批使用一次，不导入文件内的 tag。
+文件行数不足、坐标含非有限值或纵向动量非正时，会在激活该批之前报错。
+当网格或显式文件覆盖整个首批、且未启用普通分布文件加载时，跳过不再使用的随机
+分布生成。部分替换时，剩余粒子仍按通常方式生成并施加偏置。</p>
+<p>若手动坐标在唯一的有效注入批次中提供了完整分布，同样跳过无用的随机生成，
+无需为 Gaussian 背景设置正发射度。真正多批注入中只手动替换首批时，
+后续生成批次的随机数序列保持原有行为。
+完整手动束团不再消耗最终被丢弃的随机采样，因此同一 Injection 命令中后续
+随机生成束团的固定种子坐标可能与旧版本不同。当前版本使用相同种子和配置
+重复运行仍可复现。</p>
 <p>即使环流束已经加速，入射物理动量仍由指定的注入能量决定。
 Injection 在保持物理动量和到达时间的条件下，将入射动量及纵向坐标转换到
 目标束团参考系，定义见 <a class="reference internal" href="#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+</section>
+<section id="id17">
+<h3>笛卡尔扫描坐标<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> 在一个束团内生成 x、y 轴与 <code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">values</span></code> 的完整笛卡尔积，
+每个 dp 值对应一套完整 x/y 网格。x 索引变化最快，其次为 y，最后为 dp。
+该配置仅生成初值；所有追踪指令与物理效应仍由用户选择。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Scan Grid"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"X range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Y range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.008</span><span class="p">,</span><span class="w"> </span><span class="mf">0.008</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Number of x points"</span><span class="p">:</span><span class="w"> </span><span class="mi">21</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of y points"</span><span class="p">:</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"dp values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"px"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"py"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"z (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>该网格包含 1071 个粒子，首批必须至少预留 1071 个宏粒子。范围包含两端点；
+单点轴要求两端点相同，多点轴要求两端点递增。点数必须为正整数，dp 值必须有限
+且不重复，每个点都必须满足 <span class="math notranslate nohighlight">\(1+\delta&gt;\sqrt{p_x^2+p_y^2}\)</span>。
+固定的 <code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code> 与 <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">(m)</span></code> 默认均为零。其中 <code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code> 为相对于
+入射参考动量归一化的机械动量，不是几何斜率。</p>
+<p>Python 可使用 <code class="docutils literal notranslate"><span class="pre">ScanGridConfig</span></code>，或调用
+<code class="docutils literal notranslate"><span class="pre">PASS.utils.scan_grid.generate_scan_grid(x_values,</span> <span class="pre">y_values,</span> <span class="pre">dp_values)</span></code>。
+后者返回 <code class="docutils literal notranslate"><span class="pre">coordinates``（列为</span> <span class="pre">``[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp]</span></code>）、<code class="docutils literal notranslate"><span class="pre">indices</span></code>
+（列为 <code class="docutils literal notranslate"><span class="pre">[dp_index,</span> <span class="pre">y_index,</span> <span class="pre">x_index]</span></code>）和三个坐标轴，也支持固定 <code class="docutils literal notranslate"><span class="pre">px</span></code>、
+<code class="docutils literal notranslate"><span class="pre">py</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code> 关键字参数。</p>
+<p>指定坐标在入射参考系内精确成立。若环流参考动量或时钟不同，参考变换可能改变
+所存储的 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 与 <code class="docutils literal notranslate"><span class="pre">z</span></code>，但保持物理动量和到达时间不变。分析应使用注入后的
+实际初始坐标，按初始 dp 分组，因为 RF 随后可能改变 dp。扫描粒子保持通常的
+束流权重，并参与所配置的集体效应。</p>
 </section>
 <section id="bump">
 <h3>Bump 磁铁与横向涂抹<a class="headerlink" href="#bump" title="Link to this heading"></a></h3>
@@ -849,8 +909,8 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 计算静电偏转以及与电极或真空壁的接触。在 ES 出口给定的粒子从该平面
 开始跟踪，Injection 不额外施加几何接受截断。</p>
 </section>
-<section id="id17">
-<h3>注入过程的观测<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
+<section id="id18">
+<h3>注入过程的观测<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
 <p>在需要的观察位置和圈数配置 <a class="reference internal" href="monitor/distmonitor.html"><span class="doc">分布监视器（DistMonitor）</span></a>，保存已经注入的粒子。
 在 <span class="math notranslate nohighlight">\(s=0\)</span> 处，Injection 先于监视器执行，因此快照包含当前批次。
 开启 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">injection</span> <span class="pre">metadata</span></code> 后，输出增加 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>、
@@ -862,12 +922,12 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 <a class="reference internal" href="monitor/statmonitor.html"><span class="doc">统计监视器（StatMonitor）</span></a> 观测。</p>
 </section>
 </section>
-<section id="id18">
-<h2>粒子分布类型简介<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
+<section id="id19">
+<h2>粒子分布类型简介<a class="headerlink" href="#id19" title="Link to this heading"></a></h2>
 <p>在 PASS 程序中初始粒子分布由 <strong>Injection</strong> 命令实现，在 <strong>Injection</strong> 命令中，可以单独为每个束团设置不同的分布信息。</p>
 </section>
-<section id="id19">
-<h2>横向粒子分布<a class="headerlink" href="#id19" title="Link to this heading"></a></h2>
+<section id="id20">
+<h2>横向粒子分布<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
 <p>目前 PASS 程序支持生成的横向粒子分布有 <strong>水平垂直解耦的 2D 高斯分布</strong> 、 <strong>4D KV分布</strong> 、 <strong>4D 水袋分布</strong> 、 <strong>4D 抛物线分布</strong> 、 <strong>2D 相空间均匀分布</strong> 。</p>
 <p>其中 4D 分布是指在 4D 相空间 <span class="math notranslate nohighlight">\((x, p_x, y, p_y)\)</span> 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 <strong>归一化坐标</strong> ：</p>
 <div class="math notranslate nohighlight">
@@ -1036,8 +1096,8 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 </ul>
 </div></blockquote>
 </section>
-<section id="id20">
-<h2>纵向粒子分布<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
+<section id="id21">
+<h2>纵向粒子分布<a class="headerlink" href="#id21" title="Link to this heading"></a></h2>
 <p>目前 PASS 程序支持生成的纵向粒子分布有 <strong>2D高斯分布</strong> 、 <strong>非聚束束流分布</strong> 、 <strong>指定 RMS 束长的射频匹配分布</strong> 、 <strong>指定 RMS 动量展宽的射频匹配分布</strong> ：</p>
 <blockquote>
 <div><ul>
@@ -1065,8 +1125,8 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 </ul>
 </div></blockquote>
 <p>RF 匹配采样还施加 bucket 哈密顿量接受范围的 0.9 比例限制。超过模型最大尺度的请求会调整为该最大值的 0.99 倍。这些条件与 z 截断共同作用，所得样本 RMS 不一定等于输入匹配目标。</p>
-<section id="id21">
-<h3>多束团纵向坐标<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<section id="id22">
+<h3>多束团纵向坐标<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
 <p>源分布的 z 表示相对于源参考粒子的米制时间差，<span class="math notranslate nohighlight">\(z_s=\beta_s c(T_s-t_i)\)</span>。
 源参考事件由规定机器时钟、注入圈号和槽位选择，初始时刻也可显式指定，见
 <a class="reference internal" href="input_generation.html#zh-reference-clock"><span class="std std-ref">规定的机器时钟与初始化</span></a>。写入目标束团前应用</p>
@@ -1082,8 +1142,8 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <span class="math notranslate nohighlight">\(z(0)=z(s_{rf})+\eta s_{rf}\delta\)</span>，其中
 <span class="math notranslate nohighlight">\(\eta=1/\gamma_t^2-1/\gamma^2\)</span>。这属于声明的线性分布近似。</p>
 </section>
-<section id="id22">
-<h3>束团填充方案<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<section id="id23">
+<h3>束团填充方案<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>束团 ID （ <code class="docutils literal notranslate"><span class="pre">bunch_id</span></code> ）严格按照从 0 开始、步长 1 递增的顺序编号，由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 的键名决定。束团数量由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch</span></code> 键的数量决定。</p>
@@ -1222,15 +1282,15 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
   <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">z_center=0</text>
 </svg>
 </div></section>
-<section id="id23">
-<h3>色散耦合<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
+<section id="id24">
+<h3>色散耦合<a class="headerlink" href="#id24" title="Link to this heading"></a></h3>
 <p>如果注入点存在色散函数 <span class="math notranslate nohighlight">\(D_x\)</span> 和 <span class="math notranslate nohighlight">\(D_{px}\)</span> ，则在生成横向分布后自动施加色散耦合：</p>
 <div class="math notranslate nohighlight">
 \[x \leftarrow x + D_x \cdot \delta, \quad p_x \leftarrow p_x + D_{px} \cdot \delta\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(\delta\)</span> 为粒子的动量偏差。这确保了粒子分布与纵向动量展宽在物理上自洽。</p>
 </section>
-<section id="id24">
-<h3>动量偏差<a class="headerlink" href="#id24" title="Link to this heading"></a></h3>
+<section id="id25">
+<h3>动量偏差<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
 <p>注入时可以为整个束团施加平均动量偏移 <span class="math notranslate nohighlight">\(\delta_0\)</span> 。粒子分布生成时 <span class="math notranslate nohighlight">\(\delta\)</span> 服从均值为 0 的分布（如高斯分布 <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(0, \sigma_\delta)\)</span> ），施加偏移后变为 <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(\delta_0, \sigma_\delta)\)</span> ，即分布中心从 0 平移到 <span class="math notranslate nohighlight">\(\delta_0\)</span> 。<span class="math notranslate nohighlight">\(\delta_0\)</span> 是叠加量，不是粒子的总 <span class="math notranslate nohighlight">\(\delta\)</span> 。这用于模拟注入能量偏移、参考动量偏移等场景。</p>
 <p>支持两种输入方式（互斥，若同时为非零值则报错）：</p>
 <blockquote>
@@ -1318,8 +1378,8 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <p>因此后续的 rf_position 逆向传播（ <span class="math notranslate nohighlight">\(z \leftarrow z + \eta \, s_{\text{rf}} \, \delta\)</span> ）和色散耦合（ <span class="math notranslate nohighlight">\(x \leftarrow x + D_x \, \delta\)</span> ）均使用包含 <span class="math notranslate nohighlight">\(\delta_0\)</span> 的 <span class="math notranslate nohighlight">\(\delta\)</span> 值，确保物理自洽。</p>
 </section>
 </section>
-<section id="id25">
-<h2>分布类型选择<a class="headerlink" href="#id25" title="Link to this heading"></a></h2>
+<section id="id26">
+<h2>分布类型选择<a class="headerlink" href="#id26" title="Link to this heading"></a></h2>
 <p>根据上面的输入文件，将生成在横向满足 Gaussian 分布，在纵向满足 MatchZ 分布的束团。修改下面这两行参数，可调整生成的束团分布类型：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Transverse dist"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian"</span><span class="p">,</span>
 <span class="nt">"Longitudinal dist"</span><span class="p">:</span><span class="w"> </span><span class="s2">"matchz"</span>
@@ -1331,185 +1391,212 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <section id="d">
 <h2>1D 投影理论曲线<a class="headerlink" href="#d" title="Link to this heading"></a></h2>
 <p>下图展示了四种横向分布（ Uniform 、 KV 、 Waterbag 、 Parabolic ）在 1D 平面的理论投影曲线。所有曲线均归一化至 <span class="math notranslate nohighlight">\(\int_{-1}^{1} \rho(u) \, du = 1\)</span> ，横轴为归一化坐标 <span class="math notranslate nohighlight">\(u \in [-1, 1]\)</span> 。可以清晰看到从 Uniform （平顶）到 Parabolic （尖峰）的幂次递增趋势。</p>
-<figure class="align-center" id="id28">
+<figure class="align-center" id="id29">
 <a class="reference internal image-reference" href="../_images/dist_1d_projections1.png"><img alt="1D projections of transverse distributions" src="../_images/dist_1d_projections1.png" style="width: 80%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
-<section id="id26">
-<h2>模拟结果<a class="headerlink" href="#id26" title="Link to this heading"></a></h2>
+<section id="id27">
+<h2>模拟结果<a class="headerlink" href="#id27" title="Link to this heading"></a></h2>
 <p>下面将展示保持上述输入文件中 Twiss、发射度、射频等参数不变，只改变分布类型时，模拟所得粒子分布图片。</p>
 <ul class="simple">
 <li><p>横向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id29">
+<figure class="align-center" id="id30">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id30">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id31">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id32">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向 KV 分布：</p></li>
 </ul>
-<figure class="align-center" id="id32">
+<figure class="align-center" id="id33">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id33">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id34">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id34" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id35">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id34" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id35" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向水袋分布：</p></li>
 </ul>
-<figure class="align-center" id="id35">
+<figure class="align-center" id="id36">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id35" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id36">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id36" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id36" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id37">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id37" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id38">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id37" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id38" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向抛物线分布：</p></li>
 </ul>
-<figure class="align-center" id="id38">
+<figure class="align-center" id="id39">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id38" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id39">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id39" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id39" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id40">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id40" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id41">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id40" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id41" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向均匀分布：</p></li>
 </ul>
-<figure class="align-center" id="id41">
+<figure class="align-center" id="id42">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id41" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id42">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id42" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id42" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id43">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id44">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchZ 分布：</p></li>
 </ul>
-<figure class="align-center" id="id44">
+<figure class="align-center" id="id45">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz1.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchDp 分布：</p></li>
 </ul>
-<figure class="align-center" id="id45">
+<figure class="align-center" id="id46">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz1.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id46" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id46">
+<figure class="align-center" id="id47">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz1.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id46" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Coasting 分布：</p></li>
 </ul>
-<figure class="align-center" id="id47">
+<figure class="align-center" id="id48">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz1.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id48" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
-<section id="id27">
-<h2>初始分布输出格式<a class="headerlink" href="#id27" title="Link to this heading"></a></h2>
+<section id="id28">
+<h2>初始分布输出格式<a class="headerlink" href="#id28" title="Link to this heading"></a></h2>
 <p>启用 <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> 时，各 <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> 支持
-<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5-gzip1&quot;``（默认，gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）、</span>
-<span class="pre">``&quot;hdf5&quot;``（不压缩）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；JSON 参数位于对应
+<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5&quot;``（默认，不压缩）、</span>
+<span class="pre">``&quot;hdf5-gzip1&quot;``（gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；JSON 参数位于对应
 <code class="docutils literal notranslate"><span class="pre">bunchN</span></code> 块中的 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>。此参数只控制初始分布输出，
 载入文件时按扩展名识别输入格式。详见 <a class="reference internal" href="monitor/table_output.html"><span class="doc">表格输出格式</span></a>。</p>
+<p>文件在该源最后一个计划注入事件中，完成同一事件所有源的注入后保存当前束团快照，
+不会等待其他源在未来圈结束。排序后，当前束团可能包含多个源的粒子，以及未来批次
+尚未激活的零 tag 预留位置；快照不按原始源筛选。多圈注入时，先前批次可能已经
+传输或丢失，因此它不保留每个粒子的出生坐标。用于 DA 分析的逐粒子注入初值由
+ParticleMonitor 在每次注入事件中另行捕获。
+载入分布时读取六维坐标列作为新的入射分布，不通过文件中的 tag、损失历史或
+参考元数据恢复束流状态。</p>
+<p>保存时先写完整的私有临时文件，再发布到最终路径，不覆盖已有目标。
+若该路径已有快照或输入分布，保留原文件并报错。保存失败后可以重试，
+不会重复注入同一批粒子。若发布成功后才收到异常，则用文件身份确认本次已发布的
+完整快照，重试不会将它误判为外来已有文件。</p>
+<p>快照文件头的 <code class="docutils literal notranslate"><span class="pre">Ek</span></code>、<code class="docutils literal notranslate"><span class="pre">m0</span></code> 描述当前束团参考量；<code class="docutils literal notranslate"><span class="pre">InjectionKineticEnergy</span></code>
+单独保留生成入射分布时使用的源能量。<code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime``（s）、</span>
+<span class="pre">``ReferenceBeta</span></code> 与 <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum``（eV/c，离子按每核子计）对应注入后</span>
+<span class="pre">保存事件的参考量。因此，存活粒子的动量为</span> <span class="pre">``ReferenceMomentum</span> <span class="pre">*</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">dp)</span></code>，
+到达时间为 <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span> <span class="pre">-</span> <span class="pre">z</span> <span class="pre">/</span> <span class="pre">(ReferenceBeta</span> <span class="pre">*</span> <span class="pre">c)</span></code>。
+<code class="docutils literal notranslate"><span class="pre">HarmonicId</span></code>、<code class="docutils literal notranslate"><span class="pre">HarmonicNumber</span></code>、<code class="docutils literal notranslate"><span class="pre">ZCenter``（m）记录当前分组，保存的</span> <span class="pre">``z</span></code>
+仍为 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>。这些参考量只适用于存活粒子；损失行保留丢失事件时的坐标。
+发射度、Twiss 参数等其他生成设置不代表快照中测得的统计量。</p>
+<p>HDF5 载入仅读取当前批次的六个坐标切片，每批读取后关闭文件。
+TFS 缓存列索引和批次边界的字节偏移，再读取所需批次；文件大小或修改时间变化
+会使缓存失效。两种方式均不长期持有文件句柄，也不缓存完整坐标表。
+<code class="docutils literal notranslate"><span class="pre">sequential</span></code> 依次读取源文件行；<code class="docutils literal notranslate"><span class="pre">repeat</span></code> 每批从首行重新读取。</p>
+<p>运行前校验也按有界分块扫描 HDF5、TFS 分布，覆盖第一批之后的全部数据行。
+它检查坐标列、有限数值、物理纵向动量及总行数，缓存只保留行数和诊断信息，
+不保留完整坐标表。显式插入粒子文件采用相同的分块预检查；实际插入时仍一次
+读取其用于第一批的完整输入。</p>
 </section>
 </section>
 

@@ -98,6 +98,8 @@
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -146,6 +148,11 @@
 再将原环内 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 改为 <code class="docutils literal notranslate"><span class="pre">-tag</span></code>，并在 <code class="docutils literal notranslate"><span class="pre">lost_turn</span></code>、<code class="docutils literal notranslate"><span class="pre">lost_position</span></code> 中
 记录停止跟踪的圈号与截面。坐标和动量不变。后续跟踪跳过这些粒子，因此一个粒子
 只收集一次。CPU 与 GPU 使用同一选择逻辑；GPU 路径在修改原 tag 前先将事件复制到主机。</p>
+<p>GPU 路径使用专门的 CUDA kernel 合并筛选、事件打包与环内停止标记，并复用设备工作缓冲区。
+每个选中束团批次的身份与六维坐标通过一个连续数据块传回主机。切线判定仍使用 float64，
+保留原坐标存储精度与事件顺序，并在停止环内跟踪前完成独立主机快照。
+spill 监视器消费这些主机事件，因此当前实现仍需同步以发布每次调用的结果。
+<code class="docutils literal notranslate"><span class="pre">Buffer</span> <span class="pre">size</span> <span class="pre">(particles)</span></code> 控制写盘批次，不控制 GPU 回传间隔。</p>
 <p>这里的负 tag 表示环内跟踪结束，不一定表示材料损失。现有 StatMonitor 的损失计数
 会包含已引出粒子。应合并同一次运行、同束流的所有引出 source 事件表，
 按 <code class="docutils literal notranslate"><span class="pre">(RunId,</span> <span class="pre">beam_id,</span> <span class="pre">particle_id)</span></code> 判断是否属于引出，从而与物理损失区分。
@@ -156,7 +163,9 @@
 <h2>位置与执行顺序<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 标识粒子已经到达的跟踪截面，设置该值不会自动补齐输运。
 在漂移段或厚元件内部设置引出点前，必须正确拆分其传输；输入校验会拒绝位于
-未拆分厚元件内部的引出面。建议优先使用现有元件边界。所选截面和切线应代表
+未拆分厚元件内部或 Twiss 映射 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">previous</span> <span class="pre">(m)</span></code> 至 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 区间内部的引出面。
+在传输终点，引出必须在相应传输之后执行，显式设置 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 时也必须满足这一条件。
+建议优先使用现有元件边界。所选截面和切线应代表
 预期的引出通道；在环内其他位置出现大位移，本身不能证明粒子已经成功引出。</p>
 <p>同位置的默认优先级为：<code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> 850，<code class="docutils literal notranslate"><span class="pre">SlowExtractionMonitor</span></code> 860，
 普通监视器 800，因此默认先保存普通分布快照，再执行引出。若需调整这一关系或安排
@@ -321,6 +330,15 @@ source 专用标识。各列是文件根节点下的一维 dataset，使用标�
 finalize 时写出剩余行。没有引出事件时，finalize 也会生成具有明确列类型的空表。
 内存快照先于环内停止标记，但缓冲区不保证进程崩溃后的数据持久性，当前也没有随断点恢复的
 引出事件账本。输出错误会停止执行，不会静默丢弃事件或自动重试状态不明确的追加写入。</p>
+<p>捕获或环内停止标记过程出错后，source 同样禁止继续执行。只有捕获与停止标记均成功，
+才向 monitor 发布该批事件。只要输出本身没有失败，finalize 会保留缓冲的捕获记录，
+包括停止标记过程中断的诊断证据。磁盘与粒子内存更新之间不保证原子事务，
+因此，中止运行的表格应作为诊断数据，不能视为完整引出账本。</p>
+<p>事件表头 <code class="docutils literal notranslate"><span class="pre">SourceStatus</span></code> 初始为 <code class="docutils literal notranslate"><span class="pre">open</span></code>，finalize 时改为 <code class="docutils literal notranslate"><span class="pre">finalized</span></code> 或
+<code class="docutils literal notranslate"><span class="pre">aborted-diagnostic</span></code>。<code class="docutils literal notranslate"><span class="pre">finalized</span></code> 仅描述该 source，不证明已完成所有请求的仿真圈数。
+中止表可能包含尚未完成环内停止标记的捕获记录。<code class="docutils literal notranslate"><span class="pre">SuccessfulExtracted</span></code>、
+<code class="docutils literal notranslate"><span class="pre">SuccessfulRealExtracted</span></code>、<code class="docutils literal notranslate"><span class="pre">SuccessfulBatchSerial</span></code>、<code class="docutils literal notranslate"><span class="pre">LastSuccessfulTurn</span></code>
+记录成功发布的 source 状态。写盘失败可能留下 <code class="docutils literal notranslate"><span class="pre">open</span></code> 或不完整文件，不能当作已完成账本。</p>
 </section>
 </section>
 

@@ -21,7 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="索引" href="../../genindex.html" />
     <link rel="search" title="搜索" href="../../search.html" />
-    <link rel="next" title="PASS User Manual" href="../../en/index.html" />
+    <link rel="next" title="频谱分析与频率图" href="../spectral_analysis.html" />
     <link rel="prev" title="相移监视器（PhaseAdvanceMonitor）" href="phaseadvancemonitor.html" /> 
 </head>
 
@@ -105,6 +105,8 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -143,7 +145,9 @@
 <p><code class="docutils literal notranslate"><span class="pre">Source</span></code> 必须精确匹配同束流 Sequence 中一个 <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> 的名称。
 监视器必须与 source 位于相同 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>，并在 source 后执行。
 默认优先级 850、860 满足这一顺序；同位置使用显式 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 时，
-应为该处每条命令设置互不相同的值。</p>
+应为该处每条命令设置互不相同的值。
+监视器必须从 source 首个批次开始消费每次调用，包括统计窗口之外的圈。
+遗漏批次会报错；监视器不会从 source 文件补读漏掉的事件。</p>
 <section id="id1">
 <h2>窗口与分箱定义<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>圈数窗口和物理时间窗口均可独立配置，同时设置时取交集；两个窗口均为左闭右开。
@@ -159,6 +163,9 @@
 也可能更新更早的时间 bin。因此，运行中的时间直方图始终是可更新状态，
 写出一次快照不代表关闭其时间 bin。</p>
 <p>名义边界 <code class="docutils literal notranslate"><span class="pre">bin_start</span></code>、<code class="docutils literal notranslate"><span class="pre">bin_end</span></code> 在不同快照之间保持固定。
+时间边界按 float64 的 <code class="docutils literal notranslate"><span class="pre">origin</span> <span class="pre">+</span> <span class="pre">k</span> <span class="pre">*</span> <span class="pre">width</span></code> 计算；事件与这些实际保存的边界
+进行严格左闭右开比较，不用容差将相邻时刻吸附到边界。若 bin 宽度过小，
+无法在观测时刻分辨相邻边界，则报错。
 <code class="docutils literal notranslate"><span class="pre">observed_start</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_end</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_width</span></code> 单独表示当前观测所覆盖的部分。
 圈数覆盖范围是监视器圈数窗口内实际执行的圈号区间。时间覆盖范围是 source 参考时刻
 与所接受事件时刻的包络，再截取到监视器时间窗口。该包络不证明其中所有粒子到达事件
@@ -342,7 +349,7 @@ headers 保存 source 事件文件身份、时间定义、窗口以及参考/事
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
         <a href="phaseadvancemonitor.html" class="btn btn-neutral float-left" title="相移监视器（PhaseAdvanceMonitor）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
-        <a href="../../en/index.html" class="btn btn-neutral float-right" title="PASS User Manual" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../spectral_analysis.html" class="btn btn-neutral float-right" title="频谱分析与频率图" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

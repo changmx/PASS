@@ -117,6 +117,8 @@
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">Monitors and output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -475,6 +477,13 @@ double precision for analytic field trajectories and curved collision bounds;
 particle arrays retain their configured float32 or float64 storage. Internal SC
 nodes materialize the particle state; compiled kernels are cached per element,
 device and storage dtype. No particle coordinate array is rotated in place.</p>
+<p>Without internal SC nodes, thick GPU tracking fuses entrance, body and exit into
+one kernel. Field-free particles use the exact straight trajectory with continuous
+material and aperture checks, including an endpoint check after storage rounding.
+A surviving field-free trajectory cannot enter the gap without first contacting
+an absorbing electrode. Particles in the field retain the analytic hard-edge
+stages and their configured storage-precision rounding. Internal SC nodes retain
+the split tracking path so that their kicks act on the intermediate state.</p>
 </section>
 </section>
 

@@ -98,6 +98,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -179,8 +181,11 @@
 <p>Distribution headers record <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code>, <code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code>,
 <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span></code>, <code class="docutils literal notranslate"><span class="pre">CoordinateDefinition</span></code> and the element-exit event.
 Statistical monitors include the corresponding per-row reference values.
-ParticleMonitor saves these columns only with <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code>;
-by default it stores no reference values in either columns or headers.
+ParticleMonitor saves turn-by-turn reference values only with
+<code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code>. Its HDF5 <code class="docutils literal notranslate"><span class="pre">initial</span></code> group or TFS initial rows
+always capture the injection reference; those values cannot replace later
+per-sample references. TFS keeps reference columns present with NaN values in
+trajectory rows when this option is disabled.
 Reconstruct live-particle time using the reference saved with the row,
 not the reference at another turn. Loss coordinates are frozen diagnostic
 records and must not be interpreted with a later live reference.</p>

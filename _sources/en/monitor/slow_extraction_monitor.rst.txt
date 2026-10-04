@@ -12,6 +12,9 @@ The ``Source`` value must exactly match a ``SlowExtraction`` sequence name
 in the same beam. The monitor must execute after that source at the same
 ``S (m)``. Default priorities 850 and 860 provide this order; if explicit
 ``Order`` is used at that position, set distinct values on every node there.
+The monitor must consume every source invocation from its first batch, including
+turns outside its statistical window. Missing a batch raises an error; the monitor
+does not recover skipped events from the source file.
 
 Windows and bin definitions
 ---------------------------
@@ -37,6 +40,10 @@ earlier time bins. Therefore time histograms remain provisional during a
 run; writing a snapshot does not close their bins.
 
 Nominal ``bin_start`` and ``bin_end`` stay fixed between snapshots.
+Time edges are evaluated in float64 as ``origin + k * width``. Assignment uses
+exact left-closed, right-open comparisons against these same stored edges,
+without snapping nearby times to a boundary. A width too small to resolve
+distinct edges at the observed times raises an error.
 ``observed_start``, ``observed_end`` and ``observed_width`` separately describe
 the portion covered by the observations so far. Turn coverage is the range
 of executed turns inside the monitor's turn window. Time coverage is the

@@ -106,6 +106,8 @@
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -474,7 +476,10 @@ SDDS 表格导出按块处理。HDF5 按有限范围读取，需要明确选择�
 <p>CSV 可附带校验内容的 <code class="docutils literal notranslate"><span class="pre">.metadata.json</span></code>，保存单位、类型和参数
 （包括精确的采集时间戳），往返转换时请将其与 CSV 保存在一起。
 TFS 保存可兼容 headers 及 PASS 元数据。HDF5 输出使用 <code class="docutils literal notranslate"><span class="pre">/table/&lt;列名&gt;</span></code>，
-不重建任意源文件层级。修改选择后需重新预览，覆盖输出需要确认，不能覆盖源文件。
+不重建任意源文件层级。ParticleMonitor 选择结果转换为 <code class="docutils literal notranslate"><span class="pre">Layout=&quot;table&quot;</span></code> 的普通表格，
+<code class="docutils literal notranslate"><span class="pre">SourceLayout</span></code> 保留原布局；这些选择结果按普通表格读取。
+若要对 TFS 长表导出的轨迹做频谱分析，应先选择 <code class="docutils literal notranslate"><span class="pre">record=1</span></code> 的轨迹行及单个粒子 ID。
+修改选择后需重新预览，覆盖输出需要确认，不能覆盖源文件。
 源文件变化检查也包含 CSV 元数据附属文件。
 多文件发布不是原子操作，取消时可能保留已经完成的输出文件。</p>
 <p>不依赖 Qt 的函数位于 <code class="docutils literal notranslate"><span class="pre">PASS.tool.data_conversion</span></code>：<code class="docutils literal notranslate"><span class="pre">inspect_file</span></code>、

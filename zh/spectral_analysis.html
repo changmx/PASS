@@ -1,0 +1,317 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>频谱分析与频率图 &mdash; PASS 0.5.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="动力学孔径扫描" href="dynamic_aperture.html" />
+    <link rel="prev" title="慢引出 spill 监视器" href="monitor/slow_extraction_monitor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.5.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/spectral_analysis.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slow_extraction.html">慢引出（SlowExtraction）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">频谱分析与频率图</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python">独立 Python 函数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fft">FFT 约定</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fma">FMA 约定</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">文件与采样</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gui">GUI 使用流程</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">动力学孔径扫描</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">频谱分析与频率图</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>频谱分析与频率图<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p><strong>分析</strong> 工作区提供基础 FFT、精细 FFT 和频率图分析（FMA），与 Python 脚本
+调用相同的数组计算函数。无需打开跟踪输入或工程即可使用。虚拟 BPM、OMC3 接入
+和光学重建不属于此工作流。</p>
+<section id="python">
+<h2>独立 Python 函数<a class="headerlink" href="#python" title="Link to this heading"></a></h2>
+<p>三个公开函数分别为 <code class="docutils literal notranslate"><span class="pre">PASS/analysis/fft.py</span></code> 的 <code class="docutils literal notranslate"><span class="pre">compute_fft</span></code>、
+<code class="docutils literal notranslate"><span class="pre">PASS/analysis/refined_fft.py</span></code> 的 <code class="docutils literal notranslate"><span class="pre">compute_refined_fft</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">PASS/analysis/fma.py</span></code> 的 <code class="docutils literal notranslate"><span class="pre">compute_fma</span></code>。完整复制任意一个函数定义到其他
+Python 文件后，安装 NumPy 即可使用。必要导入和辅助函数均在函数内部；三个函数
+不依赖 PASS、Qt、文件读取器或绘图模块，不修改输入，返回包含数组与元数据的字典。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_fft</span><span class="p">,</span> <span class="n">compute_refined_fft</span><span class="p">,</span> <span class="n">compute_fma</span>
+
+<span class="n">turns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2048</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="mf">0.002</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.2317</span> <span class="o">*</span> <span class="n">turns</span> <span class="o">+</span> <span class="mf">0.3</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="mf">0.001</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">0.3172</span> <span class="o">*</span> <span class="n">turns</span> <span class="o">-</span> <span class="mf">0.2</span><span class="p">)</span>
+
+<span class="n">spectrum</span> <span class="o">=</span> <span class="n">compute_fft</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sample_spacing</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">peaks</span> <span class="o">=</span> <span class="n">compute_refined_fft</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="s2">"hann"</span><span class="p">,</span> <span class="n">padding_factor</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">frequency_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.27</span><span class="p">),</span> <span class="n">n_peaks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">peaks</span><span class="p">[</span><span class="s2">"peak_frequency"</span><span class="p">],</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"peak_amplitude"</span><span class="p">])</span>
+
+<span class="c1"># Rows identify particles; the last axis contains consecutive samples.</span>
+<span class="n">fma</span> <span class="o">=</span> <span class="n">compute_fma</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">y</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+    <span class="n">windows</span><span class="o">=</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">2048</span><span class="p">)),</span>
+    <span class="n">frequency_range_x</span><span class="o">=</span><span class="p">(</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.27</span><span class="p">),</span>
+    <span class="n">frequency_range_y</span><span class="o">=</span><span class="p">(</span><span class="mf">0.29</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">fma</span><span class="p">[</span><span class="s2">"qx_first"</span><span class="p">],</span> <span class="n">fma</span><span class="p">[</span><span class="s2">"qx_second"</span><span class="p">],</span> <span class="n">fma</span><span class="p">[</span><span class="s2">"drift"</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="fft">
+<h2>FFT 约定<a class="headerlink" href="#fft" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">sample_spacing</span></code> 必须有限且为正。每圈一次、间隔为 1 时频率单位为 cycles/turn；
+间隔以秒计时频率单位为 Hz。每若干圈采样一次必须填写实际圈数间隔，对应的 Nyquist
+频带也会缩小。FFT 不恢复整数 tune，也不自动消除混叠。
+对于实数逐圈信号，仅凭正频率谱不能区分小数 tune <code class="docutils literal notranslate"><span class="pre">Q</span></code> 与 <code class="docutils literal notranslate"><span class="pre">1-Q</span></code>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">compute_fft</span></code> 接受实数或复数数组、<code class="docutils literal notranslate"><span class="pre">axis``（默认</span> <span class="pre">-1）和</span> <span class="pre">``remove_mean</span></code>
+（默认 false）。输出将频率放在最后一个轴。实信号使用单边谱，复信号使用排序后的
+正负频率双边谱。<code class="docutils literal notranslate"><span class="pre">coefficients</span></code> 是按幅值归一化的复系数，<code class="docutils literal notranslate"><span class="pre">amplitude</span></code> 是其模，
+<code class="docutils literal notranslate"><span class="pre">phase</span></code> 以弧度计，相位参考为所分析区间的第一个样本。实信号正频率系数乘以 2，
+但 DC 和偶数长度的 Nyquist 点不加倍。输出为幅度谱，不是功率谱密度。</p>
+<p>精细 FFT 接受 <code class="docutils literal notranslate"><span class="pre">window``（``rectangle</span></code>、<code class="docutils literal notranslate"><span class="pre">hann</span></code>、<code class="docutils literal notranslate"><span class="pre">hamming</span></code>、<code class="docutils literal notranslate"><span class="pre">blackman</span></code>）、
+整数 <code class="docutils literal notranslate"><span class="pre">padding_factor</span></code>、<code class="docutils literal notranslate"><span class="pre">interpolation``（``none</span></code> 或 <code class="docutils literal notranslate"><span class="pre">parabolic</span></code>）、
+<code class="docutils literal notranslate"><span class="pre">frequency_range</span></code> 和 <code class="docutils literal notranslate"><span class="pre">n_peaks</span></code>。默认使用 Hann 窗、8 倍补零、抛物线插值并提取
+一个谱峰。算法校正窗函数的相干增益，在估计的频率处重新计算复系数。补零使频率
+网格更密，并不增加观测圈数或实际分辨能力。精度取决于记录长度、窗函数、噪声、
+邻近谱线和时间变化。输出包含峰值有效性和质量标记；无效结果不代表测得零频率。
+仅需峰值时可用 <code class="docutils literal notranslate"><span class="pre">return_spectrum=False</span></code> 避免返回频谱数组。</p>
+</section>
+<section id="fma">
+<h2>FMA 约定<a class="headerlink" href="#fma" title="Link to this heading"></a></h2>
+<p>FMA 比较两个时间窗的频率，本身不是另一种 FFT 方法。<code class="docutils literal notranslate"><span class="pre">x</span></code> 和 <code class="docutils literal notranslate"><span class="pre">y</span></code> 的形状必须
+一致，最后一个轴为采样轴。单条轨迹使用一维数组，粒子群使用前置对象维度。
+显式窗口为 <code class="docutils literal notranslate"><span class="pre">((start1,</span> <span class="pre">end1),</span> <span class="pre">(start2,</span> <span class="pre">end2))</span></code>，结束索引不包含在内；两窗口必须
+等长、依次排列且不重叠。默认使用前后两个等长相邻区间，奇数长度时舍去末尾一个
+样本。元数据记录实际使用的窗口。</p>
+<p><code class="docutils literal notranslate"><span class="pre">method</span></code> 可选 <code class="docutils literal notranslate"><span class="pre">fft</span></code> 或 <code class="docutils literal notranslate"><span class="pre">refined_fft</span></code>，FMA 默认去均值。独立函数内部包含
+默认频率估计器，也允许通过可选 <code class="docutils literal notranslate"><span class="pre">frequency_estimator</span></code> 显式提供自定义估计器，
+不要求调用者额外复制其他函数。回调契约见函数文档字符串；默认估计器与独立
+频率计算函数采用相同的数值约定。</p>
+<p>两个横向信号的输出定义为</p>
+<div class="math notranslate nohighlight">
+\[\Delta Q_x = Q_{x,2}-Q_{x,1},\qquad
+\Delta Q_y = Q_{y,2}-Q_{y,1},\qquad
+d_Q=\sqrt{(\Delta Q_x)^2+(\Delta Q_y)^2},\qquad
+D=\log_{10}d_Q.\]</div>
+<p>对应键为 <code class="docutils literal notranslate"><span class="pre">qx_first</span></code>、<code class="docutils literal notranslate"><span class="pre">qy_first</span></code>、<code class="docutils literal notranslate"><span class="pre">qx_second</span></code>、<code class="docutils literal notranslate"><span class="pre">qy_second</span></code>、
+<code class="docutils literal notranslate"><span class="pre">delta_qx</span></code>、<code class="docutils literal notranslate"><span class="pre">delta_qy</span></code>、<code class="docutils literal notranslate"><span class="pre">drift</span></code> 和 <code class="docutils literal notranslate"><span class="pre">diffusion_log10</span></code>。漂移精确为零时
+保留 <code class="docutils literal notranslate"><span class="pre">D=-inf</span></code>，绘图色标下限不改变数值结果。差值不自动周期折叠；两个窗口应
+选择一致的频率分支与搜索区间。窗口含非有限值或频率估计无效时，通过 <code class="docutils literal notranslate"><span class="pre">valid</span></code>
+和 <code class="docutils literal notranslate"><span class="pre">quality</span></code> 标记该对象。程序调谐、加速、噪声和集体演化也可能造成频率变化，
+该指标本身不能证明混沌运动。</p>
+</section>
+<section id="id2">
+<h2>文件与采样<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.analysis.data_io.inspect_data</span></code> 列出可选数值列或数组；<code class="docutils literal notranslate"><span class="pre">load_signal</span></code>
+读取显式指定的数据，返回信号、采样坐标、间隔和来源元数据。数值函数直接接受
+数组，不依赖文件格式。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>格式</p></th>
+<th class="head"><p>数据选择</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CSV / TSV</p></td>
+<td><p>命名数值列，可配置表头和跳过行数。</p></td>
+</tr>
+<tr class="row-odd"><td><p>TXT / DAT</p></td>
+<td><p>分隔的数值文本，可选择分隔符、表头处理及跳过行数。</p></td>
+</tr>
+<tr class="row-even"><td><p>TFS</p></td>
+<td><p>数值列及 TFS 头部元数据。</p></td>
+</tr>
+<tr class="row-odd"><td><p>HDF5（<code class="docutils literal notranslate"><span class="pre">.h5</span></code>、<code class="docutils literal notranslate"><span class="pre">.hdf5</span></code>）</p></td>
+<td><p>显式选择数值数据集路径与采样轴，保留文件及数据集属性。</p></td>
+</tr>
+<tr class="row-even"><td><p>NPY</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">data</span></code> 数组及其显式采样轴。</p></td>
+</tr>
+<tr class="row-odd"><td><p>NPZ</p></td>
+<td><p>命名数值数组及其显式采样轴。</p></td>
+</tr>
+</tbody>
+</table>
+<p>不载入 object 数组或 pickle 数据。多维数组需要明确采样轴，<code class="docutils literal notranslate"><span class="pre">sample_range</span></code>
+和 <code class="docutils literal notranslate"><span class="pre">object_range</span></code> 均采用左闭右开的索引区间。显式指定 <code class="docutils literal notranslate"><span class="pre">object_range</span></code> 时，前置
+对象维度按 C 顺序展平；省略时保留原有对象维度。普通数组返回的 <code class="docutils literal notranslate"><span class="pre">object_ids</span></code> 是原数组
+中的位置索引，不是物理粒子身份。原生单文件 ParticleMonitor HDF5/TFS 则返回
+保存的粒子 ID，自动将所选轨迹按圈号和粒子排列，并排除注入初值行。
+调用者须保证 X/Y 数组采用相同的粒子顺序。
+若提供采样坐标列或数据集，其值
+必须严格递增且等间隔；使用坐标推导的间隔替代手工填写值。缺圈、重复坐标和不等
+间隔采样不会被静默删除、排序、插值或补零。已识别的 PASS ParticleMonitor 文件
+自动使用 <code class="docutils literal notranslate"><span class="pre">turn</span></code> 列；其他情况下没有坐标时，调用者负责给出正确间隔。</p>
+<p>CSV 默认逗号分隔，TSV 默认制表符，TXT/DAT 默认空白分隔。文本表头可选
+<code class="docutils literal notranslate"><span class="pre">auto</span></code>、<code class="docutils literal notranslate"><span class="pre">present</span></code>、<code class="docutils literal notranslate"><span class="pre">absent</span></code>；无表头时列名为 <code class="docutils literal notranslate"><span class="pre">column_0</span></code>、<code class="docutils literal notranslate"><span class="pre">column_1</span></code>
+等。HDF5/NPY 在复制前切片；NPZ 读取所选的完整成员，文本读取整张表。</p>
+<p>PASS ParticleMonitor 会冻结已损失粒子的记录。数据适配器对已识别的
+ParticleMonitor 文件使用带符号 tag，也识别保留 PASS 元数据的转换文件；如果选择
+中含有已损失或非有限样本，会拒绝该选择。外部文件可以显式选择存活状态列，正值
+表示存活。应选择完整的存活区间，不能把冻结尾段当成振荡。
+原生单文件 PM 的所选 tag 必须与对应轨迹列的正粒子 ID 一致。
+自定义存活状态列只能增加筛选条件，不能跳过原生损失或身份检查。
+原生 PM 长表自动按粒子分组；其他普通表中若不同粒子使用重复圈号，应先整理为独立轨迹。</p>
+</section>
+<section id="gui">
+<h2>GUI 使用流程<a class="headerlink" href="#gui" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>打开 <strong>分析</strong>，在左侧导航选择 <strong>频谱分析</strong> 或 <strong>频率图分析</strong>，载入数据文件。</p></li>
+<li><p>选择信号列或数据集、采样轴、坐标列或间隔，以及样本与对象范围。</p></li>
+<li><p>频谱分析选择基础或精细 FFT；精细 FFT 可配置窗函数、补零、插值和搜索频段。</p></li>
+<li><p>FMA 选择成对信号、两个等长窗口及频率估计设置。窗口索引相对于已选择的信号区间。</p></li>
+<li><p>执行后查看图形和数值结果，导出数据或图片。<strong>复制 Python 调用</strong> 将所选数据和
+计算参数写成可用于脚本的调用代码。</p></li>
+</ol>
+<p>文件读取和计算在后台执行。显示预览可以限制点数，计算使用选定的完整分辨率
+数组。取消会等待当前数值操作结束并丢弃结果。普通数据文件的载入不改变跟踪配置。</p>
+<p>NPZ 导出保留结果数组、所选输入数组、坐标和元数据。CSV 导出完整数值结果，并以
+注释保存元数据；频谱行使用 <code class="docutils literal notranslate"><span class="pre">record_type=spectrum</span></code>，精细峰值行使用
+<code class="docutils literal notranslate"><span class="pre">record_type=peak</span></code>，包含有效性和质量字段。PNG/SVG 导出保存当前显示的图形，
+包括其预览点数限制。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="monitor/slow_extraction_monitor.html" class="btn btn-neutral float-left" title="慢引出 spill 监视器" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="dynamic_aperture.html" class="btn btn-neutral float-right" title="动力学孔径扫描" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

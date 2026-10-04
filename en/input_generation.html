@@ -118,6 +118,8 @@
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -645,6 +647,26 @@ the prescribed clock phase while retaining unwrapped particle times.</p>
 </pre></div>
 </div>
 <p>For absolute field-error units, instance matching and the difference between distributed element errors and Twiss exit kicks, see <a class="reference internal" href="element/error.html#en-error"><span class="std std-ref">Element errors</span></a>.</p>
+<p>Both Twiss readers convert native MAD-X momentum derivatives to PASS’s
+<span class="math notranslate nohighlight">\(\delta=P/P_0-1\)</span> convention. MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> uses
+<span class="math notranslate nohighlight">\(\mathrm{PT}=(E-E_0)/(P_0c)\simeq\beta_0\delta\)</span>, so imported
+<code class="docutils literal notranslate"><span class="pre">DX</span></code>, <code class="docutils literal notranslate"><span class="pre">DPX</span></code> and file-derived <code class="docutils literal notranslate"><span class="pre">DQ1</span></code>/<code class="docutils literal notranslate"><span class="pre">DQ2</span></code> are multiplied by
+<span class="math notranslate nohighlight">\(\beta_0\)</span>. Explicit numeric <code class="docutils literal notranslate"><span class="pre">dqx</span></code>/<code class="docutils literal notranslate"><span class="pre">dqy</span></code> arguments already mean
+<span class="math notranslate nohighlight">\(dQ/d\delta\)</span> and are unchanged. Raw TFS tables retain their original units.
+Export with <code class="docutils literal notranslate"><span class="pre">twiss,</span> <span class="pre">chrom</span></code> when using the file’s chromaticities.</p>
+<p>These readers require native <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> output. Identifiable <code class="docutils literal notranslate"><span class="pre">PTC_TWISS</span></code>
+tables are rejected: their derivative convention depends on PTC’s <code class="docutils literal notranslate"><span class="pre">TIME</span></code>
+mode, which is not recorded in the TFS headers, and their phase columns can
+also differ. Export a native <code class="docutils literal notranslate"><span class="pre">TWISS,</span> <span class="pre">CHROM</span></code> table for this transport model.
+This does not make native TWISS and exact PTC element models equivalent.</p>
+<p>The reference speed is derived from <code class="docutils literal notranslate"><span class="pre">GAMMA</span></code>, or from <code class="docutils literal notranslate"><span class="pre">ENERGY/MASS</span></code> when
+<code class="docutils literal notranslate"><span class="pre">GAMMA</span></code> is absent. If both descriptions are missing, legacy tables remain
+readable with a warning and the ultrarelativistic assumption <span class="math notranslate nohighlight">\(\beta_0=1\)</span>;
+provide reference-energy headers for nonrelativistic beams. Invalid reference
+parameters are rejected. Previously generated inputs must be regenerated to
+apply this correction; at 800 MeV proton kinetic energy, the conversion factor
+is approximately 0.84181. See the
+<a class="reference external" href="https://cds.cern.ch/record/2928179/files/document.pdf">MAD-X coordinate and derivative conventions</a>.</p>
 <p>For a uniform base grid, use the resampling reader instead:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
 
@@ -674,8 +696,10 @@ p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
 each interval, while matching source beta, alpha and cumulative phase at its
 endpoints. The full phase derivative is checked at its endpoints and all
 interior extrema to exclude nonpositive beta. DX/DPX use paired cubic Hermite
-interpolation in the existing uncoupled, on-reference paraxial convention;
-their TFS normalization is retained. This interpolation assumes uncoupled optics and does not transform closed-orbit coordinates. Source precision and spacing limit accuracy.</p>
+interpolation in the existing uncoupled, on-reference paraxial convention.
+Interpolation retains the source units internally, then converts dispersion
+to derivatives with respect to <span class="math notranslate nohighlight">\(\delta\)</span> when constructing <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code>.
+This interpolation assumes uncoupled optics and does not transform closed-orbit coordinates. Source precision and spacing limit accuracy.</p>
 <p>The table must include S=0 and S=LENGTH, with finite optics, positive beta and
 unwrapped phases. Its full phase spans must agree with Q1/Q2 within TFS output
 rounding (relative tolerance <span class="math notranslate nohighlight">\(2\times10^{-8}\)</span>, absolute tolerance

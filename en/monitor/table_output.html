@@ -104,6 +104,8 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -144,8 +146,9 @@ compression selector:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>: uncompressed HDF5, with no shuffle.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>: TFS text output.</p></li>
 </ul>
-<p>Omitting the option selects <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> for the monitors, Injection and
-Slicer. <a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam luminosity</span></a> instead defaults to <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>
+<p>Omitting the option selects uncompressed <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> for ParticleMonitor and
+Injection, and <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> for the other monitors and Slicer.
+<a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam luminosity</span></a> defaults to <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>
 in its shared <code class="docutils literal notranslate"><span class="pre">Luminosity</span></code> configuration. Selecting a format does not
 enable a disabled output or change the configured recording turns.</p>
 <p><a class="reference internal" href="../slow_extraction.html"><span class="doc">SlowExtraction</span></a> and
@@ -173,8 +176,8 @@ HDF5 options; their event and histogram tables do not offer TFS output.</p>
 <td><p>None</p></td>
 </tr>
 <tr class="row-even"><td><p>ParticleMonitor</p></td>
-<td><p>One turn-history file per selected particle</p></td>
-<td><p>None</p></td>
+<td><p>One file per monitor and beam, containing all selected particles and recorded turns</p></td>
+<td><p>HDF5 arrays or a TFS long table; both include injection coordinates</p></td>
 </tr>
 <tr class="row-odd"><td><p>StatMonitor</p></td>
 <td><p>One statistics history per bunch and monitor position</p></td>
@@ -209,11 +212,10 @@ and does not offer TFS export.</p>
 </section>
 <section id="hdf5-layout-and-metadata">
 <h2>HDF5 layout and metadata<a class="headerlink" href="#hdf5-layout-and-metadata" title="Link to this heading"></a></h2>
-<p>Each numeric or boolean table column is a separate <strong>one-dimensional
+<p>For the ordinary table layout, each numeric or boolean column is a separate <strong>one-dimensional
 dataset at the file root</strong>, with the original column name and data type.
 All columns have the same length. A distribution row represents one
-particle; a StatMonitor row represents one recorded turn; a ParticleMonitor
-row represents one recorded turn for the particle identified by its file.
+particle; a StatMonitor row represents one recorded turn.
 For example, a statistics file contains:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">turn</span>                  <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
 <span class="o">/</span><span class="n">xAverage</span>              <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
@@ -228,14 +230,25 @@ For example, a statistics file contains:</p>
 names, units embedded in existing metadata, reference conventions and
 monitor positions. Varying StatMonitor reference values remain per-row
 columns, preserving their full history. Snapshot reference attributes
-describe only that snapshot. ParticleMonitor still saves reference columns
-only when <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code>.</p>
+describe only that snapshot. ParticleMonitor saves turn-by-turn reference columns
+only when <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code>; its HDF5 <code class="docutils literal notranslate"><span class="pre">initial</span></code> group
+always includes injection reference values.</p>
+<p>The <a class="reference internal" href="particlemonitor.html"><span class="doc">ParticleMonitor</span></a> HDF5 file
+uses two-dimensional (sample, particle) datasets, one-dimensional
+<code class="docutils literal notranslate"><span class="pre">turn</span></code> and <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> axes, and an <code class="docutils literal notranslate"><span class="pre">initial</span></code> group. It uses
+<code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code> and <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> metadata and dedicated DA/spectral readers;
+the ordinary <code class="docutils literal notranslate"><span class="pre">read_table</span></code> function is not its reader. Its TFS output instead
+uses a long table with explicit <code class="docutils literal notranslate"><span class="pre">record</span></code>, <code class="docutils literal notranslate"><span class="pre">turn</span></code> and <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> columns.
+Record 0 contains injection coordinates and record 1 contains a trajectory
+sample. Both preserve every recorded turn with bounded buffers. HDF5 appends
+blocks during tracking; TFS uses private HDF5 storage during tracking and
+exports a standard text table at finalization. The PM readers require one
+current version-2 file. See the ParticleMonitor page for completion metadata
+and format-specific readers.</p>
 <p>Two reserved root attributes describe the table format:
 <code class="docutils literal notranslate"><span class="pre">_pass_table_version=1</span></code> and <code class="docutils literal notranslate"><span class="pre">_pass_table_columns</span></code> (a JSON array of column
 names in output order). User headers must not start with <code class="docutils literal notranslate"><span class="pre">_pass_table_</span></code>.
-The common reader also accepts older PASS HDF5 distribution snapshots
-without these attributes. Multidimensional SpaceCharge files require a
-field-specific reader.</p>
+Multidimensional SpaceCharge files require a field-specific reader.</p>
 <p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> uses lossless gzip level 1 compression with shuffle.
 Shuffle rearranges bytes before compression without changing stored values
 or particle order. <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> disables both compression and shuffle.

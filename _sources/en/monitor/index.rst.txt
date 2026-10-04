@@ -44,8 +44,11 @@ Output reference information
 Distribution headers record ``ReferenceArrivalTime``, ``ReferenceBeta``,
 ``ReferenceMomentum``, ``CoordinateDefinition`` and the element-exit event.
 Statistical monitors include the corresponding per-row reference values.
-ParticleMonitor saves these columns only with ``"Include reference": true``;
-by default it stores no reference values in either columns or headers.
+ParticleMonitor saves turn-by-turn reference values only with
+``"Include reference": true``. Its HDF5 ``initial`` group or TFS initial rows
+always capture the injection reference; those values cannot replace later
+per-sample references. TFS keeps reference columns present with NaN values in
+trajectory rows when this option is disabled.
 Reconstruct live-particle time using the reference saved with the row,
 not the reference at another turn. Loss coordinates are frozen diagnostic
 records and must not be interpreted with a later live reference.

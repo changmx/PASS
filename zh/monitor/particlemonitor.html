@@ -99,8 +99,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#id3">粒子选择机制</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id4">记录圈数范围</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">输出文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">预分配策略</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">结果解释与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">记录量</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">有界缓冲与完成状态</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hdf5">HDF5 数组与注入初值</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tfs">TFS 长表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">读取、检查点与结果解释</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
@@ -108,6 +111,8 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -211,7 +216,7 @@
 </tr>
 </tbody>
 </table>
-<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">键</span> <span class="pre">``Output</span> <span class="pre">format</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>，也可选择 <code class="docutils literal notranslate"><span class="pre">hdf5</span></code> 或 <code class="docutils literal notranslate"><span class="pre">tfs</span></code>。命令名称由序列键给定。</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">键</span> <span class="pre">``Output</span> <span class="pre">format</span></code>）默认为不压缩的 <code class="docutils literal notranslate"><span class="pre">hdf5</span></code>，也可选择 <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code> 或 <code class="docutils literal notranslate"><span class="pre">tfs</span></code>。命令名称由序列键给定。</p>
 </section>
 <section id="id3">
 <h2>粒子选择机制<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
@@ -241,36 +246,36 @@
 </section>
 <section id="id5">
 <h2>输出文件<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>每个粒子默认生成一个独立的 HDF5 文件：</p>
+<p>每个监视器、每个束流输出 <strong>一个文件</strong>，包含所选粒子的全部记录圈。
+通过 <code class="docutils literal notranslate"><span class="pre">output_format</span></code> 选择 <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>、<code class="docutils literal notranslate"><span class="pre">hdf5</span></code> 或 <code class="docutils literal notranslate"><span class="pre">tfs</span></code>，无需选择布局。</p>
 <ul class="simple">
-<li><p><strong>文件名</strong> ： <code class="docutils literal notranslate"><span class="pre">{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5</span></code></p></li>
-<li><p><strong>输出目录</strong> ： <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code></p></li>
+<li><p>文件名：<code class="docutils literal notranslate"><span class="pre">{hms}_beam{bid}_{monitor_name}_s{s:.3f}_particles.h5</span></code>；
+TFS 使用相同文件名主体和 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 扩展名。</p></li>
+<li><p>输出目录：<code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code>。</p></li>
+<li><p>HDF5 根属性或 TFS 文件头包含 <code class="docutils literal notranslate"><span class="pre">Name=&quot;PASS</span> <span class="pre">Particle</span> <span class="pre">Monitor&quot;</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Layout=&quot;single_file&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>、监测位置、束流编号、
+粒子 tag 上界和计划记录区间。</p></li>
 </ul>
-<p>元数据（HDF5 属性，文本模式下为 TFS 文件头）：</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Particle</span> <span class="n">Monitor</span>
-<span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
-<span class="o">@</span> <span class="n">Monitor</span>          <span class="n">pm1</span>
-<span class="o">@</span> <span class="n">S</span>                <span class="mf">0.0</span>
-<span class="o">@</span> <span class="n">BeamId</span>           <span class="mi">0</span>
-<span class="o">@</span> <span class="n">Tag</span>              <span class="mi">1</span>
-<span class="o">@</span> <span class="n">NumTurn</span>          <span class="mi">1000</span>
-<span class="o">@</span> <span class="n">StartTurn</span>        <span class="mi">0</span>
-<span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
+<p>PM 读取器要求当前第 2 版格式。输出配置仅包含格式与缓冲设置，不设布局字段。</p>
+<p>写入间隔只改变缓冲方式，<strong>仍然每圈采样</strong>。
+例如 <code class="docutils literal notranslate"><span class="pre">write_interval_turns=128</span></code> 将 128 个记录圈一起追加到 HDF5 后复用缓冲区。
+TFS 输出在追踪期间使用私有 HDF5 文件，结束清理时导出完整文本表。
+记录结束或正常清理时会补写最后不足一块的数据，并非每 128 圈只保存一次采样。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">monitor</span> <span class="o">=</span> <span class="n">ParticleMonitorItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">max_tag</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">,</span>
+    <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
-<p>协作提前停止时，收尾只写出监视器已经采样的圈，
-不输出预分配缓冲区中尚未采样的未来行。
-<code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 描述实际保存的行，其中 <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 仍为不含端点。
-部分输出额外记录 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code>，表示将 <code class="docutils literal notranslate"><span class="pre">-1</span></code> 解析并按仿真圈数裁剪后的计划终点。
-例如从第 200 圈开始记录、完成第 499 圈后停止，若原计划终点为 1000，
-则输出 <code class="docutils literal notranslate"><span class="pre">NumTurn=300</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn=500</span></code> 和 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn=1000</span></code>。
-完整区间保持原有元数据，不增加 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code>；尚未开始记录时不写粒子表。</p>
-<p>CPU 与 GPU 使用相同的收尾规则，重复收尾不会重写已经完成的表。
-GPU 在设备到主机拷贝之前先裁切缓冲区，因此传输量与得到的主机数组大小随实际记录圈数增长，
-初始化时的显存预分配仍覆盖计划区间。
-GUI 正常停止会等待完整一圈结束后收尾；强制结束不保证缓冲数据已经写出。
-GUI 停止控件及运行记录见 <a class="reference internal" href="../project_files.html"><span class="doc">单文件项目</span></a>。</p>
-<p>默认输出列（共 11 列）：</p>
+<p><code class="docutils literal notranslate"><span class="pre">write_interval_turns``（JSON</span> <span class="pre">``Write</span> <span class="pre">interval</span> <span class="pre">(turns)</span></code>）为正的严格整数，
+默认 128，对 HDF5 和 TFS 均有效。不压缩的 HDF5 避免文本格式化和压缩计算，
+并支持选择读取部分数组。Gzip1 能减少磁盘数据量，最快设置取决于存储吞吐量
+与数据的可压缩程度。TFS 适合文本交换，大规模扫描需要承担文本格式化与解析成本。</p>
+</section>
+<section id="id6">
+<h2>记录量<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>历史数据包含以下 11 个量；HDF5 每次采样仅保存一个 <code class="docutils literal notranslate"><span class="pre">turn</span></code>，
+其他量按采样和粒子保存。TFS 还增加明确的记录类型与粒子 ID 列，见后文。</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -348,9 +353,10 @@ GUI 停止控件及运行记录见 <a class="reference internal" href="../projec
 </tr>
 </tbody>
 </table>
-<p>默认不保存参考量，数据列和 headers 中均不写入这三个值。
+<p>默认不保存随圈变化的参考量；注入时参考量始终与历史数据分开记录。
 仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时，每行额外保存 <code class="docutils literal notranslate"><span class="pre">referenceTime</span></code> （s）、
-<code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code> （无量纲）、 <code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code> （eV/c 每核子），合计 14 列。
+<code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code> （无量纲）、 <code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code> （eV/c 每核子），
+历史暂存缓冲因此从 11 列增加至 14 列。
 参考量与同行粒子坐标对应同一次记录事件，此时存活粒子时间为</p>
 <div class="math notranslate nohighlight">
 \[t_i=referenceTime-z/(referenceBeta\,c).\]</div>
@@ -373,30 +379,103 @@ GUI 停止控件及运行记录见 <a class="reference internal" href="../projec
 </pre></div>
 </div>
 </section>
-<section id="id6">
-<h2>预分配策略<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> 在初始化时预分配完整 buffer ：</p>
-<div class="math notranslate nohighlight">
-\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}\]</div>
-<p><code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 默认为 false，此时 <span class="math notranslate nohighlight">\(N_{\mathrm{col}}=11\)</span>；
-开启后 <span class="math notranslate nohighlight">\(N_{\mathrm{col}}=14\)</span>。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。</p>
-<p>内存开销：</p>
-<div class="math notranslate nohighlight">
-\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}\]</div>
-<p>典型场景（ 14 个测试粒子，记录 1000 圈） ：</p>
-<div class="math notranslate nohighlight">
-\[M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}\]</div>
-<p>开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。</p>
-<p>buffer 使用与束流相同的数组后端（ <code class="docutils literal notranslate"><span class="pre">beam.particles.xp</span></code> ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：</p>
-<ul class="simple">
-<li><p>历史缓冲区在跟踪前分配，记录过程仍有计算开销；</p></li>
-<li><p>GPU 场景下 buffer 全程驻留 GPU 显存，每圈直接从 GPU 粒子数组写入 GPU buffer ，仅在模拟结束时做一次 D2H 拷贝；</p></li>
-<li><p>固定内存布局，便于后处理分析。</p></li>
-</ul>
-</section>
 <section id="id7">
-<h2>结果解释与限制<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
-<p>尚未出现的粒子对应历史行保持零值，例如尚未注入的粒子；分析时应结合 tag 与损失信息筛选。损失坐标保持冻结，不能使用后续存活束团的参考量解释。完整历史缓冲区大小与 max_tag 和记录圈数的乘积成正比，较大规模运行前应合理设置这两个范围。通用格式及读取方法见 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>，坐标定义见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+<h2>有界缓冲与完成状态<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>CPU 批量选择粒子身份；GPU 使用融合采样核，暂存块保留在显存中。
+float64 历史缓冲的大小上限为</p>
+<div class="math notranslate nohighlight">
+\[M = \mathrm{max\_tag}\,\min(N_{\mathrm{record}},N_{\mathrm{write}})\,
+    N_{\mathrm{col}}\,8\;\mathrm{bytes}.\]</div>
+<p>默认 <span class="math notranslate nohighlight">\(N_{\mathrm{col}}=11\)</span>，启用 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 后为 14。
+初值数据和索引工作区另占与 <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> 成正比的空间。
+例如 10,000 个粒子、128 圈一块时，暂存缓冲为 112.64 MB；启用逐圈参考量后
+为 143.36 MB，不随更长运行的总圈数继续增大。GPU 每次写出仅传回待写块。
+写出时还需要该块的临时主机内存。结束时的 TFS 导出每块最多格式化 65,536 行，
+不会把完整历史读入内存。配置的历史缓冲大小不受额外自动上限调整。</p>
+<p><code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> 表示已提交的记录圈数，<code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 为最近采样圈加一，
+<code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code> 为计划终点（不含）。
+<code class="docutils literal notranslate"><span class="pre">Completed</span></code> 只表示监视器覆盖自己的计划区间，不代表 sequence 中后续命令完成。
+收尾仅刷新已有样本，不在其他格点位置补采样。协作提前停止因此只保留已经采样的圈。
+GUI 正常停止会等待整圈完成再收尾；强制终止进程可能丢失尚未写出的块。
+停止操作见 <a class="reference internal" href="../project_files.html"><span class="doc">单文件项目</span></a>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> 保存实际样本数。最终 TFS 文件头包含全部最终计数，
+包括 <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code>、<code class="docutils literal notranslate"><span class="pre">ValidRows</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Completed</span></code>。
+正常提前停止会为已观测区间生成完整 TFS 表；未覆盖计划区间时 <code class="docutils literal notranslate"><span class="pre">Completed=false</span></code>。</p>
+<p>写入失败后，收尾不会重试状态不确定的块，也不会重复提交已有样本。
+原始错误继续传播，并拒绝使用该监视器继续追踪。HDF5 读取器仅使用已提交前缀。
+处理追加异常时，会按实际 <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> 修正 <code class="docutils literal notranslate"><span class="pre">NumTurn</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">Completed</span></code>。若底层 HDF5 错误也阻止修复，保留原异常并补充说明；
+<code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> 仍是提交标记。注入初值的 <code class="docutils literal notranslate"><span class="pre">initial/valid</span></code> 标记只在坐标、
+注入圈和参考量全部写入后发布。
+应在完成后或暂停于两次写入之间读取 HDF5；这不是 SWMR 实时读取接口。
+最终 TFS 文件在导出完成后可用。</p>
+</section>
+<section id="hdf5">
+<h2>HDF5 数组与注入初值<a class="headerlink" href="#hdf5" title="Link to this heading"></a></h2>
+<p>文件根目录包含：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">particle_id</span></code>：(particle)，正整数身份，等于绝对 tag；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">turn</span></code>：(sample)，实际采样圈；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp</span></code>：(sample, particle)，按粒子精度保存；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code>：(sample, particle)，float64 名义分组元数据；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tag,</span> <span class="pre">lostTurn,</span> <span class="pre">lostPosition</span></code>：(sample, particle)，类型依次为 int32、
+int64、float32；</p></li>
+<li><p>可选 <code class="docutils literal notranslate"><span class="pre">referenceTime,</span> <span class="pre">referenceBeta,</span> <span class="pre">referenceMomentum</span></code>：
+(sample, particle)，float64。</p></li>
+</ul>
+<p>完整块写入后才更新 <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code>；已提交前缀之后的行不属于有效数据。</p>
+<p><code class="docutils literal notranslate"><span class="pre">initial</span></code> 组为每个所选粒子保存六维坐标，以及 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>、<code class="docutils literal notranslate"><span class="pre">valid</span></code>、
+<code class="docutils literal notranslate"><span class="pre">injection_turn</span></code>。这些是 <strong>完成参考转换后的实际注入坐标</strong>，在后续追踪命令前
+捕获，即使 PM 从较晚圈开始记录也如此。注入事件的 <code class="docutils literal notranslate"><span class="pre">referenceTime</span></code>、
+<code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code> 和 <code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code> 始终保存，与可选逐圈参考量独立。
+未捕获注入的条目为 <code class="docutils literal notranslate"><span class="pre">valid=false</span></code>、NaN 坐标和 <code class="docutils literal notranslate"><span class="pre">injection_turn=-1</span></code>。
+不会用监视器第一条轨迹记录代替未知初值。</p>
+</section>
+<section id="tfs">
+<h2>TFS 长表<a class="headerlink" href="#tfs" title="Link to this heading"></a></h2>
+<p>最终 TFS 文件为标准数值表，固定列顺序为：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">record</span> <span class="n">turn</span> <span class="n">particle_id</span> <span class="n">x</span> <span class="n">px</span> <span class="n">y</span> <span class="n">py</span> <span class="n">z</span> <span class="n">dp</span> <span class="n">tag</span> <span class="n">lostTurn</span> <span class="n">lostPosition</span> <span class="n">zCenter</span>
+<span class="n">referenceTime</span> <span class="n">referenceBeta</span> <span class="n">referenceMomentum</span>
+</pre></div>
+</div>
+<p>上方分两行显示的是同一个表头。<code class="docutils literal notranslate"><span class="pre">record=0</span></code> 表示注入记录，<code class="docutils literal notranslate"><span class="pre">turn</span></code> 为注入圈；
+每个捕获到初值的粒子保存一行；全部初值行位于轨迹行之前。
+<code class="docutils literal notranslate"><span class="pre">record=1</span></code> 表示轨迹样本，每个记录圈为每个
+所选粒子保存一行。即使丢失后的有符号 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 为负数，或尚未出现粒子的 tag
+为零，<code class="docutils literal notranslate"><span class="pre">particle_id</span></code> 始终保留正的身份编号。</p>
+<p>TFS 始终包含参考量列。注入行保留实际参考量；未启用 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 时，
+轨迹行的参考列为 NaN。浮点文本保留 17 位有效数字。完整文件使用固定数值表结构，
+可直接通过 <code class="docutils literal notranslate"><span class="pre">tfs.read(path)</span></code> 或 <code class="docutils literal notranslate"><span class="pre">PASS.utils.table_io.read_table(path)</span></code> 读取。</p>
+<p>追踪期间，监视器将有界数据块写入私有的 <code class="docutils literal notranslate"><span class="pre">.pass_pm_&lt;uuid&gt;.h5</span></code>，采用不压缩 HDF5。
+结束清理时先导出到私有 <code class="docutils literal notranslate"><span class="pre">.tfs.partial</span></code>，关闭后再发布完整最终 TFS，且不覆盖已有目标。
+仅在发布成功后移除本次运行创建的临时 HDF5 与文本文件。导出失败时两者保留，
+错误信息给出可恢复的 HDF5 路径；再次结束清理可由此重试导出。
+未完成的文本不会出现在最终文件名下。标准 TFS 仅包含常规文件头、列名/类型行和数据行，
+不在数据中插入块提交注释。</p>
+<p>若发布成功但临时文件清理失败，最终 TFS 仍然有效；再次结束清理仅重试移除临时文件。
+清理范围仅限此监视器在本次运行中创建的临时文件。
+若创建最终硬链接后才收到异常，会核对文件身份以确认发布已经成功。
+再次结束清理仅重试移除临时文件；恢复已完成的检查点时也适用。</p>
+</section>
+<section id="id8">
+<h2>读取、检查点与结果解释<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>DA 分析使用 <code class="docutils literal notranslate"><span class="pre">PASS.analysis.read_dynamic_aperture(path)</span></code>；指定轨迹可使用
+<code class="docutils literal notranslate"><span class="pre">PASS.analysis.data_io.load_signal(path,</span> <span class="pre">&quot;x&quot;,</span> <span class="pre">object_range=[0,</span> <span class="pre">10])</span></code>。
+这些读取器识别实际圈号、粒子 ID 及初值与轨迹记录。频谱读取会拒绝丢失或缺失样本。
+多维 PM HDF5 文件不能交给普通一维 <code class="docutils literal notranslate"><span class="pre">read_table</span></code> 接口。
+DA 与轨迹读取器接受一个当前 PM 文件，文件自身包含捕获的注入初值。</p>
+<p>碰撞检查点同时捕获已写出的监视器文件、待写缓冲和注入初值。
+恢复后向新的输出文件写入此前完整历史，不依赖原输出路径。
+除常规有界缓冲外，创建检查点时还需临时容纳已保存文件的字节数据。
+PM 检查点使用 <code class="docutils literal notranslate"><span class="pre">PASS-particle-monitor-state-2</span></code>，标记保存的文件字节属于
+运行中 HDF5 还是已完成的 TFS。仅支持此当前检查点版本。
+若提前停止的运行已将部分历史导出为 TFS，恢复时会先重建私有 HDF5 历史，
+再追加新样本。最终 TFS 包含恢复前后的全部记录，包括一直缓冲到计划终点圈
+才写出的新样本。</p>
+<p>尚未出现的粒子 tag 为零，例如尚未注入的粒子。应结合 tag 与损失字段筛选数据；
+冻结的损失坐标不能用后续存活束团的参考量解释。
+研究完整圈存活时，应将监视器放在所有相关效应之后。
+通用格式见 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>，坐标约定见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
 </section>
 </section>
 

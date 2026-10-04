@@ -104,6 +104,8 @@
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -143,7 +145,8 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>：不压缩的 HDF5，也不启用 shuffle。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>：TFS 文本输出。</p></li>
 </ul>
-<p>监视器、Injection 与 Slicer 省略此选项时使用 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>。
+<p>省略此选项时，ParticleMonitor 与 Injection 使用不压缩的 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>；
+其他监视器与 Slicer 使用 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>。
 <a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam 亮度</span></a> 的共享 <code class="docutils literal notranslate"><span class="pre">Luminosity</span></code> 配置则默认 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>。
 格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。</p>
@@ -172,8 +175,8 @@
 <td><p>无</p></td>
 </tr>
 <tr class="row-even"><td><p>ParticleMonitor</p></td>
-<td><p>每个选定粒子一个逐圈历史文件</p></td>
-<td><p>无</p></td>
+<td><p>每个监视器与束流一个文件，包含所选粒子的全部记录圈</p></td>
+<td><p>HDF5 数组或 TFS 长表；均包含注入初值</p></td>
 </tr>
 <tr class="row-odd"><td><p>StatMonitor</p></td>
 <td><p>每个束团、每个监视器位置一个统计历史文件</p></td>
@@ -207,9 +210,9 @@ SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。</p>
 </section>
 <section id="hdf5">
 <h2>HDF5 结构与元数据<a class="headerlink" href="#hdf5" title="Link to this heading"></a></h2>
-<p>每个数值或布尔列对应文件根目录下的一个 <strong>一维 dataset</strong>，保留原列名和
+<p>普通表格布局的每个数值或布尔列对应文件根目录下的一个 <strong>一维 dataset</strong>，保留原列名和
 数据类型，各列长度相同。分布表的一行对应一个粒子；StatMonitor 的一行
-对应一个记录圈；ParticleMonitor 的一行对应文件所标识粒子的一个记录圈。
+对应一个记录圈。
 例如，统计文件包含:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">turn</span>                  <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
 <span class="o">/</span><span class="n">xAverage</span>              <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
@@ -223,11 +226,19 @@ SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。</p>
 <p>表格头信息保存为 <strong>文件根属性</strong>，包括名称、现有元数据中的
 单位、参考约定和监视器位置。StatMonitor 随圈变化的参考量始终作为逐行列保存，
 保留完整历史；快照中的参考 attributes 只描述该次快照。ParticleMonitor
-仍然仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时保存参考量列。</p>
+仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时保存逐圈参考量列；HDF5 文件中的 <code class="docutils literal notranslate"><span class="pre">initial</span></code>
+组始终保存注入时的参考量。</p>
+<p><a class="reference internal" href="particlemonitor.html"><span class="doc">ParticleMonitor</span></a> 的 HDF5 文件使用
+二维 (sample, particle) dataset、一维 <code class="docutils literal notranslate"><span class="pre">turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> 轴，以及
+<code class="docutils literal notranslate"><span class="pre">initial</span></code> 组。它使用 <code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>、<code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code> 元数据和专用 DA／
+频谱读取接口，不通过普通 <code class="docutils literal notranslate"><span class="pre">read_table</span></code> 函数读取。TFS 输出则使用长表，
+明确保存 <code class="docutils literal notranslate"><span class="pre">record</span></code>、<code class="docutils literal notranslate"><span class="pre">turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> 列。record 为 0 表示注入初值，
+为 1 表示逐圈轨迹样本。两种格式均以有界缓冲保留每个记录圈。HDF5 在追踪期间
+分块追加；TFS 在追踪期间使用私有 HDF5 存储，结束清理时导出标准文本表。
+PM 读取器要求一个当前第 2 版文件。完成状态元数据与各格式读取接口详见 ParticleMonitor 页面。</p>
 <p>另有两个保留属性描述表格格式：<code class="docutils literal notranslate"><span class="pre">_pass_table_version=1</span></code> 和
 <code class="docutils literal notranslate"><span class="pre">_pass_table_columns``（按输出顺序排列的列名</span> <span class="pre">JSON</span> <span class="pre">数组）。用户</span> <span class="pre">headers</span>
-<span class="pre">不能以</span> <span class="pre">``_pass_table_</span></code> 开头。统一读取器也支持没有这些属性的旧 PASS
-HDF5 分布快照。SpaceCharge 多维场文件需使用专用场数据读取器。</p>
+<span class="pre">不能以</span> <span class="pre">``_pass_table_</span></code> 开头。SpaceCharge 多维场文件需使用专用场数据读取器。</p>
 <p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> 使用无损 gzip level 1 压缩并启用 shuffle。
 shuffle 在压缩前重排字节，不改变保存的数值或粒子顺序。
 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 同时关闭压缩和 shuffle。两者使用相同的 <code class="docutils literal notranslate"><span class="pre">.h5</span></code> 扩展名、

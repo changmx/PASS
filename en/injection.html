@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#multi-turn-injection-and-transverse-painting">Multi-turn injection and transverse painting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#injection-schedule-and-particle-population">Injection schedule and particle population</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#incoming-distribution-and-offsets">Incoming distribution and offsets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cartesian-scan-coordinates">Cartesian scan coordinates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#transverse-painting-with-bump-magnets">Transverse painting with Bump magnets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#observing-injection">Observing injection</a></li>
 </ul>
@@ -129,6 +130,8 @@
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dynamic_aperture.html">Dynamic-aperture scans</a></li>
 </ul>
 
   
@@ -545,6 +548,20 @@ time-dependent Bump magnets can vary its subsequent transverse motion.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>Replace the first rows of the first batch after offsets are applied, using <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code>; these rows are included in the planned particle count</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particle_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code></p></td>
+<td><p>str or null</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>TFS/HDF5 table with <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp</span></code> columns, replacing first-batch rows after offsets</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_grid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code></p></td>
+<td><p>object or null</p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Cartesian x/y grid for every initial dp value; replaces first-batch rows after offsets</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -643,7 +660,7 @@ time-dependent Bump magnets can vary its subsequent transverse motion.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">'hdf5-gzip1'</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'hdf5'</span></code></p></td>
 <td><p>Initial-distribution table format: hdf5-gzip1, hdf5 or tfs.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_x</span></code></p></td>
@@ -850,16 +867,73 @@ injection turn or incoming reference passage time, according to its <code class=
 <code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">(s)</span></code> column. The position and momentum columns are <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">px</span> <span class="pre">(rad)</span></code>
 or <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">(rad)</span></code>. Nodes must increase strictly, values must be finite,
 and the table must cover every requested injection event.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> replaces the first rows of the first batch after
-these offsets, before conversion to the circulating reference. The batch must
-contain enough rows for these explicitly specified particles. Missing input rows,
-non-finite coordinates, or nonpositive longitudinal momentum cause an error before
-the affected batch is activated.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code> and <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> are
+mutually exclusive ways to replace the first rows of the first batch after these
+offsets, before conversion to the circulating reference. The batch must contain
+enough rows for these explicitly specified particles; they replace reserved rows
+and do not increase the planned count or change macro-particle weights. The file
+option accepts the same six lowercase coordinate columns as a distribution file,
+but does not apply momentum, dispersion or transverse offsets to its rows. It
+reads all rows once, only for the first batch; input tags are not imported.
+Missing input rows, non-finite coordinates, or nonpositive longitudinal momentum
+cause an error before the affected batch is activated. If a grid or explicit file
+fills the entire first batch and distribution-file loading is disabled, the
+unused random generation is skipped. Partial replacements leave the other rows
+generated and offset as usual.</p>
+<p>If manual coordinates supply the entire distribution in one active batch,
+unused random generation is also skipped and positive Gaussian emittances are
+not required. A manual replacement of only the first batch in a multi-batch
+source retains the existing random-number sequence for later generated batches.
+Skipping a complete manual bunch no longer consumes discarded random draws.
+Later randomly generated bunches in the same Injection command can therefore
+have different fixed-seed coordinates than older versions. Repeated runs with
+the same seed and configuration in the current version remain deterministic.
+Skipping a complete manual bunch no longer consumes discarded random draws.
+Later randomly generated bunches in the same Injection command can therefore
+have different fixed-seed coordinates than older versions. Repeated runs with
+the same seed and configuration in the current version remain deterministic.</p>
 <p>The incoming physical momentum remains determined by the specified injection
 energy even when the circulating beam has accelerated. Injection converts the
 incoming momenta and longitudinal coordinate to the destination bunch reference
 while preserving physical momentum and arrival time, as defined in
 <a class="reference internal" href="#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+</section>
+<section id="cartesian-scan-coordinates">
+<h3>Cartesian scan coordinates<a class="headerlink" href="#cartesian-scan-coordinates" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> generates the full Cartesian product of the x and y axes and the
+<code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">values</span></code> list in one bunch. Every dp value receives the entire x/y grid.
+The x index changes fastest, followed by y and then dp. This is initial-coordinate
+generation only: the user still chooses every tracking command and effect.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Scan Grid"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"X range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Y range (m)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.008</span><span class="p">,</span><span class="w"> </span><span class="mf">0.008</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Number of x points"</span><span class="p">:</span><span class="w"> </span><span class="mi">21</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of y points"</span><span class="p">:</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"dp values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"px"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"py"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"z (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This grid contains 1071 particles, so the first injection batch must have at least
+1071 reserved particles. Ranges include both endpoints. A one-point axis requires
+identical endpoints; a multi-point axis requires increasing endpoints. Point
+counts are positive integers, dp values are finite and distinct, and every point
+must satisfy <span class="math notranslate nohighlight">\(1+\delta&gt;\sqrt{p_x^2+p_y^2}\)</span>. The fixed <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">(m)</span></code> fields default to zero. Here <code class="docutils literal notranslate"><span class="pre">px</span></code> and <code class="docutils literal notranslate"><span class="pre">py</span></code> mean mechanical momenta
+divided by the incoming reference momentum, not geometric slopes.</p>
+<p>Python callers can construct <code class="docutils literal notranslate"><span class="pre">ScanGridConfig</span></code> or use
+<code class="docutils literal notranslate"><span class="pre">PASS.utils.scan_grid.generate_scan_grid(x_values,</span> <span class="pre">y_values,</span> <span class="pre">dp_values)</span></code>.
+The latter returns <code class="docutils literal notranslate"><span class="pre">coordinates</span></code> with columns <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">indices</span></code> with columns <code class="docutils literal notranslate"><span class="pre">[dp_index,</span> <span class="pre">y_index,</span> <span class="pre">x_index]</span></code>, and the three axes.
+It also accepts fixed <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code> and <code class="docutils literal notranslate"><span class="pre">z</span></code> keyword arguments.</p>
+<p>The supplied coordinates are exact in the incoming reference. Converting to a
+different circulating momentum or clock can change their stored <code class="docutils literal notranslate"><span class="pre">dp</span></code> and
+<code class="docutils literal notranslate"><span class="pre">z</span></code> while preserving physical momentum and arrival time. Analyse actual
+post-injection initial coordinates and group scans by initial dp, since RF can
+subsequently change dp. All scan particles retain the normal beam weight and
+participate in the configured collective effects.</p>
 </section>
 <section id="transverse-painting-with-bump-magnets">
 <h3>Transverse painting with Bump magnets<a class="headerlink" href="#transverse-painting-with-bump-magnets" title="Link to this heading"></a></h3>
@@ -1544,11 +1618,50 @@ approximation, not an exact finite-amplitude transport map.</p>
 <section id="initial-distribution-output-format">
 <h2>Initial distribution output format<a class="headerlink" href="#initial-distribution-output-format" title="Link to this heading"></a></h2>
 <p>When <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> is enabled, each <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> accepts
-<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5-gzip1&quot;</span></code> (default, gzip-1 + shuffle),
-<code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>. The JSON key is
+<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5&quot;</span></code> (default, uncompressed),
+<code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (gzip-1 + shuffle), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>. The JSON key is
 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code> inside the corresponding <code class="docutils literal notranslate"><span class="pre">bunchN</span></code> block.
 This selects the initial-distribution output only; loading detects the
 input format from its extension. See <a class="reference internal" href="monitor/table_output.html"><span class="doc">Table output formats</span></a>.</p>
+<p>The saved file is a snapshot of the current bunch at that source’s last scheduled
+injection event, after all sources scheduled at the same event have been injected.
+It is not delayed until other sources finish on future turns. After sorting,
+the current bunch may contain particles from multiple sources, including zero-tag
+reservations for future batches; the snapshot is not filtered by original source.
+With multi-turn injection, earlier batches may already have
+been transported or lost; this file does not preserve each particle’s birth
+coordinates. ParticleMonitor captures those coordinates separately at each
+injection event for DA analysis. Loading a distribution reads its six coordinate
+columns as a new incoming distribution; saved tags, loss history and reference
+metadata are not a beam-state restore operation.</p>
+<p>Saving first writes a complete private temporary file and then publishes it
+without overwriting an existing destination. An existing snapshot or input
+distribution at that path is preserved and reported as an error. A failed save
+can be retried without injecting the same batch again. If publication succeeds
+before an exception is delivered, file identity confirms the owned complete
+snapshot so a retry does not mistake it for an unrelated existing file.</p>
+<p>Snapshot headers <code class="docutils literal notranslate"><span class="pre">Ek</span></code> and <code class="docutils literal notranslate"><span class="pre">m0</span></code> describe the current bunch reference;
+<code class="docutils literal notranslate"><span class="pre">InjectionKineticEnergy</span></code> retains the incoming source energy used for generation.
+<code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code> (s), <code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code> and <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span></code>
+(eV/c, per nucleon for ions) describe the reference at the post-injection save
+event. Thus live-particle momentum is <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span> <span class="pre">*</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">dp)</span></code> and
+arrival time is <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span> <span class="pre">-</span> <span class="pre">z</span> <span class="pre">/</span> <span class="pre">(ReferenceBeta</span> <span class="pre">*</span> <span class="pre">c)</span></code>.
+<code class="docutils literal notranslate"><span class="pre">HarmonicId</span></code>, <code class="docutils literal notranslate"><span class="pre">HarmonicNumber</span></code> and <code class="docutils literal notranslate"><span class="pre">ZCenter</span></code> (m) record the current grouping;
+the saved <code class="docutils literal notranslate"><span class="pre">z</span></code> remains <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>. These reference values apply only to live
+particles: lost rows retain coordinates from their loss event. Other generation
+settings such as emittance and Twiss parameters are not measured snapshot moments.</p>
+<p>HDF5 loading reads only the current batch’s six coordinate slices and closes
+the file after each batch. TFS loading caches column indices and byte offsets
+at batch boundaries, then reads only the requested batch; file-size or
+modification-time changes invalidate that cache. Neither path retains an open
+file handle or caches the complete coordinate table. <code class="docutils literal notranslate"><span class="pre">sequential</span></code> advances
+through the source rows; <code class="docutils literal notranslate"><span class="pre">repeat</span></code> restarts at the first row for each batch.</p>
+<p>Preflight validation also scans HDF5 and TFS distributions in bounded blocks,
+including rows beyond the first injection batch. It checks the coordinate
+columns, finite values, physical longitudinal momentum and total row count,
+and caches only counts and diagnostics rather than the complete coordinate
+table. Explicit inserted-particle files use the same bounded preflight check;
+their runtime insertion still loads the requested complete first-batch input.</p>
 </section>
 </section>
 

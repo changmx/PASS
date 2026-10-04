@@ -117,6 +117,8 @@
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
 </ul>
 
   
@@ -433,6 +435,10 @@ Tilt 旋转电极和电场，不旋转单独输入的真空室。</p>
 <p>CPU 和 CUDA 实现在同一源文件中。GPU 的解析场轨迹和曲线碰撞界限使用双精度，
 粒子数组保持选定的 float32 或 float64 存储。内部 SC 节点写回粒子状态，
 每个元件按设备和数据类型缓存编译内核，不原地旋转坐标数组。</p>
+<p>没有内部 SC 节点时，厚元件 GPU 跟踪将入口、本体和出口合并为一次内核调用。
+场外粒子使用精确直线轨迹和连续的材料、孔径检查，并在存储舍入后再次检查终点。
+存活的场外轨迹若进入间隙，必先接触吸收电极。场内粒子保留解析硬边各阶段及
+各阶段对应的存储精度舍入。存在内部 SC 节点时仍分段跟踪，使空间电荷冲量作用于中间状态。</p>
 </section>
 </section>
 

@@ -44,7 +44,9 @@
 分布文件头保存 ``ReferenceArrivalTime``、``ReferenceBeta``、
 ``ReferenceMomentum``、``CoordinateDefinition`` 和元件出口事件标识。
 统计监视器逐行保存相应参考参数。ParticleMonitor 仅在 ``"Include reference": true`` 时
-保存这些列，默认在数据列和 headers 中均不保存参考量。必须使用同行参考信息重建存活粒子时间，
+保存逐圈参考量。其 HDF5 ``initial`` 组或 TFS 初值行始终保存注入参考量，
+它不能代替后续每个样本的参考量。TFS 在关闭此选项时仍保留参考列，轨迹行对应值为 NaN。
+必须使用同行参考信息重建存活粒子时间，
 不能使用其他圈的参考值。损失坐标是冻结的诊断记录，不能用后续存活束团参考系解释。
 
 物理坐标定义见 :ref:`zh-longitudinal-reference`，通用文件格式与读取方法见 :doc:`table_output`。
