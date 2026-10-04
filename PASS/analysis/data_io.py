@@ -384,6 +384,8 @@ def load_signal(path,
         if single_file:
             if array.ndim != 2 or (kind == "hdf5" and array.parent.name != "/"):
                 raise ValueError("Select a root turn-by-turn dataset from single-file ParticleMonitor output")
+            if any(name not in source for name in ("particle_id", "turn", "tag")):
+                raise ValueError("ParticleMonitor requires particle_id, turn and tag datasets")
             committed = parameters.get("ValidSamples", -1)
             if (parameters.get("FormatVersion") != 2 or isinstance(committed, (bool, np.bool_)) or not isinstance(committed, (int, np.integer))
                     or not 0 <= committed <= array.shape[0]):
@@ -392,7 +394,12 @@ def load_signal(path,
             sample_axis = 0
         signal, object_ids, axis, bounds = _select_array(array, sample_axis, sample_range, object_range)
         if single_file:
-            object_ids = np.asarray(source["particle_id"][int(object_ids[0]):int(object_ids[-1]) + 1])
+            particle_ids = _get_array(source, "particle_id")
+            if particle_ids.ndim != 1 or particle_ids.shape[0] != array.shape[1] or particle_ids.dtype.kind not in "iu":
+                raise ValueError("ParticleMonitor requires one integer particle_id per trajectory column")
+            object_ids = np.asarray(particle_ids[int(object_ids[0]):int(object_ids[-1]) + 1])
+            if np.any(object_ids <= 0) or np.any(object_ids > np.iinfo(np.int64).max) or len(np.unique(object_ids)) != len(object_ids):
+                raise ValueError("ParticleMonitor requires unique positive int64 particle IDs")
         prefix = array.parent.name.rstrip("/") + "/" if kind == "hdf5" and array.parent.name != "/" else ""
         turn_selection = prefix + "turn"
         tag_selection = prefix + "tag"
@@ -424,6 +431,10 @@ def load_signal(path,
         if monitor:
             tags = (live_values if alive_selection == tag_selection else _select_array(source[tag_selection], sample_axis, sample_range,
                                                                                        object_range)[0]) if tag_selection in source else None
+            if single_file and (tags is None or tags.dtype.kind not in "iu" or tags.shape != signal.shape or np.any(tags != object_ids[..., None])):
+                # A caller-supplied mask cannot revive losses or relabel a PM column.
+                raise ValueError(
+                    "ParticleMonitor tags must identify the selected live particles; selection contains lost/unavailable or misidentified samples")
             if tags is not None and np.any(tags != tags[..., :1]):
                 raise ValueError("A Particle Monitor signal must follow one particle tag; group trajectories explicitly")
         metadata.update({

@@ -161,6 +161,9 @@ copying; NPZ loads the complete selected member and text loads the table.
 PASS ParticleMonitor output freezes lost-particle records. The adapter uses
 the signed tag for identified ParticleMonitor files, including files converted
 with PASS metadata. It rejects a selection containing lost or nonfinite samples.
+For native single-file PM data, selected tags must match the positive particle
+IDs of their trajectory columns. A custom alive/status selection adds a filter;
+it cannot override native loss or identity checks.
 For external files, an explicit alive/status selection can declare positive
 values live. Analyze an intact live interval; do not treat a frozen
 tail as an oscillation. Native PM long tables are grouped automatically.

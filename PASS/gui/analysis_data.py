@@ -88,11 +88,11 @@ class SourceControls(QGroupBox):
         form.addRow("采样轴", self.axis)
         self.coordinate = QComboBox()
         self.coordinate.addItem("未指定坐标", None)
-        self.coordinate.setToolTip("指定坐标时从坐标确定 Δt 并检查间隔。未指定时，PASS 逐粒子记录自动使用 turn；其他数据使用手动 Δt。")
+        self.coordinate.setToolTip("指定坐标时从坐标确定 Δt 并检查间隔。未指定时，ParticleMonitor 文件自动使用 turn；其他数据使用手动 Δt。")
         form.addRow("采样坐标列 / 数组", self.coordinate)
         self.alive = QComboBox()
         self.alive.addItem("自动 / 未指定", None)
-        self.alive.setToolTip("PASS 逐粒子文件自动检查 tag；其他数据可明确选择存活标记，数值大于 0 表示存活。")
+        self.alive.setToolTip("ParticleMonitor 文件自动检查 tag；其他数据可明确选择存活标记，数值大于 0 表示存活。")
         form.addRow("存活标记（大于 0）", self.alive)
         self.spacing = QLineEdit("1.0")
         self.spacing.setToolTip("坐标单位为秒时频率单位为 Hz；逐圈坐标时为 cycles/turn。指定坐标列后由实际坐标检查并确定间隔。")
@@ -172,7 +172,7 @@ class SourceControls(QGroupBox):
                     self.coordinate.setCurrentIndex(self.coordinate.findData(name))
         self.info.setText(f"{len(names)} 个数值列 / 数组；采样轴、坐标及范围应用于选定信号。")
         if monitor:
-            self.info.setText("PASS 逐粒子记录：从 turn 确定采样间隔，并自动检查 tag 存活标记。")
+            self.info.setText("ParticleMonitor 文件：从 turn 确定采样间隔，并自动检查 tag 存活标记。")
         self._coordinate_changed()
 
 

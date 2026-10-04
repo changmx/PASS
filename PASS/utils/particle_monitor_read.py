@@ -196,21 +196,34 @@ def read_particle_trajectories(path, *, max_tag=None):
                 raise ValueError("ParticleMonitor requires the current single-file format version 2")
             count = _integer(stream.attrs.get("ValidSamples"), "ValidSamples")
             ids = stream["particle_id"][:]
-            if ids.ndim != 1 or ids.dtype.kind not in "iu" or np.any(ids <= 0) or len(np.unique(ids)) != len(ids):
+            if (ids.ndim != 1 or ids.dtype.kind not in "iu" or np.any(ids <= 0) or np.any(ids > np.iinfo(np.int64).max)
+                    or len(np.unique(ids)) != len(ids)):
                 raise ValueError("ParticleMonitor requires unique positive integer particle IDs")
             if stream["turn"].ndim != 1 or len(stream["turn"]) < count:
                 raise ValueError("ParticleMonitor turn data do not cover ValidSamples")
             turns = stream["turn"][:count]
+            if turns.dtype.kind not in "iu" or np.any(turns < 0) or np.any(turns > np.iinfo(np.int64).max) or np.any(turns[1:] <= turns[:-1]):
+                raise ValueError("ParticleMonitor sample turns must be strictly increasing nonnegative int64 integers")
             fields = {name: item for name, item in stream.items() if name not in {"particle_id", "turn"} and isinstance(item, h5py.Dataset)}
             if any(item.ndim != 2 or item.shape[0] < count or item.shape[1] != len(ids) for item in fields.values()):
                 raise ValueError("ParticleMonitor datasets do not cover the sample/particle shape")
-            return {
-                int(particle_id): dict(turn=turns.copy(), **{
-                    name: item[:count, index]
-                    for name, item in fields.items()
-                })
-                for index, particle_id in enumerate(ids) if max_tag is None or particle_id <= max_tag
-            }
+            selected = np.flatnonzero(ids <= max_tag) if max_tag is not None else np.arange(len(ids))
+            trajectories = {int(ids[index]): {"turn": turns.copy()} for index in selected}
+            if not len(selected):
+                return trajectories
+            contiguous = selected[-1] - selected[0] + 1 == len(selected)
+            columns = slice(int(selected[0]), int(selected[-1]) + 1) if contiguous else selected
+            for name, item in fields.items():
+                # Read each selected hyperslab once instead of decoding the same
+                # HDF5 chunks separately for every particle's column.
+                values = item[:count, columns]
+                if name == "tag":
+                    selected_ids = ids[selected].astype(np.int64, copy=False)[None, :]
+                    if values.dtype.kind not in "iu" or np.any((values != 0) & (values != selected_ids) & (values != -selected_ids)):
+                        raise ValueError("ParticleMonitor sample tags disagree with particle IDs")
+                for column, index in enumerate(selected):
+                    trajectories[int(ids[index])][name] = values[:, column]
+            return trajectories
     records, attributes = read_particle_monitor_tfs(path)
     selected = records["record"] == 1
     shape = (attributes["ValidSamples"], attributes["MaxTag"])
