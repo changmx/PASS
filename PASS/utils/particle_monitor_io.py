@@ -9,6 +9,14 @@ import numpy as np
 from PASS.utils.table_io import _hdf5_filters
 
 
+def _update_sample_metadata(stream, count):
+    """Derive summary attributes from a complete sample prefix."""
+    start_turn = int(stream.attrs["StartTurn"])
+    requested_end = int(stream.attrs["RequestedEndTurn"])
+    end_turn = int(stream["turn"][count - 1]) + 1 if count else start_turn
+    stream.attrs.update(NumTurn=count, EndTurn=end_turn, Completed=count == requested_end - start_turn and end_turn == requested_end)
+
+
 def append_particle_samples(path, values, column_names, turns, initial, metadata, *, coordinate_dtype, chunk_turns, output_format, create=False):
     """Append one complete sample block; publish ValidSamples only after writing.
 
@@ -18,6 +26,7 @@ def append_particle_samples(path, values, column_names, turns, initial, metadata
     """
     path = Path(path)
     n_samples, n_particles, _ = values.shape
+    metadata = {name: value for name, value in metadata.items() if name not in {"Layout", "FormatVersion", "ValidSamples"}}
     filters = _hdf5_filters(output_format)
     with h5py.File(path, "x" if create else "a") as stream:
         if create:
@@ -25,6 +34,7 @@ def append_particle_samples(path, values, column_names, turns, initial, metadata
             stream.attrs.update(Layout="single_file", FormatVersion=2, ValidSamples=0)
             stream.create_dataset("particle_id", data=np.arange(1, n_particles + 1, dtype=np.int32))
             stream.create_dataset("turn", shape=(0, ), maxshape=(None, ), dtype=np.int64, chunks=(chunk_turns, ), **filters)
+            _update_sample_metadata(stream, 0)
             for name in column_names[1:]:
                 dtype = (np.int32 if name == "tag" else np.int64 if name == "lostTurn" else np.float32
                          if name == "lostPosition" else np.float64 if name == "zCenter" or name.startswith("reference") else coordinate_dtype)
@@ -41,24 +51,36 @@ def append_particle_samples(path, values, column_names, turns, initial, metadata
             group.attrs["Event"] = "injection-after-reference-conversion"
             group.attrs["CoordinateDefinition"] = "z=beta*c*(T-t)"
             for name, data in initial.items():
-                group.create_dataset(name, data=data)
+                group.create_dataset(name, data=np.zeros_like(data) if name == "valid" else data)
         elif stream.attrs.get("Layout") != "single_file" or stream.attrs.get("FormatVersion") != 2:
             raise ValueError("ParticleMonitor append requires the current single-file format version 2")
         start = int(stream.attrs["ValidSamples"])
         end = start + n_samples
-        if n_samples:
-            stream["turn"].resize((end, ))
-            stream["turn"][start:end] = turns
-            for index, name in enumerate(column_names[1:], start=1):
-                dataset = stream[name]
-                dataset.resize((end, n_particles))
-                dataset[start:end] = values[:, :, index]
-        for name, data in initial.items():
-            stream["initial"][name][:] = data
-        stream.attrs.update(metadata)
-        stream.flush()
-        stream.attrs["ValidSamples"] = end
-        stream.flush()
+        try:
+            if n_samples:
+                stream["turn"].resize((end, ))
+                stream["turn"][start:end] = turns
+                for index, name in enumerate(column_names[1:], start=1):
+                    dataset = stream[name]
+                    dataset.resize((end, n_particles))
+                    dataset[start:end] = values[:, :, index]
+            for name, data in initial.items():
+                if name != "valid":
+                    stream["initial"][name][:] = data
+            # Publish new injection records only after all their fields exist.
+            stream["initial/valid"][:] = initial["valid"]
+            stream.attrs.update(metadata)
+            _update_sample_metadata(stream, end)
+            stream.flush()
+            stream.attrs["ValidSamples"] = end
+            stream.flush()
+        except BaseException as error:
+            try:
+                _update_sample_metadata(stream, int(stream.attrs["ValidSamples"]))
+                stream.flush()
+            except BaseException as repair_error:
+                error.add_note(f"ParticleMonitor metadata repair also failed: {repair_error}; ValidSamples remains the commit marker")
+            raise
 
 
 def export_particle_samples_tfs(source, destination, *, chunk_rows=65536):

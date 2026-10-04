@@ -265,7 +265,13 @@ not covered.
 
 After a write failure, cleanup does not retry an uncertain block or duplicate
 committed samples. The original error is propagated and further tracking with
-that monitor is rejected. HDF5 readers use only the committed prefix. Read
+that monitor is rejected. HDF5 readers use only the committed prefix.
+Summary attributes ``NumTurn``, ``EndTurn`` and ``Completed`` are reconciled
+with ``ValidSamples`` when handling an append failure. If the underlying HDF5
+error also prevents that repair, the original exception is retained with an
+additional explanation; ``ValidSamples`` remains the commit marker.
+Injection ``initial/valid`` flags are published only after their coordinate,
+injection-turn and reference fields have been written completely. Read
 HDF5 after completion or while tracking is paused between writes; this is not
 a SWMR live-reader interface. A final TFS file becomes available after export.
 
@@ -330,6 +336,9 @@ data rows, with no block-commit comments.
 If publication succeeds but temporary-file removal fails, the final TFS remains
 valid; a repeated finalization retries cleanup only. Cleanup is restricted to
 temporary files created by this monitor in the current run.
+If an exception arrives after the final hard link was created, file identity
+is checked to recognize the successful publication. Repeated finalization then
+retries cleanup only, including when restoring an already completed checkpoint.
 
 Reading, checkpoints and interpretation
 ------------------------------------------
@@ -350,6 +359,10 @@ addition to the normal bounded history buffer.
 PM checkpoint payloads use ``PASS-particle-monitor-state-2`` and identify
 whether their saved file bytes are runtime HDF5 or finalized TFS. Only this
 current checkpoint version is supported.
+If an early-stopped run has already exported a partial TFS history, resuming
+reconstructs the private HDF5 history before appending new samples. The final
+TFS then contains both intervals, including new samples buffered until the
+last requested turn.
 
 Absent particles have zero tags, for example before injection. Select samples
 using their tag and loss fields; frozen loss coordinates cannot be interpreted

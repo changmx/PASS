@@ -377,7 +377,7 @@ class ParticleMonitor(Command):
         if output_bytes is not None and (not isinstance(output_bytes, bytes) or hashlib.sha256(output_bytes).hexdigest() != data["output_sha256"]):
             raise ValueError("ParticleMonitor checkpoint output snapshot is damaged")
         snapshot_format = data.get("snapshot_format")
-        if snapshot_format not in {"hdf5", "tfs"} or snapshot_format == "tfs" and (self.output_format != "tfs" or pending):
+        if snapshot_format not in {"hdf5", "tfs"} or snapshot_format == "tfs" and self.output_format != "tfs":
             raise ValueError("ParticleMonitor checkpoint snapshot encoding is inconsistent")
         return {
             "buffer": xp.asarray(buffer.copy()),
@@ -414,9 +414,10 @@ class ParticleMonitor(Command):
                     stream.write(self._checkpoint_output_bytes)
                     stream.flush()
                 if self._checkpoint_snapshot_format == "tfs":
-                    if self._recorded_end == self.end_turn:
-                        os.link(snapshot_path, self.output_path)
-                        self._tfs_exported = True
+                    # The current end may already include newly buffered turns.
+                    # Publish bytes directly only when no samples need appending.
+                    if self._recorded_end == self.end_turn and not self._pending_samples:
+                        self._publish_tfs(snapshot_path)
                     else:
                         restore_particle_samples_tfs(snapshot_path,
                                                      self._storage_path,
@@ -429,7 +430,12 @@ class ParticleMonitor(Command):
                 else:
                     self._file_created = True
             except BaseException:
-                self._output_failed = True
+                if self._tfs_exported:
+                    self._checkpoint_output_bytes = None
+                    self._checkpoint_snapshot_format = "hdf5"
+                    self._restoring_checkpoint = False
+                else:
+                    self._output_failed = True
                 raise
             self._checkpoint_output_bytes = None
             self._checkpoint_snapshot_format = "hdf5"
@@ -461,14 +467,29 @@ class ParticleMonitor(Command):
         staging_path = self._temporary_path(".tfs.partial")
         try:
             export_particle_samples_tfs(self._storage_path, staging_path)
-            # A hard link publishes a closed complete file and refuses overwrite.
-            os.link(staging_path, self.output_path)
+            self._publish_tfs(staging_path)
         except BaseException:
-            logger.exception("ParticleMonitor TFS conversion failed; HDF5 history retained at %s. Calling finalize again retries conversion.",
-                             self._storage_path)
+            if self._tfs_exported:
+                logger.exception("ParticleMonitor TFS is published at %s; calling finalize again retries temporary cleanup.", self.output_path)
+            else:
+                logger.exception("ParticleMonitor TFS conversion failed; HDF5 history retained at %s. Calling finalize again retries conversion.",
+                                 self._storage_path)
             raise
-        self._tfs_exported = True
         self._cleanup_tfs_temporary_files()
+
+    def _publish_tfs(self, staging_path):
+        """Publish without overwrite and recognize an interrupted successful link."""
+        try:
+            os.link(staging_path, self.output_path)
+            self._tfs_exported = True
+        except BaseException:
+            # An exception can arrive after the OS has created the hard link.
+            # File identity proves ownership without accepting an unrelated file.
+            try:
+                self._tfs_exported = self.output_path.samefile(staging_path)
+            except OSError:
+                self._tfs_exported = False
+            raise
 
     def _cleanup_tfs_temporary_files(self):
         """Retry owned-file cleanup without affecting the published TFS."""
