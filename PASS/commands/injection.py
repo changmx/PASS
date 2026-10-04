@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 import random
 import os
+import tempfile
 from types import SimpleNamespace
 from dataclasses import dataclass
 
@@ -186,8 +187,8 @@ class Injection(Command):
                 batch_particles = ParticlePool(count, np, dtype=p.dtype)
                 scratch = SimpleNamespace(particles=batch_particles)
                 local = SimpleNamespace(start_idx=0, end_idx=count)
-                complete_override = (batch == 0 and work.num_insert_particles == count and work.insert_source in {"scan_grid", "file"}
-                                     and not work.is_load_dist)
+                complete_override = (batch == 0 and work.num_insert_particles == count and not work.is_load_dist
+                                     and (work.insert_source in {"scan_grid", "file"} or work.planned_count == count))
                 if not complete_override:
                     if work.is_load_dist:
                         self._load_dist(work, local, scratch, True)
@@ -238,9 +239,12 @@ class Injection(Command):
                 for observer in tuple(getattr(beam, "_initial_particle_observers", ())):
                     observer(destination, turn)
                 did_execute = True
-            # A zero-size final event still owns the requested save. Keep it
-            # separate from activation so a failed save can also be retried.
-            if (turn == source.inj_turns[-1] and source.is_save_init_dist and not source._saved_init_dist):
+        # Sorting can place several sources in one current bunch. Snapshot only
+        # after every batch scheduled at this event has entered the live pool.
+        # Each source still saves at its own final event, including zero-size
+        # final batches, and a failed save remains independently retryable.
+        for source in self.inj_bunchs:
+            if (source.planned_count and turn == source.inj_turns[-1] and source.is_save_init_dist and not source._saved_init_dist):
                 self._save_init_dist(source, beam.bunches[source.bunch_id], beam, sim.cfg)
                 source._saved_init_dist = True
                 did_execute = True
@@ -921,6 +925,8 @@ class Injection(Command):
         output_dir = cfg.output_dir_dist
         file_name = f"{cfg.output_hms}_beam{self.beam_id}_bunch{inj_bunch.bunch_id}_{bunch_info.Np}_hor_{inj_bunch.dist_trans}_longi_{inj_bunch.dist_longi}_Dx_{inj_bunch.dx}_injection.tfs"
         file_path = table_path(Path(output_dir) / file_name, inj_bunch.output_format)
+        if file_path.exists():
+            raise FileExistsError(f"Injection snapshot already exists; refusing to overwrite: {file_path}")
         logger.info(f"Start saving initial distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} to: {file_path} ...")
 
         p = beam.particles
@@ -950,9 +956,22 @@ class Injection(Command):
         headers["Sigma py"] = inj_bunch.sigmapy
         headers["Sigma z"] = inj_bunch.sigmaz
         headers["Delta p/p"] = inj_bunch.dp
-        headers["Ek"] = inj_bunch.Ek
-        headers["m0"] = inj_bunch.m0
-        headers["Harmonic num"] = inj_bunch.harmonic_num
+        # Coordinates use the current circulating reference, which RF may have
+        # changed since the incoming distribution was configured.
+        headers["Ek"] = bunch_info.Ek
+        headers["m0"] = bunch_info.m0
+        headers["Harmonic num"] = bunch_info.harmonic_number
+        headers["InjectionKineticEnergy"] = inj_bunch.Ek
+        headers["HarmonicId"] = int(bunch_info.harmonic_id)
+        headers["HarmonicNumber"] = int(bunch_info.harmonic_number)
+        headers["ReferenceArrivalTime"] = float(bunch_info.t0)
+        headers["ReferenceBeta"] = float(bunch_info.beta)
+        headers["ReferenceMomentum"] = float(bunch_info.p0)
+        headers["CoordinateDefinition"] = "z=beta*c*(T-t)"
+        headers["ReferenceEvent"] = "post-injection"
+        headers["ReferenceAppliesTo"] = "live particles only; loss records retain their loss coordinates"
+        headers["ZCoordinate"] = "z_rel"
+        headers["ZCenter"] = float(bunch_info.harmonic_id * bunch_info.circum / bunch_info.harmonic_number)
         headers["Rho"] = inj_bunch.rho
         headers["RF voltage"] = inj_bunch.rf_voltage
         headers["RF phase"] = inj_bunch.rf_phi
@@ -963,7 +982,29 @@ class Injection(Command):
         headers["Turn"] = "Injection"
         headers["Time"] = get_current_time()
 
-        write_table(file_path, columns, headers, output_format=inj_bunch.output_format)
+        with tempfile.NamedTemporaryFile(prefix=".pass_injection_", suffix=file_path.suffix, dir=file_path.parent, delete=False) as stream:
+            temporary_path = Path(stream.name)
+        try:
+            write_table(temporary_path, columns, headers, output_format=inj_bunch.output_format)
+            # Publish only a closed complete file, without replacing an existing
+            # snapshot or a distribution source selected as this destination.
+            os.link(temporary_path, file_path)
+            inj_bunch._saved_init_dist = True
+        except BaseException:
+            # An interruption can occur after the link succeeded. Record only
+            # provably owned output before removing its staging name, so a retry
+            # cannot mistake this complete snapshot for a foreign destination.
+            try:
+                if file_path.samefile(temporary_path):
+                    inj_bunch._saved_init_dist = True
+            except OSError:
+                pass
+            raise
+        finally:
+            try:
+                temporary_path.unlink()
+            except OSError:
+                logger.warning("Could not remove owned Injection snapshot temporary file: %s", temporary_path, exc_info=True)
 
         logger.info("Saving successfully")
 

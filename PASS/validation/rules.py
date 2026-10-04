@@ -432,7 +432,7 @@ class Validator:
                 else:
                     if row[5] <= -1 or 1 + row[5] <= math.hypot(row[1], row[3]):
                         self.add((*p, "Insert Particle Coordinate", i), "injection.momentum", "要求 dp > -1 且 px² + py² < (1+dp)²，以保证纵向动量为实数")
-            explicit_count = None
+            explicit_count = len(rows) if rows else None
             grid_input = b.get("Scan Grid")
             if grid_input is not None:
                 try:

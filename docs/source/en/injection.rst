@@ -614,6 +614,19 @@ fills the entire first batch and distribution-file loading is disabled, the
 unused random generation is skipped. Partial replacements leave the other rows
 generated and offset as usual.
 
+If manual coordinates supply the entire distribution in one active batch,
+unused random generation is also skipped and positive Gaussian emittances are
+not required. A manual replacement of only the first batch in a multi-batch
+source retains the existing random-number sequence for later generated batches.
+Skipping a complete manual bunch no longer consumes discarded random draws.
+Later randomly generated bunches in the same Injection command can therefore
+have different fixed-seed coordinates than older versions. Repeated runs with
+the same seed and configuration in the current version remain deterministic.
+Skipping a complete manual bunch no longer consumes discarded random draws.
+Later randomly generated bunches in the same Injection command can therefore
+have different fixed-seed coordinates than older versions. Repeated runs with
+the same seed and configuration in the current version remain deterministic.
+
 The incoming physical momentum remains determined by the specified injection
 energy even when the circulating beam has accelerated. Injection converts the
 incoming momenta and longitudinal coordinate to the destination bunch reference
@@ -1425,13 +1438,35 @@ When ``save_init_dist`` is enabled, each ``BunchConfig`` accepts
 This selects the initial-distribution output only; loading detects the
 input format from its extension. See :doc:`monitor/table_output`.
 
-The saved file is a snapshot of the current bunch at the last scheduled
-injection event. With multi-turn injection, earlier batches may already have
+The saved file is a snapshot of the current bunch at that source's last scheduled
+injection event, after all sources scheduled at the same event have been injected.
+It is not delayed until other sources finish on future turns. After sorting,
+the current bunch may contain particles from multiple sources, including zero-tag
+reservations for future batches; the snapshot is not filtered by original source.
+With multi-turn injection, earlier batches may already have
 been transported or lost; this file does not preserve each particle's birth
 coordinates. ParticleMonitor captures those coordinates separately at each
 injection event for DA analysis. Loading a distribution reads its six coordinate
 columns as a new incoming distribution; saved tags, loss history and reference
 metadata are not a beam-state restore operation.
+
+Saving first writes a complete private temporary file and then publishes it
+without overwriting an existing destination. An existing snapshot or input
+distribution at that path is preserved and reported as an error. A failed save
+can be retried without injecting the same batch again. If publication succeeds
+before an exception is delivered, file identity confirms the owned complete
+snapshot so a retry does not mistake it for an unrelated existing file.
+
+Snapshot headers ``Ek`` and ``m0`` describe the current bunch reference;
+``InjectionKineticEnergy`` retains the incoming source energy used for generation.
+``ReferenceArrivalTime`` (s), ``ReferenceBeta`` and ``ReferenceMomentum``
+(eV/c, per nucleon for ions) describe the reference at the post-injection save
+event. Thus live-particle momentum is ``ReferenceMomentum * (1 + dp)`` and
+arrival time is ``ReferenceArrivalTime - z / (ReferenceBeta * c)``.
+``HarmonicId``, ``HarmonicNumber`` and ``ZCenter`` (m) record the current grouping;
+the saved ``z`` remains ``z_rel``. These reference values apply only to live
+particles: lost rows retain coordinates from their loss event. Other generation
+settings such as emittance and Twiss parameters are not measured snapshot moments.
 
 HDF5 loading reads only the current batch's six coordinate slices and closes
 the file after each batch. TFS loading caches column indices and byte offsets
@@ -1439,3 +1474,10 @@ at batch boundaries, then reads only the requested batch; file-size or
 modification-time changes invalidate that cache. Neither path retains an open
 file handle or caches the complete coordinate table. ``sequential`` advances
 through the source rows; ``repeat`` restarts at the first row for each batch.
+
+Preflight validation also scans HDF5 and TFS distributions in bounded blocks,
+including rows beyond the first injection batch. It checks the coordinate
+columns, finite values, physical longitudinal momentum and total row count,
+and caches only counts and diagnostics rather than the complete coordinate
+table. Explicit inserted-particle files use the same bounded preflight check;
+their runtime insertion still loads the requested complete first-batch input.

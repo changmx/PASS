@@ -20,6 +20,8 @@ class DistributionBatchReader:
         self._tfs_identity = None
         self._tfs_positions = {}
         self._column_indices = None
+        self._column_names = None
+        self._column_types = None
 
     def read_rows(self, start, count):
         """Return only rows [start, start+count), in x,px,y,py,z,dp order."""
@@ -53,21 +55,23 @@ class DistributionBatchReader:
                 values[:, column] = stream[name][start:end]
         return values
 
-    def _read_tfs_header(self, stream):
+    def _read_tfs_header(self, stream, *, require_coordinates=True):
         columns = None
         while raw := stream.readline():
             line = raw.decode("utf-8-sig").strip()
             if line.startswith("*"):
                 columns = shlex.split(line[1:])
             elif line.startswith("$"):
-                if columns is None or len(shlex.split(line[1:])) != len(columns):
+                types = shlex.split(line[1:])
+                if columns is None or len(types) != len(columns):
                     raise ValueError(f"Distribution {self.path} has invalid TFS column/type declarations")
-                if len(set(columns)) != len(columns):
+                self._column_names, self._column_types = columns, types
+                if require_coordinates and len(set(columns)) != len(columns):
                     raise ValueError(f"Distribution {self.path} has duplicate TFS columns")
                 missing = [name for name in self._fields if name not in columns]
-                if missing:
+                if require_coordinates and missing:
                     raise ValueError(f"Distribution {self.path} is missing coordinates {missing}")
-                self._column_indices = tuple(columns.index(name) for name in self._fields)
+                self._column_indices = tuple(columns.index(name) for name in self._fields) if not missing else None
                 self._tfs_positions = {0: stream.tell()}
                 return
             elif line and not line.startswith(("@", "#", "!")):
@@ -113,9 +117,14 @@ class DistributionBatchReader:
             next_offset = stream.tell()
         if not count:
             return np.empty((0, len(self._fields)), dtype=np.float64)
+        values = self._parse_tfs_rows(lines, start)
+        self._tfs_positions[end] = next_offset
+        return values
+
+    def _parse_tfs_rows(self, lines, start):
+        """Parse the same six columns for tracking and bounded preflight checks."""
         try:
             values = np.loadtxt(lines, dtype=np.float64, usecols=self._column_indices, ndmin=2, encoding="utf-8", quotechar='"')
         except ValueError as exc:
-            raise ValueError(f"Distribution {self.path} has invalid coordinates in rows [{start}, {end})") from exc
-        self._tfs_positions[end] = next_offset
+            raise ValueError(f"Distribution {self.path} has invalid coordinates in rows [{start}, {start + len(lines)})") from exc
         return values

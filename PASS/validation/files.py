@@ -1,8 +1,105 @@
 """Validate input tables using the same parser and columns as tracking."""
 from pathlib import Path
+import json
 import re
 
 import numpy as np
+
+
+def _inspect_distribution(file, chunk_rows=65536):
+    """Cache only row counts and diagnostics, never a full coordinate table."""
+    from PASS.utils.injection_io import DistributionBatchReader
+
+    fields = ("x", "px", "y", "py", "z", "dp")
+    issues = []
+    nonfinite = {name: [0, None] for name in fields}
+    momentum_count, momentum_first = 0, None
+    n_rows = 0
+
+    def _check_columns(names):
+        if len({str(name).lower() for name in names}) != len(names):
+            issues.append(("file.columns", "输入表格列名重复（包括大小写冲突）"))
+            return False
+        missing = [name for name in fields if name not in names]
+        if missing:
+            issues.append(("file.columns", f"缺少必需列：{missing}；现有列：{names}"))
+            return False
+        return True
+
+    def _check_values(values):
+        nonlocal n_rows, momentum_count, momentum_first
+        for column, name in enumerate(fields):
+            bad = np.flatnonzero(~np.isfinite(values[:, column]))
+            if len(bad):
+                nonfinite[name][0] += len(bad)
+                if nonfinite[name][1] is None:
+                    nonfinite[name][1] = n_rows + int(bad[0]) + 1
+        dp, px, py = values[:, 5], values[:, 1], values[:, 3]
+        with np.errstate(over="ignore", invalid="ignore"):
+            bad = np.flatnonzero(np.isfinite(dp) & np.isfinite(px) & np.isfinite(py) & (1 + dp <= np.hypot(px, py)))
+        if len(bad):
+            momentum_count += len(bad)
+            if momentum_first is None:
+                momentum_first = n_rows + int(bad[0]) + 1
+        n_rows += len(values)
+
+    reader = DistributionBatchReader(file)
+    if file.suffix.lower() in (".h5", ".hdf5"):
+        import h5py
+
+        with h5py.File(file, "r") as stream:
+            names = json.loads(stream.attrs["_pass_table_columns"]) if "_pass_table_columns" in stream.attrs else list(stream.keys())
+            if not _check_columns(names):
+                return None, issues
+            lengths = set()
+            for name in names:
+                dataset = stream[name]
+                if not isinstance(dataset, h5py.Dataset) or dataset.ndim != 1:
+                    raise ValueError("HDF5 table columns must be one-dimensional")
+                lengths.add(len(dataset))
+            if len(lengths) != 1:
+                raise ValueError("HDF5 file must contain column definitions of equal length")
+            for name in fields:
+                if stream[name].dtype.kind not in "iuf":
+                    issues.append(("file.numeric", f"列 {name!r} 必须使用数值类型"))
+            if issues:
+                return None, issues
+            total_rows = lengths.pop()
+            for start in range(0, total_rows, chunk_rows):
+                end = min(start + chunk_rows, total_rows)
+                values = np.empty((end - start, len(fields)), dtype=np.float64)
+                for column, name in enumerate(fields):
+                    values[:, column] = stream[name][start:end]
+                _check_values(values)
+    else:
+        with file.open("rb") as stream:
+            reader._read_tfs_header(stream, require_coordinates=False)
+            if not _check_columns(reader._column_names):
+                return None, issues
+            for name, kind in zip(reader._column_names, reader._column_types):
+                if name in fields and kind not in {"%le", "%f", "%hd", "%d"}:
+                    issues.append(("file.numeric", f"列 {name!r} 必须使用数值类型"))
+            if issues:
+                return None, issues
+            while True:
+                lines = []
+                for _ in range(chunk_rows):
+                    line = reader._read_data_line(stream)
+                    if line is None:
+                        break
+                    lines.append(line)
+                if not lines:
+                    break
+                _check_values(reader._parse_tfs_rows(lines, n_rows))
+    if not n_rows:
+        issues.append(("file.empty", "输入表格没有数据行"))
+    for name, (count, first) in nonfinite.items():
+        if count:
+            issues.append(("file.nonfinite", f"列 {name!r} 有 {count} 个非有限数值，第一个位于数据行 {first}"))
+    if momentum_count:
+        issues.append(("distribution.momentum", f"{momentum_count} 行无法得到正的实数纵向动量；首个数据行 {momentum_first}"))
+    return n_rows, issues
+
 
 INPUT_FILE_FIELDS = frozenset({
     "waveform file",
@@ -101,6 +198,25 @@ def check_table(check, value, path, kind, active, minimum_rows, maximum_rows=Non
         if kind != "distribution" and file.suffix.lower() in (".h5", ".hdf5"):
             check.add(path, "file.format", "此输入仍使用 TFS；HDF5 输入仅支持粒子分布", not active)
             return
+        if kind == "distribution":
+            cache_key = (file, "distribution")
+            if cache_key not in check.file_cache:
+                try:
+                    check.file_cache[cache_key] = _inspect_distribution(file)
+                except Exception as exc:
+                    check.file_cache[cache_key] = (None, [("file.format", f"无法读取输入表格：{str(exc) or type(exc).__name__}")])
+                if str(file) not in check.report.checked_files:
+                    check.report.checked_files.append(str(file))
+            n_rows, issues = check.file_cache[cache_key]
+            for code, message in issues:
+                check.add(path, code, message, not active)
+            if n_rows is None or not n_rows:
+                return
+            if n_rows < minimum_rows:
+                check.add(path, "distribution.rows", f"该 bunch 需要文件至少 {minimum_rows} 行，实际 {n_rows} 行；不足部分不会正确初始化", not active)
+            if maximum_rows is not None and n_rows > maximum_rows:
+                check.add(path, "injection.insert_count", f"显式坐标文件含 {n_rows} 行，不能超过首次注入的宏粒子数 {maximum_rows}", not active)
+            return n_rows
         # Check every declared table, including inactive resources, but inactive
         # failures are warnings since they cannot affect the selected execution.
         cached = check.file_cache.get(file)
@@ -125,10 +241,7 @@ def check_table(check, value, path, kind, active, minimum_rows, maximum_rows=Non
             check.add(path, "file.columns", "输入表格列名重复（包括大小写冲突）", not active)
             return
         required = []
-        if kind == "distribution":
-            # Injection._load_dist indexes literal lowercase columns.
-            required = ["x", "px", "y", "py", "z", "dp"]
-        elif kind.startswith("offset_"):
+        if kind.startswith("offset_"):
             axis = kind[-1]
             patterns = [r"(?:time|turn)\s*(?:\(\s*s\s*\))?", rf"{axis}\s*(?:\(\s*m\s*\))?", rf"p{axis}\s*(?:\(\s*rad\s*\))?"]
             for pattern in patterns:
@@ -157,16 +270,6 @@ def check_table(check, value, path, kind, active, minimum_rows, maximum_rows=Non
             arrays[column] = array
         if len(arrays) != len(required):
             return
-        if kind == "distribution":
-            if len(frame) < minimum_rows:
-                check.add(path, "distribution.rows", f"该 bunch 在粒子池中的索引要求文件至少 {minimum_rows} 行，实际 {len(frame)} 行；不足部分不会正确初始化", not active)
-            if maximum_rows is not None and len(frame) > maximum_rows:
-                check.add(path, "injection.insert_count", f"显式坐标文件含 {len(frame)} 行，不能超过首次注入的宏粒子数 {maximum_rows}", not active)
-            dp, px, py = arrays["dp"], arrays["px"], arrays["py"]
-            with np.errstate(over="ignore", invalid="ignore"):
-                bad = np.flatnonzero((dp <= -1) | ((1 + dp)**2 <= px**2 + py**2))
-            if len(bad):
-                check.add(path, "distribution.momentum", f"{len(bad)} 行无法得到正的实数纵向动量；首个数据行 {bad[0] + 1}", not active)
         if kind.startswith("offset_"):
             time = arrays[required[0]]
             if np.any(time < 0) or np.any(np.diff(time) <= 0):
