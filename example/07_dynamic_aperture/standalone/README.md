@@ -86,6 +86,12 @@ and figure size. The Python functions follow the PASS API: `savefig` and
 `export_dynamic_aperture` can overwrite their requested paths; the command-line
 overwrite guard is not an API restriction.
 
+Numeric exports are staged before publication. A caught publication failure
+restores prior CSV/JSON files; if restoration also fails, the exception names
+the retained recovery directory. This does not provide a multi-file transaction
+across process or machine crashes. Uppercase `.NPZ` preserves the exact requested
+filename. The CLI removes only files it created if output publication fails.
+
 ## What is saved and what a boundary means
 
 - PNG, PDF, and SVG contain the Matplotlib figure, including its legend and

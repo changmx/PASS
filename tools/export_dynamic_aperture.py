@@ -68,6 +68,8 @@ def _build_bundle(root):
     for statement, node in imports.items():
         module = node.names[0].name if isinstance(node, ast.Import) else node.module
         (third_party if module.split(".")[0] == "numpy" else standard).append(statement)
+    cli_source = (root / "tools" / "_dynamic_aperture_cli.py").read_text(encoding="utf-8")
+    hashes.append(f"# tools/_dynamic_aperture_cli.py: {hashlib.sha256(cli_source.encode('utf-8')).hexdigest()}")
     preamble = ('"""Portable ParticleMonitor dynamic-aperture analysis and plotting.\n\n'
                 "Copy this file anywhere; PASS and its GUI are not required.\n"
                 "Dependencies: Python >= 3.11, NumPy, h5py, Matplotlib.\n"
@@ -75,8 +77,13 @@ def _build_bundle(root):
                 '"""\n\n'
                 "from __future__ import annotations\n\n" + "\n".join(sorted(standard)) + "\n\n" + "\n".join(sorted(third_party)) + "\n\n" +
                 "\n".join(hashes))
-    cli = (root / "tools" / "_dynamic_aperture_cli.py").read_text(encoding="utf-8").strip()
+    cli = cli_source.strip()
     cli_tree = ast.parse(cli)
+    for node in ast.walk(cli_tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module or ""]
+            if any(name == "PASS" or name.startswith("PASS.") for name in names) or (isinstance(node, ast.ImportFrom) and node.level):
+                raise ValueError(f"Unexpected project import in CLI: {ast.get_source_segment(cli, node)}")
     for node in cli_tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in bindings:
             raise ValueError(f"CLI name conflicts with analysis function: {node.name}")

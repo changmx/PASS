@@ -2,11 +2,37 @@
 # Reader, plotting, and export functions are provided by that module.
 
 
+def _publish_outputs(products, targets):
+    """Create all outputs exclusively; roll back this invocation on failure."""
+    from contextlib import ExitStack
+    import os
+    import shutil
+
+    created = {}
+    try:
+        with ExitStack() as stack:
+            streams = []
+            for path in targets:
+                stream = stack.enter_context(path.open("xb"))
+                created[path] = os.fstat(stream.fileno())
+                streams.append(stream)
+            for product, stream in zip(products, streams):
+                with product.open("rb") as source:
+                    shutil.copyfileobj(source, stream)
+    except BaseException:
+        for path, identity in created.items():
+            try:
+                # Preserve a replacement written by another process.
+                if os.path.samestat(path.stat(), identity):
+                    path.unlink()
+            except OSError:
+                pass
+        raise
+
+
 def main(argv=None):
     """Read a monitor and save a figure, without overwriting existing files."""
     import argparse
-    from contextlib import ExitStack
-    import shutil
     import tempfile
 
     parser = argparse.ArgumentParser(description="Plot dynamic aperture from one ParticleMonitor HDF5 or TFS file.")
@@ -70,11 +96,7 @@ def main(argv=None):
                 if args.data.suffix.lower() == ".csv":
                     products.append(data_path.with_suffix(".json"))
             # Exclusive creation also protects files appearing after preflight.
-            with ExitStack() as stack:
-                streams = [stack.enter_context(path.open("xb")) for path in targets]
-                for product, stream in zip(products, streams):
-                    with product.open("rb") as source:
-                        shutil.copyfileobj(source, stream)
+            _publish_outputs(products, targets)
         print(f"Analyzed monitor turn {result['metadata']['requested_turn']}; {len(result['particle_id'])} particles.")
         for path in targets:
             print(path.resolve())

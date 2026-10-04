@@ -12,12 +12,15 @@ import csv
 import io
 import json
 import shlex
+import shutil
+import tempfile
 
 import numpy as np
 
-# PASS/utils/particle_monitor_read.py: 5e2fcd07881f9ab5573044b83cc066052b621af1db21041afabd937e40fcd798
-# PASS/analysis/dynamic_aperture.py: ac47d1978872c0eff22b1c9ab2a7122734d4d69076e3d79cafaf3fd678817284
-# PASS/plot/plot_dynamic_aperture.py: 52816816df33ced4455c13248a767f61eeb6d081e544a4a118b2c1e7028e164f
+# PASS/utils/particle_monitor_read.py: ef46918e1c4b8f2f7f21bc1c6dd5ae9694ad898f9484a23e152b723cb7806571
+# PASS/analysis/dynamic_aperture.py: d44720455e81d85112d2536c1b3074ed8ad05232f7edffc18e38fd6ffd913c7d
+# PASS/plot/plot_dynamic_aperture.py: 73cba5542b9bd4331963ed024f8f87aa463d0454fc9bd447ac236f0132235f12
+# tools/_dynamic_aperture_cli.py: f6700a6a5e863dbb9897d85252da7bc872b28da47a54427865e76f4607f8ba1a
 
 # Source: PASS/utils/particle_monitor_read.py
 
@@ -211,21 +214,34 @@ def read_particle_trajectories(path, *, max_tag=None):
                 raise ValueError("ParticleMonitor requires the current single-file format version 2")
             count = _integer(stream.attrs.get("ValidSamples"), "ValidSamples")
             ids = stream["particle_id"][:]
-            if ids.ndim != 1 or ids.dtype.kind not in "iu" or np.any(ids <= 0) or len(np.unique(ids)) != len(ids):
+            if (ids.ndim != 1 or ids.dtype.kind not in "iu" or np.any(ids <= 0) or np.any(ids > np.iinfo(np.int64).max)
+                    or len(np.unique(ids)) != len(ids)):
                 raise ValueError("ParticleMonitor requires unique positive integer particle IDs")
             if stream["turn"].ndim != 1 or len(stream["turn"]) < count:
                 raise ValueError("ParticleMonitor turn data do not cover ValidSamples")
             turns = stream["turn"][:count]
+            if turns.dtype.kind not in "iu" or np.any(turns < 0) or np.any(turns > np.iinfo(np.int64).max) or np.any(turns[1:] <= turns[:-1]):
+                raise ValueError("ParticleMonitor sample turns must be strictly increasing nonnegative int64 integers")
             fields = {name: item for name, item in stream.items() if name not in {"particle_id", "turn"} and isinstance(item, h5py.Dataset)}
             if any(item.ndim != 2 or item.shape[0] < count or item.shape[1] != len(ids) for item in fields.values()):
                 raise ValueError("ParticleMonitor datasets do not cover the sample/particle shape")
-            return {
-                int(particle_id): dict(turn=turns.copy(), **{
-                    name: item[:count, index]
-                    for name, item in fields.items()
-                })
-                for index, particle_id in enumerate(ids) if max_tag is None or particle_id <= max_tag
-            }
+            selected = np.flatnonzero(ids <= max_tag) if max_tag is not None else np.arange(len(ids))
+            trajectories = {int(ids[index]): {"turn": turns.copy()} for index in selected}
+            if not len(selected):
+                return trajectories
+            contiguous = selected[-1] - selected[0] + 1 == len(selected)
+            columns = slice(int(selected[0]), int(selected[-1]) + 1) if contiguous else selected
+            for name, item in fields.items():
+                # Read each selected hyperslab once instead of decoding the same
+                # HDF5 chunks separately for every particle's column.
+                values = item[:count, columns]
+                if name == "tag":
+                    selected_ids = ids[selected].astype(np.int64, copy=False)[None, :]
+                    if values.dtype.kind not in "iu" or np.any((values != 0) & (values != selected_ids) & (values != -selected_ids)):
+                        raise ValueError("ParticleMonitor sample tags disagree with particle IDs")
+                for column, index in enumerate(selected):
+                    trajectories[int(ids[index])][name] = values[:, column]
+            return trajectories
     records, attributes = read_particle_monitor_tfs(path)
     selected = records["record"] == 1
     shape = (attributes["ValidSamples"], attributes["MaxTag"])
@@ -294,6 +310,8 @@ def compute_dynamic_aperture(initial_coordinates,
     track particles, fit an outer hull, or assume symmetry or a simply connected
     stable region. Initial dp groups remain unchanged by subsequent RF kicks.
     """
+    if np.iscomplexobj(initial_coordinates):
+        raise ValueError("initial_coordinates must contain real coordinates")
     initial = np.asarray(initial_coordinates, dtype=float)
     if initial.ndim != 2 or initial.shape[1] != 6:
         raise ValueError("initial_coordinates must have shape (particles, 6)")
@@ -301,11 +319,14 @@ def compute_dynamic_aperture(initial_coordinates,
     ids = np.arange(1, n_particles + 1, dtype=np.int64) if particle_id is None else np.asarray(particle_id)
     if ids.shape != (n_particles, ) or ids.dtype.kind not in "iu" or np.any(ids <= 0) or len(np.unique(ids)) != n_particles:
         raise ValueError("particle_id must contain one unique positive integer per initial row")
-    ids = ids.astype(np.int64, copy=False)
+    ids = _integer_values(ids, "particle_id", minimum=1)
     turns = np.asarray(sample_turn)
-    if turns.ndim != 1 or turns.dtype.kind not in "iu" or np.any(turns < 0) or np.any(np.diff(turns) <= 0):
+    if turns.ndim != 1 or turns.dtype.kind not in "iu":
         raise ValueError("sample_turn must be strictly increasing nonnegative integers")
-    tags = np.asarray(tag)
+    turns = _integer_values(turns, "sample_turn", minimum=0)
+    if np.any(np.diff(turns) <= 0):
+        raise ValueError("sample_turn must be strictly increasing nonnegative integers")
+    tags = _integer_values(tag, "tag")
     if tags.shape != (len(turns), n_particles):
         raise ValueError("tag must have shape (samples, particles)")
     if not np.all(np.isfinite(tags)) or not np.all((tags == 0) | (np.abs(tags) == ids[None, :])):
@@ -322,6 +343,10 @@ def compute_dynamic_aperture(initial_coordinates,
             raise ValueError(f"{name} must have shape (particles,)")
         return array
 
+    if initial_valid is not None:
+        initial_valid = np.asarray(initial_valid)
+        if initial_valid.dtype.kind not in "biuf" or np.any((initial_valid != 0) & (initial_valid != 1)):
+            raise ValueError("initial_valid must contain booleans or numeric 0/1 values")
     valid = particle_array(initial_valid, True, bool, "initial_valid") & np.all(np.isfinite(initial), axis=1)
     born = particle_array(None if injection_turn is None else _integer_values(injection_turn, "injection_turn", minimum=-1), -1, np.int64,
                           "injection_turn")
@@ -344,6 +369,8 @@ def compute_dynamic_aperture(initial_coordinates,
     position_samples = sample_array(lost_position, "lost_position")
     if coordinates is not None:
         coordinates = np.asarray(coordinates)
+        if np.iscomplexobj(coordinates):
+            raise ValueError("coordinates must contain real coordinates")
         if coordinates.shape != tags.shape + (6, ):
             raise ValueError("coordinates must have shape (samples, particles, 6)")
     if selected >= 0:
@@ -539,32 +566,83 @@ def _resolve_turn(requested_turn, attrs, turns, *, clamp_to_available=False, las
 
 
 def export_dynamic_aperture(result, path):
-    """Export numeric points and metadata to NPZ, or CSV plus a JSON sidecar."""
+    """Stage numeric exports before publication; restore prior files on failure."""
     path = Path(path)
+    if path.suffix.lower() not in {".npz", ".csv"}:
+        raise ValueError("DA exports require .npz or .csv")
     metadata = json.dumps(result["metadata"],
                           ensure_ascii=False,
                           indent=2,
                           default=lambda value: value.tolist() if isinstance(value, np.ndarray) else str(value))
-    if path.suffix.lower() == ".npz":
-        np.savez(path, **{key: value for key, value in result.items() if key != "metadata"}, metadata_json=np.array(metadata))
-    elif path.suffix.lower() == ".csv":
-        names = ("particle_id", "x0", "px0", "y0", "py0", "z0", "dp0", "initial_valid", "injection_turn", "status", "observed_turn", "lost_turn",
-                 "lost_position")
-        with path.open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.writer(stream)
-            writer.writerow(names)
-            for index, particle_id in enumerate(result["particle_id"]):
-                writer.writerow([
-                    particle_id, *result["initial_coordinates"][index], result["initial_valid"][index], result["injection_turn"][index],
-                    result["status"][index], result["observed_turn"][index], result["lost_turn"][index], result["lost_position"][index]
-                ])
-        path.with_suffix(".json").write_text(metadata, encoding="utf-8")
-    else:
-        raise ValueError("DA exports require .npz or .csv")
+    targets = [path] + ([path.with_suffix(".json")] if path.suffix.lower() == ".csv" else [])
+    for target in targets:
+        if target.exists() and not target.is_file():
+            raise ValueError(f"Export destination is not a file: {target}")
+    directory = Path(tempfile.mkdtemp(prefix=".pass-da-", dir=path.parent))
+    staged = directory / path.name
+    keep_recovery = False
+    try:
+        if path.suffix.lower() == ".npz":
+            # A file handle avoids NumPy appending .npz to an uppercase .NPZ path.
+            with staged.open("wb") as stream:
+                np.savez(stream, **{key: value for key, value in result.items() if key != "metadata"}, metadata_json=np.array(metadata))
+        else:
+            names = ("particle_id", "x0", "px0", "y0", "py0", "z0", "dp0", "initial_valid", "injection_turn", "status", "observed_turn", "lost_turn",
+                     "lost_position")
+            with staged.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.writer(stream)
+                writer.writerow(names)
+                for index, particle_id in enumerate(result["particle_id"]):
+                    writer.writerow([
+                        particle_id, *result["initial_coordinates"][index], result["initial_valid"][index], result["injection_turn"][index],
+                        result["status"][index], result["observed_turn"][index], result["lost_turn"][index], result["lost_position"][index]
+                    ])
+            staged.with_suffix(".json").write_text(metadata, encoding="utf-8")
+        backups, published = {}, []
+        keep_recovery = True
+        try:
+            for index, target in enumerate(targets):
+                if target.exists() or target.is_symlink():
+                    backup = directory / f"previous-{index}"
+                    # Register intent first: rename can succeed before an
+                    # interruption is delivered to the caller.
+                    backups[target] = backup
+                    target.replace(backup)
+                published.append(target)
+                (directory / target.name).replace(target)
+        except BaseException:
+            # Keep old data recoverable even if restoration itself is blocked.
+            recovery_failed = False
+            for target in reversed(targets):
+                try:
+                    if target in backups:
+                        if backups[target].exists() or backups[target].is_symlink():
+                            backups[target].replace(target)
+                    elif target in published:
+                        target.unlink(missing_ok=True)
+                except OSError:
+                    recovery_failed = True
+            if recovery_failed:
+                raise OSError(f"Export publication and recovery failed; recovery files retained in {directory}")
+            keep_recovery = False
+            raise
+        keep_recovery = False
+    finally:
+        if not keep_recovery:
+            shutil.rmtree(directory)
     return path
 
 
 # Source: PASS/plot/plot_dynamic_aperture.py
+
+
+def _dp_labels(values):
+    """Keep nearby exact groups distinguishable in every plot mode."""
+    labels = [f"{dp:.8g}" for dp in values]
+    _, label_indices, label_counts = np.unique(labels, return_inverse=True, return_counts=True)
+    for index in np.flatnonzero(label_counts[label_indices] > 1):
+        labels[index] = f"{values[index]:.17g}"
+    return labels
 
 
 def _draw_boundary(ax, x, y, status, fixed_coordinates, *, color="#273449", linestyle="--", label="Sampled aperture boundary", overlay=False):
@@ -678,7 +756,8 @@ def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=T
     metadata = result.get("metadata", {})
     turn = metadata.get("requested_turn", "?")
     monitor = metadata.get("Monitor", "monitor")
-    ax.set_title(f"Initial dp = {dp:.8g}; turn {turn} at {monitor}")
+    label = _dp_labels(values)[int(np.flatnonzero(values == dp)[0])]
+    ax.set_title(f"Initial dp = {label}; turn {turn} at {monitor}")
     ax.set_xlabel("Initial x (mm)")
     ax.set_ylabel("Initial y (mm)")
     ax.set_aspect("equal", adjustable="box")
@@ -727,13 +806,11 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
     indices = np.flatnonzero(initial_valid)
     indices = indices[np.argsort(initial[indices, 5], kind="stable")]
     sorted_dp = initial[indices, 5]
-    labels = [f"{dp:.8g}" for dp in values]
-    _, label_indices, label_counts = np.unique(labels, return_inverse=True, return_counts=True)
-    for index in np.flatnonzero(label_counts[label_indices] > 1):
-        labels[index] = f"{values[index]:.17g}"
+    labels = _dp_labels(values)
     colors = plt.get_cmap("tab10" if len(values) <= 10 else "turbo")
     linestyles = ("-", "--", "-.", ":")
     notes = ["Sampled survival/loss boundaries; accuracy is limited by grid spacing."]
+    group_notes = {}
     for dp in selected:
         index = int(np.flatnonzero(values == dp)[0])
         color = colors(index) if len(values) <= 10 else colors(0.1 + 0.8 * index / (len(values) - 1))
@@ -761,7 +838,10 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
             line._pass_da_overlay = True
         if note:
             note = " ".join(note.splitlines())
-            notes.append(f"{label}: {note}")
+            group_notes.setdefault(note, []).append(label)
+    for note, groups in group_notes.items():
+        prefix = "All selected dp groups" if len(groups) == len(selected) else ", ".join(groups)
+        notes.append(f"{prefix}: {note}")
     metadata = result.get("metadata", {})
     turn = metadata.get("requested_turn", "?")
     monitor = metadata.get("Monitor", "monitor")
@@ -772,7 +852,8 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
     ax.grid(alpha=0.2)
     ax.autoscale_view()
     ax.text(0.0, -0.17, "\n".join(notes), transform=ax.transAxes, fontsize=8, va="top", wrap=True)
-    legend = ax.legend(loc="best", fontsize=8)
+    legend_options = {"loc": "lower left", "bbox_to_anchor": (1.02, 0.0)} if len(selected) > 12 else {"loc": "best"}
+    legend = ax.legend(fontsize=8, **legend_options)
     for handle in legend.get_lines():
         handle._pass_da_boundary = True
         handle._pass_da_overlay = True
@@ -783,11 +864,37 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
 # Reader, plotting, and export functions are provided by that module.
 
 
+def _publish_outputs(products, targets):
+    """Create all outputs exclusively; roll back this invocation on failure."""
+    from contextlib import ExitStack
+    import os
+    import shutil
+
+    created = {}
+    try:
+        with ExitStack() as stack:
+            streams = []
+            for path in targets:
+                stream = stack.enter_context(path.open("xb"))
+                created[path] = os.fstat(stream.fileno())
+                streams.append(stream)
+            for product, stream in zip(products, streams):
+                with product.open("rb") as source:
+                    shutil.copyfileobj(source, stream)
+    except BaseException:
+        for path, identity in created.items():
+            try:
+                # Preserve a replacement written by another process.
+                if os.path.samestat(path.stat(), identity):
+                    path.unlink()
+            except OSError:
+                pass
+        raise
+
+
 def main(argv=None):
     """Read a monitor and save a figure, without overwriting existing files."""
     import argparse
-    from contextlib import ExitStack
-    import shutil
     import tempfile
 
     parser = argparse.ArgumentParser(description="Plot dynamic aperture from one ParticleMonitor HDF5 or TFS file.")
@@ -851,11 +958,7 @@ def main(argv=None):
                 if args.data.suffix.lower() == ".csv":
                     products.append(data_path.with_suffix(".json"))
             # Exclusive creation also protects files appearing after preflight.
-            with ExitStack() as stack:
-                streams = [stack.enter_context(path.open("xb")) for path in targets]
-                for product, stream in zip(products, streams):
-                    with product.open("rb") as source:
-                        shutil.copyfileobj(source, stream)
+            _publish_outputs(products, targets)
         print(f"Analyzed monitor turn {result['metadata']['requested_turn']}; {len(result['particle_id'])} particles.")
         for path in targets:
             print(path.resolve())
