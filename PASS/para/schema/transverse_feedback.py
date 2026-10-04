@@ -105,19 +105,28 @@ class TransverseFeedbackItem(_TransverseFeedbackInput):
         return self
 
 
-def design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5):
-    """Return minimum-norm real taps with zero DC and unit target-tune response.
+def design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5, *, method="minimum_norm"):
+    """Return real FIR taps with zero DC and unit target-tune response.
 
     ``phase_advance`` is the pickup-to-feedback phase in radians within the
     chosen turn numbering. For x[n]=cos(2*pi*Q*n+phi), the delayed response is
     exp(i*(phase_advance+pi/2)); a positive gain in delta_px=-G*filtered_x
     therefore opposes the coherent momentum at the feedback location.
-    This narrow-band design does not establish closed-loop stability.
+    ``method="minimum_norm"`` preserves the three-constraint minimum-norm
+    design and needs at least three taps. ``method="flat"`` also sets the
+    derivative of the delayed complex response with respect to angular tune
+    to zero, at fixed ``phase_advance``. It needs at least five taps and uses
+    the minimum-norm solution when more taps are supplied. Both methods are
+    local designs; neither establishes finite-band or closed-loop stability.
     """
+    if not isinstance(method, str) or method not in ("minimum_norm", "flat"):
+        raise ValueError("method must be 'minimum_norm' or 'flat'")
     if not isinstance(delay_turns, Integral) or isinstance(delay_turns, (bool, np.bool_)) or delay_turns < 1:
         raise ValueError("delay_turns must be an integer of at least one")
     if not isinstance(tap_count, Integral) or isinstance(tap_count, (bool, np.bool_)) or tap_count < 3:
         raise ValueError("tap_count must be an integer of at least three")
+    if method == "flat" and tap_count < 5:
+        raise ValueError("method='flat' requires at least five taps")
     if isinstance(tune, (bool, np.bool_)) or isinstance(phase_advance, (bool, np.bool_)):
         raise ValueError("tune and phase_advance must be finite real numbers")
     try:
@@ -131,10 +140,24 @@ def design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5):
     matrix = np.vstack((np.ones(tap_count), np.cos(phase), np.sin(phase)))
     target_phase = math.remainder(phase_advance + np.pi / 2.0 + omega * delay_turns, 2.0 * np.pi)
     target = np.array([0.0, np.cos(target_phase), -np.sin(target_phase)])
-    coefficients, _residuals, rank, singular_values = np.linalg.lstsq(matrix, target, rcond=1.e-12)
-    # Integer and half-integer tunes cannot provide three independent constraints.
-    if rank != 3 or singular_values[-1] <= singular_values[0] / 1.e8:
-        raise ValueError("FIR design is ill-conditioned near an integer or half-integer tune; choose another tune or tap count")
+    if method == "flat":
+        # Differentiate the complete delayed response: the lags are d+k, not k.
+        lags = delay_turns + np.arange(tap_count, dtype=np.float64)
+        matrix = np.vstack((matrix, lags * matrix[1], lags * matrix[2]))
+        target = np.concatenate((target, [0.0, 0.0]))
+        # Scale each sine/cosine pair equally; tiny sine rows must remain tiny
+        # near singular integer/half-integer tunes rather than amplify roundoff.
+        row_scale = np.array([math.sqrt(tap_count)] * 3 + [np.linalg.norm(lags)] * 2)
+        if not np.all(np.isfinite(row_scale)):
+            raise ValueError("FIR design is rank-deficient or ill-conditioned; choose another tune, tap count or delay")
+        solve_matrix, solve_target = matrix / row_scale[:, None], target / row_scale
+    else:
+        solve_matrix, solve_target = matrix, target
+    coefficients, _residuals, rank, singular_values = np.linalg.lstsq(solve_matrix, solve_target, rcond=1.e-12)
+    # Integer/half-integer tunes are singular; long delays can also be ill-conditioned.
+    if rank != len(target) or singular_values[-1] <= singular_values[0] / 1.e8:
+        raise ValueError("FIR design is rank-deficient or ill-conditioned; choose another tune, tap count or delay")
+    # Check unscaled constraints, including the derivative for the flat design.
     error = np.max(np.abs(matrix @ coefficients - target))
     if not np.all(np.isfinite(coefficients)) or error > 5.e-10:
         raise ValueError(f"FIR design constraints could not be resolved accurately; maximum residual={error:.3e}")

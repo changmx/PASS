@@ -87,37 +87,82 @@ It does not follow individual particles when they migrate between slots.
 Choosing FIR phase and gain
 -----------------------------
 
-The damping phase is the total phase of transport, electronic filtering, and
+The damping phase is the total phase of transport, FIR filtering, and
 delay. A geometric pickup-to-kicker phase of :math:`\pi/2` is not a universal
 requirement when the filter supplies phase compensation. In normalized betatron
 coordinates, damping opposes the coherent momentum
 :math:`P=(\alpha x+\beta x')/\sqrt{\beta}`, after subtracting the closed orbit.
 Position-only feedback with the wrong phase can shift the tune or drive growth.
 
-``design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5)`` returns
-real, minimum-norm coefficients. ``phase_advance`` is
+``design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5, *, method="minimum_norm")``
+returns real coefficients. It is an optional input-generation helper: tracking
+always uses the explicit coefficient lists, and the JSON command has no
+``method`` field. ``phase_advance`` is
 :math:`\mu_{\mathrm{feedback}}-\mu_{\mathrm{pickup}}` in radians **within the same
 sequence turn numbering**. It may be negative for a feedback node upstream of
 the pickup. Do not add a further turn phase already represented by ``delay_turns``.
 
-For :math:`x_n=\cos(\omega n+\phi)` and :math:`\omega=2\pi Q`, the helper sets
+For :math:`x_n=\cos(\omega n+\phi)` and the design frequency :math:`\omega_0=2\pi Q`,
+both methods impose
 
 .. math::
 
-   H_d(\omega)=e^{-i\omega d}\sum_k a_ke^{-i\omega k}
-              =e^{i(\Delta\mu+\pi/2)},\qquad \sum_k a_k=0.
+   H_d(\omega)=\sum_k a_ke^{-i\omega(d+k)},\qquad
+   H_d(\omega_0)=e^{i(\Delta\mu+\pi/2)},\qquad \sum_k a_k=0.
 
 With the command's explicit minus sign, positive gain then opposes the coherent
 momentum at the target tune. The zero-sum constraint rejects a constant pickup
-offset after warmup. The helper solves these three real constraints independently
-of any tracking data. It rejects rank-deficient or ill-conditioned designs near
-integer and half-integer tunes, using a maximum matrix condition number of
-:math:`10^8`; at least three taps are required.
+offset after warmup. The two coefficient designs are:
+
+.. list-table:: FIR design methods
+   :header-rows: 1
+   :widths: 22 15 63
+
+   * - ``method``
+     - Minimum taps
+     - Constraints and objective
+   * - ``"minimum_norm"`` (default)
+     - 3
+     - Three real constraints: zero DC and the specified complex response.
+       Choose the smallest coefficient Euclidean norm. Existing calls retain
+       this design.
+   * - ``"flat"``
+     - 5
+     - The same constraints plus zero derivative of the delayed complex
+       response at the target tune. With more than five taps, choose the
+       minimum-norm solution satisfying all five real constraints.
+
+The flat method adds
+
+.. math::
+
+   H'_d(\omega_0)=-i\sum_k(d+k)a_ke^{-i\omega_0(d+k)}=0.
+
+Its linear system appends the real rows :math:`(d+k)\cos(k\omega_0)` and
+:math:`(d+k)\sin(k\omega_0)` with zero targets. The factors include the full
+delay :math:`d+k`, not only the tap index. At fixed pickup-to-kicker phase,
+both magnitude and phase then have zero first derivative at the design tune;
+the residual response variation starts at second order. This is local
+flatness, not a guarantee of a specified bandwidth.
+
+The helper derives these constraints without tracking data. It rejects
+rank-deficient or ill-conditioned systems, including tunes close to integers
+and half-integers, using a condition-number limit of :math:`10^8`. For the flat
+method the first three rows are scaled by :math:`\sqrt L` and the derivative
+rows by :math:`\sqrt{\sum_k(d+k)^2}` before solving and checking conditioning.
+Sine/cosine pairs share a scale so that small rows near singular tunes are not
+amplified. The unscaled constraints must also have residual at most
+:math:`5\times10^{-10}`.
 
 The helper normalizes the response at one tune. It does not establish closed-loop
 stability, select a gain, compensate optics amplitude ratios, or guarantee a
-required damping time. Check the complete lattice and delay with a small gain,
-then scan gain, tune and phase. Arbitrary user-supplied FIR coefficients need not
+required damping time. A flatter response may need larger coefficients and can
+have a smaller stable gain range. Choose the design frequency with the expected
+coherent centroid spectrum in mind: wakes and collective forces can shift it
+away from the bare lattice tune. Flatness is computed at fixed geometric phase;
+if that phase changes with machine settings, include the change in the scan.
+Check the complete lattice and delay with a small gain, then scan gain, tune
+and phase. Arbitrary user-supplied FIR coefficients need not
 sum to zero; such a filter may kick a static orbit offset.
 
 Python input
@@ -135,7 +180,7 @@ phase in a simulation:
    )
 
    taps = design_feedback_fir(
-       tune=0.23, phase_advance=math.pi / 3, delay_turns=1, tap_count=5,
+       tune=0.23, phase_advance=math.pi / 3, delay_turns=1, tap_count=5, method="flat",
    )
    seq.add("pickup_x", TransversePickupItem(s=0.0, plane="x"))
    seq.add("feedback_x", TransverseFeedbackItem(
@@ -148,6 +193,20 @@ Export with the existing ``generate_input(main, seq, output_path)`` API. There
 is no new generator argument. In the GUI, the transverse-feedback component
 section provides both node types; the initial feedback draft has zero gain and
 zero coefficients, which must be configured before it can damp a beam.
+The feedback form's **Generate FIR coefficients…** (``生成 FIR 系数…``)
+uses the same helper. The referenced pickup selects x, y or both planes;
+enter tune and signed same-turn phase in radians separately for each plane.
+The GUI does not infer these values from node positions or machine settings.
+Both planes share the method (``minimum_norm`` by default), delay and tap
+count. The GUI permits 3–256 taps, at least five for ``flat``; the helper
+itself has no 256-tap limit.
+
+Use **Calculate and preview** (``计算并预览``), then **Fill draft**
+(``填入草稿``) to replace measured-plane coefficients, clear unmeasured-plane
+coefficients and synchronize the delay. Gains are unchanged, so an initial
+zero gain still needs a deliberate choice before tracking. Coefficient arrays
+remain editable; **Apply** or **Insert** saves the draft. Tune, phase and
+method do not become JSON fields. See :doc:`gui` for the complete workflow.
 
 Interface
 ---------

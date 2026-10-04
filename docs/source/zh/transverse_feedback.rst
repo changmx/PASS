@@ -69,31 +69,70 @@ PASS 存储 :math:`p_x=P_x/P_0`、:math:`p_y=P_y/P_0`；这里施加的是归一
 FIR 相位与增益选择
 -------------------
 
-产生阻尼的是传输、电子滤波和延迟的总相位。
+产生阻尼的是传输、FIR 滤波和延迟的总相位。
 滤波器能够补相时，拾取器到踢器的几何相移不必固定为 :math:`\pi/2`。
 在扣除闭轨后的归一化 betatron 坐标中，阻尼应反向作用于相干动量
 :math:`P=(\alpha x+\beta x')/\sqrt{\beta}`。
 位置反馈相位不合适时，可能改变 tune 或激发增长。
 
-``design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5)``
-返回实数最小范数系数。``phase_advance`` 是 **同一序列圈号下** 的
+``design_feedback_fir(tune, phase_advance, delay_turns=1, tap_count=5, *, method="minimum_norm")``
+返回实数系数。这是可选的输入生成辅助函数；跟踪始终使用显式系数列表，
+JSON 命令没有 ``method`` 字段。``phase_advance`` 是 **同一序列圈号下** 的
 :math:`\mu_{\mathrm{feedback}}-\mu_{\mathrm{pickup}}`，单位 rad。
 反馈节点位于拾取器上游时，该值可以为负；不要重复加入已由 ``delay_turns`` 表示的整圈相位。
 
-对于 :math:`x_n=\cos(\omega n+\phi)`、:math:`\omega=2\pi Q`，该函数设定
+对于 :math:`x_n=\cos(\omega n+\phi)` 和设计频率 :math:`\omega_0=2\pi Q`，两种方法均要求
 
 .. math::
 
-   H_d(\omega)=e^{-i\omega d}\sum_k a_ke^{-i\omega k}
-              =e^{i(\Delta\mu+\pi/2)},\qquad \sum_k a_k=0.
+   H_d(\omega)=\sum_k a_ke^{-i\omega(d+k)},\qquad
+   H_d(\omega_0)=e^{i(\Delta\mu+\pi/2)},\qquad \sum_k a_k=0.
 
 结合命令踢公式中的负号，正增益在目标 tune 处反向作用于相干动量。
 系数和为零使滤波器在预热后抑制固定拾取偏置。
-函数仅求解这三个实数约束，不使用跟踪数据；至少需要三个 tap。
-整数及半整数 tune 附近若设计矩阵秩不足或病态，则拒绝设计；矩阵条件数上限为 :math:`10^8`。
+两种系数设计如下：
+
+.. list-table:: FIR 设计方法
+   :header-rows: 1
+   :widths: 22 15 63
+
+   * - ``method``
+     - 最少系数数目
+     - 约束和目标
+   * - ``"minimum_norm"`` （默认）
+     - 3
+     - 满足去直流和指定复响应三个实数约束，再使系数欧氏范数最小。
+       原有调用保持此设计。
+   * - ``"flat"``
+     - 5
+     - 除上述约束外，要求目标 tune 处包含延迟的复响应导数为零。
+       系数多于五个时，在满足全部五个实数约束的解中选择最小范数解。
+
+平坦响应方法增加条件
+
+.. math::
+
+   H'_d(\omega_0)=-i\sum_k(d+k)a_ke^{-i\omega_0(d+k)}=0.
+
+在线性系统中增加 :math:`(d+k)\cos(k\omega_0)` 和
+:math:`(d+k)\sin(k\omega_0)` 两行，目标值均为零。
+这里必须包含完整延迟 :math:`d+k`，不能只对系数下标求导。
+在拾取器到踢器的几何相移固定时，目标 tune 处的幅值和相位一阶导数均为零，
+残余响应变化从二阶开始。这是局部平坦性，不保证某个有限带宽内的性能。
+
+函数独立求解这些约束，不使用跟踪数据。若设计矩阵秩不足或病态，包括整数及
+半整数 tune 附近的情况，则拒绝设计；条件数上限为 :math:`10^8`。
+对于平坦响应方法，求解和条件数检查前，前三行除以 :math:`\sqrt L`，
+导数两行除以 :math:`\sqrt{\sum_k(d+k)^2}`。正弦/余弦行使用相同尺度，
+避免放大奇异 tune 附近的微小行。未缩放约束的残差还必须不超过
+:math:`5\times10^{-10}`。
 
 函数仅将一个目标 tune 处的响应幅度归一化，不保证闭环稳定性、不自动选增益、
 不补偿光学幅度比，也不保证某个阻尼时间。
+更平坦的响应可能需要更大的系数，也可能有更小的稳定增益范围。
+设计频率应参考预计的相干质心振荡谱；尾场及其他集体作用可能使它偏离裸晶格 tune。
+平坦性是在几何相移固定的条件下计算的；如果机器设置改变时该相移也改变，
+扫描中应同时考虑这种变化。
 应先用小增益在完整晶格与延迟下验证，再扫描增益、tune 与相位。
 用户直接输入的 FIR 系数不强制和为零，因此可能对静态轨道偏置产生踢。
 
@@ -110,7 +149,7 @@ Python 输入
    )
 
    taps = design_feedback_fir(
-       tune=0.23, phase_advance=math.pi / 3, delay_turns=1, tap_count=5,
+       tune=0.23, phase_advance=math.pi / 3, delay_turns=1, tap_count=5, method="flat",
    )
    seq.add("pickup_x", TransversePickupItem(s=0.0, plane="x"))
    seq.add("feedback_x", TransverseFeedbackItem(
@@ -121,6 +160,16 @@ Python 输入
 
 仍使用 ``generate_input(main, seq, output_path)`` 导出，不增加生成器参数。
 GUI 的横向反馈组件区提供两类节点；新反馈草稿的增益及系数均为零，必须配置后才会产生阻尼。
+反馈面板中的 **生成 FIR 系数…** 使用同一个辅助函数。
+引用的拾取器决定生成 x、y 或两个方向的系数；各方向独立填写 tune 和同一圈号下的
+有符号相移，单位 rad。GUI 不从节点位置或机器配置推断这些数值。
+两个方向共用方法（默认 ``minimum_norm``）、延迟及系数数量。
+GUI 允许 3–256 个系数，其中 ``flat`` 至少需要五个；辅助函数本身没有 256 个系数的上限。
+
+先 **计算并预览**，再 **填入草稿**，替换测量方向的系数、清空未测量方向的系数并同步延迟。
+增益保持原值，因此初始零增益仍需在跟踪前自行设置。
+系数数组可继续手动编辑；点击 **应用** 或 **插入** 才保存草稿。
+tune、相移和设计方法不会成为 JSON 字段。完整操作见 :doc:`gui`。
 
 接口
 ----

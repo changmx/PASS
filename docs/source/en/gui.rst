@@ -344,6 +344,31 @@ coefficients, turn delay, gains and optional kick limits before tracking.
 Both nodes must be placed at actual transport boundaries. See
 :doc:`transverse_feedback` for phase conventions, filter design and diagnostics.
 
+In the feedback parameter form, **Generate FIR coefficients…**
+(``生成 FIR 系数…``) opens a coefficient generator. The referenced pickup's
+``Plane`` determines whether it designs x, y or both planes. Enter each plane's
+tune and pickup-to-feedback phase independently; these inputs start blank and
+are not inferred from the machine configuration. Phase is in radians and is
+the signed phase difference within the same sequence turn numbering. It can
+be negative for an upstream feedback node; positions ``S (m)`` do not determine
+it, and the turn delay must not be counted a second time in this phase.
+
+The planes share a design method, tap count and delay. Choose
+``minimum_norm`` (default) or ``flat``; the GUI accepts 3–256 taps, with at
+least five for ``flat``, and an integer delay of at least one turn. The
+256-tap maximum is a GUI limit, not a limit imposed by
+``design_feedback_fir``. Click **Calculate and preview** (``计算并预览``),
+inspect the result, then **Fill draft** (``填入草稿``). Invalid designs leave
+the parameter draft unchanged. A flat response is local to the chosen tune
+and does not establish closed-loop stability or select a gain.
+
+Filling the draft replaces the coefficient lists for all measured planes,
+clears coefficients for unmeasured planes and synchronizes ``Delay turns``.
+Gains remain unchanged, including a zero initial gain. The generated arrays
+remain manually editable; click **Apply** or **Insert** to save the draft.
+The design inputs are temporary GUI controls: only the existing coefficient
+and delay fields are saved, with no new JSON fields or electronics model.
+
 WakeField
 ---------
 

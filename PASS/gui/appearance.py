@@ -216,6 +216,7 @@ PATHS = {
     "optics": '<path d="M1 8h14M4 2v12M12 2v12M4 2l8 12M4 14L12 2"/>',
     "box": '<path d="M2 4l6-3 6 3v8l-6 3-6-3zM2 4l6 3 6-3M8 7v8"/>',
     "chart": '<path d="M2 1v13h13M4 10l3-4 3 2 4-5"/>',
+    "feedback": '<path d="M3 6a5 5 0 0 1 9-2l1.5 2M13.5 2.5V6H10M13 10a5 5 0 0 1-9 2l-1.5-2M2.5 13.5V10H6"/>',
     "spectrum": '<path d="M2 1v13h13M3.5 12h1l1-7 1 7h2l1-10 1 10h1l1-4 1 4h1"/>',
     "dynamic_aperture": '<path d="M2 1v13h13M3 11l1-5 3-3 4 1 2 3-2 5z"/><circle cx="7" cy="8" r=".6"/>',
     "layers": '<path d="M1.5 5l6.5-3 6.5 3L8 8zM1.5 8.5l6.5 3 6.5-3M1.5 12l6.5 3 6.5-3"/>',

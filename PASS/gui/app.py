@@ -2933,6 +2933,10 @@ class ConfigPage(QWidget):
                     self._add_property_row(layout, label, field)
                 self._form_fields[key] = field
         self._connect_structured_fields()
+        if target.get("Command") == "TransverseFeedback":
+            generate = QPushButton("生成 FIR 系数…")
+            generate.clicked.connect(self._generate_feedback_fir)
+            self.form_layout.insertRow(0, generate)
         if target.get("Command") in {"Bump", "ElSeparator", "RFCavity"}:
             preview = QPushButton("预览ES" if target["Command"] == "ElSeparator" else "预览物理波形")
             preview.clicked.connect(self._preview_parameters)
@@ -2944,6 +2948,59 @@ class ConfigPage(QWidget):
         self.form_apply.setEnabled(bool(self._form_fields) or self._name_field is not None)
         self.insert_button.setVisible(pending)
         self._update_action_visibility(pending=pending)
+
+    def _generate_feedback_fir(self):
+        if not self._guard_json_draft() or not self._tool_resources_ready():
+            return
+        from PySide6.QtWidgets import QAbstractItemDelegate
+        from PASS.gui.feedback_fir import FeedbackFIRDialog
+        from PASS.gui.parameters import OptionalField
+        if (self._selected_mapping or {}).get("Command") != "TransverseFeedback":
+            return
+        dialog = None
+        try:
+            pickup_name = self._read_field_value("Pickup", self._form_fields["Pickup"], "")
+            pickup = self.data.get("Sequence", {}).get(pickup_name)
+            if not isinstance(pickup, dict) or pickup.get("Command") != "TransversePickup":
+                raise ValueError("请先插入 TransversePickup，并在 Pickup 字段中选择它。")
+            plane = pickup.get("Plane", "x")
+            tap_count = max([5] + [self._form_fields[f"FIR coefficients {axis}"].editor.table.rowCount() for axis in plane if axis in "xy"])
+            dialog = FeedbackFIRDialog(self,
+                                       pickup_name=pickup_name,
+                                       plane=plane,
+                                       delay_turns=self._form_fields["Delay turns"].input.text(),
+                                       tap_count=tap_count)
+            if dialog.exec() != QDialog.Accepted or dialog.result_values is None:
+                return
+            replacements = []
+            try:
+                # Prepare all replacements before touching either plane's draft.
+                for key, value in dialog.result_values.items():
+                    spec = next(info for name, info in self._field_model.model_fields.items() if (info.alias or name) == key)
+                    replacement = make_editor(spec.annotation, value, key, self.base_dir)
+                    replacements.append((key, replacement, capture_field(replacement)))
+                for key, _replacement, state in replacements:
+                    field = self._form_fields[key]
+                    if isinstance(field, OptionalField):
+                        table = field.editor.table
+                        delegate = table.itemDelegate()
+                        if delegate.editor is not None:
+                            editor = delegate.editor
+                            table.closeEditor(editor, QAbstractItemDelegate.RevertModelCache)
+                            # Qt destroys editors later; do not flush an old cell over new taps.
+                            delegate._forget_editor(editor)
+                    restore_field(field, state)
+            finally:
+                for _key, replacement, _state in replacements:
+                    replacement.deleteLater()
+            self._mark_form_dirty()
+            self.form_hint.setText("已填入 FIR 系数和延迟，增益保持原值。可继续修改，然后点击应用／插入；零增益仍不产生反馈踢。")
+            self.form_hint.setToolTip(self.form_hint.text())
+        except (ValueError, TypeError, KeyError) as exc:
+            QMessageBox.warning(self, "无法生成 FIR 系数", str(exc))
+        finally:
+            if dialog is not None:
+                dialog.deleteLater()
 
     def _tool_resources_ready(self):
         """Do not wait on a background import lock from an interactive callback."""
@@ -4838,7 +4895,8 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         if self.config is None:
             return
         self.config.json_highlighter.set_theme(theme)
-        for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"), ("序列工具", "tools"), ("监测与诊断", "chart"), ("物理效应", "layers")]:
+        for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"), ("序列工具", "tools"), ("监测与诊断", "chart"), ("横向反馈", "feedback"),
+                            ("物理效应", "layers")]:
             self.config.library_sections[name].header.setIcon(icon(glyph, THEMES[theme]["muted"]))
         for widget, glyph in [(self.config.validate_button, "check"), (self.config.delete_sequence_button, "trash"),
                               (self.config.contents_button, "folder"), (self.config.form_apply, "check")]:
