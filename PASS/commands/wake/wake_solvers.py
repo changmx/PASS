@@ -17,14 +17,17 @@ def _kernel(component, tau, widths, memory_time=None):
     if memory_time is None:
         return component.scale * model.averaged(tau, widths, component.longitudinal)
     tau, widths = np.broadcast_arrays(tau, widths)
-    point = widths == 0
-    result = np.where(tau <= memory_time, model.evaluate(tau, component.longitudinal), 0.0)
-    finite = ~point
-    if np.any(finite):
-        t, h = tau[finite], widths[finite] / 2
-        # Truncate the kernel, not merely entire historical bins.
-        result[finite] = (model.primitive(np.minimum(t + h, memory_time), component.longitudinal) -
-                          model.primitive(np.minimum(t - h, memory_time), component.longitudinal)) / (2 * h)
+    result = np.zeros(tau.shape, dtype=float)
+    inside = tau + widths / 2 <= memory_time
+    if np.any(inside):
+        # Keep the model's stable bin integral when no truncation is needed.
+        result[inside] = model.averaged(tau[inside], widths[inside], component.longitudinal)
+    crossing = (widths > 0) & ~inside & (tau - widths / 2 < memory_time)
+    if np.any(crossing):
+        t, h = tau[crossing], widths[crossing] / 2
+        # Only bins crossing the horizon need a truncated kernel integral.
+        result[crossing] = (model.primitive(np.full_like(t, memory_time, dtype=float), component.longitudinal) -
+                            model.primitive(t - h, component.longitudinal)) / (2 * h)
     return component.scale * result
 
 
@@ -149,11 +152,16 @@ class RecursiveResonatorSolver:
             output_index = 1 if component.longitudinal else 0
             amplitude = model.omega * model.r / model.q * component.scale
             for time, (edges, points, targets) in sorted(events.items()):
-                if last is not None and time > last:
-                    transition, forcing = _mode_step(model.omega, model.q, time - last)
-                    vector = transition @ vector + forcing * drive
-                if last is not None and time < last:
-                    raise ValueError("Resonator events moved backwards in physical time")
+                if last is not None:
+                    dt = time - last
+                    tolerance = 32 * np.spacing(max(abs(time), abs(last), 1e-12))
+                    if dt < -tolerance:
+                        raise ValueError("Resonator events moved backwards in physical time")
+                    # Independently rounded edges can cross by a few ULPs.
+                    dt = max(dt, 0.)
+                    if dt > 0:
+                        transition, forcing = _mode_step(model.omega, model.q, dt)
+                        vector = transition @ vector + forcing * drive
                 impulse = np.sum(moment[points]) if points else 0.0
                 value = vector[output_index]
                 if component.longitudinal:
@@ -195,9 +203,12 @@ class RecursiveModalSolver:
             moment = component.source_moment(source)
             for time, (edges, points, targets) in ordered_events:
                 if last is not None:
-                    if time < last:
-                        raise ValueError("Modal events moved backwards in physical time")
                     dt = time - last
+                    tolerance = 32 * np.spacing(max(abs(time), abs(last), 1e-12))
+                    if dt < -tolerance:
+                        raise ValueError("Modal events moved backwards in physical time")
+                    # Clamp only negative roundoff; retain positive evolution.
+                    dt = max(dt, 0.)
                     vector = np.exp(model.poles * dt) * vector + np.expm1(model.poles * dt) / model.poles * drive
                 impulse = np.sum(moment[points]) if points else 0.
                 value = np.real(np.sum(model.residues * (vector + impulse / 2)))

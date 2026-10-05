@@ -397,8 +397,11 @@ __device__ double averaged(
 ) {
     if (w <= 0.)
         return t <= horizon ? response(t, d, false) : 0.;
-    if (isfinite(horizon))
-        return (response(fmin(t + w * .5, horizon), d, true) - response(fmin(t - w * .5, horizon), d, true)) / w;
+    if (t - w * .5 >= horizon)
+        return 0.;
+    // Preserve the stable exponential integral for bins inside the horizon.
+    if (t + w * .5 > horizon)
+        return (response(horizon, d, true) - response(t - w * .5, d, true)) / w;
     double out = 0.;
     for (int j = 0; j < NMODES; j++) {
         C p(d[4 * j], d[4 * j + 1]), r(d[4 * j + 2], d[4 * j + 3]);
