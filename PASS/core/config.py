@@ -117,6 +117,13 @@ class Config:
 
         from PASS.commands.collision.config import load_beam_beam
         self.beam_beam_enabled, self.beam_beam_configurations = load_beam_beam([raw0] if beam1_path is None else [raw0, raw1])
+        from PASS.validation.relations import find_slice_usage_conflicts
+        for beam_id, data in enumerate([raw0] if beam1_path is None else [raw0, raw1]):
+            conflicts = find_slice_usage_conflicts(data,
+                                                   beam_id=beam_id,
+                                                   beam_beam_configurations=self.beam_beam_configurations if self.beam_beam_enabled else None)
+            if conflicts:
+                raise ValueError(f"Beam {beam_id}: {conflicts[0][1]}")
 
         if beam1_path is None:
             self.num_beam = 1

@@ -3,11 +3,122 @@ import math
 from types import SimpleNamespace
 
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+from PASS.utils.constants import const
+from PASS.utils.coordinates import resolve_slice_coordinate
 from .rules import is_finite_number, is_integer
+
+
+def _value(data, name, default=None):
+    if not isinstance(data, dict):
+        return default
+    return next((value for key, value in data.items() if str(key).casefold().replace("_", " ") == name.casefold()), default)
+
+
+def _configuration(block, command):
+    configurations = _value(block, "Configurations", {})
+    name = _value(command, "Configuration")
+    return configurations.get(name) if isinstance(configurations, dict) and isinstance(name, str) else None
+
+
+def find_slice_usage_conflicts(data, *, beam_id=0, beam_beam_configurations=None):
+    """Validate producer purpose and enabled consumers within one beam.
+
+    BeamBeam configurations are already resolved across both input files.
+    Slicer producers and ordinary monitors do not claim a set. A luminosity-
+    only BeamBeam still consumes its collision slices. Repeated commands from
+    the same module may consume a set, even at different locations.
+    """
+    sequence = _value(data, "Sequence", {})
+    if not isinstance(sequence, dict):
+        return []
+    space_charge = _value(data, "Space charge", {})
+    electron_cloud = _value(data, "Electron cloud", {})
+    intrabeam_scattering = _value(data, "Intrabeam scattering", {})
+    wake = _value(data, "Wake field", {})
+    slice_sets, consumers, conflicts = {}, {}, []
+    for command in sequence.values():
+        if str(_value(command, "Command", "")).casefold() != "slicer":
+            continue
+        slice_name = _value(command, "Slice set")
+        if not isinstance(slice_name, str) or not slice_name.strip():
+            continue
+        try:
+            coordinate = resolve_slice_coordinate(_value(command, "Coordinate"), _value(command, "Periodic", False))
+        except (TypeError, ValueError):
+            continue  # Invalid Slicer fields are reported by the schema check.
+        slice_sets[slice_name.strip()] = (_value(command, "Purpose", "general"), coordinate)
+
+    def record(slice_name, module, command_name):
+        if isinstance(slice_name, str) and slice_name.strip():
+            slice_name = slice_name.strip()
+            purpose, coordinate = slice_sets.get(slice_name, (None, None))
+            if purpose == "beam_beam" and module != "BeamBeam":
+                message = f"SliceSet {slice_name!r} has Purpose=beam_beam and cannot be consumed by {module}; use a separate general-purpose Slicer."
+                conflicts.append((("Sequence", command_name), message, (module, )))
+                return
+            if module == "WakeField" and coordinate == "z_periodic":
+                message = f"WakeField cannot use z_periodic SliceSet {slice_name!r}; select z_rel or arrival_phase."
+                conflicts.append((("Sequence", command_name), message, (module, )))
+                return
+            modules = consumers.setdefault(slice_name, {})
+            modules.setdefault(module, []).append(command_name)
+
+    for name, command in sequence.items():
+        if not isinstance(command, dict) or not _value(command, "Is enabled", True):
+            continue
+        kind = str(_value(command, "Command", "")).casefold()
+        if kind == "wakefield" and _value(wake, "Enabled", True):
+            record(_value(command, "Slice set"), "WakeField", name)
+        elif kind == "beambeam" and beam_beam_configurations:
+            configuration = beam_beam_configurations.get(_value(command, "Configuration"))
+            if configuration is not None:
+                luminosity = configuration.luminosity
+                if configuration.mode != "weak-weak" or luminosity is not None and luminosity.enabled:
+                    source = configuration.sources.get(str(beam_id))
+                    if source is not None:
+                        record(source.slice_set, "BeamBeam", name)
+        elif kind == "electroncloud" and _value(electron_cloud, "Enabled", False):
+            configuration = _configuration(electron_cloud, command)
+            if _value(configuration, "Mode", "frozen") in {"build_up", "coupled"}:
+                record(_value(command, "Slice set"), "ElectronCloud", name)
+        elif kind == "ibs" and _value(intrabeam_scattering, "Enabled", False):
+            raw_length = _value(command, "Interaction length (m)", _value(command, "Interaction length", 0.))
+            try:
+                length = float(raw_length)
+            except (TypeError, ValueError, OverflowError):
+                length = 0.
+            if math.isfinite(length) and length > 0.:
+                configuration = _configuration(intrabeam_scattering, command)
+                record(_value(configuration, "Slice set"), "IBS", name)
+        internal = _value(command, "Space charge")
+        if _value(space_charge, "Enabled", False) and (kind == "spacecharge" or isinstance(internal, dict)):
+            embedded = isinstance(internal, dict)
+            raw_length = _value(command, "Length (m)", 0.) if embedded else _value(command, "SC length (m)", _value(command, "SC length", 0.))
+            try:
+                length = float(raw_length)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if not math.isfinite(length) or length <= (const.eps if embedded else 0.):
+                continue
+            configuration = _configuration(space_charge, internal if isinstance(internal, dict) else command)
+            if isinstance(configuration, dict):
+                default_slice_set = SpaceChargeResourceConfig.model_fields["slice_set"].default
+                record(_value(configuration, "Slice set", default_slice_set), "SpaceCharge", name)
+
+    for slice_name, modules in consumers.items():
+        if len(modules) > 1:
+            details = "; ".join(f"{module}: {', '.join(map(str, names))}" for module, names in modules.items())
+            message = (f"SliceSet {slice_name!r} is consumed by different physics modules ({details}). "
+                       "Use a separate Slice set name for each module.")
+            command_name = next(reversed(modules.values()))[-1]
+            conflicts.append((("Sequence", command_name), message, tuple(modules)))
+    return conflicts
 
 
 def check_relations(check):
     from PASS.utils.command_order import sort_commands
+    for path, message, _modules in find_slice_usage_conflicts(check.data):
+        check.add(path, "slicer.module_sharing", message)
     check_electron_cloud(check)
     check_intrabeam_scattering(check)
     raw = check.data.get("Space charge", {})
@@ -56,8 +167,6 @@ def check_relations(check):
                     check.add(p, "reorganize.injection", "重组发生在注入结束之前，会改变后续注入所依赖的 bunch 数量或粒子索引")
         if kind == "WakeField" and v.get("Is enabled", True):
             slice_name = v.get("Slice set")
-            if slice_name in check.slice_sets and check.slice_sets[slice_name][4] == "z_periodic":
-                check.add(p, "wake.slice_coordinate", "WakeField 不能使用 z_periodic；请选择 z_rel 或 arrival_phase 切片")
             if slice_name not in check.slice_sets:
                 check.add((*p, "Slice set"), "wake.slicer_missing", f"未定义 Slice set {slice_name!r}")
             elif slice_name not in valid_slices:

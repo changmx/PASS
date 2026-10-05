@@ -769,9 +769,16 @@ def validate_files(paths, *, check_files=True):
 
 def check_shared_inputs(inputs, result):
     try:
-        load_beam_beam([data for _, data in inputs])
+        enabled, configurations = load_beam_beam([data for _, data in inputs])
     except (ValueError, TypeError, KeyError) as exc:
         result.add(("Beam beam", ), "beam_beam.configuration", str(exc))
+    else:
+        if enabled:
+            from PASS.validation.relations import find_slice_usage_conflicts
+            for beam_id, (source, data) in enumerate(inputs):
+                for path, message, modules in find_slice_usage_conflicts(data, beam_id=beam_id, beam_beam_configurations=configurations):
+                    if "BeamBeam" in modules:
+                        result.add(path, "slicer.module_sharing", message, source=str(source))
     if len(inputs) == 2:
         try:
             first, second = [MainConfig.model_validate(data, strict=True).model_dump(by_alias=True) for _, data in inputs]
