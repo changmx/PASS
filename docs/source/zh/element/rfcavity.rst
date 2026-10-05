@@ -185,6 +185,67 @@ RF 表按物理时间给出；``convert_rf_data(input_path, output_path)`` 转�
 
 ``PASS.para.tools.rf_data.synchronous_rf_program`` 从电压、目标通过相位及明确的设计粒子能量/飞行时间构造规定波形；它只生成输入，运行时不重置实际束团相位或能量。变频载波积分和附加相位程序共同保证设计采样点相位，采样点之间采用声明的线性插值。
 
+HIAF RF 图表导出
+~~~~~~~~~~~~~~~~
+
+``PASS.para.tools.hiaf_rf`` 读取 HIAF 图表导出目录中的 14 个双列
+``#RF...PlotData`` 文件。无后缀名称表示通道 0，后缀 ``1``、``2`` 分别表示
+通道 1、2。转换器检查有限值、所有文件共用的严格递增时间网格及整数谐波标签。
+源文件单位为 ms、kV、kHz、rad，输出单位为 s、V、Hz、rad，并保留非均匀时间间隔。
+转换器不依据离子质量修正频率，也不推断源数据采用的质量约定。
+
+不预设相位约定、仅检查数据时，可运行：
+
+.. code-block:: console
+
+   python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import
+
+输出为 ``hiaf_rf_normalized.tfs`` 和 ``conversion_report.json``，包含源文件名、
+SHA-256 校验值、单位和时间范围。默认保护已有输出；只有显式指定 ``--overwrite``
+才允许替换同名生成文件。
+
+生成可执行 RF 需要明确相位映射和时钟基准时刻。JSON 文件以
+``通道:谐波`` 为键，给出各导出相位列的线性组合系数；可选 ``offset``
+表示以 rad 为单位的常数。例如，BRing 捕获及合束前加速段的一种明确解释为：
+
+.. code-block:: json
+
+   {
+     "0:4": {"Phase": 1},
+     "1:8": {"Phase": 2, "DeltaPhi1": 1}
+   }
+
+将它保存为 ``phase_rules.json`` 后，选择适用的时间范围：
+
+.. code-block:: console
+
+   python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import_mapped --phase-rules phase_rules.json --phase-origin 0.045006 --end-time 0.312614
+
+这些时间是 2026-10-05 BRing 导出数据的示例，并非通用机器常数。
+``--start-time`` 和 ``--end-time`` 以物理秒选择源数据内的范围；新增端点的模拟量
+采用线性插值，谐波标签保持离散。``--phase-origin`` 指定时钟积分相位为零的物理时刻，
+不平移导出的时间列。截取分量时间域时仍保留完整导出时钟，避免改变累计相位。
+
+上述示例明确规定 :math:`\psi_4=\mathrm{Phase}`、
+:math:`\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}`。
+数据中的 :math:`\mathrm{DeltaPhi1}=\pi-2\mathrm{Phase}` 关系因此给出
+:math:`\psi_8=\pi`。该数值关系支持这种解释，但不能证明控制系统的相位语义；
+将结果作为实机过程复现前仍需确认。相位列必须已展开，转换器不会自行展开相位，
+也不会隐式叠加 ``Phase1``。后续 :math:`h=2,1` 合束阶段必须提供各自的明确映射。
+
+指定映射后还会输出包含 ``Reference clock`` 和 ``Components`` 的
+``rf_config.json`` ，以及每个固定谐波段的 TFS 文件。将 ``Reference clock``
+填入根级 MainConfig 设置，将 ``Components`` 填入 RFCavity 设置。
+时钟频率等于基础通道导出频率除以 ``--base-harmonic`` （默认 4）；每个活动通道
+必须满足其频率等于谐波数乘以该共享频率。PASS 按物理时间积分这一规定时钟，
+粒子能量不会重新定义时钟。相邻零电压节点保留导出的线性开关过程，分量时间域外
+电压为零。没有零电压分隔的谐波切换、缺失的活动相位映射、频率不一致均在写出前拒绝。
+
+Python 接口 ``load_hiaf_rf(source_directory)`` 返回归一化数组；
+``convert_hiaf_rf(source_directory, output_directory, phase_rules=...,
+phase_origin=..., base_harmonic=4, start_time=None, end_time=None)`` 生成输出。
+依据统一质量重新构建设计波形属于需要单独记录的步骤；普通格式转换保留源频率程序。
+
 物理范围
 --------
 

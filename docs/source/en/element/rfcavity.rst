@@ -194,6 +194,79 @@ RF tables use physical time. ``convert_rf_data(input_path, output_path)`` conver
 
 ``PASS.para.tools.rf_data.synchronous_rf_program`` builds a prescribed waveform from voltage, target passage phases and an explicit design-particle energy/flight-time trajectory. It generates input only; tracking does not reset actual bunch phases or energies. The integrated carrier and additive phase program jointly hit the requested design sample phases, with declared linear interpolation between samples.
 
+HIAF RF chart exports
+~~~~~~~~~~~~~~~~~~~~~
+
+``PASS.para.tools.hiaf_rf`` reads the 14 two-column ``#RF...PlotData`` files
+in a HIAF chart-export directory. The unsuffixed names describe channel 0;
+suffixes ``1`` and ``2`` describe channels 1 and 2. It checks finite values,
+one strictly increasing common time grid, and integer harmonic labels.
+The source units are ms, kV, kHz and rad; output uses s, V, Hz and rad.
+Nonuniform time spacing is retained. The converter does not adjust frequencies
+for an ion mass or infer the source's mass convention.
+
+For inspection without assuming a phase convention, run:
+
+.. code-block:: console
+
+   python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import
+
+This writes ``hiaf_rf_normalized.tfs`` and ``conversion_report.json`` with
+source filenames, SHA-256 hashes, units and time range. Existing outputs are
+protected; ``--overwrite`` explicitly allows replacing matching generated files.
+
+Executable RF requires an explicit phase mapping and clock epoch. A JSON file
+maps each ``channel:harmonic`` to coefficients of exported phase columns;
+``offset`` optionally adds a constant in radians. For example, one declared
+interpretation of BRing capture and acceleration before bunch merging is:
+
+.. code-block:: json
+
+   {
+     "0:4": {"Phase": 1},
+     "1:8": {"Phase": 2, "DeltaPhi1": 1}
+   }
+
+Save this as ``phase_rules.json`` and convert an applicable interval:
+
+.. code-block:: console
+
+   python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import_mapped --phase-rules phase_rules.json --phase-origin 0.045006 --end-time 0.312614
+
+Those times are an example for the 2026-10-05 BRing export, not universal machine
+constants. ``--start-time`` and ``--end-time`` select physical seconds within
+the source range. Analog values are interpolated at a new endpoint; harmonic
+labels are discrete. The full exported clock history is retained when cropping
+component domains so their integrated phase does not change. ``--phase-origin`` sets the physical epoch of zero
+integrated reference-clock phase and does not shift the exported timestamps.
+
+The example explicitly sets :math:`\psi_4=\mathrm{Phase}` and
+:math:`\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}`. The observed relation
+:math:`\mathrm{DeltaPhi1}=\pi-2\mathrm{Phase}` then gives
+:math:`\psi_8=\pi`. This relation supports this interpretation but does not
+establish the control system's phase semantics. Confirm them before treating
+the output as a reproduction of machine operation. Phase columns must already
+be unwrapped; the converter neither unwraps nor silently adds ``Phase1``.
+The later :math:`h=2,1` bunch-merging stages need their own explicit rules.
+
+Mapped conversion additionally writes ``rf_config.json`` with ``Reference clock``
+and ``Components`` entries, plus one TFS per constant-harmonic segment. Copy
+``Reference clock`` into the root-level MainConfig settings and ``Components`` into
+the RFCavity settings. The clock frequency is the base channel's exported
+frequency divided by ``--base-harmonic`` (default 4). Each active channel must
+agree with its harmonic times that shared frequency. PASS integrates this
+prescribed clock in physical time; particle energies do not redefine it.
+The nearest zero-voltage nodes preserve the exported linear on/off ramps,
+and voltage vanishes outside a component's domain. A harmonic switch without
+a zero-voltage separator is rejected. Unknown active phase rules and frequency
+inconsistencies are also rejected before output is written.
+
+The Python interface is ``load_hiaf_rf(source_directory)`` for normalized arrays,
+or ``convert_hiaf_rf(source_directory, output_directory, phase_rules=...,
+phase_origin=..., base_harmonic=4, start_time=None, end_time=None)`` for output.
+Rebuilding a mass-consistent design waveform is a separate, explicitly recorded
+operation; ordinary file conversion preserves the supplied frequency program.
+
 Physical scope
 --------------
 
