@@ -646,13 +646,9 @@ bits may differ from earlier serial summation. Repeatability checks apply
 to the same code, GPU architecture, SM count and software stack, not across
 devices. See :doc:`field_solver`.
 
-For simulations already using the joint two-beam checkpoint interface,
-``capture_collision_state`` / ``restore_collision_state`` also capture and
-restore enabled electron-cloud realizations. They validate the cloud
-identity and rebuild its field resources before committing the joint restore.
-The existing common-turn and output requirements still apply; see
-:doc:`beam_beam`. This integration does not introduce a separate single-beam
-machine-restart interface.
+Loading a cloud snapshot changes only this command's source. The tracking
+entry starts a new run from turn 0; these component APIs do not provide a
+machine-restart workflow.
 
 Runnable example
 ----------------

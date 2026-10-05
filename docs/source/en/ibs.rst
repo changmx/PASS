@@ -550,10 +550,11 @@ number convergence.
 Random streams belong to a particular beam, command and bunch. A fixed seed
 provides reproducible initialization under the same execution conditions.
 ``state_dict()`` and ``load_state_dict()`` save and restore IBS random-stream
-state and execution counters. They are an IBS component checkpoint, not a
-complete simulation restart: particles, reference state, turn, slicing and
-other collective state must match. CPU/GPU floating-point arithmetic may
-produce different trajectories; validate statistical agreement between backends.
+state and execution counters. These component APIs require matching particles,
+reference state, turn, slicing and other collective state; they do not provide
+a complete simulation restart. The tracking entry starts a new run from turn 0.
+CPU/GPU floating-point arithmetic may produce different trajectories; validate
+statistical agreement between backends.
 Use ``Particle Precision="float64"`` when resolving small IBS momentum
 increments; float32 storage can round small updates away.
 The diagnostic flags, turn selection and Coulomb-log note are excluded from

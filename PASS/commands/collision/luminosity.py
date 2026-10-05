@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from PASS.commands.solver.pic import GridGeometry, build_pic_resources, build_pic_resources_gpu, deposit_particles, deposit_particles_gpu
-from PASS.utils.table_io import append_table, normalize_output_format, read_table, write_table
+from PASS.utils.table_io import append_table, normalize_output_format, write_table
 
 
 class LuminosityCalculator:
@@ -247,8 +247,8 @@ class LuminosityCalculator:
 class LuminosityRecorder:
     """Record sampled encounters, refusing implicit overwrite or rollback.
 
-    A checkpoint must match the output watermark. Appends are one numeric
-    batch; a failed batch disables this instance instead of risking duplicates.
+    Appends are one numeric batch; a failed batch disables this instance
+    instead of risking duplicate or partial output on retry.
     """
 
     def __init__(self, path, *, interval=100, reference_luminosity=None, metadata=None, output_format="tfs"):
@@ -354,81 +354,6 @@ class LuminosityRecorder:
         self.references = {key: float(value) for key, value in references.items()}
         self.last_turn = int(turn)
         return rows
-
-    def state_dict(self):
-        if self._failed:
-            raise RuntimeError("Cannot checkpoint incomplete luminosity output")
-        return {
-            "format": "PASS-luminosity-state-1",
-            "output_format": self.output_format,
-            "interval": self.interval,
-            "reference_luminosity": self.reference_luminosity,
-            "metadata": dict(self.metadata),
-            "last_turn": self.last_turn,
-            "references": dict(self.references)
-        }
-
-    def load_state_dict(self, data, *, next_turn):
-        if self.last_turn >= 0 or self.references or self._failed:
-            raise RuntimeError("Restore luminosity into an unused recorder")
-        if (data.get("format") != "PASS-luminosity-state-1" or data.get("interval") != self.interval
-                or data.get("reference_luminosity") != self.reference_luminosity or data.get("metadata") != self.metadata
-                or data.get("output_format", "tfs") != self.output_format):
-            raise ValueError("Luminosity checkpoint configuration does not match")
-        last_turn, references = data.get("last_turn"), data.get("references")
-        if type(last_turn) is not int or last_turn < -1 or last_turn >= next_turn or not isinstance(references, dict):
-            raise ValueError("Luminosity checkpoint has an invalid output watermark")
-        for key, value in references.items():
-            fields = str(key).split(":")
-            if len(fields) != 2 or any(not field.isdecimal() for field in fields) or not np.isfinite(value) or value < 0:
-                raise ValueError("Luminosity checkpoint has invalid reference values")
-            if key != ":".join(str(int(field)) for field in fields):
-                raise ValueError("Luminosity checkpoint has noncanonical bunch pair identities")
-            if self.reference_luminosity is not None and value != self.reference_luminosity:
-                raise ValueError("Luminosity checkpoint changed the prescribed reference")
-        if (last_turn < 0) != (not references):
-            raise ValueError("Luminosity checkpoint reference and output watermark disagree")
-        if last_turn < 0:
-            if self.path.exists():
-                raise ValueError("Luminosity file extends beyond the checkpoint output watermark")
-        else:
-            if not self.path.is_file():
-                raise ValueError("Luminosity checkpoint requires its existing output history")
-            frame = read_table(self.path)
-            if tuple(frame.columns) != self.columns or frame.empty:
-                raise ValueError("Luminosity output has an incompatible schema")
-            if any(frame.headers.get(key) != value for key, value in self._headers().items()):
-                raise ValueError("Luminosity output metadata does not match the checkpoint")
-            identities = frame[["TURN", "BUNCH_A", "BUNCH_B"]].to_numpy()
-            physical = frame[["TIME", "OVERLAP_M2", "LUMINOSITY", "L_REFERENCE"]].to_numpy()
-            if not np.isfinite(identities).all() or np.any(identities != np.floor(identities)) or not np.isfinite(physical).all():
-                raise ValueError("Luminosity output contains invalid identities or physical values")
-            if np.any(frame.TURN < 0) or np.any(np.diff(frame.TURN) < 0) or np.any(physical[:, 1:] < 0):
-                raise ValueError("Luminosity output contains unordered turns or negative physical values")
-            if int(frame.TURN.max()) != last_turn or np.any(frame.TURN >= next_turn):
-                raise ValueError("Luminosity file extends beyond or falls behind the checkpoint")
-            expected = set(references) | ({"-1:-1"} if len(references) > 1 else set())
-            previous = -1
-            for turn, rows in frame.groupby("TURN", sort=False):
-                if int(turn) != turn or turn <= previous:
-                    raise ValueError("Luminosity output contains unordered or duplicate turns")
-                previous = turn
-                keys = [f"{int(a)}:{int(b)}" for a, b in zip(rows.BUNCH_A, rows.BUNCH_B)]
-                if len(keys) != len(set(keys)) or set(keys) != expected:
-                    raise ValueError("Luminosity output contains duplicate or incomplete bunch pairs")
-                for key, reference in zip(keys, rows.L_REFERENCE):
-                    expected_reference = sum(references.values()) if key == "-1:-1" else references[key]
-                    if not np.isclose(reference, expected_reference, rtol=2e-14, atol=0):
-                        raise ValueError("Luminosity output reference differs from its checkpoint")
-                pair_rows = rows[rows.BUNCH_A >= 0]
-                if (not np.isfinite(pair_rows.FREQUENCY_HZ).all() or np.any(pair_rows.FREQUENCY_HZ <= 0)
-                        or not np.allclose(pair_rows.LUMINOSITY, pair_rows.OVERLAP_M2 * pair_rows.FREQUENCY_HZ * 1e-4, rtol=2e-14, atol=0)):
-                    raise ValueError("Luminosity output has inconsistent frequency normalization")
-                if turn == frame.TURN.iloc[0] and self.reference_luminosity is None:
-                    if not np.allclose(pair_rows.L_REFERENCE, pair_rows.LUMINOSITY, rtol=2e-14, atol=0):
-                        raise ValueError("Luminosity initial reference does not match its first encounter")
-        self.references = {key: float(value) for key, value in references.items()}
-        self.last_turn = last_turn
 
     def close(self):
         """Writes complete at record time; no unsaved device or text buffer."""

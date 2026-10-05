@@ -139,7 +139,7 @@ class BeamBeamLuminosityConfig(_CollisionInput):
     @model_serializer(mode="wrap")
     def _serialize_output_format(self, handler, info):
         data = handler(self)
-        # Preserve the configuration digest of existing TFS checkpoints.
+        # Keep the default TFS format implicit in serialized configurations.
         if self.output_format == "tfs":
             data.pop("Output format" if info.by_alias else "output_format", None)
         return data

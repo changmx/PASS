@@ -47,7 +47,7 @@ class CollisionResources:
 
     def validate(self):
         if bool(self.error_flags):
-            raise ValueError("BeamBeam grid coverage or finite-state validation failed; this is not a normal checkpoint")
+            raise ValueError("BeamBeam grid coverage or finite-state validation failed")
         if bool(self.quadrature.error_flags):
             raise ValueError("BeamBeam covariance or analytic quadrature convergence check failed")
 

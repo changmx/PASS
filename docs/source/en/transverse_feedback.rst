@@ -306,7 +306,7 @@ The filtered position in a row generally does not generate the kick in that
 same row. Output is buffered in batches of 128 sampled turns and flushed at
 finalization. Existing output files are never overwritten.
 
-Feedback state export is not a complete simulation checkpoint: continuing a run
-requires matching particles, bunch reference events, clocks and turn state.
-The existing collision checkpoint interface does not yet support feedback pairs
-and rejects capture rather than silently omitting their history.
+``state_dict()`` and ``load_state_dict()`` save and restore only the feedback
+controller's state. Matching particles, bunch reference events, clocks and turn
+state remain the caller's responsibility. These APIs do not provide a complete
+simulation restart; the tracking entry starts a new run from turn 0.

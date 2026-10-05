@@ -338,10 +338,11 @@ valid; a repeated finalization retries cleanup only. Cleanup is restricted to
 temporary files created by this monitor in the current run.
 If an exception arrives after the final hard link was created, file identity
 is checked to recognize the successful publication. Repeated finalization then
-retries cleanup only, including when restoring an already completed checkpoint.
+retries cleanup only, including for a restored component snapshot whose output
+was already completed.
 
-Reading, checkpoints and interpretation
-------------------------------------------
+Reading, component snapshots and interpretation
+-----------------------------------------------
 
 Use ``PASS.analysis.read_dynamic_aperture(path)`` for DA, or
 ``PASS.analysis.data_io.load_signal(path, "x", object_range=[0, 10])`` for
@@ -351,18 +352,20 @@ samples. Multidimensional PM HDF5 files cannot be passed to the ordinary
 one-dimensional ``read_table`` interface. DA and trajectory readers accept
 one current PM file, containing its own captured injection coordinates.
 
-Collision checkpoints capture both the already written monitor file and the
-pending block, together with injection data. Resuming writes a new output file
-containing the preceding history; it does not depend on the old output path.
-Checkpoint creation temporarily needs memory for the saved file bytes in
-addition to the normal bounded history buffer.
-PM checkpoint payloads use ``PASS-particle-monitor-state-2`` and identify
-whether their saved file bytes are runtime HDF5 or finalized TFS. Only this
-current checkpoint version is supported.
-If an early-stopped run has already exported a partial TFS history, resuming
-reconstructs the private HDF5 history before appending new samples. The final
-TFS then contains both intervals, including new samples buffered until the
-last requested turn.
+``state_dict()`` captures only this monitor's state: the already written file,
+pending block and injection data. ``stage_checkpoint(data, next_turn, xp)``
+validates that component snapshot and returns detached state for a caller to
+install. These low-level APIs do not restore particles, references, the
+simulation turn or other commands. The tracking entry starts a new run from
+turn 0 and does not provide a continuation workflow for these snapshots.
+
+Snapshot creation temporarily needs memory for the saved file bytes in
+addition to the normal bounded history buffer. The component payload uses
+``PASS-particle-monitor-state-2`` and identifies whether the saved bytes are
+runtime HDF5 or finalized TFS; only this version is supported. The monitor's
+output-restoration machinery preserves preceding history in a new file without
+depending on the old output path. It reconstructs private HDF5 storage from a
+TFS snapshot before appending further samples.
 
 Absent particles have zero tags, for example before injection. Select samples
 using their tag and loss fields; frozen loss coordinates cannot be interpreted

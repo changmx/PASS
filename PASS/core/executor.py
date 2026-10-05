@@ -109,10 +109,7 @@ class Executor:
         current_turn = None
         stopped = False
         try:
-            first_turn = int(getattr(state, "next_turn", 0)) if collision is not None else 0
-            if collision is not None and collision.next_turn != first_turn:
-                raise ValueError("Simulation and collision checkpoint next-turn counters do not match")
-            for turn in range(first_turn, total_turns):
+            for turn in range(total_turns):
                 if stop_requested is not None and stop_requested():
                     stopped = True
                     logger.info("Stop requested at turn boundary before turn %d", turn)
@@ -126,7 +123,6 @@ class Executor:
                 profiler.finish_turn(turn)
                 if collision is not None:
                     collision.finish_turn(turn)
-                    state.next_turn = turn + 1
                 if profiler.should_log_turn(turn):
                     if profiler.mode == "off":
                         logger.info(f"Turn: {turn}/{total_turns}")

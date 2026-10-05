@@ -1039,40 +1039,15 @@ gradients also need not represent one physical RF quadrupole. Validate this
 traveling-waist model separately from the sextupole crab-waist scheme used
 with crossing-angle collisions.
 
-Checkpoint at a common turn boundary
-------------------------------------
+Run initialization and stopping
+-------------------------------
 
-``capture_collision_state(sim, sequences)`` and
-``restore_collision_state(sim, sequences, state)`` are provided in
-``PASS.commands.beam_beam``. The checkpoint is an owned Python dictionary
-containing NumPy arrays; these functions do not define a file format.
-Capture requires a complete common turn in ordinary PASS coordinates, finished
-Injection batches and successfully flushed monitor output. Save both beams
-together: the state includes particles, bunch reference quantities, the
-prescribed clock, collision counts, completed injection state, wake history,
-enabled frozen or dynamic electron-cloud states and particle/tune-monitor
-accumulation required for continuation.
-
-Restore validates the full input/sequence fingerprint, array layout, physical
-references and command state before modifying either beam. It invalidates
-slice results and rebuilds disposable field resources. Execution resumes at
-``sim.state.next_turn`` and continues to ``cfg.num_turn``. Restoring only the
-coordinator's ``state_dict()`` is not a complete simulation restart.
-
-Existing output files are not included or rewound. A new output directory does
-not acquire historical StatMonitor or completed tune-window files; an output
-directory already containing turns beyond the saved boundary must not be
-mixed with resumed output. Device failure during the final restore commit
-cannot be rolled back automatically.
-
-For enabled luminosity output, the checkpoint additionally preserves each
-recorder's initial references, output format and last committed turn. Restore
-requires matching existing table history in that format, including schema,
-metadata, complete pair rows and the
-output watermark. Missing, duplicated, truncated or newer history is rejected;
-restore does not synthesize history, overwrite an existing run or silently
-change the reference luminosity. The checkpoint retains each luminosity output
-path; changing the simulation's output directory does not relocate this history.
+Each tracking run starts at turn 0 from the configured initial conditions.
+A stop request is honored at a common completed-turn boundary, then buffered
+output is finalized. A new run requires a newly initialized simulation and
+commands. Beam-beam tracking does not provide a joint checkpoint or a workflow
+for continuing a stopped run. Component state snapshots exposed by other
+commands do not restore the complete simulation.
 
 Implementation and validation scope
 -----------------------------------
