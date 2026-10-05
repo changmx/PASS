@@ -3517,16 +3517,15 @@ class ConfigPage(QWidget):
 
     def _convert_injection_offset(self) -> tuple[str, float]:
         """Convert the edited offset with the same per-nucleon convention as BunchInfo."""
-        from PASS.utils.constants import const
+        from PASS.tool.particle_masses import tracking_mass_per_nucleon
 
         source = self._injection_offset_source
         energy = float(self._bunch_fields[("Kinetic Energy per Nucleon (eV/u)", None)].text())
         value = float(self._bunch_fields[(source, None)].text())
         if not math.isfinite(energy) or energy <= 0 or not math.isfinite(value):
             raise ValueError("参考动能必须为正的有限值，偏移必须为有限值。")
-        # Match tracking masses, rather than the independent Tools mass catalog.
         protons, neutrons = self.data.get("Number of Protons", 1), self.data.get("Number of Neutrons", 0)
-        mass = const.m_e_eV if protons == neutrons == 0 else const.m_p_eV if (protons, neutrons) == (1, 0) else const.m_u_eV
+        mass = tracking_mass_per_nucleon(protons, neutrons, self.data.get("Number of Charges", 1))
         reference_energy = energy + mass
         reference_momentum_squared = energy * (energy + 2.0 * mass)
         if not math.isfinite(reference_momentum_squared) or reference_momentum_squared <= 0:

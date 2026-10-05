@@ -10,6 +10,23 @@ import json
 import math
 from pathlib import Path
 
+from PASS.utils.constants import const
+
+
+def tracking_mass_per_nucleon(num_proton, num_neutron, num_charge):
+    """Return the tracking rest energy in eV per nucleon (per lepton for A=0).
+
+    Preserve the established electron/positron and single-proton constants.
+    Other ions use the tabulated total ion mass divided by mass number; missing
+    isotope or ionization data is an error rather than a silent 1 u fallback.
+    """
+    if num_proton == num_neutron == 0:
+        return const.m_e_eV
+    if (num_proton, num_neutron) == (1, 0):
+        return const.m_p_eV
+    mass_number = num_proton + num_neutron
+    return ion_mass(mass_number, num_proton, num_charge).energy_ev / mass_number
+
 
 @lru_cache(maxsize=1)
 def load_mass_catalog():

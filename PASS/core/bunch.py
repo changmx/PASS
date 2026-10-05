@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+from PASS.tool.particle_masses import tracking_mass_per_nucleon
 from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 
@@ -62,17 +63,15 @@ class BunchInfo:
                 self.particle_type = "Position"
             else:
                 raise ValueError(f"Incorrect charge number for electron or position: {self.num_charge}")
-            self.m0 = const.m_e_eV
             self.qm_ratio = 1.0
         elif self.num_proton == 1 and self.num_neutron == 0:  # proton
             self.particle_type = "Proton"
-            self.m0 = const.m_p_eV
             self.qm_ratio = 1.0
         else:  # other atomic nucleus
             self.particle_type = "Ion"
-            self.m0 = const.m_u_eV
             self.qm_ratio = (np.abs(self.num_charge) / (self.num_proton + self.num_neutron))
 
+        self.m0 = tracking_mass_per_nucleon(self.num_proton, self.num_neutron, self.num_charge)
         self.gamma = self.Ek / self.m0 + 1.0
         self.beta = np.sqrt(1.0 - 1.0 / self.gamma / self.gamma)
         # m0/c/c is in unit of eV, so gamma*m0/c/c*beta*c [unit: eV] = gamma*m0*beta/c [unit: eV] = gamma*m0*beta [unit:eV/c], so no need to multiply c again

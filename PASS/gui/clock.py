@@ -2,6 +2,7 @@
 import math
 
 from PASS.para.schema.rf import ReferenceClock
+from PASS.tool.particle_masses import tracking_mass_per_nucleon
 from PASS.utils.constants import const
 
 
@@ -15,9 +16,8 @@ def reference_clock_snapshot(data):
                  None)
     if bunch is None:
         raise ValueError("默认时钟需要 harmonic ID=0 的束团")
-    # Match BunchInfo's tracking mass convention, not the independent Tools catalog.
     protons, neutrons = data["Number of Protons"], data["Number of Neutrons"]
-    mass = const.m_e_eV if protons == neutrons == 0 else const.m_p_eV if (protons, neutrons) == (1, 0) else const.m_u_eV
+    mass = tracking_mass_per_nucleon(protons, neutrons, data["Number of Charges"])
     energy = float(bunch["Kinetic Energy per Nucleon (eV/u)"])
     circumference = float(data["Circumference (m)"])
     if not math.isfinite(energy) or energy <= 0 or not math.isfinite(circumference) or circumference <= 0:

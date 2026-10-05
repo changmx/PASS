@@ -3,6 +3,7 @@ import math
 from types import SimpleNamespace
 
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+from PASS.tool.particle_masses import tracking_mass_per_nucleon
 from PASS.utils.constants import const
 from PASS.utils.coordinates import resolve_slice_coordinate
 from .rules import is_finite_number, is_integer
@@ -519,13 +520,19 @@ def check_resource_combinations(check, values, path):
 
 
 def check_longitudinal(check):
-    from PASS.utils.constants import const
     g = check.global_values
     gt = g.get("Transition Gamma")
     if not is_finite_number(gt) or gt <= 0:
         return
     proton, neutron = g.get("Number of Protons"), g.get("Number of Neutrons")
-    mass = const.m_e_eV if proton == neutron == 0 else const.m_p_eV if proton == 1 and neutron == 0 else const.m_u_eV
+    charge = g.get("Number of Charges")
+    if not all(is_integer(value) for value in (proton, neutron, charge)):
+        return
+    try:
+        mass = tracking_mass_per_nucleon(proton, neutron, charge)
+    except ValueError as exc:
+        check.add(("Number of Charges", ), "beam.mass", str(exc))
+        return
     for path, bunch in check.bunch_models:
         energy = bunch.get("Kinetic Energy per Nucleon (eV/u)")
         if not is_finite_number(energy) or energy <= 0:

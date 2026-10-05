@@ -54,6 +54,22 @@ Bunch parameters
 
 Each bunch uses ``bunch0`` , ``bunch1`` , ... as keys, and the value is a dictionary containing all parameters of that bunch. The parameters are described below in five groups: transverse, longitudinal, beam, distribution, and offset.
 
+For ions with mass number :math:`A=Z+N>1`, the reference rest energy per nucleon
+is :math:`m_0=M_{\mathrm{ion}}c^2/A`, obtained from the bundled mass catalog by
+``ion_mass(A, Z, q)``. The catalog uses neutral-atom masses, subtracts the masses
+of removed electrons, and adds their cumulative ionization energy. It does not
+approximate every nucleon by one atomic mass unit. Electron/positron and
+single-proton tracking retain their established constants.
+
+This mass is shared by tracking, generated distributions, GUI energy/momentum
+offset conversion, the default reference clock and input validation. Kinetic
+energy and momentum remain per nucleon. The stored charge-to-mass-number
+magnitude is :math:`|q|/A`; RF applies the charge sign, giving the physical
+energy-gain factor :math:`q/A`. Unsupported catalog species or charge states are reported as
+errors. Changing the species mass changes reference velocity and magnetic
+rigidity; explicitly supplied RF frequency tables and reference-clock programs
+are prescribed input and are not automatically recalibrated.
+
 Transverse parameters
 ~~~~~~~~~~~~~~~~~~~~~
 
