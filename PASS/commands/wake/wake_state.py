@@ -1,6 +1,7 @@
 """Private state of one physical wake location and one beam."""
 from collections import deque
 from dataclasses import dataclass, field
+from numbers import Real
 
 import numpy as np
 
@@ -92,14 +93,22 @@ class WakeState:
                                                                         for m in row["moments"]}, row["betas"])))
         modes = {}
         for row in data["modes"]:
+            component = row["component"]
+            if isinstance(component, bool) or not isinstance(component, int) or component < 0:
+                raise ValueError("Invalid mode component index in checkpoint")
+            if component in modes:
+                raise ValueError("Wake checkpoint contains duplicate mode components")
             value = np.asarray(row["real"], float)
-            if row["complex"]:
-                value = value + 1j * np.asarray(row["imag"], float)
-            if value.ndim != 1 or not np.all(np.isfinite(value)):
+            imag = np.asarray(row["imag"], float)
+            if (type(row["complex"]) is not bool or value.ndim != 1 or imag.shape != value.shape or not np.all(np.isfinite(value))
+                    or not np.all(np.isfinite(imag)) or not row["complex"] and np.any(imag != 0)):
                 raise ValueError("Wake checkpoint contains invalid mode state")
-            modes[row["component"]] = value
+            if row["complex"]:
+                value = value + 1j * imag
+            modes[component] = value
         for name in ("last_time", "last_source_end"):
-            if data[name] is not None and not np.isfinite(data[name]):
+            value = data[name]
+            if value is not None and (isinstance(value, bool) or not isinstance(value, Real) or not np.isfinite(value)):
                 raise ValueError("Wake checkpoint contains invalid physical time")
         last_turn = data["last_turn"]
         if last_turn is not None and (isinstance(last_turn, bool) or not isinstance(last_turn, int) or last_turn < 0):

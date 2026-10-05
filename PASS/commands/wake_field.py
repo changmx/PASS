@@ -139,6 +139,26 @@ class WakeField(Command):
                 size = 2 if config.solver == "recursive" else len(components[ci].model.poles)
                 if len(vector) != size:
                     raise ValueError("Checkpoint mode dimension does not match the model")
+                if config.solver == "recursive":
+                    if np.any(vector.imag != 0):
+                        raise ValueError("Recursive resonator checkpoint requires real mode state")
+                    state.mode_amplitudes[ci] = np.asarray(vector.real, dtype=np.float64)
+                else:
+                    state.mode_amplitudes[ci] = np.asarray(vector, dtype=np.complex128)
+            if config.history == "state":
+                # Empty passages advance the turn without creating modes or source clocks.
+                has_time = state.last_time is not None
+                has_source_end = state.last_source_end is not None
+                if has_time != has_source_end:
+                    raise ValueError("Checkpoint mode clock and source clock are inconsistent")
+                if has_time:
+                    # CPU/CUDA endpoint expressions can round differently across time zero.
+                    if state.last_turn is None:
+                        raise ValueError("Checkpoint mode clock and source clock are inconsistent")
+                    if set(state.mode_amplitudes) != set(range(len(components))):
+                        raise ValueError("Checkpoint is missing mode components")
+                elif state.mode_amplitudes:
+                    raise ValueError("Checkpoint mode state requires a physical clock")
         self.group_states = candidates
         self.last_coefficients = self.last_sources = self.last_diagnostics = None
 
