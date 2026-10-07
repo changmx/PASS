@@ -319,7 +319,12 @@ septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.
 
-Exciter exposes tune/frequency selection and FM/AM-dependent fields.
+Exciter uses a signed ``Kick angle (rad)`` amplitude, displayed in scientific
+notation such as ``1e-6``, and exposes tune/frequency selection and FM/AM-dependent
+fields. Voltage, gap and length are not element inputs; the Exciter tool converts
+between voltage and kick angle at a chosen reference particle and energy. New drafts
+default to tune mode, with ``Excite tune = 0.47`` and ``Sweep tune = 0.02``;
+existing frequency-mode inputs retain their Hz values.
 Quadrupole, Sextupole, Octupole and Multipole expose ``Is ramping`` and
 ``Ramping file`` for normalized strengths from a physical-time TFS table.
 The **Ramping** group includes **Generate / import ramping file**. Successful
@@ -330,8 +335,14 @@ see :doc:`gui_tools` for the workflow.
 See :doc:`element/magnet_ramping`; other magnetic elements keep ramping disabled.
 
 Exciter previews evaluate particle time as ``t = T_start + elapsed - z/(beta*c)``
-using continuous bunch-relative z and the local reference arrival time. Nominal
-bunch slots do not shift the preview.
+using continuous bunch-relative z and the local reference arrival time. The DDS
+phases integrate frequency from the common startup at ``T_start`` and stay
+continuous at sweep resets. Dual mode defaults to a half-period sweep offset;
+a different offset produces a warning. Nominal bunch slots do not shift the preview.
+Both DDS signals use one shared kick-angle setting. AM uses the same continuous
+particle elapsed time as FM and the reference-clock frequency at startup for
+its normalization. The angle is applied as a normalized transverse momentum
+increment and is not rescaled with tracked beam energy.
 
 Transverse feedback
 -------------------

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from decimal import Decimal
 import csv
 import io
 import math
@@ -36,10 +37,24 @@ from PySide6.QtWidgets import (
 )
 
 
+def format_scientific(value):
+    """Use compact scientific notation without changing float round-trip precision."""
+    value = float(value)
+    if not math.isfinite(value):
+        return repr(value)
+    if value == 0:
+        return "0"
+    mantissa, exponent = format(Decimal(repr(value)), "e").split("e")
+    if "." in mantissa:
+        mantissa = mantissa.rstrip("0").rstrip(".")
+    return f"{mantissa}e{int(exponent)}"
+
+
 class ScientificSpinBox(QDoubleSpinBox):
     """Scientific notation with round-trip float precision, including tiny values."""
 
-    def __init__(self, value=0.0, parent=None):
+    def __init__(self, value=0.0, parent=None, *, scientific=False):
+        self._scientific = scientific
         super().__init__(parent)
         self.setDecimals(323)
         self.setRange(-1e100, 1e100)
@@ -50,6 +65,8 @@ class ScientificSpinBox(QDoubleSpinBox):
         self.setKeyboardTracking(False)
 
     def textFromValue(self, value):
+        if self._scientific:
+            return format_scientific(value)
         return str(int(value)) if value.is_integer() and abs(value) < 1e16 else repr(value)
 
     def valueFromText(self, text):

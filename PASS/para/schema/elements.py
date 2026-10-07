@@ -527,14 +527,15 @@ class ElSeparatorItem(SlicedElementBase):
 
 class ExciterItem(ElementBase):
     command: str = Field(default="Exciter", alias="Command")
+    length: float = Field(default=0.0, ge=0, le=0, alias="Length (m)", exclude=True)
     is_enabled: bool = Field(default=True, alias="Enable")
     mode: str = Field(alias="Mode")
     direction: str = Field(alias="Direction")
     start_turn: int = Field(alias="Start turn")
     end_turn: int = Field(alias="End turn")
-    voltage: float = Field(alias="Voltage (V)")
-    gap: float = Field(alias="Gap (m)")
-    plate_length: float = Field(alias="Plate length (m)")
+    kick_angle: float = Field(alias="Kick angle (rad)",
+                              allow_inf_nan=False,
+                              description="Signed nominal kick per DDS in rad (normalized momentum increment ΔP/P0, as in Kicker).")
 
     # frequency (two modes)
     excite_tune: float | None = Field(default=None, alias="Excite tune")
@@ -543,13 +544,24 @@ class ExciterItem(ElementBase):
     sweep_width: float | None = Field(default=None, alias="Sweep width (Hz)")
 
     period: float = Field(alias="Period (s)")
-    fm_dual_frequency: float = Field(alias="FM dual frequency (Hz)")
+    dual_sweep_offset: float = Field(default=0.5, ge=0., le=1., alias="Dual sweep offset")
+    fm_dual_frequency: float | None = Field(default=None, alias="FM dual frequency (Hz)")
 
     # AM parameters
     am_t_ext: float = Field(alias="AM t ext (s)")
     am_r0: float = Field(alias="AM r0 (m)")
     am_delta0: float = Field(alias="AM delta0")
     am_k_const: float = Field(alias="AM k const")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_voltage_parameters(cls, value):
+        if isinstance(value, dict):
+            legacy = {"voltage (v)", "voltage", "gap (m)", "gap", "plate length (m)", "plate_length"}
+            if any(str(key).casefold() in legacy for key in value):
+                raise ValueError("Exciter uses 'Kick angle (rad)'; convert voltage and electrode parameters with the Exciter tool, "
+                                 "then remove Voltage (V), Gap (m) and Plate length (m)")
+        return value
 
 
 # RFCavity

@@ -59,7 +59,7 @@ def capture_field(field):
     if isinstance(field, (QSpinBox, QDoubleSpinBox)):
         return {"kind": "spin", "text": field.lineEdit().text()}
     if isinstance(field, QLineEdit):
-        return {"kind": "text", "text": field.text()}
+        return {"kind": "text", "text": field.text(), "modified": field.isModified()}
     if isinstance(field, QPlainTextEdit):
         return {"kind": "text", "text": field.toPlainText()}
     # Domain editors use stable child widgets; tables and dynamic lists above
@@ -141,6 +141,7 @@ def restore_field(field, state):
             field.lineEdit().setText(text)
     elif kind == "text" and isinstance(field, QLineEdit):
         field.setText(state["text"])
+        field.setModified(state.get("modified", False))
     elif kind == "text" and isinstance(field, QPlainTextEdit):
         field.setPlainText(state["text"])
     elif kind == "container":

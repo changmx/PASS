@@ -13,7 +13,7 @@ from typing import Annotated, get_args, get_origin
 from pydantic import BaseModel, Field, StrictInt, TypeAdapter, ValidationError
 
 from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig, ScanGridConfig
-from PASS.para.schema.elements import ELEMENT_REGISTRY, ElectronBeamConfig, ElectronCoolerItem
+from PASS.para.schema.elements import ELEMENT_REGISTRY, ElectronBeamConfig, ElectronCoolerItem, ExciterItem
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
 from PASS.para.schema.slicer import SlicerItem
@@ -168,7 +168,10 @@ class Validator:
                 return {}
         known = {f.alias or name: (name, f) for name, f in model.model_fields.items() if name not in excluded}
         for key in raw.keys() - known.keys():
-            self.add((*path, key), "field.unknown", "未知字段；请使用当前 JSON schema 中的名称")
+            if model is ExciterItem and key in {"Voltage (V)", "Gap (m)", "Plate length (m)"}:
+                self.add((*path, key), "exciter.amplitude_migration", "激励改用 Kick angle (rad)；请在激励工具中换算踢角，填入后删除旧电压、极板长度和间隙字段")
+            else:
+                self.add((*path, key), "field.unknown", "未知字段；请使用当前 JSON schema 中的名称")
         values, failed = {}, False
         for alias, (name, f) in known.items():
             if alias not in raw:
@@ -655,15 +658,24 @@ class Validator:
         self.choice(v, "Mode", {"single_fm", "single_fm_am", "dual_fm", "dual_fm_am"}, p)
         self.choice(v, "Direction", {"x", "y"}, p)
         self.window(v, p)
-        for key in ("Gap (m)", "Period (s)"):
-            self.numeric(v, key, p, positive=True)
-        self.numeric(v, "Plate length (m)", p, minimum=0)
+        self.numeric(v, "Period (s)", p, positive=True)
+        self.numeric(v, "Kick angle (rad)", p)
         tune = [v.get(k) is not None for k in ("Excite tune", "Sweep tune")]
         freq = [v.get(k) is not None for k in ("Central frequency (Hz)", "Sweep width (Hz)")]
         if not (all(tune) and not any(freq) or all(freq) and not any(tune)):
             self.add(p, "exciter.frequency", "必须且只能填写一组完整的激励/扫频 tune，或中心频率/扫频宽度")
         for key in ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "FM dual frequency (Hz)"):
             self.numeric(v, key, p, minimum=0)
+        if str(v.get("Mode", "")).startswith("dual"):
+            offset = v.get("Dual sweep offset", 0.5)
+            if is_finite_number(offset) and not math.isclose(offset % 1., 0.5, rel_tol=0., abs_tol=1e-12):
+                self.add((*p, "Dual sweep offset"), "exciter.sweep_offset", "双 DDS 默认错开半个扫频周期；当前偏移不是 0.5，将按所填偏移计算", warning=True)
+            old_frequency, period = v.get("FM dual frequency (Hz)"), v.get("Period (s)")
+            if is_finite_number(old_frequency) and is_finite_number(period) and period > 0 and not math.isclose(old_frequency * period, 1.):
+                self.add((*p, "FM dual frequency (Hz)"),
+                         "exciter.legacy_frequency",
+                         "FM dual frequency (Hz) 已停用；当前值与 1/Period 不一致，扫频速率仍按 1/Period 计算",
+                         warning=True)
         if str(v.get("Mode", "")).endswith("_am"):
             for key in ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const"):
                 self.numeric(v, key, p, positive=True)

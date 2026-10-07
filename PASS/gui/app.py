@@ -87,6 +87,7 @@ from PASS.gui.structured import (
     StructuredField,
     TurnsEditor,
     Column,
+    format_scientific,
 )
 
 # These values are constrained by PASS command implementations.  Unknown
@@ -977,11 +978,11 @@ class ConfigPage(QWidget):
                     "Direction": "x",
                     "Start turn": 0,
                     "End turn": -1,
-                    "Voltage (V)": 0.0,
-                    "Gap (m)": 0.0,
-                    "Plate length (m)": 0.0,
+                    "Kick angle (rad)": 0.0,
+                    "Excite tune": 0.47,
+                    "Sweep tune": 0.02,
                     "Period (s)": 1.0,
-                    "FM dual frequency (Hz)": 0.0,
+                    "Dual sweep offset": 0.5,
                     "AM t ext (s)": 0.0,
                     "AM r0 (m)": 0.0,
                     "AM delta0": 0.0,
@@ -2379,6 +2380,10 @@ class ConfigPage(QWidget):
         return [str(issue) for issue in validate_input(data, base_dir).errors]
 
     def _apply_validation_report(self, report) -> list[str]:
+        previous = getattr(self, "_validation_report", None)
+        new_offset_warnings = [
+            issue for issue in report.warnings if issue.code == "exciter.sweep_offset" and (previous is None or issue not in previous.warnings)
+        ]
         self._validation_report = report
         self._validation_issues = [str(issue) for issue in report.errors]
         label = "全面检测" if report.full else "参数预检"
@@ -2387,6 +2392,15 @@ class ConfigPage(QWidget):
             self._set_validation_status(f"{label}：{len(report.errors)} 错误 · {len(report.warnings)} 警告", state, report.text())
         else:
             self._set_validation_status("全面检测通过" if report.full else "参数预检通过", "ok", report.text() + ("" if report.full else "\n点击校验可进一步检查全部输入文件内容。"))
+        if new_offset_warnings or not any(issue.code == "exciter.sweep_offset" for issue in report.warnings):
+            dialog = getattr(self, "_exciter_offset_warning", None)
+            if dialog is not None:
+                dialog.close()
+        if new_offset_warnings:
+            self._exciter_offset_warning = QMessageBox(QMessageBox.Warning, "双 DDS 扫频偏移", "\n".join(str(issue) for issue in new_offset_warnings),
+                                                       QMessageBox.Ok, self)
+            self._exciter_offset_warning.setModal(False)
+            self._exciter_offset_warning.show()
         return self._validation_issues
 
     def _validate_configuration(self, *, full=False) -> list[str]:
@@ -2801,7 +2815,8 @@ class ConfigPage(QWidget):
             "Bump": [("脉冲波形与时钟", ("Waveform file", "Time mode", "Time offset (s)"))],
             "WakeField": [("尾场求解组", ("Groups", ))],
             "Exciter": [
-                ("激励频率", ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "Period (s)", "FM dual frequency (Hz)")),
+                ("激励频率", ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "Period (s)", "Dual sweep offset",
+                          "FM dual frequency (Hz)")),
                 ("幅度调制", ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const")),
             ],
             "RFCavity": [("射频波形", ("Components", ))],
@@ -2862,6 +2877,10 @@ class ConfigPage(QWidget):
             self.form_hint.setText("V 为隔板减去高压电极的电压差，VL 为该电压差沿纵向的积分（V·m），二选一，另一个留空。零长度非零冲量使用 VL。电极和有场区覆盖任意局部 v，外部范围由孔径限定；Tilt 不旋转孔径。S 是出口，零强度仍检查材料碰撞。")
         elif target.get("Command") == "Bump":
             self.form_hint.setText("HKICK/VKICK 为积分 ΔP/P0；不再除以 (1+δ)。Enable 只控制电磁踢，关闭后仍有输运和孔径。")
+        elif target.get("Command") == "Exciter":
+            self.form_hint.setText("Kick angle 为每路 DDS 的有符号标称踢角（rad），与 Kicker 相同按 ΔP/P0 使用。电压、极板长度和间隙可在工具栏的激励工具中换算。")
+            if any(key in target for key in ("Voltage (V)", "Gap (m)", "Plate length (m)")):
+                self.form_hint.setText(self.form_hint.text() + " 旧输入需先换算；编辑 Kick angle 并应用后，将替换旧电压、极板长度和间隙参数。")
         elif target.get("Command") == "RFCavity":
             self.form_hint.setText("分量在同一实际粒子时刻 t0−z_rel/(βc) 采样并相加。RF 谐波与 Injection 分组数独立。旧腔级参数和按圈 RF data file 需按物理时间重建 Components。")
         elif target.get("Command") == "Slicer":
@@ -2895,6 +2914,14 @@ class ConfigPage(QWidget):
         except (KeyError, ValueError, TypeError):
             complete = {}
         complete.update(target)
+        if target.get("Command") == "Exciter":
+            for key in ("Voltage (V)", "Gap (m)", "Plate length (m)"):
+                complete.pop(key, None)
+            if complete.get("Length (m)", 0.) == 0.:
+                complete.pop("Length (m)", None)
+        if target.get("Command") == "Exciter" and not any(target.get(key) is not None for key in ("Excite tune", "Sweep tune")):
+            if any(target.get(key) is not None for key in ("Central frequency (Hz)", "Sweep width (Hz)")):
+                complete.update({"Excite tune": None, "Sweep tune": None})
         if target.get("Command") == "WakeField":
             complete["Configuration"] = target.get("Configuration")
         if target.get("Command") == "Slicer" and target.get("Coordinate") is None:
@@ -3469,7 +3496,9 @@ class ConfigPage(QWidget):
         if command == "Exciter":
             selector = PropertyComboBox()
             selector.addItems(["tune", "frequency"])
-            selector.setCurrentText("tune" if self._field_context.get("Excite tune") is not None else "frequency")
+            has_tune = any(self._field_context.get(key) is not None for key in ("Excite tune", "Sweep tune"))
+            has_frequency = any(self._field_context.get(key) is not None for key in ("Central frequency (Hz)", "Sweep width (Hz)"))
+            selector.setCurrentText("tune" if has_tune or not has_frequency else "frequency")
             self.form_layout.insertRow(0, "频率输入方式", selector)
             self._exciter_frequency_mode = selector
 
@@ -3480,7 +3509,10 @@ class ConfigPage(QWidget):
                 for key in ("Central frequency (Hz)", "Sweep width (Hz)"):
                     fields[key].setEnabled(not tune)
                 am = fields["Mode"].currentText().endswith("_am")
-                fields["FM dual frequency (Hz)"].setEnabled(fields["Mode"].currentText().startswith("dual"))
+                fields["Dual sweep offset"].setEnabled(fields["Mode"].currentText().startswith("dual"))
+                fields["Dual sweep offset"].setToolTip("DDS1 相对 DDS2 的扫频进度偏移 / T，默认 0.5；不是正弦载波相位差。")
+                fields["FM dual frequency (Hz)"].setEnabled(False)
+                fields["FM dual frequency (Hz)"].setToolTip("仅保留旧输入兼容；扫频速率由 1/Period 决定。")
                 for key in ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const"):
                     fields[key].setEnabled(am)
 
@@ -3972,8 +4004,26 @@ class ConfigPage(QWidget):
             field.setToolTip(FIELD_HELP.get(key, "文件路径，可直接输入绝对路径或相对输入 JSON 的路径。"))
         else:
             field.setToolTip(self._field_help(key, value))
+        if key == "Kick angle (rad)" and getattr(self, "_field_context", {}).get("Command") == "Exciter":
+            field.setValidator(QDoubleValidator(field))
+            self._format_kick_angle(field)
+            field.editingFinished.connect(lambda: self._format_kick_angle(field))
         self._track_field(field)
         return field
+
+    @staticmethod
+    def _format_kick_angle(field):
+        try:
+            value = float(field.text())
+        except ValueError:
+            return
+        if not math.isfinite(value):
+            return
+        modified = field.isModified()
+        blocker = QSignalBlocker(field)
+        field.setText(format_scientific(value))
+        field.setModified(modified)
+        del blocker
 
     def _track_field(self, field: QWidget) -> None:
         """Mark form edits without changing data until the user applies them."""
@@ -4395,7 +4445,13 @@ class ConfigPage(QWidget):
                 }, "bunches": [target[k] for k in keys]
             }).to_sequence_dict()
         elif model is not None:
+            if target.get("Command") == "Exciter" and self._form_fields["Kick angle (rad)"].isModified():
+                for key in ("Voltage (V)", "Gap (m)", "Plate length (m)"):
+                    target.pop(key, None)
             model.model_validate(target)
+            if target.get("Command") == "Exciter":
+                target.pop("Length (m)", None)
+                self._format_kick_angle(self._form_fields["Kick angle (rad)"])
             if target.get("Command") == "WakeField":
                 from PASS.para.schema.wake_field import WakeFieldConfig, resolve_wake_point
                 block = WakeFieldConfig.model_validate(self.data.get("Wake field", {}))

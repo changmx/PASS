@@ -29,8 +29,8 @@ from PASS.tool.particles import ParticleSpec, SPECIAL_PARTICLES, resolve_particl
 from PASS.utils.constants import const
 
 
-def create_number_input(value=0, minimum=0):
-    widget = ScientificSpinBox(value)
+def create_number_input(value=0, minimum=0, *, scientific=False):
+    widget = ScientificSpinBox(value, scientific=scientific)
     widget.setMinimum(minimum)
     widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
     return widget

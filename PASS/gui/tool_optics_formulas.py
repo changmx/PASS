@@ -105,43 +105,50 @@ MAGNET_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 EXCITER_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 <h2>激励器基准踢角</h2>
 <p>与 PASS Exciter 的单频 FM、单频 FM+AM、双频 FM、双频 FM+AM 对应。
+直接输入带符号基准踢角 A<sub>0</sub>（rad）。双频两路共用此幅度，分别乘以波形后相加，不除以 2。
+输入角度的正负决定踢角方向，不再由电荷、磁刚度或粒子速度缩放；包络与频谱显示幅值大小。</p>
+<eq>\Delta p_{u,i}=A_0 F_{\mathrm{AM}}(u_i) F_{\mathrm{FM}}(u_i),\qquad f_0=\frac{\beta c}{C}</eq>
+<p>无 AM 时 F<sub>AM</sub>=1，双频包络可达 2|A<sub>0</sub>|。所设 z_rel 改变取样时刻的相位与 AM。
+冲量按 P<sub>0</sub> 归一化，不额外除以 1+δ。踢角采用与 Kicker 一致的近轴参考粒子约定 Δp<sub>u</sub>≈Δu′，
+不表示任意离轴、离动量粒子的严格几何转角。这是零长度等效冲量，不计算有限长度轨迹和能量交换。</p>
+<h3>工具中的电压与踢角换算</h3>
+<p>点击“电压换算…”打开独立窗口，输入电压后按回车计算踢角，输入踢角后按回车计算电压，使用主页面的参考粒子与能量。
+改变极板间距、长度或参考束流时，根据当前电压重新计算踢角。回车不关闭窗口，也不回填主页面。
+点击“填入基准踢角”后将角度用于预览。
 V 为带符号极板间峰值电压差，d 为正极板间距，L 为非负极板有效长；Bρ 为正磁刚度幅值。</p>
-<eq>A_0=\operatorname{sgn}(q)\frac{VL}{d\,\beta_0 c\,B\rho},\qquad E_{\mathrm{plate}}=\frac{V}{d}</eq>
-<eq>t_{\mathrm{plate}}=\frac{L}{\beta c},\qquad f_0=\frac{\beta c}{C}</eq>
-<p>正 V 使正电荷沿选定横向的正方向偏转。电荷或电压反号会使踢角反号；包络与频谱显示幅值大小。
-无 AM 时双频包络可达 2|A<sub>0</sub>|。V=0 或 L=0 时冲量为零。</p>
-<p>跟踪端逐粒子的冲量为：</p>
-<eq>\Delta p_{u,i}=A_0R_iF(t_i),\qquad R_i=\frac{\beta_0c}{v_{s,i}}=\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}{\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}</eq>
-<p>本工具预览固定参考状态 δ=p<sub>x</sub>=p<sub>y</sub>=0，因此 R=1；所设 z_rel 只改变到达相位。
-冲量按 P<sub>0</sub> 归一化，不额外除以 1+δ。踢角显示采用近轴参考粒子的 Δp<sub>u</sub>≈Δu′。
-这是冻结入口速度、在元件平面取样波形的零长度等效冲量，不计算有限长度轨迹和能量交换。</p>
+<eq>A_0=\operatorname{sgn}(q)\frac{VL}{d\,\beta c\,B\rho},\qquad E_{\mathrm{plate}}=\frac{V}{d},\qquad t_{\mathrm{plate}}=\frac{L}{\beta c}</eq>
+<eq>V=\operatorname{sgn}(q)\frac{A_0d\,\beta c\,B\rho}{L}</eq>
+<p>正 V 对正电荷给出正踢角；电荷或电压反号使换算结果反号，V=0 或 L=0 时结果为零。
+反算电压要求 L&gt;0；L=0 时无法由踢角唯一确定电压。
+此换算只针对选定参考状态。硬件参数不传入 Exciter；后续改变电压或参考束流不会自动改写输入踢角。</p>
 <eq>f_c=Q_{\mathrm{excite}}f_0,\qquad \Delta f=\Delta Q\,f_0</eq>
 <p>Δf 是扫频全宽；激励 tune 可以包含整数边带，例如 9.47。这里只预览设定信号，不预测共振响应。</p>
 <h3>到达时间</h3>
-<p>t<sub>elapsed</sub> 从激励开始计时，t<sub>0,start</sub> 是启动时该位置参考粒子的实际到达时间。粒子坐标不折叠：</p>
+<p>t<sub>elapsed</sub> 从共同启动时刻计时，t<sub>0,start</sub> 是该时刻的物理参考钟。粒子坐标不折叠：</p>
 <eq>t_{\mathrm{arrive}}=t_{0,\mathrm{start}}+t_{\mathrm{elapsed}}-\frac{z_{\mathrm{rel}}}{\beta c}</eq>
-<eq>\tau=t_{\mathrm{arrive}}\ \mathrm{mod}\ T</eq>
-<p>只有信号内部将到达时间对扫频周期 T 取余。</p>
+<eq>u=t_{\mathrm{arrive}}-t_{0,\mathrm{start}}=t_{\mathrm{elapsed}}-\frac{z_{\mathrm{rel}}}{\beta c},\qquad \tau=u\ \mathrm{mod}\ T</eq>
+<p>u&lt;0 时激励尚未启动，冲量为零。每路 DDS 在 u=0 的正弦相位为零，之后连续累积；扫频回跳不清零相位。
+物理参考钟整体平移不改变波形。取余只用于扫频进度，不用于重新开始载波相位。</p>
 <h3>单频 FM</h3>
-<eq>\varphi=2\pi f_c\tau+\frac{\pi\Delta f}{T}\tau(\tau-T)</eq>
+<eq>S(u)=f_c u+\frac{\Delta f}{2T}\tau(\tau-T),\qquad \varphi(u)=2\pi S(u)</eq>
 <eq>\mathrm{kick}=A_0\sin\varphi,\qquad f=f_c+\Delta f\left(\frac{\tau}{T}-\frac{1}{2}\right)</eq>
 <h3>双频 FM</h3>
-<p>前半周期（0≤τ≤T/2）和后半周期（T/2&lt;τ&lt;T）分别使用：</p>
-<eq>\varphi_1=2\pi f_c\tau+\pi\Delta f\left(f_d\tau-\frac{1}{2}\right)\tau</eq>
-<eq>\varphi_2=2\pi f_c\tau+\pi\Delta f\left(\tau-\frac{T}{2}\right)(f_d\tau-1)</eq>
-<eq>\mathrm{kick}=2A_0\cos\left(\frac{\pi\Delta f\tau}{2}\right)\sin\varphi</eq>
-<p>两支频率由分段相位导数及包络分解得到：</p>
-<eq>f_{\pm,1}=f_c+\Delta f f_d\tau-\frac{\Delta f}{4}\pm\frac{\Delta f}{4}</eq>
-<eq>f_{\pm,2}=f_c+\Delta f f_d\tau-\frac{\Delta f}{2}-\frac{\Delta f f_d T}{4}\pm\frac{\Delta f}{4}</eq>
-<p>周期重置或半周期拼接可能产生宽频成分；这些分段频率不能视为严格带宽。</p>
+<p>两路固定身份的 DDS 同时启动，独立积分频率后相加。δ 是 DDS 1 扫频进度相对 DDS 2 的领先时间；默认 δ/T=0.5，
+设为其他比例时提示警告但仍计算。δ 不代表启动延迟或正弦初始相位差。</p>
+<eq>f_1(u)=f_c+\Delta f\left(\frac{(u+\delta)\ \mathrm{mod}\ T}{T}-\frac{1}{2}\right),\qquad f_2(u)=f_c+\Delta f\left(\frac{u\ \mathrm{mod}\ T}{T}-\frac{1}{2}\right)</eq>
+<eq>\varphi_1(u)=2\pi[S(u+\delta)-S(\delta)],\qquad \varphi_2(u)=2\pi S(u)</eq>
+<eq>\mathrm{kick}=A_0(\sin\varphi_1+\sin\varphi_2)</eq>
+<eq>\mathrm{envelope}=2|A_0|\left|\cos\frac{\varphi_1-\varphi_2}{2}\right|</eq>
+<p>每路扫过相同全宽；高低频顺序在扫频过程中交换，图例及导出始终保留 DDS 1、DDS 2 的身份。
+上述闭式公式用于本工具的固定参考频率。跟踪端 tune 模式对指定参考钟频率与扫频 tune 的乘积积分。</p>
 <h3>AM 扩散模型</h3>
-<p>AM 按有效圈数更新，定义以下中间量以便阅读：</p>
-<eq>n=\lfloor t_{\mathrm{elapsed}}f_0\rfloor,\qquad t=\frac{n}{f_0}</eq>
-<eq>a=\exp\left(-\frac{r_0^2}{\delta_0^2}\right),\qquad b(t)=a+\frac{t}{t_{\mathrm{ext}}}(1-a)</eq>
-<eq>F_{\mathrm{AM}}=\sqrt{\frac{r_0^2(1-a)}{[\ln b(t)]^2\,[t_{\mathrm{ext}}a+t(1-a)]\,f_0 k}}</eq>
+<p>AM 与 FM 在同一个粒子到达时刻 u 连续取样。归一化频率 f<sub>0,start</sub> 固定为共同启动时刻的指定参考钟频率；
+本工具固定参考状态，因此 f<sub>0,start</sub>=f<sub>0</sub>。定义以下中间量：</p>
+<eq>a=\exp\left(-\frac{r_0^2}{\delta_0^2}\right),\qquad b(u)=a+\frac{u}{t_{\mathrm{ext}}}(1-a)</eq>
+<eq>F_{\mathrm{AM}}(u)=\sqrt{\frac{r_0^2(1-a)}{[\ln b(u)]^2\,[t_{\mathrm{ext}}a+u(1-a)]\,f_{0,\mathrm{start}} k}}</eq>
 <eq>\mathrm{kick}_{\mathrm{FM+AM}}=F_{\mathrm{AM}}\,\mathrm{kick}_{\mathrm{FM}}</eq>
 <p>r<sub>0</sub>、δ<sub>0</sub> 用同一长度单位，k 是原 Exciter 模型参数。
-模型在 t<sub>ext</sub> 处发散，绘图区间必须在其之前。本工具不对扩散模型作额外物理标定。</p>
+模型在 u=t<sub>ext</sub> 处发散，粒子取样时间必须在其之前。本工具不对扩散模型作额外物理标定。</p>
 <h3>采样与导出</h3>
 <p>均匀时间采样用于画波形；逐圈点单独按 n/f<sub>0</sub> 的到达相位计算。
 FFT 使用 Hann 窗并按窗增益归一化，输出单边踢角振幅谱。</p>

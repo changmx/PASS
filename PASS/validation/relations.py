@@ -6,6 +6,7 @@ from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResource
 from PASS.tool.particle_masses import tracking_mass_per_nucleon
 from PASS.utils.constants import const
 from PASS.utils.coordinates import resolve_slice_coordinate
+from PASS.utils.program import LinearProgram
 from .rules import is_finite_number, is_integer
 
 
@@ -533,6 +534,7 @@ def check_longitudinal(check):
     except ValueError as exc:
         check.add(("Number of Charges", ), "beam.mass", str(exc))
         return
+    initial_frequencies = []
     for path, bunch in check.bunch_models:
         energy = bunch.get("Kinetic Energy per Nucleon (eV/u)")
         if not is_finite_number(energy) or energy <= 0:
@@ -552,14 +554,34 @@ def check_longitudinal(check):
             check.add((*path, "Kinetic Energy per Nucleon (eV/u)"), "beam.beta", "动能太小，浮点精度下 beta 为 0，无法跟踪")
             continue
         frequency = math.sqrt(beta_squared) * const.c / check.circumference if check.circumference else 0
-        for name, (kind, values) in check.commands.items():
-            if kind != "Exciter" or not str(values.get("Mode", "")).endswith("_am") or not values.get("Enable", True):
-                continue
-            ext = values.get("AM t ext (s)")
-            if not is_finite_number(ext) or ext <= 0 or not frequency:
-                continue
-            start, end = values.get("Start turn"), values.get("End turn")
-            if not is_integer(start) or not is_integer(end):
-                continue
-            if min(end, check.turn_count) - start - 1 >= ext * frequency:
-                check.add(("Sequence", name, "AM t ext (s)"), "exciter.am_singularity", "激励窗口达到 AM t ext，AM 公式在该时刻奇异；请缩短窗口或增大 AM t ext", True)
+        harmonic_id = bunch.get("Harmonic ID of this bunch", 0)
+        if frequency > 0 and is_integer(harmonic_id):
+            initial_frequencies.append((harmonic_id, frequency))
+    if not initial_frequencies:
+        return
+    clock = g.get("Reference clock") or {}
+    if not isinstance(clock, dict):
+        return
+    try:
+        reference = LinearProgram(clock.get("Revolution frequency (Hz)",
+                                            min(initial_frequencies, key=lambda value: value[0])[1]),
+                                  clock.get("Time (s)"),
+                                  origin=clock.get("Time origin (s)", 0.))
+    except (TypeError, ValueError):
+        return  # Invalid reference clocks are reported by the schema checks.
+    if any(reference.values <= 0):
+        return
+    for name, (kind, values) in check.commands.items():
+        if kind != "Exciter" or not str(values.get("Mode", "")).endswith("_am") or not values.get("Enable", True):
+            continue
+        ext = values.get("AM t ext (s)")
+        start, end, position = values.get("Start turn"), values.get("End turn"), values.get("S (m)")
+        if not is_finite_number(ext) or ext <= 0 or not is_integer(start) or not is_integer(end) or not is_finite_number(position):
+            continue
+        last_turn = min(end, check.turn_count) - 1
+        if last_turn < start:
+            continue
+        start_time = reference.inverse_integral(start + position / check.circumference)
+        last_time = reference.inverse_integral(last_turn + position / check.circumference)
+        if last_time - start_time >= ext:
+            check.add(("Sequence", name, "AM t ext (s)"), "exciter.am_singularity", "按规定参考钟估算，激励窗口达到 AM t ext，AM 公式在该时刻奇异；请缩短窗口或增大 AM t ext", True)
