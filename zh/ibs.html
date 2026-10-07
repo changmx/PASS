@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">束内散射（IBS）</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#id1">方法选择</a></li>
@@ -589,9 +590,9 @@ G_{\delta^2}=2G_\delta.\]</div>
 网格和粒子数收敛检查。</p>
 <p>随机流属于特定束流、命令和束团。固定种子在相同执行条件下提供可复现初始化。
 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> 与 <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存和恢复 IBS 随机流及执行计数。
-这是 IBS 组件检查点，不是完整模拟重启：粒子、参考状态、圈数、切片及其他集体
-效应状态必须匹配。CPU/GPU 的浮点计算可能产生不同轨迹，应验证后端间的统计
-一致性。
+这些组件 API 要求粒子、参考状态、圈数、切片及其他集体效应状态匹配，
+不提供完整模拟重启。跟踪入口从第 0 圈开始新运行。
+CPU/GPU 的浮点计算可能产生不同轨迹，应验证后端间的统计一致性。
 解析较小 IBS 动量增量时建议使用 <code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Precision=&quot;float64&quot;</span></code>；float32
 存储可能将小增量舍入为零。
 诊断开关、保存圈选择及库仑对数备注不参与物理配置哈希，因此修改这些输出或

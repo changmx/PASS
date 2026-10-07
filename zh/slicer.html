@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -332,6 +333,13 @@ SC 必须显式选择 <code class="docutils literal notranslate"><span class="pr
 <section id="id5">
 <h3>配置校验<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
 <p>在束流初始化阶段，引用同一个 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> 的多个 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> 命令必须具有完全一致的 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">model</span></code>、<code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">slices</span></code>、范围模式及（显式模式下的）显式参数块。配置冲突会抛出 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>，并指出两个相关的序列命令。执行时，如果显式范围不能覆盖全部存活粒子，会记录警告；超出范围的粒子会被限制到第一个或最后一个切片。</p>
+<p>同一束流中的命名 <code class="docutils literal notranslate"><span class="pre">SliceSet</span></code> 可以被同类物理模块的多个启用命令共用，例如多个
+<code class="docutils literal notranslate"><span class="pre">WakeField</span></code> 命令。不同模块必须使用不同名称：尾场与束束作用不能引用同一个集合。
+输入检查会指出冲突的切片集、模块和命令。不同束流中的同名集合彼此独立。
+多个配置相容的 Slicer 命令仍可更新同一个集合；此规则不改变显式更新频率，
+也不会自动重新切片。同一输入检查还要求 <code class="docutils literal notranslate"><span class="pre">Purpose=beam_beam</span></code> 的集合仅供 BeamBeam
+使用，即使当前没有 BeamBeam 命令读取它。不读取切片的命令，例如作用长度为零的 IBS，
+不登记为切片消费者。</p>
 <p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>
 （gzip-1 + shuffle），也支持 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;``（不压缩）和</span> <span class="pre">``&quot;tfs&quot;</span></code>。
 此选项只影响逐粒子信息，切片汇总仍保存为 TFS 和 CSV。

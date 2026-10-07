@@ -87,7 +87,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#electron-reservoir-interface">Electron reservoir interface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#collision-equations">Collision equations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#transport-timing-and-smooth-fields">Transport, timing and smooth fields</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#diagnostics-restart-and-ibs">Diagnostics, restart and IBS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#diagnostics-component-state-and-ibs">Diagnostics, component state and IBS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
 </ul>
 </li>
@@ -111,6 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -563,8 +564,8 @@ longitudinal space-charge acceleration and general 3D finite-bunch fields are
 not included. Electron kinetic energy is not adjusted for space-charge
 voltage depression.</p>
 </section>
-<section id="diagnostics-restart-and-ibs">
-<h2>Diagnostics, restart and IBS<a class="headerlink" href="#diagnostics-restart-and-ibs" title="Link to this heading"></a></h2>
+<section id="diagnostics-component-state-and-ibs">
+<h2>Diagnostics, component state and IBS<a class="headerlink" href="#diagnostics-component-state-and-ibs" title="Link to this heading"></a></h2>
 <p>Selected calls append to one JSONL file per cooler under
 <code class="docutils literal notranslate"><span class="pre">output/electron_cooler/beam&lt;id&gt;_&lt;name&gt;_&lt;unique&gt;.jsonl</span></code> and update
 <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>. Records contain model and frames, interaction length,
@@ -576,10 +577,11 @@ includes macroparticle weight.</p>
 <p>Random streams are separated by beam, command name and bunch. Particles are
 gathered in stable tag order. NumPy random draws drive both backends, but
 floating-point trajectories need not be bit-identical.
-<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> contains configuration identity, entropy, calls and RNG states.
-This is not a complete checkpoint: restore matching particles, reference state
-and execution boundary as well. Supported full joint checkpoints preserve
-cooler and IBS random state together.</p>
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> contains configuration identity, entropy, calls and RNG states;
+<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> restores only this cooler’s component state. Matching
+particles, reference state and execution boundary remain the caller’s
+responsibility. These APIs do not provide a complete simulation restart;
+the tracking entry starts a new run from turn 0.</p>
 <p>Cooling–IBS balance requires IBS <code class="docutils literal notranslate"><span class="pre">kinetic</span></code> or <code class="docutils literal notranslate"><span class="pre">binary</span></code> tracking;
 <code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code> only reports rates. Establish convergence in lattice
 sampling, collision steps, particles and random statistics before interpreting

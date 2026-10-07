@@ -1,9 +1,10 @@
 激励器（Exciter）
 ========================
 
-本模块介绍 PASS 中的横向激励器元件 **Exciter** ，用于通过时变电场对束流施加横向动量扰动。激励器在 工作点 测量、束流不稳定性研究、发射度增长等场景中广泛应用。
+本模块介绍 PASS 中的横向激励器元件 **Exciter** ，用于通过规定的横向踢角波形对束流施加动量扰动。激励器在 工作点 测量、束流不稳定性研究、发射度增长等场景中广泛应用。
 
 PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变粒子横向动量（ :math:`p_x` 或 :math:`p_y` ），不改变位置坐标。
+长度在内部固定，不是输入参数。
 
 - 核心特征：
 
@@ -37,12 +38,6 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - m
      - ``必填``
      - 元件出口或零长度作用点的纵向位置。
-   * - ``length``
-     - ``Length (m)``
-     - ``float``
-     - m
-     - ``0.0``
-     - 元件长度 （必须为 0）
    * - ``is_enabled``
      - ``Enable``
      - ``bool``
@@ -87,7 +82,7 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - 孔径参数值 （默认 ``[]`` ，含义随类型而异，详见孔径章节）
 
 
-硬件参数
+踢角幅度
 ~~~~~~~~~~
 
 .. list-table::
@@ -100,24 +95,12 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - 单位
      - 默认值
      - 说明
-   * - ``voltage``
-     - ``Voltage (V)``
+   * - ``kick_angle``
+     - ``Kick angle (rad)``
      - ``float``
-     - V
+     - rad
      - ``必填``
-     - 有限的带符号极板间峰值电压差；正电压使正电荷沿选定横向的正方向偏转
-   * - ``gap``
-     - ``Gap (m)``
-     - ``float``
-     - m
-     - ``必填``
-     - 有限正极板间距
-   * - ``plate_length``
-     - ``Plate length (m)``
-     - ``float``
-     - m
-     - ``必填``
-     - 有限非负极板有效长度；为零时冲量为零
+     - 两个 DDS 信号共用的有限带符号名义踢角幅度，作为归一化横向动量增量施加；双频将两路信号相加而不除以二
 
 
 频率参数
@@ -142,13 +125,13 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - ``float | None``
      - -
      - ``None``
-     - 激励工作点 :math:`Q_{\text{excite}}` ，运行时自动计算 :math:`f_c = Q_{\text{excite}} \cdot f_0`
+     - 激励工作点 :math:`Q_{\text{excite}}` ，使用共享规定参考钟计算 :math:`f_c(t) = Q_{\text{excite}} f_0(t)`
    * - ``sweep_tune``
      - ``Sweep tune``
      - ``float | None``
      - -
      - ``None``
-     - 归一化扫频宽度 :math:`\Delta Q` ，运行时自动计算 :math:`\Delta f = \Delta Q \cdot f_0`
+     - 归一化扫频宽度 :math:`\Delta Q` ，使用共享规定参考钟计算 :math:`\Delta f(t) = \Delta Q f_0(t)`
 
 
 **频率模式** ：
@@ -177,7 +160,7 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - 扫频宽度 :math:`\Delta f`
 
 
-**通用频率参数** （两种模式均需提供）：
+**通用频率参数** ：
 
 .. list-table::
    :header-rows: 1
@@ -195,12 +178,18 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
      - s
      - ``必填``
      - 扫频周期 :math:`T` 适用模式：所有模式.
+   * - ``dual_sweep_offset``
+     - ``Dual sweep offset``
+     - ``float``
+     - T 的比例
+     - ``0.5``
+     - DDS1 相对 DDS2 的扫频进度提前量，范围 [0, 1]。非 0.5 时警告并按填写值计算；不是正弦载波相位差。
    * - ``fm_dual_frequency``
      - ``FM dual frequency (Hz)``
-     - ``float``
+     - ``float | None``
      - Hz
-     - ``必填``
-     - 双频频率参数 :math:`f_d` 适用模式：dual_fm / dual_fm_am.
+     - ``None``
+     - 已停用，仅接受旧输入兼容，不参与计算；双频模式下填写值与 :math:`1/T` 不一致时警告。
 
 
 幅度调制（AM）参数
@@ -231,15 +220,15 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
    * - ``am_delta0``
      - ``AM delta0``
      - ``float``
-     - -
+     - m
      - ``必填``
      - 初始束流扩散范围 适用模式：single_fm_am / dual_fm_am.
    * - ``am_k_const``
      - ``AM k const``
      - ``float``
-     - -
+     - :math:`\mathrm{m}^2`
      - ``必填``
-     - 发射度增长系数 适用模式：single_fm_am / dual_fm_am.
+     - 模型归一化系数 适用模式：single_fm_am / dual_fm_am.
 
 
 .. note::
@@ -254,7 +243,7 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 输入文件示例
 ~~~~~~~~~~~~~~~~
 
-以下示例取自 ``input/beam0.json`` ，使用工作点模式：
+以下示例使用工作点模式：
 
 .. code-block:: json
 
@@ -262,19 +251,16 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
        "Exciter_x": {
            "S (m)": 0.0,
            "Command": "Exciter",
-           "Length (m)": 0.0,
            "Enable": false,
            "Mode": "single_fm",
            "Direction": "x",
            "Start turn": 100,
            "End turn": 1000,
-           "Voltage (V)": 1000.0,
-           "Gap (m)": 0.1,
-           "Plate length (m)": 0.3,
+           "Kick angle (rad)": 1e-4,
            "Excite tune": 0.44,
            "Sweep tune": 0.02,
            "Period (s)": 1e-3,
-           "FM dual frequency (Hz)": 0.0,
+           "Dual sweep offset": 0.5,
            "AM t ext (s)": 0.0,
            "AM r0 (m)": 0.0,
            "AM delta0": 0.0,
@@ -296,8 +282,8 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 ~~~~~~~~~~~~~~~~
 
 - **tune 测量** ：推荐 ``single_fm`` ，简单有效，扫频覆盖工作点
-- **发射度增长研究** ：推荐 ``single_fm_am`` ，时变幅度模拟绝热增长
-- **多 tune 峰覆盖** ：推荐 ``dual_fm`` ，双段扫频产生复杂频谱
+- **发射度增长研究** ： ``single_fm_am`` 提供随时间变化的激励幅度
+- **两个 DDS 通道** ： ``dual_fm`` 将两路各自连续积累相位的扫频信号相加，默认错开半个扫频周期
 - **复杂不稳定性研究** ：推荐 ``dual_fm_am`` ，最完整的激励模式
 
 参数选择建议
@@ -306,88 +292,41 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 - **激励工作点** ：设为束流工作点 :math:`Q_x` （水平）或 :math:`Q_y` （垂直）
 - **归一化扫频宽度** ：取决于色散和 工作点 展宽，通常为 0.01~0.05
 - **扫频周期** ：应远大于回旋周期 :math:`1/f_0` ，保证足够的频率分辨率
-- **电压** ：根据所需 动量更新 幅度反推，典型值为百伏至千伏量级
+- **踢角** ：直接填写以 rad 为单位的带符号名义幅度，或在 :doc:`../gui_tools` 中按指定参考粒子和能量将电压换算为踢角
 - **AM 参数** ： :math:`r_0` 与 :math:`\delta_0` 取同量级， :math:`t_{\text{ext}}` 根据束流扩散时间尺度设定
 
-物理推导
+踢角约定
 --------
 
-激励器由一对平行极板组成，极板间施加电压 :math:`V` ，极板间距 :math:`d` ，极板有效长度 :math:`L` 。
-
-电场强度为：
-
-.. math::
-
-  E = \frac{V}{d}
-
-粒子（电荷量 :math:`Q = Z \cdot e` ，其中 :math:`Z` 为电荷数， :math:`e` 为元电荷）受到的力为：
+令 :math:`\theta_0=\text{Kick angle (rad)}`。元件施加规定的归一化横向动量增量，
+采用与 :doc:`kicker` 相同的名义小角度约定：
 
 .. math::
 
-  F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}
+   \Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
 
-粒子以速度 :math:`v = \beta c` 穿过极板，作用时间为：
+对处于参考动量的近轴粒子，:math:`\Delta u'\simeq\Delta p_u`，因此输入使用角度单位。
+这不是让所有偏离参考动量或非近轴粒子都严格转过相同的几何角。
+:math:`\theta_0` 的正负直接指定所选横向的踢角方向，已经包含所需的电荷符号约定；
+跟踪时不再乘电荷符号、磁刚度或逐粒子速度因子。
 
-.. math::
+束流能量变化时，配置的系数保持不变。到达时间相同的粒子获得相同的规定动量增量，
+并按模式乘共同的 AM 因子；不同到达时间采样不同相位和 AM 值。
+工作点模式使用共享参考钟，不为每个粒子定义独立的激励源频率。
 
-  \Delta t = \frac{L}{\beta c}
+这是零长度冲量，x、y、z、dp、t0 均不改变，不模拟穿过电极的过程、纵向电磁力、
+能量交换、边缘场或传输线传播。FM 相位跨扫频回扫点保持连续，AM 使用同一个粒子
+物理时间并扣除共同启动时刻。入口无效状态或冲量后不能正向运动的状态在该平面移出，
+首次损失记录不被覆盖。CPU 和 GPU 使用相同方程。
 
-因此动量增量为：
+迁移原电压输入
+~~~~~~~~~~~~~~
 
-.. math::
-
-  \Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}
-
-归一化动量增量 （除以参考粒子总动量 :math:`P_0` ）为：
-
-.. math::
-
-  \Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}
-
-利用磁刚度 :math:`B\rho = P_0 / |Q|` ，可简化为：
-
-.. math::
-
-  \Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
-
-该形式对质子束 （ :math:`Z=1, A=1` ）和离子束 （ :math:`Z \neq A` ）统一适用，因为 :math:`B\rho` 已包含荷质比信息。
-
-逐粒子纵向速度
---------------
-
-上面的参考速度表达式仅用于归一化；实际等效冲量使用各粒子的入口纵向速度：
-
-.. math::
-
-   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
-   R_i=\frac{\beta_0c}{v_{s,i}}
-      =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-            {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},
-
-.. math::
-
-   A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).
-
-其中 :math:`u=x` 或 :math:`y` 为选定方向， :math:`\delta_i` 即 ``dp`` ，
-:math:`R_i` 中的粒子状态均在施加冲量前计算。
-:math:`A_0` 是带符号参考系数， :math:`A_i` 是下文四种模式统一使用的带符号逐粒子系数。
-当 :math:`\delta_i=p_{x,i}=p_{y,i}=0` 时， :math:`R_i=1` ；
-GUI 信号预览采用的就是这一固定参考状态。
-
-V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值。
-正电压使正电荷沿选定横向的正方向偏转，电荷符号显式计入。
-由于动量按 P0 归一化，不应再额外除以 (1+delta)。
-非聚束束流和聚束束流使用相同单粒子规律；到达时间差原本就决定各粒子取样的相位，
-速度系数进一步改变其幅值。工作点模式使用参考回旋频率，不能给每个粒子
-分别定义一个激励源频率。
-
-这仍是零长度等效横向冲量，x、y、z、dp、t0 均不改变。
-冲量计算冻结入口速度，在元件平面取样波形，不沿真实电极长度积分，
-不描述纵向电磁力、能量交换、边缘场或传输线传播。
-单时刻取样要求通过期间波形变化很小；对正弦波即 :math:`\omega L/v_s\ll1` 。
-现有 FM 相位周期规则和按圈更新的 AM 包络保留。
-入口无效状态或冲量后不能正向运动的状态在该平面移出，首次损失记录不被覆盖。
-CPU 和 GPU 使用相同方程。
+``Voltage (V)``、``Gap (m)`` 和 ``Plate length (m)`` 不再是 Exciter 输入。
+在 :doc:`../gui_tools` 中按所需参考粒子和能量进行电压到踢角换算，将带符号结果填入
+``Kick angle (rad)``，并从 Exciter 配置中移除硬件字段和 ``Length (m)``。
+换算器给出旧模型的名义参考系数。固定输入踢角不会复现旧电场模型的逐粒子速度因子，
+也不随参考能量自动改变幅度。
 
 粒子到达时间
 ------------
@@ -396,7 +335,19 @@ CPU 和 GPU 使用相同方程。
 :math:`z=\beta_b c(T_b-t_i)`。激励器直接计算
 :math:`t_i=T_b-z_i/(\beta_b c)`，不叠加名义槽位偏移，也不折叠存储 z。
 不同到达时间采样不同信号相位。RF 参考速度变化时的 z 缩放保持该时间连续，
-见 :ref:`zh-longitudinal-reference`。激励波形自身的周期约化规则保持不变。
+见 :ref:`zh-longitudinal-reference`。
+
+所有束团采样同一个波形，共享启动时刻 :math:`t_*`。
+由规定参考钟 :math:`f_0(t)` 的累计圈数确定启动时刻：
+
+.. math::
+
+   \int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
+   \qquad u_i=t_i-t_*.
+
+两个 DDS 在 :math:`u=0` 时都从零相位启动；启动前到达的粒子受到零激励。
+原有 ``Start turn`` / ``End turn`` 命令执行区间仍然生效。
+只有扫频进度对 :math:`T` 取余，累计相位不清零；改变绝对时刻原点不会改变该波形。
 
 频率输入模式
 ------------
@@ -405,17 +356,19 @@ CPU 和 GPU 使用相同方程。
 
 **工作点模式** （推荐）
 
-直接输入激励工作点 :math:`Q_{\text{excite}}` 和归一化扫频宽度 :math:`\Delta Q` ，程序在运行时根据束流参数自动计算频率：
+直接输入激励工作点 :math:`Q_{\text{excite}}` 和归一化扫频宽度 :math:`\Delta Q` ，程序使用束流共享的规定参考钟频率：
 
 .. math::
 
-  f_c = Q_{\text{excite}} \cdot f_0
+  f_c(t) = Q_{\text{excite}} \cdot f_0(t)
 
 .. math::
 
-  \Delta f = \Delta Q \cdot f_0
+  \Delta f(t) = \Delta Q \cdot f_0(t)
 
-此模式下无需手动计算频率，且自动适应不同能量和周长的束流。需成对提供 ``excite tune`` 和 ``sweep tune`` 。
+规定参考钟独立于跟踪中束团的能量变化，默认取初始参考回旋频率，也可通过
+``Reference clock`` 表指定频率变化。相位对真实时间上的瞬时频率积分，包含参考钟的变化，
+不能用当前频率乘经过时间代替。需成对提供 ``excite tune`` 和 ``sweep tune`` 。
 
 **频率模式**
 
@@ -445,15 +398,15 @@ CPU 和 GPU 使用相同方程。
   * - ``single_fm_am``
     - 单段扫频
     - 时变幅度
-    - 扫频 + 幅度绝热增长
+    - 扫频 + 时变幅度
   * - ``dual_fm``
-    - 双段扫频
+    - 两个 DDS 扫频
     - 常值幅度
-    - 复杂频谱覆盖
+    - 两路各自连续相位的信号相加
   * - ``dual_fm_am``
-    - 双段扫频
+    - 两个 DDS 扫频
     - 时变幅度
-    - 最复杂的激励模式
+    - 两路信号乘相同 AM 因子
 
 
 频率调制（FM）维度
@@ -461,43 +414,60 @@ CPU 和 GPU 使用相同方程。
 
 **单段线性扫频（single）**
 
-在一个周期 :math:`T` 内，相位为：
+令 :math:`u=t-t_*` 为共同启动后的经过时间， :math:`\tau=u\bmod T`。
+中心频率和扫频宽度为常量时，相位为：
 
 .. math::
 
-  \theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)
+  \phi_2(u)=2\pi f_cu+\frac{\pi\Delta f}{T}\tau(\tau-T).
 
-其中 :math:`\tau = t \bmod T` 为周期内时间， :math:`f_c` 为中心频率， :math:`\Delta f` 为扫频宽度。
+载波项使用完整经过时间 :math:`u`，跨过扫频边界时不清零相位。
 
 瞬时频率为：
 
 .. math::
 
-  f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)
+  f_s(u)=f_c+\Delta f\left(\frac{u\bmod T}{T}-\frac12\right).
 
 - 当 :math:`\tau = 0` 时， :math:`f = f_c - \Delta f / 2` （起始频率）
 - 当 :math:`\tau = T/2` 时， :math:`f = f_c` （中心频率）
-- 当 :math:`\tau = T` 时， :math:`f = f_c + \Delta f / 2` （终止频率）
+- 当 :math:`\tau\to T^-` 时， :math:`f\to f_c+\Delta f/2`；回扫点跳回起始频率
 
 频率在 :math:`[f_c - \Delta f/2,\; f_c + \Delta f/2]` 范围内线性扫描，每 :math:`T` 秒重复一次。中心频率 :math:`f_c` 应接近 :math:`Q \cdot f_0` （工作点乘回旋频率），以覆盖束流的共振频率。
 
-**双段扫频（dual）**
+**两个 DDS 扫频（dual）**
 
-一个周期分为前后两半，各使用不同的相位公式，同时引入余弦包络 :math:`2\cos(\frac{\pi}{2}\Delta f \cdot \tau)` ：
-
-前半周期 :math:`[0,\; T/2]` ：
-
-.. math::
-
-  \theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau
-
-后半周期 :math:`[T/2,\; T]` ：
+每个 DDS 都扫描完整频率范围，频率交叉后仍保持各自通道身份。
+令 :math:`\alpha=\text{Dual sweep offset}`， :math:`\delta=\alpha T`：
 
 .. math::
 
-  \theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)
+   f_1(u)=f_s(u+\delta),\qquad f_2(u)=f_s(u),
+   \qquad S(x)=f_cx+\frac{\Delta f}{2T}(x\bmod T)((x\bmod T)-T),
 
-其中 :math:`f_d` 为双频频率参数。余弦包络在 :math:`\tau = 0` 时最大 （ :math:`2A` ），随时间衰减，减少周期边界处的不连续性。双段相位公式产生更复杂的频谱结构，可同时覆盖多个 工作点 峰。
+.. math::
+
+   \phi_1(u)=2\pi[S(u+\delta)-S(\delta)],\qquad
+   \phi_2(u)=2\pi S(u).
+
+减去 :math:`S(\delta)` 保证任意扫频偏移下，两个 DDS 的初始相位都为零。
+默认 :math:`\alpha=0.5` 时，DDS1 在半周期回扫，DDS2 在整周期回扫，
+并非让两个正弦载波相差半个周期。修改该偏移会给出警告，仍按所填值计算。
+两路信号直接相加，无 AM 时峰值上界为 :math:`2|\theta_0|`，没有额外施加的余弦包络。
+两个信号共用一个 ``Kick angle (rad)`` 设置和同一个 AM 因子，没有分路幅度输入，
+也不自动除以二。
+
+工作点模式的参考钟随时间变化时，使用一般积分定义：
+
+.. math::
+
+   f_j(t_*+u)=f_0(t_*+u)
+      \left[Q_{\rm excite}+\Delta Q
+      \left(\frac{(u+\delta_j)\bmod T}{T}-\frac12\right)\right],
+   \qquad \phi_j(u)=2\pi\int_0^u f_j(t_*+v)\,dv,
+   \qquad (\delta_1,\delta_2)=(\alpha T,0).
+
+此处仍是连续波形模型，不模拟硬件的采样保持台阶。
 
 
 幅度调制（AM）维度
@@ -507,26 +477,28 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  A_i(t) = A_i = A_0R_i
+  A(u) = \theta_0
 
-不施加随时间变化的 AM 包络。带符号系数仍包含入口速度因子，
-因此可以因粒子不同或各次通过时的状态不同而变化。
+不施加随时间变化的 AM 包络。带符号系数就是固定配置的踢角，
+不随粒子速度或参考能量变化。
 
 **时变幅度（am）**
 
-基于束流扩散/增长模型，激励幅度随时间增长：
+基于束流扩散/增长模型，激励幅度随时间变化，不一定单调增加：
 
 .. math::
 
-  A_i(t) = A_i \cdot \text{am\_factor}(t)
+  A(u) = \theta_0 \cdot \text{am\_factor}(u)
 
-其中 :math:`\text{am\_factor}(t)` 是无量纲的时变缩放因子：
+其中 :math:`\text{am\_factor}(u)` 是无量纲的时变缩放因子：
 
 .. math::
 
-  \text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}
+  \text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}
 
-其中 :math:`t = n_{\text{eff}} / f_0` 为从激励开始的真实时间 （秒）， :math:`n_{\text{eff}}` 为有效激励圈数。
+AM 与 FM 使用同一物理经过时间 :math:`u_i=t_i-t_*`，包含各粒子的到达偏移，
+连续求值而不取整到圈。固定归一化频率 :math:`f_{0,*}=f_0(t_*)` 来自共同启动时
+的规定参考钟，不跟随被跟踪束团的能量变化或后续参考钟频率变化。启动前 AM 为零。
 
 初始发射度占比：
 
@@ -534,28 +506,36 @@ CPU 和 GPU 使用相同方程。
 
   \varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)
 
-时变发射度平方：
+AM 模型的辅助扩散量：
 
 .. math::
 
-  \delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}
+  \delta^2(u) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}
 
 其中：
 
 .. math::
 
-  L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)
+  L = \ln\!\left(\frac{u}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)
 
 .. math::
 
-  D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)
+  D = t_{\text{ext}} \cdot \varepsilon + u (1 - \varepsilon)
+
+长度使用米、时间使用秒时，:math:`\delta^2(u)` 的单位为
+:math:`\mathrm{m}^2/\mathrm{s}`，:math:`k_{\text{const}}` 的单位为
+:math:`\mathrm{m}^2`，从而使 :math:`\text{am\_factor}` 无量纲。
+
+扩散公式保持原样，在 :math:`u=t_{\text{ext}}` 发散。应选择激励窗口，使粒子的
+经过时间小于该值。GUI 拒绝达到这一边界的预览，输入校验对达到边界的参考时间窗口
+给出警告；跟踪中不新增幅度截断。
 
 物理意义：
 
 - :math:`r_0` ：初始束流尺寸
 - :math:`\delta_0` ：初始束流扩散范围
 - :math:`t_{\text{ext}}` ：束流扩散特征时间
-- :math:`k_{\text{const}}` ：发射度增长系数
+- :math:`k_{\text{const}}` ：模型归一化系数
 - :math:`\varepsilon` ：初始发射度占比 （ :math:`r_0 / \delta_0` 比值的度量）
 
 这一规定的 AM 包络用于横向激励和扩散研究，本身不计算发射度增长或机械能增益。
@@ -564,50 +544,33 @@ CPU 和 GPU 使用相同方程。
 各模式完整公式
 --------------
 
-1. **single_fm** （单段扫频 + 常值幅度）
+1. **single_fm** （一个 DDS + 常值幅度）
 
 .. math::
 
-  \text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}_i=\theta_0\sin\phi_2(u_i).
 
-2. **single_fm_am** （单段扫频 + 时变幅度）
-
-.. math::
-
-  \text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
-
-3. **dual_fm** （双段扫频 + 常值幅度）
-
-前半周期 （ :math:`0 \le \tau \le T/2` ）：
+2. **single_fm_am** （一个 DDS + 时变幅度）
 
 .. math::
 
-  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).
 
-后半周期 （ :math:`T/2 < \tau \le T` ）：
-
-.. math::
-
-  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
-
-4. **dual_fm_am** （双段扫频 + 时变幅度）
-
-前半周期 （ :math:`0 \le \tau \le T/2` ）：
+3. **dual_fm** （两个 DDS + 常值幅度）
 
 .. math::
 
-  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-后半周期 （ :math:`T/2 < \tau \le T` ）：
+4. **dual_fm_am** （两个 DDS + 时变幅度）
 
 .. math::
 
-  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-对粒子 :math:`i` ， :math:`\tau=t_i\bmod T` ， :math:`A_i=A_0R_i` ，定义见上文。
-AM 自变量为按圈计算的时间 :math:`t=n_{\rm eff}/f_0` ，
-与粒子到达时间 :math:`t_i` 不同。
-上述公式给出最终归一化冲量，已包含电荷符号和入口速度因子，不再重复乘这两个因子。
+对粒子 :math:`i`，:math:`u_i=t_i-t_*`，:math:`\theta_0` 为配置的带符号踢角；
+:math:`u_i<0` 时激励为零。FM 和 AM 使用同一个物理经过时间 :math:`u_i`。
+上述公式给出最终归一化动量增量，跟踪时不再进行额外的幅度换算。
 
 横向动量更新
 ------------

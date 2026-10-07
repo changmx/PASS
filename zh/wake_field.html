@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="索引" href="../genindex.html" />
     <link rel="search" title="搜索" href="../search.html" />
-    <link rel="next" title="电子云（ElectronCloud）" href="electron_cloud.html" />
+    <link rel="next" title="逐束团横向反馈" href="transverse_feedback.html" />
     <link rel="prev" title="横向场求解器" href="field_solver.html" /> 
 </head>
 
@@ -101,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#id14">切片坐标与响应边界</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -143,6 +144,12 @@
 <h1>尾场（WakeField）<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> 根据命名的纵向切片集计算尾场引起的能量和横向动量变化。一个命令对应一个物理作用点，各算法组分别保存源历史或模式状态。支持解析响应、时域表格和阻抗频谱，CPU 与 NVIDIA GPU 使用相同的配置。</p>
 <p>在作用点之前执行匹配的 <a class="reference internal" href="slicer.html"><span class="doc">纵向切片（Slicer）</span></a>。普通因果响应使用连续到达时间；非聚束束流周期切片的条件见下文。响应数据必须声明单位、符号、归一化及速度模型。重分组后重新计算切片，历史源保留发出时的物理时间和宽度。坐标约定见 <a class="reference internal" href="injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+<p>多个尾场命令可以引用同一个命名 SliceSet，各自的尾场历史仍然独立。
+该集合不能同时服务于其他物理模块，例如 BeamBeam。输入检查统一校验共享关系和
+Slicer 的 <code class="docutils literal notranslate"><span class="pre">Purpose</span></code>：尾场要求 <code class="docutils literal notranslate"><span class="pre">general</span></code> 用途，即使没有 BeamBeam 命令读取
+该集合也一样。WakeField 只接受
+<code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 或 <code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> 切片；即使粒子已经离开碰撞坐标系，
+<code class="docutils literal notranslate"><span class="pre">collision_z</span></code> 也不能当作实验室到达时间坐标使用。</p>
 <section id="id1">
 <h2>共享配置与尾场点<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>可选根级 <code class="docutils literal notranslate"><span class="pre">Wake</span> <span class="pre">field</span></code> 包含 <code class="docutils literal notranslate"><span class="pre">Enabled``（默认</span> <span class="pre">true）及</span> <span class="pre">``Configurations</span></code>，
@@ -310,6 +317,12 @@
 <code class="docutils literal notranslate"><span class="pre">group_states</span></code>，诊断包含算法、边界、保留次数、状态字节数及拟合误差。
 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code>/<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存恢复各组并校验配置指纹。
 这些方法仅处理尾场状态；<code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> 将该位置场状态归零。</p>
+<p>对于 recursive/modal 历史，已经处理过非空源的 checkpoint 必须包含每个组件的
+模态状态、圈数及两个历史时钟。缺失或重复的组件会被拒绝，不会将部分场静默归零。
+初始状态或此前只处理过空通过事件的状态可以没有模态项。两个时钟不要求数值完全一致，
+因为 GPU 从局部时间原点换算回来时可能产生不同的舍入结果。恢复后的 modal 数组统一为
+complex128，recursive 谐振器数组统一为 float64，且不能含非零虚部。
+校验失败不会改变命令的当前状态。</p>
 <p><code class="docutils literal notranslate"><span class="pre">Executor.run(sim,</span> <span class="pre">sequences)</span></code> 始终从第 0 圈开始。新运行开始时，启用的
 WakeField 命令不能保留之前的历史；若在重新初始化的模拟中复用 WakeField
 命令，应先调用 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>。</p>
@@ -642,6 +655,10 @@ O(B log B + B log-squared M)，另加源沉积、测试插值及局部源—目�
 <h2>数值精度与收敛<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <p>粒子坐标可使用 float32 或 float64；物理到达时间、源电荷矩、响应、模式状态及能量和动量换算使用 float64。GPU 求和顺序可能不同，CPU/GPU 结果需用数值容差比较。float32 存储仍可能改变切片边界附近的归属，并积累长期输运舍入误差。</p>
 <p>等长 z 区间按当前束团参考速度换算为时间网格，参考速度改变会改变其时间宽度。用户控制 Slicer 的更新频率；切片宽度、响应频带、记忆时长和时间网格步长应分别检查收敛。</p>
+<p>recursive/modal 的相邻通过窗口可以相接。CPU 与 GPU 允许公共边界上的浮点舍入误差，
+容差内的负时间步按零处理；真实的通过时间倒退仍然报错。
+设置有限 <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code> 后，完全位于记忆范围内的源片继续使用模型原有的
+未截断平均公式。只有跨越截断边界的源片需要部分积分，完全超出范围的源片贡献为零。</p>
 </section>
 <section id="id10">
 <h2>物理范围与约定<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
@@ -720,7 +737,7 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
         <a href="field_solver.html" class="btn btn-neutral float-left" title="横向场求解器" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
-        <a href="electron_cloud.html" class="btn btn-neutral float-right" title="电子云（ElectronCloud）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="transverse_feedback.html" class="btn btn-neutral float-right" title="逐束团横向反馈" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

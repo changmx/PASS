@@ -198,6 +198,17 @@ mode and (for explicit mode) the explicit block.  A conflicting definition raise
 explicit range that does not cover all live particles produces a warning;
 out-of-range particles are clipped to the first or last slice.
 
+Within one beam, a named ``SliceSet`` may be shared by enabled consumers of
+the same physical module, for example several ``WakeField`` commands. Different
+modules must use different names: a wake and a beam-beam interaction cannot
+consume the same set. Input validation reports the conflicting set, modules
+and commands. Identical names on different beams are independent. Repeated,
+compatible Slicer commands may still update the same set; this rule does not
+change explicit update frequency or perform automatic reslicing. The same
+input check reserves sets with ``Purpose=beam_beam`` for BeamBeam, even when
+no BeamBeam command currently reads them. Commands that do not read slices,
+such as a zero-interaction-length IBS, do not claim a set.
+
 ``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"`` and
 accepts ``"hdf5"`` (uncompressed) and ``"tfs"``. The default uses gzip-1
 with shuffle. The choice affects particle details only; slice summaries remain

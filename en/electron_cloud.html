@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Intrabeam Scattering (IBS)" href="ibs.html" />
-    <link rel="prev" title="WakeField" href="wake_field.html" /> 
+    <link rel="prev" title="Bunch-by-bunch transverse feedback" href="transverse_feedback.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Electron Cloud (ElectronCloud)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-and-execution">Configuration and execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-parameters">Configuration parameters</a></li>
@@ -785,13 +786,9 @@ cuDSS solves. Highly occupied cells use a fixed reduction tree, so the last
 bits may differ from earlier serial summation. Repeatability checks apply
 to the same code, GPU architecture, SM count and software stack, not across
 devices. See <a class="reference internal" href="field_solver.html"><span class="doc">Transverse Field Solvers</span></a>.</p>
-<p>For simulations already using the joint two-beam checkpoint interface,
-<code class="docutils literal notranslate"><span class="pre">capture_collision_state</span></code> / <code class="docutils literal notranslate"><span class="pre">restore_collision_state</span></code> also capture and
-restore enabled electron-cloud realizations. They validate the cloud
-identity and rebuild its field resources before committing the joint restore.
-The existing common-turn and output requirements still apply; see
-<a class="reference internal" href="beam_beam.html"><span class="doc">Beam-Beam Interaction (BeamBeam)</span></a>. This integration does not introduce a separate single-beam
-machine-restart interface.</p>
+<p>Loading a cloud snapshot changes only this command’s source. The tracking
+entry starts a new run from turn 0; these component APIs do not provide a
+machine-restart workflow.</p>
 </section>
 <section id="runnable-example">
 <h2>Runnable example<a class="headerlink" href="#runnable-example" title="Link to this heading"></a></h2>
@@ -819,7 +816,7 @@ not as proof of physical saturation or statistical convergence.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="wake_field.html" class="btn btn-neutral float-left" title="WakeField" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="transverse_feedback.html" class="btn btn-neutral float-left" title="Bunch-by-bunch transverse feedback" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="ibs.html" class="btn btn-neutral float-right" title="Intrabeam Scattering (IBS)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

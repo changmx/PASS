@@ -73,7 +73,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#rf-bucket">RF bucket</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#magnet-conversion">Magnet conversion</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exciter-calculation-and-plotting">Exciter calculation and plotting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#voltage-and-kick-angle-conversion">Voltage and kick-angle conversion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#data-format-conversion">Data format conversion</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#wake-data-import">Wake data import</a></li>
 </ul>
@@ -98,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -321,8 +325,10 @@ same cross section and instant; for a spread, use flux-weighted kinetic energy.<
 and Ek inputs. <strong>Read beam calculator</strong> copies a valid particle/species and Ek
 as an explicit snapshot. Invalid source inputs do not replace the destination.
 RF needs mass, charge and energy for its slip factor, bucket height and frequencies.
-Emittance needs relativistic beta*gamma for normalization; magnets and Exciter
-need rigidity and/or speed. Formula references describe each approximation.</p>
+Emittance needs relativistic beta*gamma for normalization; magnets need rigidity
+and/or speed. Exciter uses speed for arrival times and tune conversion, and
+rigidity for its optional voltage/kick-angle converter. Formula references describe
+each approximation.</p>
 <p>Plots export SVG/PNG/PDF and CSV with explicit column units. Emittance and Exciter
 place parameters and results together in the right vertical scrolling column.
 The plot remains visible on the left. Formula windows list the local catalog path,
@@ -497,42 +503,93 @@ No fringe fields, saturation, hysteresis or coil-current calibration is included
 <section id="exciter-calculation-and-plotting">
 <h2>Exciter calculation and plotting<a class="headerlink" href="#exciter-calculation-and-plotting" title="Link to this heading"></a></h2>
 <p>The page implements the four modes in <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/exciter.py</span></code>:
-single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include signed peak interplate voltage difference, gap,
-effective plate length, circumference, tune or frequency, full sweep width,
-period and the original dual-frequency/AM parameters. Switching frequency input
-mode preserves the physical center frequency and width.</p>
+single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include signed nominal kick
+angle in rad, circumference, tune or frequency, full sweep width,
+period, dual sweep offset (default 0.5 of a period) and AM parameters. Switching frequency input
+mode preserves the physical center frequency and width. The default is tune mode.
+Parameters use flat sections for reference beam, waveform, AM and sampling.
+Angle inputs, numeric results, plot axes and summaries use radians in scientific
+notation such as <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>.</p>
 <div class="math notranslate nohighlight">
-\[A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0 cB\rho},\quad f_c=Q_{excite}f_0,\quad
+\[\theta_0=\text{Kick angle (rad)},\quad f_c=Q_{excite}f_0,\quad
 \Delta f=\Delta Q f_0,\quad
 t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.\]</div>
 <p>No nominal bunch-slot offset is added and no z folding is performed.
-Only the waveform reduces arrival time modulo the
-sweep period. <span class="math notranslate nohighlight">\(B\rho\)</span> is the positive rigidity magnitude; the charge sign
-is applied explicitly. Reversing either the charge or the voltage reverses the
-kick, while envelopes and spectra remain magnitudes. Zero voltage or zero
-effective plate length gives zero impulse. Single FM
-uses <code class="docutils literal notranslate"><span class="pre">phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T</span></code>. Dual FM uses the command’s two phase
-branches and <code class="docutils literal notranslate"><span class="pre">2*cos(pi*df*tau/2)</span></code> envelope; without AM its magnitude can reach
-<span class="math notranslate nohighlight">\(2|A_0|\)</span>.
-The formula window lists both phase derivatives and AM equations explicitly.</p>
-<p>The preview fixes <span class="math notranslate nohighlight">\(\delta=p_x=p_y=0\)</span>, so the tracking factor
-<span class="math notranslate nohighlight">\(R_i=\beta_0c/v_{s,i}\)</span> is one. The selected <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> changes only the
-arrival phase. Tracking uses the per-particle coefficient <span class="math notranslate nohighlight">\(A_i=A_0R_i\)</span>;
-see <a class="reference internal" href="element/exciter.html"><span class="doc">Exciter</span></a>. The displayed kick and CSV angle units use the
-paraxial reference-particle approximation <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>.</p>
-<p>AM updates by effective turn <code class="docutils literal notranslate"><span class="pre">floor(t_elapsed*f0)</span></code> and diverges at t_ext, so
-AM plot windows must end before t_ext. The fixed-parameter preview plots the
+The waveform uses <span class="math notranslate nohighlight">\(u=t_{arrive}-t_{0,start}\)</span>; both DDS phases start at zero,
+and arrivals before startup have zero signal. Only the sweep position is reduced
+modulo its period; phase remains continuous. Reversing the input angle reverses
+the kick, while envelopes and spectra remain magnitudes. Zero input angle gives
+zero impulse. Single FM
+uses <code class="docutils literal notranslate"><span class="pre">phi=2*pi*fc*u+pi*df*tau*(tau-T)/T</span></code>, with <code class="docutils literal notranslate"><span class="pre">tau=u</span> <span class="pre">%</span> <span class="pre">T</span></code>. Dual FM sums
+two DDS signals with independently integrated phases. Each traverses the full
+sweep width; DDS1 leads DDS2 by the selected sweep offset, rather than a fixed
+sine phase difference. Non-half-period offsets display a warning. One kick-angle
+setting supplies the common amplitude of both DDS signals; there are no separate
+channel amplitudes or automatic division by two. Thus the dual signal has
+a peak bound of <span class="math notranslate nohighlight">\(2|\theta_0|\)</span> before AM.
+The formula window lists the frequency, phase integral and AM equations.</p>
+<p>The selected <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> shifts the arrival time used by both FM and AM. Preview
+and tracking apply the configured angle directly as the normalized transverse
+momentum amplitude; see <a class="reference internal" href="element/exciter.html"><span class="doc">Exciter</span></a>. Angle units use the paraxial
+reference-particle approximation <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>. There is no
+particle velocity correction or automatic amplitude rescaling with beam energy.</p>
+<p>AM is evaluated continuously at <span class="math notranslate nohighlight">\(u=t_{arrive}-t_{0,start}\)</span> and normalized
+by the fixed revolution frequency at startup. It diverges at <span class="math notranslate nohighlight">\(u=t_{ext}\)</span>,
+so all sampled particle times in an AM plot must be below that limit. The fixed-parameter preview plots the
 external signal, not beam response, losses or emittance growth. Optional turn
 markers evaluate arrival-phase sampling separately. Views include kick/envelope,
-FM branches, AM factor and a one-sided Hann-window amplitude spectrum.</p>
-<p>Numeric results include base kick, sampled peak/RMS, electric field, transit time,
-frequencies, sampling rate and frequency-bin spacing. At least 24 samples per
+DDS frequencies, AM factor and a one-sided Hann-window amplitude spectrum.
+The DDS1/DDS2 labels and CSV columns preserve channel identities when frequencies cross.</p>
+<p>Numeric results include base kick, sampled peak/RMS, frequencies, sampling rate
+and frequency-bin spacing. At least 24 samples per
 bounded smooth frequency cycle are used, with a 200000-point cap; overly long
-high-frequency windows are rejected. FM resets can generate additional broadband
-content. FFT bin spacing is 1/window duration; a sampled peak is not a global
+high-frequency windows are rejected. Sweep frequency jumps preserve phase and
+can still broaden the spectrum. FFT bin spacing is 1/window duration; a sampled peak is not a global
 analytic bound. Waveform CSV columns use seconds, radians and Hz; spectrum CSV
 uses frequency_Hz and kick_amplitude_rad. Parameters/results share a vertical
 scrolling column and plots support the normal image/vector exports.</p>
+<section id="voltage-and-kick-angle-conversion">
+<h3>Voltage and kick-angle conversion<a class="headerlink" href="#voltage-and-kick-angle-conversion" title="Link to this heading"></a></h3>
+<p>The <strong>Voltage conversion…</strong> (电压换算…) button opens a separate <strong>Voltage ↔ kick
+angle</strong> (电压 ↔ 踢角) window with both voltage and kick-angle inputs visible.
+Enter a voltage and press Enter to calculate the angle, or enter an angle and
+press Enter to calculate the voltage. Both directions use the main page’s
+selected reference particle and kinetic energy, gap d in mm, and effective plate
+length L in metres. Changing the gap, plate length or reference beam recalculates
+the angle from the current voltage. Only submitting the angle input calculates
+voltage from angle. Voltage V is the signed peak interplate voltage difference
+in volts; kick angle is signed and measured in radians.
+For a uniform transverse field, the reference-particle estimate is:</p>
+<div class="math notranslate nohighlight">
+\[E=\frac{V}{d},\qquad F=qE,\qquad \Delta t=\frac{L}{\beta_0c},\qquad
+\Delta P_u=\frac{qVL}{d\beta_0c},\qquad B\rho=\frac{P_0}{|q|},\]</div>
+<div class="math notranslate nohighlight">
+\[\theta_0\simeq\frac{\Delta P_u}{P_0}
+=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho}.\]</div>
+<p>Use metres for d in these equations. <span class="math notranslate nohighlight">\(B\rho\)</span> is the positive rigidity
+magnitude, so charge sign is included explicitly. Positive V deflects positive
+charges in the selected positive transverse direction. Reversing charge or
+voltage reverses the result; zero V or L gives zero angle. The same expression
+applies to proton and ion reference particles because rigidity already contains
+the charge magnitude.</p>
+<p>The inverse calculation is:</p>
+<div class="math notranslate nohighlight">
+\[V=\operatorname{sgn}(q)\frac{\theta_0 d\beta_0c B\rho}{L}.\]</div>
+<p>It requires <span class="math notranslate nohighlight">\(L&gt;0\)</span>: a zero-length plate gives zero angle in the forward
+calculation, so voltage cannot be determined uniquely from that angle.
+The window shows voltage, angle, electric field and transit time. Pressing Enter
+only performs the conversion; it neither copies the angle to the main page nor
+closes the window. <strong>Fill base kick angle</strong> (填入基准踢角) copies the current angle to the waveform’s angle input;
+changing hardware or reference inputs later does not overwrite that input.
+Copy the chosen result to the main Exciter configuration’s <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code>.
+The element itself has no voltage, gap or length parameters.</p>
+<p>This conversion assumes a paraxial reference particle and little waveform
+variation during passage through the electrodes (<span class="math notranslate nohighlight">\(\omega L/v_s\ll1\)</span> for
+a sinusoid). It is a nominal reference conversion, not a finite-length field
+tracking model. Migrating the old voltage-based input preserves its reference
+coefficient at the selected energy, not its former per-particle velocity factor
+or energy-dependent amplitude.</p>
+</section>
 </section>
 <section id="data-format-conversion">
 <span id="gui-data-conversion-en"></span><h2>Data format conversion<a class="headerlink" href="#data-format-conversion" title="Link to this heading"></a></h2>

@@ -122,6 +122,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -222,6 +223,16 @@
 <section id="id2">
 <h2>束团参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>每个束团以 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 为键，值为包含该束团全部参数的字典。参数按横向、纵向、束流、分布、偏移五组分类说明如下。</p>
+<p>对于质量数 <span class="math notranslate nohighlight">\(A=Z+N&gt;1\)</span> 的离子，参考粒子的每核子静能采用
+<span class="math notranslate nohighlight">\(m_0=M_{\mathrm{ion}}c^2/A\)</span>，由随包质量数据库的
+<code class="docutils literal notranslate"><span class="pre">ion_mass(A,</span> <span class="pre">Z,</span> <span class="pre">q)</span></code> 给出。数据库从中性原子质量中扣除已剥离电子的质量，
+再加上累计电离能，不再将每个核子的质量统一近似为一个原子质量单位。
+电子／正电子及单质子跟踪保留既有常量。</p>
+<p>跟踪、分布生成、GUI 能量／动量偏移换算、默认参考时钟和输入校验共享这套质量。
+动能和动量仍按每核子表示；内部保存的电荷数与质量数之比的大小为 <span class="math notranslate nohighlight">\(|q|/A\)</span>，
+RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 <span class="math notranslate nohighlight">\(q/A\)</span>。
+数据库不支持的粒子或电荷态会明确报错。改变质量会改变参考速度和磁刚度；
+显式提供的 RF 频率表和参考时钟程序属于规定输入，不会自动重新标定。</p>
 <section id="id3">
 <h3>横向参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <table class="docutils align-default">

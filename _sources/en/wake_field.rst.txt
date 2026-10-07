@@ -5,6 +5,14 @@ WakeField
 
 Execute a matching :doc:`slicer` before the interaction point. Ordinary causal responses use continuous arrival times; conditions for periodic coasting-beam slices are given below. Response data must specify units, signs, normalization, and a velocity model. Regenerate slices after regrouping; emitted history retains its original physical times and widths. See :ref:`en-longitudinal-reference` for coordinates.
 
+Several wake commands may reference the same named SliceSet while retaining
+independent wake histories. That set cannot also serve another physical module,
+such as BeamBeam. Input validation checks sharing and the Slicer's ``Purpose``
+together: wakes require ``general`` slices, even if no BeamBeam command reads
+the selected set. WakeField accepts only ``z_rel`` or ``arrival_phase`` slicing;
+``collision_z`` is not a laboratory arrival-time coordinate, even after the
+particles have returned from the collision frame.
+
 Shared configuration and wake points
 ------------------------------------
 
@@ -175,6 +183,16 @@ retained passage count, state bytes and fit errors. ``state_dict()`` and
 ``load_state_dict()`` serialize/restore all groups and check a configuration
 fingerprint. These methods cover wake state only. ``reset_state()`` starts
 the location with zero field.
+
+For recursive/modal history, a checkpoint that has processed a nonempty source
+must contain the state of every component, its turn, and both history clocks.
+Missing or repeated components are rejected instead of resetting part of the
+field to zero. A fresh state, or a state that has processed only empty passages,
+may have no modes. The two clocks are not required to be numerically identical:
+conversion from a local GPU time origin can round their representations
+differently. Restored modal arrays use complex128; recursive resonator arrays
+use float64 and cannot contain a nonzero imaginary part. Failed validation
+leaves the current command state intact.
 
 ``Executor.run(sim, sequences)`` always starts at turn 0. Enabled WakeField
 commands must have no retained history at the start of a new run; call
@@ -619,6 +637,13 @@ Numerical precision and convergence
 Particle coordinates may use float32 or float64; physical arrival times, source charge moments, responses, modal states, and energy/momentum conversions use float64. GPU summation order may differ, so CPU/GPU results require numerical tolerances. Float32 storage can still change slice membership near a boundary and accumulate long-term transport rounding.
 
 Equal-length z intervals are converted to time grids with the current bunch reference speed; changing that speed changes the time widths. The user controls Slicer update frequency. Check convergence independently in slice widths, response bandwidth, memory horizon, and time-grid spacing.
+
+Recursive/modal passage windows may touch. CPU and GPU allow floating-point
+roundoff at their shared boundary, treating a negative time step within that
+tolerance as zero; actual backwards passage ordering remains an error.
+With finite ``Memory time (s)``, bins entirely inside the horizon retain the
+model's untruncated bin-average formula. Only bins crossing the horizon require
+a partial integral, and bins wholly beyond it contribute zero.
 
 Physical scope and conventions
 ------------------------------

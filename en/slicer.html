@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -361,6 +362,16 @@ mode and (for explicit mode) the explicit block.  A conflicting definition raise
 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> and identifies both sequence entries.  At execution, an
 explicit range that does not cover all live particles produces a warning;
 out-of-range particles are clipped to the first or last slice.</p>
+<p>Within one beam, a named <code class="docutils literal notranslate"><span class="pre">SliceSet</span></code> may be shared by enabled consumers of
+the same physical module, for example several <code class="docutils literal notranslate"><span class="pre">WakeField</span></code> commands. Different
+modules must use different names: a wake and a beam-beam interaction cannot
+consume the same set. Input validation reports the conflicting set, modules
+and commands. Identical names on different beams are independent. Repeated,
+compatible Slicer commands may still update the same set; this rule does not
+change explicit update frequency or perform automatic reslicing. The same
+input check reserves sets with <code class="docutils literal notranslate"><span class="pre">Purpose=beam_beam</span></code> for BeamBeam, even when
+no BeamBeam command currently reads them. Commands that do not read slices,
+such as a zero-interaction-length IBS, do not claim a set.</p>
 <p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) defaults to <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> and
 accepts <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed) and <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>. The default uses gzip-1
 with shuffle. The choice affects particle details only; slice summaries remain

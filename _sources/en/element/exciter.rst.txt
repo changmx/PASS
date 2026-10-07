@@ -1,9 +1,10 @@
 Exciter
 ====================
 
-This module introduces the transverse exciter element **Exciter** in PASS, used to apply transverse momentum perturbations to the beam through time-varying electric fields. Exciters are widely used in tune measurement, beam instability studies, emittance growth, and other scenarios.
+This module introduces the transverse exciter element **Exciter** in PASS, used to apply a prescribed transverse kick waveform to the beam. Exciters are widely used in tune measurement, beam instability studies, emittance growth, and other scenarios.
 
 The exciter in PASS is a **thin lens element** (``length = 0``), changing only the particle's transverse momentum (:math:`p_x` or :math:`p_y`), without changing position coordinates.
+Its length is fixed internally and is not an input parameter.
 
 - Registration name: ``exciter``
 - Core features:
@@ -38,12 +39,6 @@ General Parameters
      - m
      - ``Required``
      - Longitudinal position of the element exit or zero-length action point.
-   * - ``length``
-     - ``Length (m)``
-     - ``float``
-     - m
-     - ``0.0``
-     - Element length (must be 0)
    * - ``is_enabled``
      - ``Enable``
      - ``bool``
@@ -88,8 +83,8 @@ General Parameters
      - Aperture parameter values (default ``[]``, meaning varies by type, see the Aperture chapter)
 
 
-Hardware Parameters
-~~~~~~~~~~~~~~~~~~~
+Kick Amplitude
+~~~~~~~~~~~~~~
 
 .. list-table::
    :header-rows: 1
@@ -101,24 +96,12 @@ Hardware Parameters
      - Unit
      - Default
      - Description
-   * - ``voltage``
-     - ``Voltage (V)``
+   * - ``kick_angle``
+     - ``Kick angle (rad)``
      - ``float``
-     - V
+     - rad
      - ``Required``
-     - Finite signed peak voltage difference between the plates; positive V drives positive charges in the selected positive direction
-   * - ``gap``
-     - ``Gap (m)``
-     - ``float``
-     - m
-     - ``Required``
-     - Finite positive plate gap
-   * - ``plate_length``
-     - ``Plate length (m)``
-     - ``float``
-     - m
-     - ``Required``
-     - Finite nonnegative effective plate length; zero gives zero impulse
+     - Finite signed nominal kick amplitude shared by both DDS signals, applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.
 
 
 Frequency Parameters
@@ -143,13 +126,13 @@ Frequency parameters support two input modes, choose one.
      - ``float | None``
      - -
      - ``None``
-     - Excitation tune :math:`Q_{\text{excite}}`; :math:`f_c = Q_{\text{excite}} \cdot f_0` is automatically computed at runtime
+     - Excitation tune :math:`Q_{\text{excite}}`; :math:`f_c(t) = Q_{\text{excite}} f_0(t)` uses the shared prescribed reference clock
    * - ``sweep_tune``
      - ``Sweep tune``
      - ``float | None``
      - -
      - ``None``
-     - Sweep tune :math:`\Delta Q`; :math:`\Delta f = \Delta Q \cdot f_0` is automatically computed at runtime
+     - Sweep tune :math:`\Delta Q`; :math:`\Delta f(t) = \Delta Q f_0(t)` uses the shared prescribed reference clock
 
 
 **Frequency mode**:
@@ -178,7 +161,7 @@ Frequency parameters support two input modes, choose one.
      - Sweep width :math:`\Delta f`
 
 
-**Common frequency parameters** (required for both modes):
+**Common frequency parameters**:
 
 .. list-table::
    :header-rows: 1
@@ -196,12 +179,18 @@ Frequency parameters support two input modes, choose one.
      - s
      - ``Required``
      - Sweep period :math:`T`
+   * - ``dual_sweep_offset``
+     - ``Dual sweep offset``
+     - ``float``
+     - fraction of T
+     - ``0.5``
+     - DDS1 sweep lead relative to DDS2, in [0, 1]. A value other than 0.5 produces a warning and is still used; this is not a sine phase offset.
    * - ``fm_dual_frequency``
      - ``FM dual frequency (Hz)``
-     - ``float``
+     - ``float | None``
      - Hz
-     - ``Required``
-     - Dual-frequency parameter :math:`f_d`
+     - ``None``
+     - Obsolete compatibility input, ignored. Dual mode warns if supplied and inconsistent with :math:`1/T`.
 
 
 Amplitude Modulation (AM) Parameters
@@ -232,15 +221,15 @@ Amplitude Modulation (AM) Parameters
    * - ``am_delta0``
      - ``AM delta0``
      - ``float``
-     - -
+     - m
      - ``Required``
      - Initial beam diffusion range
    * - ``am_k_const``
      - ``AM k const``
      - ``float``
-     - -
+     - :math:`\mathrm{m}^2`
      - ``Required``
-     - Emittance growth coefficient
+     - Model normalization coefficient
 
 
 .. note::
@@ -255,7 +244,7 @@ Usage Examples
 Input File Example
 ~~~~~~~~~~~~~~~~~~
 
-The following example is taken from ``input/beam0.json``, using tune mode:
+The following example uses tune mode:
 
 .. code-block:: json
 
@@ -263,19 +252,16 @@ The following example is taken from ``input/beam0.json``, using tune mode:
        "Exciter_x": {
            "S (m)": 0.0,
            "Command": "Exciter",
-           "Length (m)": 0.0,
            "Enable": false,
            "Mode": "single_fm",
            "Direction": "x",
            "Start turn": 100,
            "End turn": 1000,
-           "Voltage (V)": 1000.0,
-           "Gap (m)": 0.1,
-           "Plate length (m)": 0.3,
+           "Kick angle (rad)": 1e-4,
            "Excite tune": 0.44,
            "Sweep tune": 0.02,
            "Period (s)": 1e-3,
-           "FM dual frequency (Hz)": 0.0,
+           "Dual sweep offset": 0.5,
            "AM t ext (s)": 0.0,
            "AM r0 (m)": 0.0,
            "AM delta0": 0.0,
@@ -297,8 +283,8 @@ Mode Selection Guide
 ~~~~~~~~~~~~~~~~~~~~
 
 - **Tune measurement**: ``single_fm`` is recommended; simple and effective, sweep covers the working point
-- **Emittance growth study**: ``single_fm_am`` is recommended; time-varying amplitude simulates adiabatic growth
-- **Multi-tune-peak coverage**: ``dual_fm`` is recommended; dual-segment sweep produces a complex spectrum
+- **Emittance growth study**: ``single_fm_am`` supplies a time-varying excitation amplitude
+- **Two DDS channels**: ``dual_fm`` sums two independent continuous-phase sweeps, offset by half a sweep period by default
 - **Complex instability study**: ``dual_fm_am`` is recommended; the most complete excitation mode
 
 Parameter Selection Recommendations
@@ -307,94 +293,51 @@ Parameter Selection Recommendations
 - **Excitation tune**: Set to the beam working point :math:`Q_x` (horizontal) or :math:`Q_y` (vertical)
 - **Sweep tune**: Depends on dispersion and tune spread; typically 0.01~0.05
 - **Sweep period**: Should be much larger than the revolution period :math:`1/f_0` to ensure sufficient frequency resolution
-- **Voltage**: Determined by back-calculating from the required kick amplitude; typical values are in the hundreds to thousands of volts
+- **Kick angle**: Set the signed nominal amplitude in radians directly, or use the voltage-to-kick converter in :doc:`../gui_tools` for a specified reference particle and energy
 - **AM parameters**: :math:`r_0` and :math:`\delta_0` should be of the same order of magnitude; :math:`t_{\text{ext}}` is set according to the beam diffusion time scale
 
-Physical Derivation
--------------------
+Kick Convention
+---------------
 
-The exciter consists of a pair of parallel plates with voltage :math:`V` applied across them, plate gap :math:`d`, and plate effective length :math:`L`.
-
-The electric field strength is:
-
-.. math::
-
-  E = \frac{V}{d}
-
-The force on a particle (charge :math:`Q = Z \cdot e`, where :math:`Z` is the charge number and :math:`e` is the elementary charge) is:
+Let :math:`\theta_0=\text{Kick angle (rad)}`. The element applies a prescribed
+normalized transverse momentum increment, using the same nominal small-angle
+convention as :doc:`kicker`:
 
 .. math::
 
-  F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}
+   \Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
 
-The particle traverses the plates at velocity :math:`v = \beta c`, with an interaction time of:
+For an on-momentum paraxial reference particle, :math:`\Delta u'\simeq\Delta p_u`,
+which gives the input its angle unit. This is not an exact geometric rotation
+by the same angle for every off-momentum or non-paraxial particle. The sign of
+:math:`\theta_0` specifies the selected transverse kick direction. It already
+contains any intended charge-sign convention; tracking does not multiply it by
+charge sign, rigidity or a particle velocity factor.
 
-.. math::
+The configured coefficient stays fixed when beam energy changes. Particles
+with the same arrival time receive the same prescribed momentum increment,
+subject to the mode's shared AM factor. Different arrival times sample different
+waveform phases and AM values. Tune-mode frequencies use the shared reference
+clock, not a separate oscillator frequency for each particle.
 
-  \Delta t = \frac{L}{\beta c}
+This is a zero-length kick: x, y, z, dp and t0 do not change. It does not model
+transit through electrodes, longitudinal electromagnetic forces, energy exchange,
+fringe fields or transmission-line propagation. FM phases remain continuous
+across sweep resets. AM uses the same physical particle time measured from the
+common trigger. Invalid incident states or non-forward post-kick states are
+removed at this plane, preserving previous loss records. CPU and GPU use the
+same equations.
 
-Therefore the momentum increment is:
+Migrating Voltage-Based Inputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. math::
-
-  \Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}
-
-The normalized kick (divided by the reference particle total momentum :math:`P_0`) is:
-
-.. math::
-
-  \Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}
-
-Using the magnetic rigidity :math:`B\rho = P_0 / |Q|`, this simplifies to:
-
-.. math::
-
-  \Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
-
-This form is uniformly applicable to proton beams (:math:`Z=1, A=1`) and ion beams (:math:`Z \neq A`), since :math:`B\rho` already contains the charge-to-mass ratio information.
-
-Per-particle longitudinal velocity
---------------------------------------
-
-The reference-speed expression above sets the normalization only. The applied
-effective impulse uses each particle's incident longitudinal velocity:
-
-.. math::
-
-   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
-   R_i=\frac{\beta_0c}{v_{s,i}}
-      =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-            {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},
-
-.. math::
-
-   A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).
-
-Here :math:`u=x` or :math:`y` is the selected direction, :math:`\delta_i` is
-``dp``, and all particle quantities in :math:`R_i` are evaluated before the kick.
-:math:`A_0` is the signed reference coefficient; :math:`A_i` is the signed
-per-particle coefficient used in all four mode formulas below. For
-:math:`\delta_i=p_{x,i}=p_{y,i}=0`, :math:`R_i=1`; this is the fixed reference
-state used by the GUI signal preview.
-
-V is the signed peak interplate voltage difference; B*rho is the positive
-reference rigidity magnitude. Positive V drives positive charges in the selected
-positive transverse direction. The charge sign is applied explicitly. No extra
-division by (1+delta) is appropriate for momenta normalized by P0.
-The same law applies to coasting and bunched particles. Different arrival times
-already sample different waveform phases; the velocity factor additionally
-changes their amplitudes. Tune-mode frequencies use the reference revolution
-frequency, not a separate oscillator frequency for each particle.
-
-This remains a zero-length effective transverse kick: x, y, z, dp and t0 do not
-change. It freezes the incident speed and samples the waveform at the element
-plane. It does not integrate the waveform through the physical plate length or
-model longitudinal electromagnetic forces, energy exchange, fringe fields or
-transmission-line propagation. Single-time sampling requires little waveform
-variation during the transit (for a sinusoid, :math:`\omega L/v_s\ll1`).
-The existing FM phase-period rule and turn-stepped AM envelope are retained.
-Invalid incident states or non-forward post-kick states are removed at this
-plane, preserving previous loss records. CPU and GPU use the same equations.
+``Voltage (V)``, ``Gap (m)`` and ``Plate length (m)`` are no longer Exciter
+inputs. Use the voltage-to-kick converter in :doc:`../gui_tools` with the desired
+reference particle and energy, copy its signed result to ``Kick angle (rad)``,
+and remove the hardware fields and ``Length (m)`` from the Exciter configuration.
+The converter supplies the former nominal reference coefficient. A fixed input
+angle does not reproduce the old electric-field model's per-particle velocity
+factor or its automatic amplitude change with reference energy.
 
 Particle Arrival Time
 ---------------------
@@ -404,8 +347,21 @@ location. The continuous coordinate is :math:`z=\beta_b c(T_b-t_i)`.
 Exciter directly evaluates :math:`t_i=T_b-z_i/(\beta_b c)` without adding
 nominal slot offsets or folding stored z. Different arrival times sample
 different signal phases. Scaling z when RF changes the reference velocity
-preserves this time; see :ref:`en-longitudinal-reference`. The excitation waveform's
-own periodic-reduction rule is unchanged.
+preserves this time; see :ref:`en-longitudinal-reference`.
+
+All bunches sample one waveform with a common trigger time :math:`t_*`.
+For the shared prescribed clock :math:`f_0(t)`, the trigger is the time at which
+its accumulated turns reach :math:`n_{\rm start}+s/C`:
+
+.. math::
+
+   \int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
+   \qquad u_i=t_i-t_*.
+
+Both DDS phases start at zero at :math:`u=0`; arrivals before the trigger receive
+zero excitation. The existing ``Start turn`` / ``End turn`` command gate also
+applies. Only the sweep position is reduced modulo :math:`T`; accumulated phase
+is not reset. Changing the absolute time origin does not change this waveform.
 
 Frequency Input Modes
 ---------------------
@@ -414,17 +370,22 @@ The exciter's center frequency :math:`f_c` and sweep width :math:`\Delta f` supp
 
 **Tune mode** (recommended)
 
-Directly input the excitation tune :math:`Q_{\text{excite}}` and sweep tune :math:`\Delta Q`; the program automatically computes the frequencies at runtime based on beam parameters:
+Directly input the excitation tune :math:`Q_{\text{excite}}` and sweep tune :math:`\Delta Q`.
+The program uses the beam's shared prescribed reference-clock frequency:
 
 .. math::
 
-  f_c = Q_{\text{excite}} \cdot f_0
+  f_c(t) = Q_{\text{excite}} \cdot f_0(t)
 
 .. math::
 
-  \Delta f = \Delta Q \cdot f_0
+  \Delta f(t) = \Delta Q \cdot f_0(t)
 
-In this mode, there is no need to manually compute frequencies, and it automatically adapts to beams of different energies and circumferences. ``excite tune`` and ``sweep tune`` must be provided as a pair.
+The prescribed clock is independent of tracked bunch energy changes. Its default
+is the initial reference revolution frequency; a ``Reference clock`` table can
+prescribe a ramp. Phase integrates the instantaneous frequency over physical
+time, including clock ramps; it is not computed as the current frequency times
+elapsed time. ``excite tune`` and ``sweep tune`` must be provided as a pair.
 
 **Frequency mode**
 
@@ -454,15 +415,15 @@ The exciter has 4 operating modes, formed by combining two dimensions: frequency
   * - ``single_fm_am``
     - Single-segment sweep
     - Time-varying amplitude
-    - Sweep + amplitude adiabatic growth
+    - Sweep + time-varying amplitude
   * - ``dual_fm``
-    - Dual-segment sweep
+    - Two DDS sweeps
     - Constant amplitude
-    - Complex spectral coverage
+    - Sum of two independent continuous phases
   * - ``dual_fm_am``
-    - Dual-segment sweep
+    - Two DDS sweeps
     - Time-varying amplitude
-    - The most complex excitation mode
+    - Two DDS signals with the same AM factor
 
 
 Frequency Modulation (FM) Dimension
@@ -470,43 +431,62 @@ Frequency Modulation (FM) Dimension
 
 **Single-segment linear sweep (single)**
 
-Within one period :math:`T`, the phase is:
+Let :math:`u=t-t_*` be elapsed time from the common trigger and
+:math:`\tau=u\bmod T`. For constant center frequency and width, the phase is:
 
 .. math::
 
-  \theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)
+  \phi_2(u) = 2\pi f_c u + \frac{\pi \Delta f}{T}\tau(\tau-T).
 
-where :math:`\tau = t \bmod T` is the intra-period time, :math:`f_c` is the center frequency, and :math:`\Delta f` is the sweep width.
+The carrier term uses the full elapsed time :math:`u`, so crossing a sweep
+boundary does not clear phase.
 
 The instantaneous frequency is:
 
 .. math::
 
-  f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)
+  f_s(u)=f_c+\Delta f\left(\frac{u\bmod T}{T}-\frac12\right).
 
 - At :math:`\tau = 0`: :math:`f = f_c - \Delta f / 2` (start frequency)
 - At :math:`\tau = T/2`: :math:`f = f_c` (center frequency)
-- At :math:`\tau = T`: :math:`f = f_c + \Delta f / 2` (end frequency)
+- As :math:`\tau\to T^-`: :math:`f\to f_c+\Delta f/2`; at the reset it returns to the start frequency
 
 The frequency sweeps linearly over :math:`[f_c - \Delta f/2,\; f_c + \Delta f/2]`, repeating every :math:`T` seconds. The center frequency :math:`f_c` should be close to :math:`Q \cdot f_0` (tune times revolution frequency) to cover the beam's resonance frequency.
 
-**Dual-segment sweep (dual)**
+**Two DDS sweeps (dual)**
 
-One period is divided into first and second halves, each using a different phase formula, and a cosine envelope :math:`2\cos(\frac{\pi}{2}\Delta f \cdot \tau)` is introduced:
-
-First half :math:`[0,\; T/2]`:
-
-.. math::
-
-  \theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau
-
-Second half :math:`[T/2,\; T]`:
+Each DDS traverses the full sweep width and keeps its identity after frequencies
+cross. With :math:`\alpha=\text{Dual sweep offset}` and :math:`\delta=\alpha T`:
 
 .. math::
 
-  \theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)
+   f_1(u)=f_s(u+\delta),\qquad f_2(u)=f_s(u),
+   \qquad S(x)=f_cx+\frac{\Delta f}{2T}(x\bmod T)((x\bmod T)-T),
 
-where :math:`f_d` is the dual-frequency parameter. The cosine envelope is maximum (:math:`2A`) at :math:`\tau = 0` and decays over time, reducing discontinuities at period boundaries. The dual-segment phase formula produces a more complex spectral structure, capable of simultaneously covering multiple tune peaks.
+.. math::
+
+   \phi_1(u)=2\pi[S(u+\delta)-S(\delta)],\qquad
+   \phi_2(u)=2\pi S(u).
+
+The subtraction makes both initial phases zero for any sweep offset. The default
+:math:`\alpha=0.5` means DDS1 resets at half-period and DDS2 at full-period; it
+does not impose a half-cycle sine phase difference. A different offset produces
+a warning and remains valid. The two signals are added directly, with a peak
+bound of :math:`2|\theta_0|` before AM. There is no separate imposed cosine envelope.
+Both signals use the single ``Kick angle (rad)`` setting and the same AM factor;
+there are no separate channel amplitudes or automatic division by two.
+
+For a time-dependent tune-mode clock the general definition is used instead:
+
+.. math::
+
+   f_j(t_*+u)=f_0(t_*+u)
+      \left[Q_{\rm excite}+\Delta Q
+      \left(\frac{(u+\delta_j)\bmod T}{T}-\frac12\right)\right],
+   \qquad \phi_j(u)=2\pi\int_0^u f_j(t_*+v)\,dv,
+   \qquad (\delta_1,\delta_2)=(\alpha T,0).
+
+This continuous waveform model does not implement hardware sample-and-hold steps.
 
 
 Amplitude Modulation (AM) Dimension
@@ -516,26 +496,31 @@ Amplitude Modulation (AM) Dimension
 
 .. math::
 
-  A_i(t) = A_i = A_0R_i
+  A(u) = \theta_0
 
-No time-varying AM envelope is applied. The signed coefficient still includes
-the incident velocity factor and can differ between particles or passages.
+No time-varying AM envelope is applied. The signed coefficient is the fixed
+configured kick angle, independent of particle velocity or reference energy.
 
 **Time-varying amplitude (am)**
 
-Based on a beam diffusion/growth model, the excitation amplitude grows over time:
+Based on a beam diffusion/growth model, the excitation amplitude varies over time; it need not increase monotonically:
 
 .. math::
 
-  A_i(t) = A_i \cdot \text{am\_factor}(t)
+  A(u) = \theta_0 \cdot \text{am\_factor}(u)
 
-where :math:`\text{am\_factor}(t)` is a dimensionless time-varying scaling factor:
+where :math:`\text{am\_factor}(u)` is a dimensionless time-varying scaling factor:
 
 .. math::
 
-  \text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}
+  \text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}
 
-where :math:`t = n_{\text{eff}} / f_0` is the real time (seconds) since the start of excitation, and :math:`n_{\text{eff}}` is the effective excitation turn number.
+The AM argument is the same physical elapsed time as FM,
+:math:`u_i=t_i-t_*`. It is evaluated continuously, including each particle's
+arrival offset, without rounding to a turn. The fixed normalization frequency
+:math:`f_{0,*}=f_0(t_*)` comes from the shared prescribed reference clock at
+startup; it does not follow tracked bunch energy changes or subsequent clock
+ramps. AM is zero before startup.
 
 Initial emittance fraction:
 
@@ -543,28 +528,37 @@ Initial emittance fraction:
 
   \varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)
 
-Time-varying emittance squared:
+Auxiliary diffusion quantity in the AM model:
 
 .. math::
 
-  \delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}
+  \delta^2(u) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}
 
 where:
 
 .. math::
 
-  L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)
+  L = \ln\!\left(\frac{u}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)
 
 .. math::
 
-  D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)
+  D = t_{\text{ext}} \cdot \varepsilon + u (1 - \varepsilon)
+
+With lengths in metres and times in seconds, :math:`\delta^2(u)` has units
+:math:`\mathrm{m}^2/\mathrm{s}` and :math:`k_{\text{const}}` has units
+:math:`\mathrm{m}^2`, making :math:`\text{am\_factor}` dimensionless.
+
+The diffusion law is unchanged and diverges at :math:`u=t_{\text{ext}}`.
+Choose an excitation window that keeps particle elapsed times below this limit.
+The GUI rejects previews reaching it; input validation warns about reference
+windows reaching it. Tracking does not add an amplitude cutoff.
 
 Physical meaning:
 
 - :math:`r_0`: Initial beam size
 - :math:`\delta_0`: Initial beam diffusion range
 - :math:`t_{\text{ext}}`: Beam diffusion characteristic time
-- :math:`k_{\text{const}}`: Emittance growth coefficient
+- :math:`k_{\text{const}}`: Model normalization coefficient
 - :math:`\varepsilon`: Initial emittance fraction (a measure of the :math:`r_0 / \delta_0` ratio)
 
 This prescribed AM envelope is intended for transverse excitation and diffusion
@@ -575,51 +569,34 @@ the lattice and the sampled excitation phases.
 Complete Formulas for Each Mode
 -------------------------------
 
-1. **single_fm** (single-segment sweep + constant amplitude)
+1. **single_fm** (one DDS + constant amplitude)
 
 .. math::
 
-  \text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}_i=\theta_0\sin\phi_2(u_i).
 
-2. **single_fm_am** (single-segment sweep + time-varying amplitude)
-
-.. math::
-
-  \text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
-
-3. **dual_fm** (dual-segment sweep + constant amplitude)
-
-First half (:math:`0 \le \tau \le T/2`):
+2. **single_fm_am** (one DDS + time-varying amplitude)
 
 .. math::
 
-  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).
 
-Second half (:math:`T/2 < \tau \le T`):
-
-.. math::
-
-  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
-
-4. **dual_fm_am** (dual-segment sweep + time-varying amplitude)
-
-First half (:math:`0 \le \tau \le T/2`):
+3. **dual_fm** (two DDS channels + constant amplitude)
 
 .. math::
 
-  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-Second half (:math:`T/2 < \tau \le T`):
+4. **dual_fm_am** (two DDS channels + time-varying amplitude)
 
 .. math::
 
-  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-For particle :math:`i`, :math:`\tau=t_i\bmod T` and :math:`A_i=A_0R_i` as
-defined above. The AM argument is the turn-based time
-:math:`t=n_{\rm eff}/f_0`; it is distinct from the particle arrival time
-:math:`t_i`. These are the final normalized kicks, including both the charge
-sign and the incident velocity factor; neither factor is applied a second time.
+For particle :math:`i`, :math:`u_i=t_i-t_*` and :math:`\theta_0` is the
+configured signed kick angle. The kick is zero for :math:`u_i<0`. FM and AM
+sample the same physical elapsed time :math:`u_i`. These are the final normalized
+momentum increments; tracking applies no additional amplitude conversion.
 
 Kick Application
 ----------------

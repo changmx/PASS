@@ -109,6 +109,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -328,6 +329,67 @@ in place during tracking.</p>
 outside it the voltage is zero, without any additional configuration parameter.</p>
 <p>RF tables use physical time. <code class="docutils literal notranslate"><span class="pre">convert_rf_data(input_path,</span> <span class="pre">output_path)</span></code> converts the table format without turning seconds into turn numbers.</p>
 <p><code class="docutils literal notranslate"><span class="pre">PASS.para.tools.rf_data.synchronous_rf_program</span></code> builds a prescribed waveform from voltage, target passage phases and an explicit design-particle energy/flight-time trajectory. It generates input only; tracking does not reset actual bunch phases or energies. The integrated carrier and additive phase program jointly hit the requested design sample phases, with declared linear interpolation between samples.</p>
+<section id="hiaf-rf-chart-exports">
+<h3>HIAF RF chart exports<a class="headerlink" href="#hiaf-rf-chart-exports" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.para.tools.hiaf_rf</span></code> reads the 14 two-column <code class="docutils literal notranslate"><span class="pre">#RF...PlotData</span></code> files
+in a HIAF chart-export directory. The unsuffixed names describe channel 0;
+suffixes <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code> describe channels 1 and 2. It checks finite values,
+one strictly increasing common time grid, and integer harmonic labels.
+The source units are ms, kV, kHz and rad; output uses s, V, Hz and rad.
+Nonuniform time spacing is retained. The converter does not adjust frequencies
+for an ion mass or infer the source’s mass convention.</p>
+<p>For inspection without assuming a phase convention, run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import</span>
+</pre></div>
+</div>
+<p>This writes <code class="docutils literal notranslate"><span class="pre">hiaf_rf_normalized.tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">conversion_report.json</span></code> with
+source filenames, SHA-256 hashes, units and time range. Existing outputs are
+protected; <code class="docutils literal notranslate"><span class="pre">--overwrite</span></code> explicitly allows replacing matching generated files.</p>
+<p>Executable RF requires an explicit phase mapping and clock epoch. A JSON file
+maps each <code class="docutils literal notranslate"><span class="pre">channel:harmonic</span></code> to coefficients of exported phase columns;
+<code class="docutils literal notranslate"><span class="pre">offset</span></code> optionally adds a constant in radians. For example, one declared
+interpretation of BRing capture and acceleration before bunch merging is:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"0:4"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Phase"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"1:8"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Phase"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">"DeltaPhi1"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Save this as <code class="docutils literal notranslate"><span class="pre">phase_rules.json</span></code> and convert an applicable interval:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.para.tools.hiaf_rf input/hiaf_export runs/rf_import_mapped --phase-rules phase_rules.json --phase-origin 0.045006 --end-time 0.312614</span>
+</pre></div>
+</div>
+<p>Those times are an example for the 2026-10-05 BRing export, not universal machine
+constants. <code class="docutils literal notranslate"><span class="pre">--start-time</span></code> and <code class="docutils literal notranslate"><span class="pre">--end-time</span></code> select physical seconds within
+the source range. Analog values are interpolated at a new endpoint; harmonic
+labels are discrete. The full exported clock history is retained when cropping
+component domains so their integrated phase does not change. <code class="docutils literal notranslate"><span class="pre">--phase-origin</span></code> sets the physical epoch of zero
+integrated reference-clock phase and does not shift the exported timestamps.</p>
+<p>The example explicitly sets <span class="math notranslate nohighlight">\(\psi_4=\mathrm{Phase}\)</span> and
+<span class="math notranslate nohighlight">\(\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}\)</span>. The observed relation
+<span class="math notranslate nohighlight">\(\mathrm{DeltaPhi1}=\pi-2\mathrm{Phase}\)</span> then gives
+<span class="math notranslate nohighlight">\(\psi_8=\pi\)</span>. This relation supports this interpretation but does not
+establish the control system’s phase semantics. Confirm them before treating
+the output as a reproduction of machine operation. Phase columns must already
+be unwrapped; the converter neither unwraps nor silently adds <code class="docutils literal notranslate"><span class="pre">Phase1</span></code>.
+The later <span class="math notranslate nohighlight">\(h=2,1\)</span> bunch-merging stages need their own explicit rules.</p>
+<p>Mapped conversion additionally writes <code class="docutils literal notranslate"><span class="pre">rf_config.json</span></code> with <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Components</span></code> entries, plus one TFS per constant-harmonic segment. Copy
+<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> into the root-level MainConfig settings and <code class="docutils literal notranslate"><span class="pre">Components</span></code> into
+the RFCavity settings. The clock frequency is the base channel’s exported
+frequency divided by <code class="docutils literal notranslate"><span class="pre">--base-harmonic</span></code> (default 4). Each active channel must
+agree with its harmonic times that shared frequency. PASS integrates this
+prescribed clock in physical time; particle energies do not redefine it.
+The nearest zero-voltage nodes preserve the exported linear on/off ramps,
+and voltage vanishes outside a component’s domain. A harmonic switch without
+a zero-voltage separator is rejected. Unknown active phase rules and frequency
+inconsistencies are also rejected before output is written.</p>
+<p>The Python interface is <code class="docutils literal notranslate"><span class="pre">load_hiaf_rf(source_directory)</span></code> for normalized arrays,
+or <code class="docutils literal notranslate"><span class="pre">convert_hiaf_rf(source_directory,</span> <span class="pre">output_directory,</span> <span class="pre">phase_rules=...,</span>
+<span class="pre">phase_origin=...,</span> <span class="pre">base_harmonic=4,</span> <span class="pre">start_time=None,</span> <span class="pre">end_time=None)</span></code> for output.
+Rebuilding a mass-consistent design waveform is a separate, explicitly recorded
+operation; ordinary file conversion preserves the supplied frequency program.</p>
+</section>
 </section>
 <section id="physical-scope">
 <h2>Physical scope<a class="headerlink" href="#physical-scope" title="Link to this heading"></a></h2>

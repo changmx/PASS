@@ -113,6 +113,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -509,7 +510,8 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <li><p><strong>束流引出</strong> ：在引出点放置快脉冲偏转磁铁，快速将束流偏转至引出通道，实现快引出</p></li>
 <li><p><strong>轨道校正</strong> ：在束线关键位置放置快脉冲偏转磁铁，校正轨道偏差或实现局部凸轨（ bump ）</p></li>
 </ul>
-<p>本 Kicker 模型施加固定配置强度。给定注入波形见 <a class="reference internal" href="bump.html"><span class="doc">凸轨磁铁（Bump）</span></a>，横向激励见 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a>；本元件不包含拾取器反馈控制器。</p>
+<p>本 Kicker 模型施加固定配置强度。给定注入波形见 <a class="reference internal" href="bump.html"><span class="doc">凸轨磁铁（Bump）</span></a>，横向激励见 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a>；本元件不包含拾取器反馈控制器。
+逐束团质心的延迟 FIR 闭环请使用 <a class="reference internal" href="../transverse_feedback.html"><span class="doc">逐束团横向反馈</span></a> 中的专用节点。</p>
 </section>
 <section id="id15">
 <h2>参考文献<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>

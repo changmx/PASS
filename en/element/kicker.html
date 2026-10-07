@@ -113,6 +113,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -511,7 +512,8 @@ apertures and SC boundaries remain in the design frame.</p>
 <li><p><strong>Beam extraction</strong>: Place kickers at the extraction point to rapidly deflect the beam into the extraction channel, for fast extraction</p></li>
 <li><p><strong>Orbit correction</strong>: Place kickers at key beamline positions to correct orbit deviations or create local orbit bumps</p></li>
 </ul>
-<p>The Kicker model applies constant configured strengths. For a prescribed injection waveform, see <a class="reference internal" href="bump.html"><span class="doc">Bump</span></a>; for transverse excitation, see <a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a>. A pickup-feedback controller is not included in this element.</p>
+<p>The Kicker model applies constant configured strengths. For a prescribed injection waveform, see <a class="reference internal" href="bump.html"><span class="doc">Bump</span></a>; for transverse excitation, see <a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a>. A pickup-feedback controller is not included in this element.
+For a delayed bunch-centroid FIR loop, use the dedicated nodes in <a class="reference internal" href="../transverse_feedback.html"><span class="doc">Bunch-by-bunch transverse feedback</span></a>.</p>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>

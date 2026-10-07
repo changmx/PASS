@@ -122,6 +122,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -223,6 +224,20 @@ time-dependent Bump magnets can vary its subsequent transverse motion.</p>
 <section id="bunch-parameters">
 <h2>Bunch parameters<a class="headerlink" href="#bunch-parameters" title="Link to this heading"></a></h2>
 <p>Each bunch uses <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> , <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> , … as keys, and the value is a dictionary containing all parameters of that bunch. The parameters are described below in five groups: transverse, longitudinal, beam, distribution, and offset.</p>
+<p>For ions with mass number <span class="math notranslate nohighlight">\(A=Z+N&gt;1\)</span>, the reference rest energy per nucleon
+is <span class="math notranslate nohighlight">\(m_0=M_{\mathrm{ion}}c^2/A\)</span>, obtained from the bundled mass catalog by
+<code class="docutils literal notranslate"><span class="pre">ion_mass(A,</span> <span class="pre">Z,</span> <span class="pre">q)</span></code>. The catalog uses neutral-atom masses, subtracts the masses
+of removed electrons, and adds their cumulative ionization energy. It does not
+approximate every nucleon by one atomic mass unit. Electron/positron and
+single-proton tracking retain their established constants.</p>
+<p>This mass is shared by tracking, generated distributions, GUI energy/momentum
+offset conversion, the default reference clock and input validation. Kinetic
+energy and momentum remain per nucleon. The stored charge-to-mass-number
+magnitude is <span class="math notranslate nohighlight">\(|q|/A\)</span>; RF applies the charge sign, giving the physical
+energy-gain factor <span class="math notranslate nohighlight">\(q/A\)</span>. Unsupported catalog species or charge states are reported as
+errors. Changing the species mass changes reference velocity and magnetic
+rigidity; explicitly supplied RF frequency tables and reference-clock programs
+are prescribed input and are not automatically recalibrated.</p>
 <section id="transverse-parameters">
 <h3>Transverse parameters<a class="headerlink" href="#transverse-parameters" title="Link to this heading"></a></h3>
 <table class="docutils align-default">

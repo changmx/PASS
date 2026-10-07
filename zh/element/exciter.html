@@ -87,8 +87,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">激励器（Exciter）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">参数列表</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id9">物理推导</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">逐粒子纵向速度</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">踢角约定</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id11">粒子到达时间</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id12">频率输入模式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id13">激励模式</a></li>
@@ -112,6 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -153,8 +153,9 @@
              
   <section id="exciter">
 <h1>激励器（Exciter）<a class="headerlink" href="#exciter" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的横向激励器元件 <strong>Exciter</strong> ，用于通过时变电场对束流施加横向动量扰动。激励器在 工作点 测量、束流不稳定性研究、发射度增长等场景中广泛应用。</p>
-<p>PASS 中的激励器为 <strong>薄透镜元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），仅改变粒子横向动量（ <span class="math notranslate nohighlight">\(p_x\)</span> 或 <span class="math notranslate nohighlight">\(p_y\)</span> ），不改变位置坐标。</p>
+<p>本模块介绍 PASS 中的横向激励器元件 <strong>Exciter</strong> ，用于通过规定的横向踢角波形对束流施加动量扰动。激励器在 工作点 测量、束流不稳定性研究、发射度增长等场景中广泛应用。</p>
+<p>PASS 中的激励器为 <strong>薄透镜元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），仅改变粒子横向动量（ <span class="math notranslate nohighlight">\(p_x\)</span> 或 <span class="math notranslate nohighlight">\(p_y\)</span> ），不改变位置坐标。
+长度在内部固定，不是输入参数。</p>
 <ul class="simple">
 <li><p>核心特征：</p>
 <ul>
@@ -197,21 +198,14 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>元件出口或零长度作用点的纵向位置。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
-<td><p>元件长度 （必须为 0）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Enable</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
 <td><p>激励器开关，可选： <code class="docutils literal notranslate"><span class="pre">true</span></code> 、 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><ul class="simple">
@@ -221,7 +215,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>激励模式，可选： <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> 、 <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> 、 <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> 、 <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><ul class="simple">
@@ -231,7 +225,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>激励方向，可选： <code class="docutils literal notranslate"><span class="pre">x</span></code> 、 <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -241,7 +235,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>激励起始圈数 （含）</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -251,14 +245,14 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>激励结束圈数 （不含）</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
 <td><p>孔径类型 （默认 <code class="docutils literal notranslate"><span class="pre">off</span></code> ，可选值见孔径章节）</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>m / rad</p></td>
@@ -269,7 +263,7 @@
 </table>
 </section>
 <section id="id3">
-<h3>硬件参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<h3>踢角幅度<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 17.0%" />
@@ -289,26 +283,12 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>V</p></td>
+<td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
-<td><p>有限的带符号极板间峰值电压差；正电压使正电荷沿选定横向的正方向偏转</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gap</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
-<td><p>有限正极板间距</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plate_length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
-<td><p>有限非负极板有效长度；为零时冲量为零</p></td>
+<td><p>两个 DDS 信号共用的有限带符号名义踢角幅度，作为归一化横向动量增量施加；双频将两路信号相加而不除以二</p></td>
 </tr>
 </tbody>
 </table>
@@ -344,7 +324,7 @@
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> ，运行时自动计算 <span class="math notranslate nohighlight">\(f_c = Q_{\text{excite}} \cdot f_0\)</span></p></td>
+<td><p>激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> ，使用共享规定参考钟计算 <span class="math notranslate nohighlight">\(f_c(t) = Q_{\text{excite}} f_0(t)\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep_tune</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span></code></p></td>
@@ -354,7 +334,7 @@
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>归一化扫频宽度 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，运行时自动计算 <span class="math notranslate nohighlight">\(\Delta f = \Delta Q \cdot f_0\)</span></p></td>
+<td><p>归一化扫频宽度 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，使用共享规定参考钟计算 <span class="math notranslate nohighlight">\(\Delta f(t) = \Delta Q f_0(t)\)</span></p></td>
 </tr>
 </tbody>
 </table>
@@ -394,7 +374,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>通用频率参数</strong> （两种模式均需提供）：</p>
+<p><strong>通用频率参数</strong> ：</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 17.0%" />
@@ -421,12 +401,19 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>扫频周期 <span class="math notranslate nohighlight">\(T\)</span> 适用模式：所有模式.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">FM</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_sweep_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dual</span> <span class="pre">sweep</span> <span class="pre">offset</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>T 的比例</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.5</span></code></p></td>
+<td><p>DDS1 相对 DDS2 的扫频进度提前量，范围 [0, 1]。非 0.5 时警告并按填写值计算；不是正弦载波相位差。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FM</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>Hz</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
-<td><p>双频频率参数 <span class="math notranslate nohighlight">\(f_d\)</span> 适用模式：dual_fm / dual_fm_am.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>已停用，仅接受旧输入兼容，不参与计算；双频模式下填写值与 <span class="math notranslate nohighlight">\(1/T\)</span> 不一致时警告。</p></td>
 </tr>
 </tbody>
 </table>
@@ -469,22 +456,16 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_delta0</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">AM</span> <span class="pre">delta0</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
+<td><p>m</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
 <td><p>初始束流扩散范围 适用模式：single_fm_am / dual_fm_am.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_k_const</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">AM</span> <span class="pre">k</span> <span class="pre">const</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
+<td><p><span class="math notranslate nohighlight">\(\mathrm{m}^2\)</span></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">必填</span></code></p></td>
-<td><p>发射度增长系数 适用模式：single_fm_am / dual_fm_am.</p></td>
+<td><p>模型归一化系数 适用模式：single_fm_am / dual_fm_am.</p></td>
 </tr>
 </tbody>
 </table>
@@ -499,24 +480,21 @@
 <h2>使用示例<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <section id="id6">
 <h3>输入文件示例<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
-<p>以下示例取自 <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code> ，使用工作点模式：</p>
+<p>以下示例使用工作点模式：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"Exciter_x"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Exciter"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"single_fm"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Direction"</span><span class="p">:</span><span class="w"> </span><span class="s2">"x"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Voltage (V)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Gap (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Plate length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Kick angle (rad)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-4</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Excite tune"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.44</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Sweep tune"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Period (s)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"FM dual frequency (Hz)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Dual sweep offset"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM t ext (s)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM r0 (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM delta0"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -538,8 +516,8 @@
 <h3>模式选择指南<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>tune 测量</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> ，简单有效，扫频覆盖工作点</p></li>
-<li><p><strong>发射度增长研究</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> ，时变幅度模拟绝热增长</p></li>
-<li><p><strong>多 tune 峰覆盖</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> ，双段扫频产生复杂频谱</p></li>
+<li><p><strong>发射度增长研究</strong> ： <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> 提供随时间变化的激励幅度</p></li>
+<li><p><strong>两个 DDS 通道</strong> ： <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> 将两路各自连续积累相位的扫频信号相加，默认错开半个扫频周期</p></li>
 <li><p><strong>复杂不稳定性研究</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> ，最完整的激励模式</p></li>
 </ul>
 </section>
@@ -549,62 +527,36 @@
 <li><p><strong>激励工作点</strong> ：设为束流工作点 <span class="math notranslate nohighlight">\(Q_x\)</span> （水平）或 <span class="math notranslate nohighlight">\(Q_y\)</span> （垂直）</p></li>
 <li><p><strong>归一化扫频宽度</strong> ：取决于色散和 工作点 展宽，通常为 0.01~0.05</p></li>
 <li><p><strong>扫频周期</strong> ：应远大于回旋周期 <span class="math notranslate nohighlight">\(1/f_0\)</span> ，保证足够的频率分辨率</p></li>
-<li><p><strong>电压</strong> ：根据所需 动量更新 幅度反推，典型值为百伏至千伏量级</p></li>
+<li><p><strong>踢角</strong> ：直接填写以 rad 为单位的带符号名义幅度，或在 <a class="reference internal" href="../gui_tools.html"><span class="doc">GUI 工具</span></a> 中按指定参考粒子和能量将电压换算为踢角</p></li>
 <li><p><strong>AM 参数</strong> ： <span class="math notranslate nohighlight">\(r_0\)</span> 与 <span class="math notranslate nohighlight">\(\delta_0\)</span> 取同量级， <span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> 根据束流扩散时间尺度设定</p></li>
 </ul>
 </section>
 </section>
 <section id="id9">
-<h2>物理推导<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
-<p>激励器由一对平行极板组成，极板间施加电压 <span class="math notranslate nohighlight">\(V\)</span> ，极板间距 <span class="math notranslate nohighlight">\(d\)</span> ，极板有效长度 <span class="math notranslate nohighlight">\(L\)</span> 。</p>
-<p>电场强度为：</p>
+<h2>踢角约定<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>令 <span class="math notranslate nohighlight">\(\theta_0=\text{Kick angle (rad)}\)</span>。元件施加规定的归一化横向动量增量，
+采用与 <a class="reference internal" href="kicker.html"><span class="doc">快脉冲偏转磁铁（Kicker）</span></a> 相同的名义小角度约定：</p>
 <div class="math notranslate nohighlight">
-\[E = \frac{V}{d}\]</div>
-<p>粒子（电荷量 <span class="math notranslate nohighlight">\(Q = Z \cdot e\)</span> ，其中 <span class="math notranslate nohighlight">\(Z\)</span> 为电荷数， <span class="math notranslate nohighlight">\(e\)</span> 为元电荷）受到的力为：</p>
-<div class="math notranslate nohighlight">
-\[F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}\]</div>
-<p>粒子以速度 <span class="math notranslate nohighlight">\(v = \beta c\)</span> 穿过极板，作用时间为：</p>
-<div class="math notranslate nohighlight">
-\[\Delta t = \frac{L}{\beta c}\]</div>
-<p>因此动量增量为：</p>
-<div class="math notranslate nohighlight">
-\[\Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}\]</div>
-<p>归一化动量增量 （除以参考粒子总动量 <span class="math notranslate nohighlight">\(P_0\)</span> ）为：</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}\]</div>
-<p>利用磁刚度 <span class="math notranslate nohighlight">\(B\rho = P_0 / |Q|\)</span> ，可简化为：</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\]</div>
-<p>该形式对质子束 （ <span class="math notranslate nohighlight">\(Z=1, A=1\)</span> ）和离子束 （ <span class="math notranslate nohighlight">\(Z \neq A\)</span> ）统一适用，因为 <span class="math notranslate nohighlight">\(B\rho\)</span> 已包含荷质比信息。</p>
-</section>
+\[\Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
+<p>对处于参考动量的近轴粒子，<span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>，因此输入使用角度单位。
+这不是让所有偏离参考动量或非近轴粒子都严格转过相同的几何角。
+<span class="math notranslate nohighlight">\(\theta_0\)</span> 的正负直接指定所选横向的踢角方向，已经包含所需的电荷符号约定；
+跟踪时不再乘电荷符号、磁刚度或逐粒子速度因子。</p>
+<p>束流能量变化时，配置的系数保持不变。到达时间相同的粒子获得相同的规定动量增量，
+并按模式乘共同的 AM 因子；不同到达时间采样不同相位和 AM 值。
+工作点模式使用共享参考钟，不为每个粒子定义独立的激励源频率。</p>
+<p>这是零长度冲量，x、y、z、dp、t0 均不改变，不模拟穿过电极的过程、纵向电磁力、
+能量交换、边缘场或传输线传播。FM 相位跨扫频回扫点保持连续，AM 使用同一个粒子
+物理时间并扣除共同启动时刻。入口无效状态或冲量后不能正向运动的状态在该平面移出，
+首次损失记录不被覆盖。CPU 和 GPU 使用相同方程。</p>
 <section id="id10">
-<h2>逐粒子纵向速度<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
-<p>上面的参考速度表达式仅用于归一化；实际等效冲量使用各粒子的入口纵向速度：</p>
-<div class="math notranslate nohighlight">
-\[A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
-R_i=\frac{\beta_0c}{v_{s,i}}
-   =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-         {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},\]</div>
-<div class="math notranslate nohighlight">
-\[A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(u=x\)</span> 或 <span class="math notranslate nohighlight">\(y\)</span> 为选定方向， <span class="math notranslate nohighlight">\(\delta_i\)</span> 即 <code class="docutils literal notranslate"><span class="pre">dp</span></code> ，
-<span class="math notranslate nohighlight">\(R_i\)</span> 中的粒子状态均在施加冲量前计算。
-<span class="math notranslate nohighlight">\(A_0\)</span> 是带符号参考系数， <span class="math notranslate nohighlight">\(A_i\)</span> 是下文四种模式统一使用的带符号逐粒子系数。
-当 <span class="math notranslate nohighlight">\(\delta_i=p_{x,i}=p_{y,i}=0\)</span> 时， <span class="math notranslate nohighlight">\(R_i=1\)</span> ；
-GUI 信号预览采用的就是这一固定参考状态。</p>
-<p>V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值。
-正电压使正电荷沿选定横向的正方向偏转，电荷符号显式计入。
-由于动量按 P0 归一化，不应再额外除以 (1+delta)。
-非聚束束流和聚束束流使用相同单粒子规律；到达时间差原本就决定各粒子取样的相位，
-速度系数进一步改变其幅值。工作点模式使用参考回旋频率，不能给每个粒子
-分别定义一个激励源频率。</p>
-<p>这仍是零长度等效横向冲量，x、y、z、dp、t0 均不改变。
-冲量计算冻结入口速度，在元件平面取样波形，不沿真实电极长度积分，
-不描述纵向电磁力、能量交换、边缘场或传输线传播。
-单时刻取样要求通过期间波形变化很小；对正弦波即 <span class="math notranslate nohighlight">\(\omega L/v_s\ll1\)</span> 。
-现有 FM 相位周期规则和按圈更新的 AM 包络保留。
-入口无效状态或冲量后不能正向运动的状态在该平面移出，首次损失记录不被覆盖。
-CPU 和 GPU 使用相同方程。</p>
+<h3>迁移原电压输入<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code>、<code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code> 不再是 Exciter 输入。
+在 <a class="reference internal" href="../gui_tools.html"><span class="doc">GUI 工具</span></a> 中按所需参考粒子和能量进行电压到踢角换算，将带符号结果填入
+<code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code>，并从 Exciter 配置中移除硬件字段和 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>。
+换算器给出旧模型的名义参考系数。固定输入踢角不会复现旧电场模型的逐粒子速度因子，
+也不随参考能量自动改变幅度。</p>
+</section>
 </section>
 <section id="id11">
 <h2>粒子到达时间<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
@@ -612,18 +564,28 @@ CPU 和 GPU 使用相同方程。</p>
 <span class="math notranslate nohighlight">\(z=\beta_b c(T_b-t_i)\)</span>。激励器直接计算
 <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span>，不叠加名义槽位偏移，也不折叠存储 z。
 不同到达时间采样不同信号相位。RF 参考速度变化时的 z 缩放保持该时间连续，
-见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。激励波形自身的周期约化规则保持不变。</p>
+见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+<p>所有束团采样同一个波形，共享启动时刻 <span class="math notranslate nohighlight">\(t_*\)</span>。
+由规定参考钟 <span class="math notranslate nohighlight">\(f_0(t)\)</span> 的累计圈数确定启动时刻：</p>
+<div class="math notranslate nohighlight">
+\[\int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
+\qquad u_i=t_i-t_*.\]</div>
+<p>两个 DDS 在 <span class="math notranslate nohighlight">\(u=0\)</span> 时都从零相位启动；启动前到达的粒子受到零激励。
+原有 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> 命令执行区间仍然生效。
+只有扫频进度对 <span class="math notranslate nohighlight">\(T\)</span> 取余，累计相位不清零；改变绝对时刻原点不会改变该波形。</p>
 </section>
 <section id="id12">
 <h2>频率输入模式<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
 <p>激励器的中心频率 <span class="math notranslate nohighlight">\(f_c\)</span> 和扫频宽度 <span class="math notranslate nohighlight">\(\Delta f\)</span> 支持两种输入方式：</p>
 <p><strong>工作点模式</strong> （推荐）</p>
-<p>直接输入激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> 和归一化扫频宽度 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，程序在运行时根据束流参数自动计算频率：</p>
+<p>直接输入激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> 和归一化扫频宽度 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，程序使用束流共享的规定参考钟频率：</p>
 <div class="math notranslate nohighlight">
-\[f_c = Q_{\text{excite}} \cdot f_0\]</div>
+\[f_c(t) = Q_{\text{excite}} \cdot f_0(t)\]</div>
 <div class="math notranslate nohighlight">
-\[\Delta f = \Delta Q \cdot f_0\]</div>
-<p>此模式下无需手动计算频率，且自动适应不同能量和周长的束流。需成对提供 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 。</p>
+\[\Delta f(t) = \Delta Q \cdot f_0(t)\]</div>
+<p>规定参考钟独立于跟踪中束团的能量变化，默认取初始参考回旋频率，也可通过
+<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 表指定频率变化。相位对真实时间上的瞬时频率积分，包含参考钟的变化，
+不能用当前频率乘经过时间代替。需成对提供 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 。</p>
 <p><strong>频率模式</strong></p>
 <p>直接输入中心频率和扫频宽度 （单位 Hz），适用于需要精确控制频率的场景。需成对提供 <code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code> 。</p>
 <div class="admonition note">
@@ -657,78 +619,101 @@ CPU 和 GPU 使用相同方程。</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code></p></td>
 <td><p>单段扫频</p></td>
 <td><p>时变幅度</p></td>
-<td><p>扫频 + 幅度绝热增长</p></td>
+<td><p>扫频 + 时变幅度</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm</span></code></p></td>
-<td><p>双段扫频</p></td>
+<td><p>两个 DDS 扫频</p></td>
 <td><p>常值幅度</p></td>
-<td><p>复杂频谱覆盖</p></td>
+<td><p>两路各自连续相位的信号相加</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
-<td><p>双段扫频</p></td>
+<td><p>两个 DDS 扫频</p></td>
 <td><p>时变幅度</p></td>
-<td><p>最复杂的激励模式</p></td>
+<td><p>两路信号乘相同 AM 因子</p></td>
 </tr>
 </tbody>
 </table>
 <section id="fm">
 <h3>频率调制（FM）维度<a class="headerlink" href="#fm" title="Link to this heading"></a></h3>
 <p><strong>单段线性扫频（single）</strong></p>
-<p>在一个周期 <span class="math notranslate nohighlight">\(T\)</span> 内，相位为：</p>
+<p>令 <span class="math notranslate nohighlight">\(u=t-t_*\)</span> 为共同启动后的经过时间， <span class="math notranslate nohighlight">\(\tau=u\bmod T\)</span>。
+中心频率和扫频宽度为常量时，相位为：</p>
 <div class="math notranslate nohighlight">
-\[\theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span> 为周期内时间， <span class="math notranslate nohighlight">\(f_c\)</span> 为中心频率， <span class="math notranslate nohighlight">\(\Delta f\)</span> 为扫频宽度。</p>
+\[\phi_2(u)=2\pi f_cu+\frac{\pi\Delta f}{T}\tau(\tau-T).\]</div>
+<p>载波项使用完整经过时间 <span class="math notranslate nohighlight">\(u\)</span>，跨过扫频边界时不清零相位。</p>
 <p>瞬时频率为：</p>
 <div class="math notranslate nohighlight">
-\[f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)\]</div>
+\[f_s(u)=f_c+\Delta f\left(\frac{u\bmod T}{T}-\frac12\right).\]</div>
 <ul class="simple">
 <li><p>当 <span class="math notranslate nohighlight">\(\tau = 0\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c - \Delta f / 2\)</span> （起始频率）</p></li>
 <li><p>当 <span class="math notranslate nohighlight">\(\tau = T/2\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c\)</span> （中心频率）</p></li>
-<li><p>当 <span class="math notranslate nohighlight">\(\tau = T\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c + \Delta f / 2\)</span> （终止频率）</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(\tau\to T^-\)</span> 时， <span class="math notranslate nohighlight">\(f\to f_c+\Delta f/2\)</span>；回扫点跳回起始频率</p></li>
 </ul>
 <p>频率在 <span class="math notranslate nohighlight">\([f_c - \Delta f/2,\; f_c + \Delta f/2]\)</span> 范围内线性扫描，每 <span class="math notranslate nohighlight">\(T\)</span> 秒重复一次。中心频率 <span class="math notranslate nohighlight">\(f_c\)</span> 应接近 <span class="math notranslate nohighlight">\(Q \cdot f_0\)</span> （工作点乘回旋频率），以覆盖束流的共振频率。</p>
-<p><strong>双段扫频（dual）</strong></p>
-<p>一个周期分为前后两半，各使用不同的相位公式，同时引入余弦包络 <span class="math notranslate nohighlight">\(2\cos(\frac{\pi}{2}\Delta f \cdot \tau)\)</span> ：</p>
-<p>前半周期 <span class="math notranslate nohighlight">\([0,\; T/2]\)</span> ：</p>
+<p><strong>两个 DDS 扫频（dual）</strong></p>
+<p>每个 DDS 都扫描完整频率范围，频率交叉后仍保持各自通道身份。
+令 <span class="math notranslate nohighlight">\(\alpha=\text{Dual sweep offset}\)</span>， <span class="math notranslate nohighlight">\(\delta=\alpha T\)</span>：</p>
 <div class="math notranslate nohighlight">
-\[\theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau\]</div>
-<p>后半周期 <span class="math notranslate nohighlight">\([T/2,\; T]\)</span> ：</p>
+\[f_1(u)=f_s(u+\delta),\qquad f_2(u)=f_s(u),
+\qquad S(x)=f_cx+\frac{\Delta f}{2T}(x\bmod T)((x\bmod T)-T),\]</div>
 <div class="math notranslate nohighlight">
-\[\theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(f_d\)</span> 为双频频率参数。余弦包络在 <span class="math notranslate nohighlight">\(\tau = 0\)</span> 时最大 （ <span class="math notranslate nohighlight">\(2A\)</span> ），随时间衰减，减少周期边界处的不连续性。双段相位公式产生更复杂的频谱结构，可同时覆盖多个 工作点 峰。</p>
+\[\phi_1(u)=2\pi[S(u+\delta)-S(\delta)],\qquad
+\phi_2(u)=2\pi S(u).\]</div>
+<p>减去 <span class="math notranslate nohighlight">\(S(\delta)\)</span> 保证任意扫频偏移下，两个 DDS 的初始相位都为零。
+默认 <span class="math notranslate nohighlight">\(\alpha=0.5\)</span> 时，DDS1 在半周期回扫，DDS2 在整周期回扫，
+并非让两个正弦载波相差半个周期。修改该偏移会给出警告，仍按所填值计算。
+两路信号直接相加，无 AM 时峰值上界为 <span class="math notranslate nohighlight">\(2|\theta_0|\)</span>，没有额外施加的余弦包络。
+两个信号共用一个 <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> 设置和同一个 AM 因子，没有分路幅度输入，
+也不自动除以二。</p>
+<p>工作点模式的参考钟随时间变化时，使用一般积分定义：</p>
+<div class="math notranslate nohighlight">
+\[f_j(t_*+u)=f_0(t_*+u)
+   \left[Q_{\rm excite}+\Delta Q
+   \left(\frac{(u+\delta_j)\bmod T}{T}-\frac12\right)\right],
+\qquad \phi_j(u)=2\pi\int_0^u f_j(t_*+v)\,dv,
+\qquad (\delta_1,\delta_2)=(\alpha T,0).\]</div>
+<p>此处仍是连续波形模型，不模拟硬件的采样保持台阶。</p>
 </section>
 <section id="id14">
 <h3>幅度调制（AM）维度<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
 <p><strong>常值幅度</strong></p>
 <div class="math notranslate nohighlight">
-\[A_i(t) = A_i = A_0R_i\]</div>
-<p>不施加随时间变化的 AM 包络。带符号系数仍包含入口速度因子，
-因此可以因粒子不同或各次通过时的状态不同而变化。</p>
+\[A(u) = \theta_0\]</div>
+<p>不施加随时间变化的 AM 包络。带符号系数就是固定配置的踢角，
+不随粒子速度或参考能量变化。</p>
 <p><strong>时变幅度（am）</strong></p>
-<p>基于束流扩散/增长模型，激励幅度随时间增长：</p>
+<p>基于束流扩散/增长模型，激励幅度随时间变化，不一定单调增加：</p>
 <div class="math notranslate nohighlight">
-\[A_i(t) = A_i \cdot \text{am\_factor}(t)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(\text{am\_factor}(t)\)</span> 是无量纲的时变缩放因子：</p>
+\[A(u) = \theta_0 \cdot \text{am\_factor}(u)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\text{am\_factor}(u)\)</span> 是无量纲的时变缩放因子：</p>
 <div class="math notranslate nohighlight">
-\[\text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(t = n_{\text{eff}} / f_0\)</span> 为从激励开始的真实时间 （秒）， <span class="math notranslate nohighlight">\(n_{\text{eff}}\)</span> 为有效激励圈数。</p>
+\[\text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}\]</div>
+<p>AM 与 FM 使用同一物理经过时间 <span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span>，包含各粒子的到达偏移，
+连续求值而不取整到圈。固定归一化频率 <span class="math notranslate nohighlight">\(f_{0,*}=f_0(t_*)\)</span> 来自共同启动时
+的规定参考钟，不跟随被跟踪束团的能量变化或后续参考钟频率变化。启动前 AM 为零。</p>
 <p>初始发射度占比：</p>
 <div class="math notranslate nohighlight">
 \[\varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)\]</div>
-<p>时变发射度平方：</p>
+<p>AM 模型的辅助扩散量：</p>
 <div class="math notranslate nohighlight">
-\[\delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
+\[\delta^2(u) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
 <p>其中：</p>
 <div class="math notranslate nohighlight">
-\[L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
+\[L = \ln\!\left(\frac{u}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
 <div class="math notranslate nohighlight">
-\[D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)\]</div>
+\[D = t_{\text{ext}} \cdot \varepsilon + u (1 - \varepsilon)\]</div>
+<p>长度使用米、时间使用秒时，<span class="math notranslate nohighlight">\(\delta^2(u)\)</span> 的单位为
+<span class="math notranslate nohighlight">\(\mathrm{m}^2/\mathrm{s}\)</span>，<span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> 的单位为
+<span class="math notranslate nohighlight">\(\mathrm{m}^2\)</span>，从而使 <span class="math notranslate nohighlight">\(\text{am\_factor}\)</span> 无量纲。</p>
+<p>扩散公式保持原样，在 <span class="math notranslate nohighlight">\(u=t_{\text{ext}}\)</span> 发散。应选择激励窗口，使粒子的
+经过时间小于该值。GUI 拒绝达到这一边界的预览，输入校验对达到边界的参考时间窗口
+给出警告；跟踪中不新增幅度截断。</p>
 <p>物理意义：</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(r_0\)</span> ：初始束流尺寸</p></li>
 <li><p><span class="math notranslate nohighlight">\(\delta_0\)</span> ：初始束流扩散范围</p></li>
 <li><p><span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> ：束流扩散特征时间</p></li>
-<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> ：发射度增长系数</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> ：模型归一化系数</p></li>
 <li><p><span class="math notranslate nohighlight">\(\varepsilon\)</span> ：初始发射度占比 （ <span class="math notranslate nohighlight">\(r_0 / \delta_0\)</span> 比值的度量）</p></li>
 </ul>
 <p>这一规定的 AM 包络用于横向激励和扩散研究，本身不计算发射度增长或机械能增益。
@@ -738,37 +723,28 @@ CPU 和 GPU 使用相同方程。</p>
 <section id="id15">
 <h2>各模式完整公式<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>single_fm</strong> （单段扫频 + 常值幅度）</p></li>
+<li><p><strong>single_fm</strong> （一个 DDS + 常值幅度）</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+\[\text{kick}_i=\theta_0\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="2">
-<li><p><strong>single_fm_am</strong> （单段扫频 + 时变幅度）</p></li>
+<li><p><strong>single_fm_am</strong> （一个 DDS + 时变幅度）</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="3">
-<li><p><strong>dual_fm</strong> （双段扫频 + 常值幅度）</p></li>
+<li><p><strong>dual_fm</strong> （两个 DDS + 常值幅度）</p></li>
 </ol>
-<p>前半周期 （ <span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span> ）：</p>
 <div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
-<p>后半周期 （ <span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span> ）：</p>
-<div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+\[\text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
 <ol class="arabic simple" start="4">
-<li><p><strong>dual_fm_am</strong> （双段扫频 + 时变幅度）</p></li>
+<li><p><strong>dual_fm_am</strong> （两个 DDS + 时变幅度）</p></li>
 </ol>
-<p>前半周期 （ <span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span> ）：</p>
 <div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
-<p>后半周期 （ <span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span> ）：</p>
-<div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
-<p>对粒子 <span class="math notranslate nohighlight">\(i\)</span> ， <span class="math notranslate nohighlight">\(\tau=t_i\bmod T\)</span> ， <span class="math notranslate nohighlight">\(A_i=A_0R_i\)</span> ，定义见上文。
-AM 自变量为按圈计算的时间 <span class="math notranslate nohighlight">\(t=n_{\rm eff}/f_0\)</span> ，
-与粒子到达时间 <span class="math notranslate nohighlight">\(t_i\)</span> 不同。
-上述公式给出最终归一化冲量，已包含电荷符号和入口速度因子，不再重复乘这两个因子。</p>
+\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
+<p>对粒子 <span class="math notranslate nohighlight">\(i\)</span>，<span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span>，<span class="math notranslate nohighlight">\(\theta_0\)</span> 为配置的带符号踢角；
+<span class="math notranslate nohighlight">\(u_i&lt;0\)</span> 时激励为零。FM 和 AM 使用同一个物理经过时间 <span class="math notranslate nohighlight">\(u_i\)</span>。
+上述公式给出最终归一化动量增量，跟踪时不再进行额外的幅度换算。</p>
 </section>
 <section id="id16">
 <h2>横向动量更新<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>

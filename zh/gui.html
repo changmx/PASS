@@ -68,19 +68,20 @@
 <li class="toctree-l2"><a class="reference internal" href="#id5">结构化数组参数</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id6">空间电荷</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#rf">注入、时钟、RF 与脉冲元件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">尾场</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">电子云</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id9">结果文件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">横向反馈</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">尾场</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">电子云</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id10">结果文件</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">单圈传输</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">平滑近似</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">手动传输点与后续编辑</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">单圈传输</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">平滑近似</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">手动传输点与后续编辑</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id13">工具</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id14">主题与控件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id15">帮助与本地文档</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id14">工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id15">主题与控件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id16">帮助与本地文档</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
@@ -103,6 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -351,7 +353,11 @@ V、VL 均未填时允许只预览几何，不计算电场；应用和运行要�
 V 单位为 V，VL 为电压差沿纵向的积分，单位为 V·m。
 Distribution File Mode 的输入框和展开列表按选项文本加宽，支持完整查看 sequential/repeat。
 S 是出口，入口为 S-Length；零强度仍有材料损失，零长度支持一次 VL 薄冲量。</p>
-<p>Exciter 配置提供 tune/频率选择及 FM/AM 字段联动。
+<p>Exciter 使用带符号 <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> 设置幅度，以 <code class="docutils literal notranslate"><span class="pre">1e-6</span></code> 形式的科学计数法显示，
+提供 tune/频率选择及 FM/AM 字段联动。
+元件不再输入电压、间隙和长度；激励工具按指定参考粒子和能量提供电压与踢角的双向换算。
+新建草稿默认使用 tune 模式，
+<code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.47</span></code>、<code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.02</span></code>；已有频率模式输入保留其 Hz 数值。
 四极、六极、八极和多极铁开放 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>，
 读取以物理时间为自变量的归一化强度 TFS 表，见 <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。
 <strong>Ramping</strong> 分组中的 <strong>生成 / 导入 ramping 文件…</strong> 支持上升–平台–下降模板和
@@ -360,7 +366,28 @@ S 是出口，入口为 S-Length；零强度仍有材料损失，零长度支持
 其他磁铁元件暂不开放 ramping。</p>
 </section>
 <section id="id7">
-<h2>尾场<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<h2>横向反馈<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p><strong>横向反馈</strong> 组件区提供 <code class="docutils literal notranslate"><span class="pre">TransversePickup</span></code> 与 <code class="docutils literal notranslate"><span class="pre">TransverseFeedback</span></code>。
+先添加拾取器，再通过反馈的 <code class="docutils literal notranslate"><span class="pre">Pickup</span></code> 字段选择其序列名称；每个拾取器必须恰好配对一个反馈。
+反馈草稿的系数和增益初始为零，跟踪前应填写 FIR 系数、圈数延迟、增益及可选限幅。
+两个节点均须放在真实传输边界。相位约定、滤波器设计和诊断见 <a class="reference internal" href="transverse_feedback.html"><span class="doc">逐束团横向反馈</span></a>。</p>
+<p>反馈参数面板中的 <strong>生成 FIR 系数…</strong> 打开系数生成窗口。
+所引用拾取器的 <code class="docutils literal notranslate"><span class="pre">Plane</span></code> 决定生成 x、y 或两个方向的系数。
+各方向分别填写 tune 和拾取器到反馈点的相移；这两项初始留空，不从机器配置猜测。
+相移单位为 rad，表示同一序列圈号下的有符号相位差；反馈点在上游时可以为负。
+<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 位置不能决定相移，也不要在相移中重复计入已由圈数延迟表示的整圈相位。</p>
+<p>两个方向共用设计方法、系数数量和延迟。方法可选 <code class="docutils literal notranslate"><span class="pre">minimum_norm</span></code> （默认）或 <code class="docutils literal notranslate"><span class="pre">flat</span></code>；
+GUI 接受 3–256 个系数，其中 <code class="docutils literal notranslate"><span class="pre">flat</span></code> 至少需要五个，延迟必须为至少一圈的整数。
+256 个系数的上限仅用于 GUI，<code class="docutils literal notranslate"><span class="pre">design_feedback_fir</span></code> 辅助函数没有这一上限。
+先点击 <strong>计算并预览</strong>，检查结果后再点击 <strong>填入草稿</strong>；设计无效时，参数草稿保持不变。
+平坦响应只描述目标 tune 附近的局部性质，不保证闭环稳定性，也不自动选择增益。</p>
+<p>填入时替换所有测量方向的系数列表，清空未测量方向的系数，并同步 <code class="docutils literal notranslate"><span class="pre">Delay</span> <span class="pre">turns</span></code>。
+增益保持原值，包括初始的零增益。生成的系数仍可手动编辑；点击 <strong>应用</strong> 或 <strong>插入</strong>
+后才保存草稿。设计输入仅为 GUI 临时控件，保存的仍是已有系数和延迟字段，
+不增加 JSON 字段或电子学模型。</p>
+</section>
+<section id="id8">
+<h2>尾场<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <p><strong>尾场 → 全局配置</strong> 管理总开关及命名模型/求解器配置。打开时将已有尾场点的内联
 参数分别收集为独立命名配置草稿，不合并原来的定义。应用配置重命名时同步更新点引用；
 仍被引用的配置不能删除。<strong>尾场点</strong> 设置配置引用、位置、切片集和单点开关。
@@ -373,15 +400,15 @@ history、网格、记忆长度和周期边界控件随模式变化。
 由共享 schema 检查组合。文件模型要求明确单位、坐标轴、符号、积分量约定和 reference beta，
 不会猜测未知外部文件约定。</p>
 </section>
-<section id="id8">
-<h2>电子云<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id9">
+<h2>电子云<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <p><strong>物理效应 → 电子云</strong> 提供 <strong>全局配置</strong>、<strong>插入电子云切片</strong> 和 <strong>电子云作用点</strong>。
 先建立命名配置、选择模式与求解器，再插入引用该配置的作用点。
 全局 <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> 与单点 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code> 必须同时开启。
 即使引用同一配置，各作用点也拥有独立电子云状态。
 界面写入 <a class="reference internal" href="electron_cloud.html"><span class="doc">电子云（ElectronCloud）</span></a> 描述的普通输入格式。</p>
-<table class="docutils align-default" id="id16">
-<caption><span class="caption-text">模式与求解器选择</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">模式与求解器选择</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 35.0%" />
@@ -441,8 +468,8 @@ JSON 或项目保存后重新打开，保留三种模式的参数及 <code class
 动态复制会比较规定物理时钟，不同时提供明确选择；冻结云复制无需选择时钟。
 复制输入定义不会转移运行中作用点的电子状态。</p>
 </section>
-<section id="id9">
-<h2>结果文件<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id10">
+<h2>结果文件<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
 <p>绘图页支持 CSV、TFS 和 DistMonitor 一维 HDF5 列。
 可同时载入多个文件，选择 beam/bunch/turn 快照，筛选存活/损失粒子和注入批次，
 查看配套参考量与未注入粒子计数。
@@ -531,8 +558,8 @@ CSV 与元数据文件应配套保留。</p>
 源光学已包含设计线性聚焦，显式插入的薄元件是附加作用，不会从源光学中扣除或替换
 设计聚焦。因此，附加线性误差仍可能改变跟踪工作点，而重采样的基础光学保持源工作点。</p>
 </section>
-<section id="id10">
-<h3>单圈传输<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<section id="id11">
+<h3>单圈传输<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <p>输入名称、周长 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和一组周期光学参数
 <span class="math notranslate nohighlight">\(\alpha_x,\alpha_y,\beta_x,\beta_y\)</span>，表单按此顺序排列。
 Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
@@ -547,8 +574,8 @@ Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
 其他模式生成的纵向相移为零。引擎的 matrix 模式还使用束团纵向尺寸和动量展宽，
 drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="reference internal" href="twiss.html"><span class="doc">Twiss 参数输运（Twiss）</span></a>。</p>
 </section>
-<section id="id11">
-<h3>平滑近似<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<section id="id12">
+<h3>平滑近似<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p>输入 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、正的完整 tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和正整数 <strong>一圈分段数</strong>
 <span class="math notranslate nohighlight">\(N\)</span>。计算平滑近似 beta 时，不应只填写 tune 的小数部分，例如应输入
 9.47，而不是 0.47；表单标签标明了“完整工作点”：</p>
@@ -565,8 +592,8 @@ drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="ref
 标准平滑光学使用零 alpha；非零常数对应自定义传输矩阵序列。
 纵向模式与单圈表单一致。该入口仅生成 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令，不生成 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 计算点。</p>
 </section>
-<section id="id12">
-<h3>手动传输点与后续编辑<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<section id="id13">
+<h3>手动传输点与后续编辑<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
 <p>选择 <strong>插入 Twiss 传输点</strong> 可添加传输映射。一个命令描述两端之间的传输，
 因此表单分为 <strong>起点光学参数</strong>、<strong>终点光学参数</strong> 和 <strong>传输设置</strong>。
 <code class="docutils literal notranslate"><span class="pre">Mu</span></code> 为累计相位，单位为周（<span class="math notranslate nohighlight">\(2\pi\)</span>），不是弧度。</p>
@@ -574,18 +601,24 @@ drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="ref
 插入后或重新加载 JSON 后，在序列中选择生成的命令，逐个编辑两端参数。
 独立输入使用 <strong>保存 JSON</strong>，完整项目使用 <strong>保存项目</strong>。
 在 <strong>项目内容</strong> 中可以载入生成设置，重新预览和插入，不会自动覆盖已经手动修改的命令。</p>
-<p>Exciter 预览使用实际局部参考到达时间与连续 z： <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">T_start</span> <span class="pre">+</span> <span class="pre">elapsed</span> <span class="pre">-</span> <span class="pre">z/(beta*c)</span></code>，名义束团槽位不平移该预览。RF 命令属性使用 Components 列表配置规定的物理时间波形。</p>
+<p>Exciter 预览使用实际局部参考到达时间与连续 z： <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">T_start</span> <span class="pre">+</span> <span class="pre">elapsed</span> <span class="pre">-</span> <span class="pre">z/(beta*c)</span></code>。
+DDS 相位从共同启动时刻 <code class="docutils literal notranslate"><span class="pre">T_start</span></code> 积分频率，扫频回扫时保持连续。
+双频默认错开半个扫频周期，使用其他偏移时给出警告；名义束团槽位不平移该预览。
+两个 DDS 信号共用一个踢角设置。AM 与 FM 使用同一连续的粒子经过时间，
+归一化使用启动时的参考钟频率。角度作为归一化横向动量增量施加，
+不会随跟踪中的束流能量自动缩放。
+RF 命令属性使用 Components 列表配置规定的物理时间波形。</p>
 </section>
 </section>
-<section id="id13">
-<h2>工具<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id14">
+<h2>工具<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <p><strong>工具</strong> 提供束流参数计算器、共振线图、RF bucket、相空间绘制与发射度计算、
 磁铁参数换算、激励计算和数据格式转换。计算独立于当前模拟输入。
 离子与原子使用每核子动能 AMeV；A=0 的粒子使用每粒子动能 MeV。
 粒子质量取自随程序提供的评估质量数据。单位、公式、数据来源与操作见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。</p>
 </section>
-<section id="id14">
-<h2>主题与控件<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id15">
+<h2>主题与控件<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <p>顶部可选择深色、浅色或跟随系统的主题。窗口与侧栏尺寸、主题及执行序列的列设置
 保存在本机。拖动表头分隔线调整列宽，右键选择其他列；名称、Command 和位置列始终显示。
 执行序列按引擎的位置分箱和命令优先级排列，悬停位置列可查看完整数值。</p>
@@ -595,8 +628,8 @@ drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="ref
 <strong>还原</strong> 恢复原布局并保留草稿。下拉框通过单击选项改变选择；展开列表后的滚轮
 仅用于浏览选项。</p>
 </section>
-<section id="id15">
-<h2>帮助与本地文档<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<section id="id16">
+<h2>帮助与本地文档<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
 <p>主题按钮旁的 <strong>帮助</strong> 菜单提供 <strong>在线说明文档</strong> （中文 / English）、<strong>源代码</strong>、
 <strong>阅读本地文档</strong> （中文 / English）、<strong>重新编译本地文档</strong> 和 <strong>关于 PASS</strong>。
 网页链接和本地 HTML 均使用系统默认浏览器打开。</p>

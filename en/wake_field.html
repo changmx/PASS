@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Electron Cloud (ElectronCloud)" href="electron_cloud.html" />
+    <link rel="next" title="Bunch-by-bunch transverse feedback" href="transverse_feedback.html" />
     <link rel="prev" title="Transverse Field Solvers" href="field_solver.html" /> 
 </head>
 
@@ -102,6 +102,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#slice-coordinates-and-response-boundaries">Slice coordinates and response boundaries</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -144,6 +145,13 @@
 <h1>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> computes wake-induced energy and transverse momentum changes from a named longitudinal slice set. Each command represents one physical interaction point, with independent source history or modal state for each algorithm group. It supports analytic responses, temporal tables, and impedance spectra, using the same configuration on CPU and NVIDIA GPU.</p>
 <p>Execute a matching <a class="reference internal" href="slicer.html"><span class="doc">Longitudinal slicing (Slicer)</span></a> before the interaction point. Ordinary causal responses use continuous arrival times; conditions for periodic coasting-beam slices are given below. Response data must specify units, signs, normalization, and a velocity model. Regenerate slices after regrouping; emitted history retains its original physical times and widths. See <a class="reference internal" href="injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a> for coordinates.</p>
+<p>Several wake commands may reference the same named SliceSet while retaining
+independent wake histories. That set cannot also serve another physical module,
+such as BeamBeam. Input validation checks sharing and the Slicer’s <code class="docutils literal notranslate"><span class="pre">Purpose</span></code>
+together: wakes require <code class="docutils literal notranslate"><span class="pre">general</span></code> slices, even if no BeamBeam command reads
+the selected set. WakeField accepts only <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> or <code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> slicing;
+<code class="docutils literal notranslate"><span class="pre">collision_z</span></code> is not a laboratory arrival-time coordinate, even after the
+particles have returned from the collision frame.</p>
 <section id="shared-configuration-and-wake-points">
 <h2>Shared configuration and wake points<a class="headerlink" href="#shared-configuration-and-wake-points" title="Link to this heading"></a></h2>
 <p>The optional root-level <code class="docutils literal notranslate"><span class="pre">Wake</span> <span class="pre">field</span></code> block contains <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> (default true)
@@ -337,6 +345,15 @@ retained passage count, state bytes and fit errors. <code class="docutils litera
 <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> serialize/restore all groups and check a configuration
 fingerprint. These methods cover wake state only. <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> starts
 the location with zero field.</p>
+<p>For recursive/modal history, a checkpoint that has processed a nonempty source
+must contain the state of every component, its turn, and both history clocks.
+Missing or repeated components are rejected instead of resetting part of the
+field to zero. A fresh state, or a state that has processed only empty passages,
+may have no modes. The two clocks are not required to be numerically identical:
+conversion from a local GPU time origin can round their representations
+differently. Restored modal arrays use complex128; recursive resonator arrays
+use float64 and cannot contain a nonzero imaginary part. Failed validation
+leaves the current command state intact.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Executor.run(sim,</span> <span class="pre">sequences)</span></code> always starts at turn 0. Enabled WakeField
 commands must have no retained history at the start of a new run; call
 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> before reusing a WakeField command for a newly initialized
@@ -745,6 +762,12 @@ widths. Independent overlapping populations inside one batch are permitted.</p>
 <h2>Numerical precision and convergence<a class="headerlink" href="#numerical-precision-and-convergence" title="Link to this heading"></a></h2>
 <p>Particle coordinates may use float32 or float64; physical arrival times, source charge moments, responses, modal states, and energy/momentum conversions use float64. GPU summation order may differ, so CPU/GPU results require numerical tolerances. Float32 storage can still change slice membership near a boundary and accumulate long-term transport rounding.</p>
 <p>Equal-length z intervals are converted to time grids with the current bunch reference speed; changing that speed changes the time widths. The user controls Slicer update frequency. Check convergence independently in slice widths, response bandwidth, memory horizon, and time-grid spacing.</p>
+<p>Recursive/modal passage windows may touch. CPU and GPU allow floating-point
+roundoff at their shared boundary, treating a negative time step within that
+tolerance as zero; actual backwards passage ordering remains an error.
+With finite <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, bins entirely inside the horizon retain the
+model’s untruncated bin-average formula. Only bins crossing the horizon require
+a partial integral, and bins wholly beyond it contribute zero.</p>
 </section>
 <section id="physical-scope-and-conventions">
 <h2>Physical scope and conventions<a class="headerlink" href="#physical-scope-and-conventions" title="Link to this heading"></a></h2>
@@ -857,7 +880,7 @@ uses <code class="docutils literal notranslate"><span class="pre">causal_passage
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="field_solver.html" class="btn btn-neutral float-left" title="Transverse Field Solvers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="electron_cloud.html" class="btn btn-neutral float-right" title="Electron Cloud (ElectronCloud)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="transverse_feedback.html" class="btn btn-neutral float-right" title="Bunch-by-bunch transverse feedback" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

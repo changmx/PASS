@@ -404,8 +404,8 @@ longitudinal space-charge acceleration and general 3D finite-bunch fields are
 not included. Electron kinetic energy is not adjusted for space-charge
 voltage depression.
 
-Diagnostics, restart and IBS
-----------------------------
+Diagnostics, component state and IBS
+------------------------------------
 
 Selected calls append to one JSONL file per cooler under
 ``output/electron_cooler/beam<id>_<name>_<unique>.jsonl`` and update
@@ -419,10 +419,11 @@ includes macroparticle weight.
 Random streams are separated by beam, command name and bunch. Particles are
 gathered in stable tag order. NumPy random draws drive both backends, but
 floating-point trajectories need not be bit-identical.
-``state_dict()`` contains configuration identity, entropy, calls and RNG states.
-This is not a complete checkpoint: restore matching particles, reference state
-and execution boundary as well. Supported full joint checkpoints preserve
-cooler and IBS random state together.
+``state_dict()`` contains configuration identity, entropy, calls and RNG states;
+``load_state_dict()`` restores only this cooler's component state. Matching
+particles, reference state and execution boundary remain the caller's
+responsibility. These APIs do not provide a complete simulation restart;
+the tracking entry starts a new run from turn 0.
 
 Cooling--IBS balance requires IBS ``kinetic`` or ``binary`` tracking;
 ``bjorken_mtingwa`` only reports rates. Establish convergence in lattice

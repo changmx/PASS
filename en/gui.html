@@ -68,6 +68,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#structured-array-parameters">Structured array parameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#space-charge">Space charge</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transverse-feedback">Transverse feedback</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#wakefield">WakeField</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#electron-clouds">Electron clouds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#result-files">Result files</a></li>
@@ -103,6 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -433,7 +435,12 @@ The ES <strong>Hardware parameters</strong> (硬件参数) group labels V, VL, g
 septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.</p>
-<p>Exciter exposes tune/frequency selection and FM/AM-dependent fields.
+<p>Exciter uses a signed <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> amplitude, displayed in scientific
+notation such as <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>, and exposes tune/frequency selection and FM/AM-dependent
+fields. Voltage, gap and length are not element inputs; the Exciter tool converts
+between voltage and kick angle at a chosen reference particle and energy. New drafts
+default to tune mode, with <code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.47</span></code> and <code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.02</span></code>;
+existing frequency-mode inputs retain their Hz values.
 Quadrupole, Sextupole, Octupole and Multipole expose <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code> for normalized strengths from a physical-time TFS table.
 The <strong>Ramping</strong> group includes <strong>Generate / import ramping file</strong>. Successful
@@ -443,8 +450,46 @@ The generator supports rise–hold–fall templates and numeric table pasting;
 see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a> for the workflow.
 See <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">Magnet ramping</span></a>; other magnetic elements keep ramping disabled.</p>
 <p>Exciter previews evaluate particle time as <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">T_start</span> <span class="pre">+</span> <span class="pre">elapsed</span> <span class="pre">-</span> <span class="pre">z/(beta*c)</span></code>
-using continuous bunch-relative z and the local reference arrival time. Nominal
-bunch slots do not shift the preview.</p>
+using continuous bunch-relative z and the local reference arrival time. The DDS
+phases integrate frequency from the common startup at <code class="docutils literal notranslate"><span class="pre">T_start</span></code> and stay
+continuous at sweep resets. Dual mode defaults to a half-period sweep offset;
+a different offset produces a warning. Nominal bunch slots do not shift the preview.
+Both DDS signals use one shared kick-angle setting. AM uses the same continuous
+particle elapsed time as FM and the reference-clock frequency at startup for
+its normalization. The angle is applied as a normalized transverse momentum
+increment and is not rescaled with tracked beam energy.</p>
+</section>
+<section id="transverse-feedback">
+<h2>Transverse feedback<a class="headerlink" href="#transverse-feedback" title="Link to this heading"></a></h2>
+<p>The <strong>Transverse feedback</strong> component section provides <code class="docutils literal notranslate"><span class="pre">TransversePickup</span></code> and
+<code class="docutils literal notranslate"><span class="pre">TransverseFeedback</span></code>. Add the pickup first, then select its sequence name in
+the feedback’s <code class="docutils literal notranslate"><span class="pre">Pickup</span></code> field. Each pickup requires exactly one feedback.
+The feedback draft starts with zero coefficients and gain; enter the FIR
+coefficients, turn delay, gains and optional kick limits before tracking.
+Both nodes must be placed at actual transport boundaries. See
+<a class="reference internal" href="transverse_feedback.html"><span class="doc">Bunch-by-bunch transverse feedback</span></a> for phase conventions, filter design and diagnostics.</p>
+<p>In the feedback parameter form, <strong>Generate FIR coefficients…</strong>
+(<code class="docutils literal notranslate"><span class="pre">生成</span> <span class="pre">FIR</span> <span class="pre">系数…</span></code>) opens a coefficient generator. The referenced pickup’s
+<code class="docutils literal notranslate"><span class="pre">Plane</span></code> determines whether it designs x, y or both planes. Enter each plane’s
+tune and pickup-to-feedback phase independently; these inputs start blank and
+are not inferred from the machine configuration. Phase is in radians and is
+the signed phase difference within the same sequence turn numbering. It can
+be negative for an upstream feedback node; positions <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> do not determine
+it, and the turn delay must not be counted a second time in this phase.</p>
+<p>The planes share a design method, tap count and delay. Choose
+<code class="docutils literal notranslate"><span class="pre">minimum_norm</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">flat</span></code>; the GUI accepts 3–256 taps, with at
+least five for <code class="docutils literal notranslate"><span class="pre">flat</span></code>, and an integer delay of at least one turn. The
+256-tap maximum is a GUI limit, not a limit imposed by
+<code class="docutils literal notranslate"><span class="pre">design_feedback_fir</span></code>. Click <strong>Calculate and preview</strong> (<code class="docutils literal notranslate"><span class="pre">计算并预览</span></code>),
+inspect the result, then <strong>Fill draft</strong> (<code class="docutils literal notranslate"><span class="pre">填入草稿</span></code>). Invalid designs leave
+the parameter draft unchanged. A flat response is local to the chosen tune
+and does not establish closed-loop stability or select a gain.</p>
+<p>Filling the draft replaces the coefficient lists for all measured planes,
+clears coefficients for unmeasured planes and synchronizes <code class="docutils literal notranslate"><span class="pre">Delay</span> <span class="pre">turns</span></code>.
+Gains remain unchanged, including a zero initial gain. The generated arrays
+remain manually editable; click <strong>Apply</strong> or <strong>Insert</strong> to save the draft.
+The design inputs are temporary GUI controls: only the existing coefficient
+and delay fields are saved, with no new JSON fields or electronics model.</p>
 </section>
 <section id="wakefield">
 <h2>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h2>

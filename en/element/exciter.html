@@ -87,8 +87,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Exciter</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#parameter-list">Parameter List</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#per-particle-longitudinal-velocity">Per-particle longitudinal velocity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#kick-convention">Kick Convention</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#particle-arrival-time">Particle Arrival Time</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#frequency-input-modes">Frequency Input Modes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#excitation-modes">Excitation Modes</a></li>
@@ -112,6 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -153,8 +153,9 @@
              
   <section id="exciter">
 <h1>Exciter<a class="headerlink" href="#exciter" title="Link to this heading"></a></h1>
-<p>This module introduces the transverse exciter element <strong>Exciter</strong> in PASS, used to apply transverse momentum perturbations to the beam through time-varying electric fields. Exciters are widely used in tune measurement, beam instability studies, emittance growth, and other scenarios.</p>
-<p>The exciter in PASS is a <strong>thin lens element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changing only the particle’s transverse momentum (<span class="math notranslate nohighlight">\(p_x\)</span> or <span class="math notranslate nohighlight">\(p_y\)</span>), without changing position coordinates.</p>
+<p>This module introduces the transverse exciter element <strong>Exciter</strong> in PASS, used to apply a prescribed transverse kick waveform to the beam. Exciters are widely used in tune measurement, beam instability studies, emittance growth, and other scenarios.</p>
+<p>The exciter in PASS is a <strong>thin lens element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changing only the particle’s transverse momentum (<span class="math notranslate nohighlight">\(p_x\)</span> or <span class="math notranslate nohighlight">\(p_y\)</span>), without changing position coordinates.
+Its length is fixed internally and is not an input parameter.</p>
 <ul class="simple">
 <li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">exciter</span></code></p></li>
 <li><p>Core features:</p>
@@ -198,21 +199,14 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Longitudinal position of the element exit or zero-length action point.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
-<td><p>Element length (must be 0)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Enable</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
 <td><p>Exciter switch, options: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><ul class="simple">
@@ -222,7 +216,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation mode, options: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><ul class="simple">
@@ -232,7 +226,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation direction, options: <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -242,7 +236,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation start turn (inclusive)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -252,14 +246,14 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation end turn (exclusive)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
 <td><p>Aperture type (default <code class="docutils literal notranslate"><span class="pre">off</span></code>, available values in the Aperture chapter)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>m / rad</p></td>
@@ -269,8 +263,8 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </tbody>
 </table>
 </section>
-<section id="hardware-parameters">
-<h3>Hardware Parameters<a class="headerlink" href="#hardware-parameters" title="Link to this heading"></a></h3>
+<section id="kick-amplitude">
+<h3>Kick Amplitude<a class="headerlink" href="#kick-amplitude" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 17.0%" />
@@ -290,26 +284,12 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>V</p></td>
+<td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Finite signed peak voltage difference between the plates; positive V drives positive charges in the selected positive direction</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gap</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Finite positive plate gap</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plate_length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><p>m</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Finite nonnegative effective plate length; zero gives zero impulse</p></td>
+<td><p>Finite signed nominal kick amplitude shared by both DDS signals, applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.</p></td>
 </tr>
 </tbody>
 </table>
@@ -345,7 +325,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>Excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span>; <span class="math notranslate nohighlight">\(f_c = Q_{\text{excite}} \cdot f_0\)</span> is automatically computed at runtime</p></td>
+<td><p>Excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span>; <span class="math notranslate nohighlight">\(f_c(t) = Q_{\text{excite}} f_0(t)\)</span> uses the shared prescribed reference clock</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep_tune</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span></code></p></td>
@@ -355,7 +335,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>Sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>; <span class="math notranslate nohighlight">\(\Delta f = \Delta Q \cdot f_0\)</span> is automatically computed at runtime</p></td>
+<td><p>Sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>; <span class="math notranslate nohighlight">\(\Delta f(t) = \Delta Q f_0(t)\)</span> uses the shared prescribed reference clock</p></td>
 </tr>
 </tbody>
 </table>
@@ -395,7 +375,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </tr>
 </tbody>
 </table>
-<p><strong>Common frequency parameters</strong> (required for both modes):</p>
+<p><strong>Common frequency parameters</strong>:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 17.0%" />
@@ -422,12 +402,19 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Sweep period <span class="math notranslate nohighlight">\(T\)</span></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">FM</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_sweep_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dual</span> <span class="pre">sweep</span> <span class="pre">offset</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>fraction of T</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.5</span></code></p></td>
+<td><p>DDS1 sweep lead relative to DDS2, in [0, 1]. A value other than 0.5 produces a warning and is still used; this is not a sine phase offset.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FM</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>Hz</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Dual-frequency parameter <span class="math notranslate nohighlight">\(f_d\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Obsolete compatibility input, ignored. Dual mode warns if supplied and inconsistent with <span class="math notranslate nohighlight">\(1/T\)</span>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -470,22 +457,16 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_delta0</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">AM</span> <span class="pre">delta0</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
+<td><p>m</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Initial beam diffusion range</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_k_const</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">AM</span> <span class="pre">k</span> <span class="pre">const</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
+<td><p><span class="math notranslate nohighlight">\(\mathrm{m}^2\)</span></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Emittance growth coefficient</p></td>
+<td><p>Model normalization coefficient</p></td>
 </tr>
 </tbody>
 </table>
@@ -500,24 +481,21 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
 <section id="input-file-example">
 <h3>Input File Example<a class="headerlink" href="#input-file-example" title="Link to this heading"></a></h3>
-<p>The following example is taken from <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code>, using tune mode:</p>
+<p>The following example uses tune mode:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"Exciter_x"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Exciter"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"single_fm"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Direction"</span><span class="p">:</span><span class="w"> </span><span class="s2">"x"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Voltage (V)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Gap (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Plate length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Kick angle (rad)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-4</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Excite tune"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.44</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Sweep tune"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Period (s)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"FM dual frequency (Hz)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Dual sweep offset"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM t ext (s)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM r0 (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"AM delta0"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -539,8 +517,8 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <h3>Mode Selection Guide<a class="headerlink" href="#mode-selection-guide" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Tune measurement</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> is recommended; simple and effective, sweep covers the working point</p></li>
-<li><p><strong>Emittance growth study</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> is recommended; time-varying amplitude simulates adiabatic growth</p></li>
-<li><p><strong>Multi-tune-peak coverage</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> is recommended; dual-segment sweep produces a complex spectrum</p></li>
+<li><p><strong>Emittance growth study</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> supplies a time-varying excitation amplitude</p></li>
+<li><p><strong>Two DDS channels</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> sums two independent continuous-phase sweeps, offset by half a sweep period by default</p></li>
 <li><p><strong>Complex instability study</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> is recommended; the most complete excitation mode</p></li>
 </ul>
 </section>
@@ -550,68 +528,46 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <li><p><strong>Excitation tune</strong>: Set to the beam working point <span class="math notranslate nohighlight">\(Q_x\)</span> (horizontal) or <span class="math notranslate nohighlight">\(Q_y\)</span> (vertical)</p></li>
 <li><p><strong>Sweep tune</strong>: Depends on dispersion and tune spread; typically 0.01~0.05</p></li>
 <li><p><strong>Sweep period</strong>: Should be much larger than the revolution period <span class="math notranslate nohighlight">\(1/f_0\)</span> to ensure sufficient frequency resolution</p></li>
-<li><p><strong>Voltage</strong>: Determined by back-calculating from the required kick amplitude; typical values are in the hundreds to thousands of volts</p></li>
+<li><p><strong>Kick angle</strong>: Set the signed nominal amplitude in radians directly, or use the voltage-to-kick converter in <a class="reference internal" href="../gui_tools.html"><span class="doc">GUI tools</span></a> for a specified reference particle and energy</p></li>
 <li><p><strong>AM parameters</strong>: <span class="math notranslate nohighlight">\(r_0\)</span> and <span class="math notranslate nohighlight">\(\delta_0\)</span> should be of the same order of magnitude; <span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> is set according to the beam diffusion time scale</p></li>
 </ul>
 </section>
 </section>
-<section id="physical-derivation">
-<h2>Physical Derivation<a class="headerlink" href="#physical-derivation" title="Link to this heading"></a></h2>
-<p>The exciter consists of a pair of parallel plates with voltage <span class="math notranslate nohighlight">\(V\)</span> applied across them, plate gap <span class="math notranslate nohighlight">\(d\)</span>, and plate effective length <span class="math notranslate nohighlight">\(L\)</span>.</p>
-<p>The electric field strength is:</p>
+<section id="kick-convention">
+<h2>Kick Convention<a class="headerlink" href="#kick-convention" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(\theta_0=\text{Kick angle (rad)}\)</span>. The element applies a prescribed
+normalized transverse momentum increment, using the same nominal small-angle
+convention as <a class="reference internal" href="kicker.html"><span class="doc">Kicker</span></a>:</p>
 <div class="math notranslate nohighlight">
-\[E = \frac{V}{d}\]</div>
-<p>The force on a particle (charge <span class="math notranslate nohighlight">\(Q = Z \cdot e\)</span>, where <span class="math notranslate nohighlight">\(Z\)</span> is the charge number and <span class="math notranslate nohighlight">\(e\)</span> is the elementary charge) is:</p>
-<div class="math notranslate nohighlight">
-\[F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}\]</div>
-<p>The particle traverses the plates at velocity <span class="math notranslate nohighlight">\(v = \beta c\)</span>, with an interaction time of:</p>
-<div class="math notranslate nohighlight">
-\[\Delta t = \frac{L}{\beta c}\]</div>
-<p>Therefore the momentum increment is:</p>
-<div class="math notranslate nohighlight">
-\[\Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}\]</div>
-<p>The normalized kick (divided by the reference particle total momentum <span class="math notranslate nohighlight">\(P_0\)</span>) is:</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}\]</div>
-<p>Using the magnetic rigidity <span class="math notranslate nohighlight">\(B\rho = P_0 / |Q|\)</span>, this simplifies to:</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\]</div>
-<p>This form is uniformly applicable to proton beams (<span class="math notranslate nohighlight">\(Z=1, A=1\)</span>) and ion beams (<span class="math notranslate nohighlight">\(Z \neq A\)</span>), since <span class="math notranslate nohighlight">\(B\rho\)</span> already contains the charge-to-mass ratio information.</p>
+\[\Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
+<p>For an on-momentum paraxial reference particle, <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>,
+which gives the input its angle unit. This is not an exact geometric rotation
+by the same angle for every off-momentum or non-paraxial particle. The sign of
+<span class="math notranslate nohighlight">\(\theta_0\)</span> specifies the selected transverse kick direction. It already
+contains any intended charge-sign convention; tracking does not multiply it by
+charge sign, rigidity or a particle velocity factor.</p>
+<p>The configured coefficient stays fixed when beam energy changes. Particles
+with the same arrival time receive the same prescribed momentum increment,
+subject to the mode’s shared AM factor. Different arrival times sample different
+waveform phases and AM values. Tune-mode frequencies use the shared reference
+clock, not a separate oscillator frequency for each particle.</p>
+<p>This is a zero-length kick: x, y, z, dp and t0 do not change. It does not model
+transit through electrodes, longitudinal electromagnetic forces, energy exchange,
+fringe fields or transmission-line propagation. FM phases remain continuous
+across sweep resets. AM uses the same physical particle time measured from the
+common trigger. Invalid incident states or non-forward post-kick states are
+removed at this plane, preserving previous loss records. CPU and GPU use the
+same equations.</p>
+<section id="migrating-voltage-based-inputs">
+<h3>Migrating Voltage-Based Inputs<a class="headerlink" href="#migrating-voltage-based-inputs" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code>, <code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code> and <code class="docutils literal notranslate"><span class="pre">Plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code> are no longer Exciter
+inputs. Use the voltage-to-kick converter in <a class="reference internal" href="../gui_tools.html"><span class="doc">GUI tools</span></a> with the desired
+reference particle and energy, copy its signed result to <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code>,
+and remove the hardware fields and <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> from the Exciter configuration.
+The converter supplies the former nominal reference coefficient. A fixed input
+angle does not reproduce the old electric-field model’s per-particle velocity
+factor or its automatic amplitude change with reference energy.</p>
 </section>
-<section id="per-particle-longitudinal-velocity">
-<h2>Per-particle longitudinal velocity<a class="headerlink" href="#per-particle-longitudinal-velocity" title="Link to this heading"></a></h2>
-<p>The reference-speed expression above sets the normalization only. The applied
-effective impulse uses each particle’s incident longitudinal velocity:</p>
-<div class="math notranslate nohighlight">
-\[A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
-R_i=\frac{\beta_0c}{v_{s,i}}
-   =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-         {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},\]</div>
-<div class="math notranslate nohighlight">
-\[A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).\]</div>
-<p>Here <span class="math notranslate nohighlight">\(u=x\)</span> or <span class="math notranslate nohighlight">\(y\)</span> is the selected direction, <span class="math notranslate nohighlight">\(\delta_i\)</span> is
-<code class="docutils literal notranslate"><span class="pre">dp</span></code>, and all particle quantities in <span class="math notranslate nohighlight">\(R_i\)</span> are evaluated before the kick.
-<span class="math notranslate nohighlight">\(A_0\)</span> is the signed reference coefficient; <span class="math notranslate nohighlight">\(A_i\)</span> is the signed
-per-particle coefficient used in all four mode formulas below. For
-<span class="math notranslate nohighlight">\(\delta_i=p_{x,i}=p_{y,i}=0\)</span>, <span class="math notranslate nohighlight">\(R_i=1\)</span>; this is the fixed reference
-state used by the GUI signal preview.</p>
-<p>V is the signed peak interplate voltage difference; B*rho is the positive
-reference rigidity magnitude. Positive V drives positive charges in the selected
-positive transverse direction. The charge sign is applied explicitly. No extra
-division by (1+delta) is appropriate for momenta normalized by P0.
-The same law applies to coasting and bunched particles. Different arrival times
-already sample different waveform phases; the velocity factor additionally
-changes their amplitudes. Tune-mode frequencies use the reference revolution
-frequency, not a separate oscillator frequency for each particle.</p>
-<p>This remains a zero-length effective transverse kick: x, y, z, dp and t0 do not
-change. It freezes the incident speed and samples the waveform at the element
-plane. It does not integrate the waveform through the physical plate length or
-model longitudinal electromagnetic forces, energy exchange, fringe fields or
-transmission-line propagation. Single-time sampling requires little waveform
-variation during the transit (for a sinusoid, <span class="math notranslate nohighlight">\(\omega L/v_s\ll1\)</span>).
-The existing FM phase-period rule and turn-stepped AM envelope are retained.
-Invalid incident states or non-forward post-kick states are removed at this
-plane, preserving previous loss records. CPU and GPU use the same equations.</p>
 </section>
 <section id="particle-arrival-time">
 <h2>Particle Arrival Time<a class="headerlink" href="#particle-arrival-time" title="Link to this heading"></a></h2>
@@ -620,19 +576,33 @@ location. The continuous coordinate is <span class="math notranslate nohighlight
 Exciter directly evaluates <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span> without adding
 nominal slot offsets or folding stored z. Different arrival times sample
 different signal phases. Scaling z when RF changes the reference velocity
-preserves this time; see <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>. The excitation waveform’s
-own periodic-reduction rule is unchanged.</p>
+preserves this time; see <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+<p>All bunches sample one waveform with a common trigger time <span class="math notranslate nohighlight">\(t_*\)</span>.
+For the shared prescribed clock <span class="math notranslate nohighlight">\(f_0(t)\)</span>, the trigger is the time at which
+its accumulated turns reach <span class="math notranslate nohighlight">\(n_{\rm start}+s/C\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
+\qquad u_i=t_i-t_*.\]</div>
+<p>Both DDS phases start at zero at <span class="math notranslate nohighlight">\(u=0\)</span>; arrivals before the trigger receive
+zero excitation. The existing <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> command gate also
+applies. Only the sweep position is reduced modulo <span class="math notranslate nohighlight">\(T\)</span>; accumulated phase
+is not reset. Changing the absolute time origin does not change this waveform.</p>
 </section>
 <section id="frequency-input-modes">
 <h2>Frequency Input Modes<a class="headerlink" href="#frequency-input-modes" title="Link to this heading"></a></h2>
 <p>The exciter’s center frequency <span class="math notranslate nohighlight">\(f_c\)</span> and sweep width <span class="math notranslate nohighlight">\(\Delta f\)</span> support two input methods:</p>
 <p><strong>Tune mode</strong> (recommended)</p>
-<p>Directly input the excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> and sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>; the program automatically computes the frequencies at runtime based on beam parameters:</p>
+<p>Directly input the excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> and sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>.
+The program uses the beam’s shared prescribed reference-clock frequency:</p>
 <div class="math notranslate nohighlight">
-\[f_c = Q_{\text{excite}} \cdot f_0\]</div>
+\[f_c(t) = Q_{\text{excite}} \cdot f_0(t)\]</div>
 <div class="math notranslate nohighlight">
-\[\Delta f = \Delta Q \cdot f_0\]</div>
-<p>In this mode, there is no need to manually compute frequencies, and it automatically adapts to beams of different energies and circumferences. <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> must be provided as a pair.</p>
+\[\Delta f(t) = \Delta Q \cdot f_0(t)\]</div>
+<p>The prescribed clock is independent of tracked bunch energy changes. Its default
+is the initial reference revolution frequency; a <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> table can
+prescribe a ramp. Phase integrates the instantaneous frequency over physical
+time, including clock ramps; it is not computed as the current frequency times
+elapsed time. <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> must be provided as a pair.</p>
 <p><strong>Frequency mode</strong></p>
 <p>Directly input the center frequency and sweep width (in Hz), suitable for scenarios requiring precise frequency control. <code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code> must be provided as a pair.</p>
 <div class="admonition note">
@@ -666,78 +636,107 @@ own periodic-reduction rule is unchanged.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code></p></td>
 <td><p>Single-segment sweep</p></td>
 <td><p>Time-varying amplitude</p></td>
-<td><p>Sweep + amplitude adiabatic growth</p></td>
+<td><p>Sweep + time-varying amplitude</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm</span></code></p></td>
-<td><p>Dual-segment sweep</p></td>
+<td><p>Two DDS sweeps</p></td>
 <td><p>Constant amplitude</p></td>
-<td><p>Complex spectral coverage</p></td>
+<td><p>Sum of two independent continuous phases</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
-<td><p>Dual-segment sweep</p></td>
+<td><p>Two DDS sweeps</p></td>
 <td><p>Time-varying amplitude</p></td>
-<td><p>The most complex excitation mode</p></td>
+<td><p>Two DDS signals with the same AM factor</p></td>
 </tr>
 </tbody>
 </table>
 <section id="frequency-modulation-fm-dimension">
 <h3>Frequency Modulation (FM) Dimension<a class="headerlink" href="#frequency-modulation-fm-dimension" title="Link to this heading"></a></h3>
 <p><strong>Single-segment linear sweep (single)</strong></p>
-<p>Within one period <span class="math notranslate nohighlight">\(T\)</span>, the phase is:</p>
+<p>Let <span class="math notranslate nohighlight">\(u=t-t_*\)</span> be elapsed time from the common trigger and
+<span class="math notranslate nohighlight">\(\tau=u\bmod T\)</span>. For constant center frequency and width, the phase is:</p>
 <div class="math notranslate nohighlight">
-\[\theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\]</div>
-<p>where <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span> is the intra-period time, <span class="math notranslate nohighlight">\(f_c\)</span> is the center frequency, and <span class="math notranslate nohighlight">\(\Delta f\)</span> is the sweep width.</p>
+\[\phi_2(u) = 2\pi f_c u + \frac{\pi \Delta f}{T}\tau(\tau-T).\]</div>
+<p>The carrier term uses the full elapsed time <span class="math notranslate nohighlight">\(u\)</span>, so crossing a sweep
+boundary does not clear phase.</p>
 <p>The instantaneous frequency is:</p>
 <div class="math notranslate nohighlight">
-\[f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)\]</div>
+\[f_s(u)=f_c+\Delta f\left(\frac{u\bmod T}{T}-\frac12\right).\]</div>
 <ul class="simple">
 <li><p>At <span class="math notranslate nohighlight">\(\tau = 0\)</span>: <span class="math notranslate nohighlight">\(f = f_c - \Delta f / 2\)</span> (start frequency)</p></li>
 <li><p>At <span class="math notranslate nohighlight">\(\tau = T/2\)</span>: <span class="math notranslate nohighlight">\(f = f_c\)</span> (center frequency)</p></li>
-<li><p>At <span class="math notranslate nohighlight">\(\tau = T\)</span>: <span class="math notranslate nohighlight">\(f = f_c + \Delta f / 2\)</span> (end frequency)</p></li>
+<li><p>As <span class="math notranslate nohighlight">\(\tau\to T^-\)</span>: <span class="math notranslate nohighlight">\(f\to f_c+\Delta f/2\)</span>; at the reset it returns to the start frequency</p></li>
 </ul>
 <p>The frequency sweeps linearly over <span class="math notranslate nohighlight">\([f_c - \Delta f/2,\; f_c + \Delta f/2]\)</span>, repeating every <span class="math notranslate nohighlight">\(T\)</span> seconds. The center frequency <span class="math notranslate nohighlight">\(f_c\)</span> should be close to <span class="math notranslate nohighlight">\(Q \cdot f_0\)</span> (tune times revolution frequency) to cover the beam’s resonance frequency.</p>
-<p><strong>Dual-segment sweep (dual)</strong></p>
-<p>One period is divided into first and second halves, each using a different phase formula, and a cosine envelope <span class="math notranslate nohighlight">\(2\cos(\frac{\pi}{2}\Delta f \cdot \tau)\)</span> is introduced:</p>
-<p>First half <span class="math notranslate nohighlight">\([0,\; T/2]\)</span>:</p>
+<p><strong>Two DDS sweeps (dual)</strong></p>
+<p>Each DDS traverses the full sweep width and keeps its identity after frequencies
+cross. With <span class="math notranslate nohighlight">\(\alpha=\text{Dual sweep offset}\)</span> and <span class="math notranslate nohighlight">\(\delta=\alpha T\)</span>:</p>
 <div class="math notranslate nohighlight">
-\[\theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau\]</div>
-<p>Second half <span class="math notranslate nohighlight">\([T/2,\; T]\)</span>:</p>
+\[f_1(u)=f_s(u+\delta),\qquad f_2(u)=f_s(u),
+\qquad S(x)=f_cx+\frac{\Delta f}{2T}(x\bmod T)((x\bmod T)-T),\]</div>
 <div class="math notranslate nohighlight">
-\[\theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)\]</div>
-<p>where <span class="math notranslate nohighlight">\(f_d\)</span> is the dual-frequency parameter. The cosine envelope is maximum (<span class="math notranslate nohighlight">\(2A\)</span>) at <span class="math notranslate nohighlight">\(\tau = 0\)</span> and decays over time, reducing discontinuities at period boundaries. The dual-segment phase formula produces a more complex spectral structure, capable of simultaneously covering multiple tune peaks.</p>
+\[\phi_1(u)=2\pi[S(u+\delta)-S(\delta)],\qquad
+\phi_2(u)=2\pi S(u).\]</div>
+<p>The subtraction makes both initial phases zero for any sweep offset. The default
+<span class="math notranslate nohighlight">\(\alpha=0.5\)</span> means DDS1 resets at half-period and DDS2 at full-period; it
+does not impose a half-cycle sine phase difference. A different offset produces
+a warning and remains valid. The two signals are added directly, with a peak
+bound of <span class="math notranslate nohighlight">\(2|\theta_0|\)</span> before AM. There is no separate imposed cosine envelope.
+Both signals use the single <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> setting and the same AM factor;
+there are no separate channel amplitudes or automatic division by two.</p>
+<p>For a time-dependent tune-mode clock the general definition is used instead:</p>
+<div class="math notranslate nohighlight">
+\[f_j(t_*+u)=f_0(t_*+u)
+   \left[Q_{\rm excite}+\Delta Q
+   \left(\frac{(u+\delta_j)\bmod T}{T}-\frac12\right)\right],
+\qquad \phi_j(u)=2\pi\int_0^u f_j(t_*+v)\,dv,
+\qquad (\delta_1,\delta_2)=(\alpha T,0).\]</div>
+<p>This continuous waveform model does not implement hardware sample-and-hold steps.</p>
 </section>
 <section id="amplitude-modulation-am-dimension">
 <h3>Amplitude Modulation (AM) Dimension<a class="headerlink" href="#amplitude-modulation-am-dimension" title="Link to this heading"></a></h3>
 <p><strong>Constant amplitude</strong></p>
 <div class="math notranslate nohighlight">
-\[A_i(t) = A_i = A_0R_i\]</div>
-<p>No time-varying AM envelope is applied. The signed coefficient still includes
-the incident velocity factor and can differ between particles or passages.</p>
+\[A(u) = \theta_0\]</div>
+<p>No time-varying AM envelope is applied. The signed coefficient is the fixed
+configured kick angle, independent of particle velocity or reference energy.</p>
 <p><strong>Time-varying amplitude (am)</strong></p>
-<p>Based on a beam diffusion/growth model, the excitation amplitude grows over time:</p>
+<p>Based on a beam diffusion/growth model, the excitation amplitude varies over time; it need not increase monotonically:</p>
 <div class="math notranslate nohighlight">
-\[A_i(t) = A_i \cdot \text{am\_factor}(t)\]</div>
-<p>where <span class="math notranslate nohighlight">\(\text{am\_factor}(t)\)</span> is a dimensionless time-varying scaling factor:</p>
+\[A(u) = \theta_0 \cdot \text{am\_factor}(u)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\text{am\_factor}(u)\)</span> is a dimensionless time-varying scaling factor:</p>
 <div class="math notranslate nohighlight">
-\[\text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}\]</div>
-<p>where <span class="math notranslate nohighlight">\(t = n_{\text{eff}} / f_0\)</span> is the real time (seconds) since the start of excitation, and <span class="math notranslate nohighlight">\(n_{\text{eff}}\)</span> is the effective excitation turn number.</p>
+\[\text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}\]</div>
+<p>The AM argument is the same physical elapsed time as FM,
+<span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span>. It is evaluated continuously, including each particle’s
+arrival offset, without rounding to a turn. The fixed normalization frequency
+<span class="math notranslate nohighlight">\(f_{0,*}=f_0(t_*)\)</span> comes from the shared prescribed reference clock at
+startup; it does not follow tracked bunch energy changes or subsequent clock
+ramps. AM is zero before startup.</p>
 <p>Initial emittance fraction:</p>
 <div class="math notranslate nohighlight">
 \[\varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)\]</div>
-<p>Time-varying emittance squared:</p>
+<p>Auxiliary diffusion quantity in the AM model:</p>
 <div class="math notranslate nohighlight">
-\[\delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
+\[\delta^2(u) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
 <p>where:</p>
 <div class="math notranslate nohighlight">
-\[L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
+\[L = \ln\!\left(\frac{u}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
 <div class="math notranslate nohighlight">
-\[D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)\]</div>
+\[D = t_{\text{ext}} \cdot \varepsilon + u (1 - \varepsilon)\]</div>
+<p>With lengths in metres and times in seconds, <span class="math notranslate nohighlight">\(\delta^2(u)\)</span> has units
+<span class="math notranslate nohighlight">\(\mathrm{m}^2/\mathrm{s}\)</span> and <span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> has units
+<span class="math notranslate nohighlight">\(\mathrm{m}^2\)</span>, making <span class="math notranslate nohighlight">\(\text{am\_factor}\)</span> dimensionless.</p>
+<p>The diffusion law is unchanged and diverges at <span class="math notranslate nohighlight">\(u=t_{\text{ext}}\)</span>.
+Choose an excitation window that keeps particle elapsed times below this limit.
+The GUI rejects previews reaching it; input validation warns about reference
+windows reaching it. Tracking does not add an amplitude cutoff.</p>
 <p>Physical meaning:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(r_0\)</span>: Initial beam size</p></li>
 <li><p><span class="math notranslate nohighlight">\(\delta_0\)</span>: Initial beam diffusion range</p></li>
 <li><p><span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span>: Beam diffusion characteristic time</p></li>
-<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span>: Emittance growth coefficient</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span>: Model normalization coefficient</p></li>
 <li><p><span class="math notranslate nohighlight">\(\varepsilon\)</span>: Initial emittance fraction (a measure of the <span class="math notranslate nohighlight">\(r_0 / \delta_0\)</span> ratio)</p></li>
 </ul>
 <p>This prescribed AM envelope is intended for transverse excitation and diffusion
@@ -749,38 +748,29 @@ the lattice and the sampled excitation phases.</p>
 <section id="complete-formulas-for-each-mode">
 <h2>Complete Formulas for Each Mode<a class="headerlink" href="#complete-formulas-for-each-mode" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>single_fm</strong> (single-segment sweep + constant amplitude)</p></li>
+<li><p><strong>single_fm</strong> (one DDS + constant amplitude)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+\[\text{kick}_i=\theta_0\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="2">
-<li><p><strong>single_fm_am</strong> (single-segment sweep + time-varying amplitude)</p></li>
+<li><p><strong>single_fm_am</strong> (one DDS + time-varying amplitude)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="3">
-<li><p><strong>dual_fm</strong> (dual-segment sweep + constant amplitude)</p></li>
+<li><p><strong>dual_fm</strong> (two DDS channels + constant amplitude)</p></li>
 </ol>
-<p>First half (<span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span>):</p>
 <div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
-<p>Second half (<span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span>):</p>
-<div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+\[\text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
 <ol class="arabic simple" start="4">
-<li><p><strong>dual_fm_am</strong> (dual-segment sweep + time-varying amplitude)</p></li>
+<li><p><strong>dual_fm_am</strong> (two DDS channels + time-varying amplitude)</p></li>
 </ol>
-<p>First half (<span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span>):</p>
 <div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
-<p>Second half (<span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span>):</p>
-<div class="math notranslate nohighlight">
-\[\text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
-<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(\tau=t_i\bmod T\)</span> and <span class="math notranslate nohighlight">\(A_i=A_0R_i\)</span> as
-defined above. The AM argument is the turn-based time
-<span class="math notranslate nohighlight">\(t=n_{\rm eff}/f_0\)</span>; it is distinct from the particle arrival time
-<span class="math notranslate nohighlight">\(t_i\)</span>. These are the final normalized kicks, including both the charge
-sign and the incident velocity factor; neither factor is applied a second time.</p>
+\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
+<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span> and <span class="math notranslate nohighlight">\(\theta_0\)</span> is the
+configured signed kick angle. The kick is zero for <span class="math notranslate nohighlight">\(u_i&lt;0\)</span>. FM and AM
+sample the same physical elapsed time <span class="math notranslate nohighlight">\(u_i\)</span>. These are the final normalized
+momentum increments; tracking applies no additional amplitude conversion.</p>
 </section>
 <section id="kick-application">
 <h2>Kick Application<a class="headerlink" href="#kick-application" title="Link to this heading"></a></h2>

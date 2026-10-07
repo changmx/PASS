@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
@@ -103,7 +104,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#bounded-buffering-and-completion">Bounded buffering and completion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#hdf5-arrays-and-injection-data">HDF5 arrays and injection data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tfs-long-table">TFS long table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#reading-checkpoints-and-interpretation">Reading, checkpoints and interpretation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-component-snapshots-and-interpretation">Reading, component snapshots and interpretation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
@@ -490,10 +491,11 @@ valid; a repeated finalization retries cleanup only. Cleanup is restricted to
 temporary files created by this monitor in the current run.
 If an exception arrives after the final hard link was created, file identity
 is checked to recognize the successful publication. Repeated finalization then
-retries cleanup only, including when restoring an already completed checkpoint.</p>
+retries cleanup only, including for a restored component snapshot whose output
+was already completed.</p>
 </section>
-<section id="reading-checkpoints-and-interpretation">
-<h2>Reading, checkpoints and interpretation<a class="headerlink" href="#reading-checkpoints-and-interpretation" title="Link to this heading"></a></h2>
+<section id="reading-component-snapshots-and-interpretation">
+<h2>Reading, component snapshots and interpretation<a class="headerlink" href="#reading-component-snapshots-and-interpretation" title="Link to this heading"></a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">PASS.analysis.read_dynamic_aperture(path)</span></code> for DA, or
 <code class="docutils literal notranslate"><span class="pre">PASS.analysis.data_io.load_signal(path,</span> <span class="pre">&quot;x&quot;,</span> <span class="pre">object_range=[0,</span> <span class="pre">10])</span></code> for
 selected trajectories. These readers identify actual turns, particle IDs and
@@ -501,18 +503,19 @@ initial versus trajectory records. Spectral loading rejects lost or unavailable
 samples. Multidimensional PM HDF5 files cannot be passed to the ordinary
 one-dimensional <code class="docutils literal notranslate"><span class="pre">read_table</span></code> interface. DA and trajectory readers accept
 one current PM file, containing its own captured injection coordinates.</p>
-<p>Collision checkpoints capture both the already written monitor file and the
-pending block, together with injection data. Resuming writes a new output file
-containing the preceding history; it does not depend on the old output path.
-Checkpoint creation temporarily needs memory for the saved file bytes in
-addition to the normal bounded history buffer.
-PM checkpoint payloads use <code class="docutils literal notranslate"><span class="pre">PASS-particle-monitor-state-2</span></code> and identify
-whether their saved file bytes are runtime HDF5 or finalized TFS. Only this
-current checkpoint version is supported.
-If an early-stopped run has already exported a partial TFS history, resuming
-reconstructs the private HDF5 history before appending new samples. The final
-TFS then contains both intervals, including new samples buffered until the
-last requested turn.</p>
+<p><code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> captures only this monitor’s state: the already written file,
+pending block and injection data. <code class="docutils literal notranslate"><span class="pre">stage_checkpoint(data,</span> <span class="pre">next_turn,</span> <span class="pre">xp)</span></code>
+validates that component snapshot and returns detached state for a caller to
+install. These low-level APIs do not restore particles, references, the
+simulation turn or other commands. The tracking entry starts a new run from
+turn 0 and does not provide a continuation workflow for these snapshots.</p>
+<p>Snapshot creation temporarily needs memory for the saved file bytes in
+addition to the normal bounded history buffer. The component payload uses
+<code class="docutils literal notranslate"><span class="pre">PASS-particle-monitor-state-2</span></code> and identifies whether the saved bytes are
+runtime HDF5 or finalized TFS; only this version is supported. The monitor’s
+output-restoration machinery preserves preceding history in a new file without
+depending on the old output path. It reconstructs private HDF5 storage from a
+TFS snapshot before appending further samples.</p>
 <p>Absent particles have zero tags, for example before injection. Select samples
 using their tag and loss fields; frozen loss coordinates cannot be interpreted
 using a later live-bunch reference. Place the monitor after all relevant

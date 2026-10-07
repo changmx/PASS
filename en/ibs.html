@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Intrabeam Scattering (IBS)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#choosing-a-method">Choosing a method</a></li>
@@ -661,10 +662,11 @@ number convergence.</p>
 <p>Random streams belong to a particular beam, command and bunch. A fixed seed
 provides reproducible initialization under the same execution conditions.
 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> and <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> save and restore IBS random-stream
-state and execution counters. They are an IBS component checkpoint, not a
-complete simulation restart: particles, reference state, turn, slicing and
-other collective state must match. CPU/GPU floating-point arithmetic may
-produce different trajectories; validate statistical agreement between backends.
+state and execution counters. These component APIs require matching particles,
+reference state, turn, slicing and other collective state; they do not provide
+a complete simulation restart. The tracking entry starts a new run from turn 0.
+CPU/GPU floating-point arithmetic may produce different trajectories; validate
+statistical agreement between backends.
 Use <code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Precision=&quot;float64&quot;</span></code> when resolving small IBS momentum
 increments; float32 storage can round small updates away.
 The diagnostic flags, turn selection and Coulomb-log note are excluded from

@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Beam-Beam Interaction (BeamBeam)</a><ul>
@@ -114,7 +115,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#floatwaister-parameters-and-strength-convention">FloatWaister parameters and strength convention</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#checkpoint-at-a-common-turn-boundary">Checkpoint at a common turn boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-initialization-and-stopping">Run initialization and stopping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#implementation-and-validation-scope">Implementation and validation scope</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#theory-references">Theory references</a></li>
 </ul>
@@ -1303,36 +1304,14 @@ traveling-waist model separately from the sextupole crab-waist scheme used
 with crossing-angle collisions.</p>
 </section>
 </section>
-<section id="checkpoint-at-a-common-turn-boundary">
-<h2>Checkpoint at a common turn boundary<a class="headerlink" href="#checkpoint-at-a-common-turn-boundary" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">capture_collision_state(sim,</span> <span class="pre">sequences)</span></code> and
-<code class="docutils literal notranslate"><span class="pre">restore_collision_state(sim,</span> <span class="pre">sequences,</span> <span class="pre">state)</span></code> are provided in
-<code class="docutils literal notranslate"><span class="pre">PASS.commands.beam_beam</span></code>. The checkpoint is an owned Python dictionary
-containing NumPy arrays; these functions do not define a file format.
-Capture requires a complete common turn in ordinary PASS coordinates, finished
-Injection batches and successfully flushed monitor output. Save both beams
-together: the state includes particles, bunch reference quantities, the
-prescribed clock, collision counts, completed injection state, wake history,
-enabled frozen or dynamic electron-cloud states and particle/tune-monitor
-accumulation required for continuation.</p>
-<p>Restore validates the full input/sequence fingerprint, array layout, physical
-references and command state before modifying either beam. It invalidates
-slice results and rebuilds disposable field resources. Execution resumes at
-<code class="docutils literal notranslate"><span class="pre">sim.state.next_turn</span></code> and continues to <code class="docutils literal notranslate"><span class="pre">cfg.num_turn</span></code>. Restoring only the
-coordinator’s <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> is not a complete simulation restart.</p>
-<p>Existing output files are not included or rewound. A new output directory does
-not acquire historical StatMonitor or completed tune-window files; an output
-directory already containing turns beyond the saved boundary must not be
-mixed with resumed output. Device failure during the final restore commit
-cannot be rolled back automatically.</p>
-<p>For enabled luminosity output, the checkpoint additionally preserves each
-recorder’s initial references, output format and last committed turn. Restore
-requires matching existing table history in that format, including schema,
-metadata, complete pair rows and the
-output watermark. Missing, duplicated, truncated or newer history is rejected;
-restore does not synthesize history, overwrite an existing run or silently
-change the reference luminosity. The checkpoint retains each luminosity output
-path; changing the simulation’s output directory does not relocate this history.</p>
+<section id="run-initialization-and-stopping">
+<h2>Run initialization and stopping<a class="headerlink" href="#run-initialization-and-stopping" title="Link to this heading"></a></h2>
+<p>Each tracking run starts at turn 0 from the configured initial conditions.
+A stop request is honored at a common completed-turn boundary, then buffered
+output is finalized. A new run requires a newly initialized simulation and
+commands. Beam-beam tracking does not provide a joint checkpoint or a workflow
+for continuing a stopped run. Component state snapshots exposed by other
+commands do not restore the complete simulation.</p>
 </section>
 <section id="implementation-and-validation-scope">
 <h2>Implementation and validation scope<a class="headerlink" href="#implementation-and-validation-scope" title="Link to this heading"></a></h2>

@@ -73,9 +73,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#rf-bucket">RF bucket 绘制</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id6">相空间绘制及发射度计算</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id7">磁铁参数换算</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">激励计算与绘制</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">激励计算与绘制</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id9">电压与踢角换算</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#gui-data-conversion-zh">数据格式转换</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id10">尾场数据导入</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">尾场数据导入</a></li>
 </ul>
 </li>
 </ul>
@@ -98,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transverse_feedback.html">逐束团横向反馈</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
@@ -272,7 +276,8 @@ Ek=0 时不能由功率唯一反算电流。</p></li>
 <p>RF bucket、发射度、磁铁、激励页各有独立的参考粒子和 Ek。
 <strong>读取束流计算器</strong> 显式复制有效的粒子类型与当前 Ek，源输入无效时不覆盖，不持续联动。
 RF 需要质量、电荷、能量来求滑移因子、bucket 高度和频率；发射度归一化需要相对论 beta×gamma；
-磁铁和激励计算需要磁刚度或速度，所以这些参考输入予以保留。</p>
+磁铁计算需要磁刚度或速度；激励页使用速度计算到达时间和 tune 换算，
+可选的电压与踢角双向换算还需要磁刚度，所以这些参考输入予以保留。</p>
 <p>图支持 SVG/PNG/PDF 和列名注明单位的 CSV 导出。
 发射度与激励页将参数、结果放在右侧同一竖向滚动栏，左侧保留图形。
 公式在独立窗口查看。</p>
@@ -412,34 +417,72 @@ G=dBy/dx，焦距为薄透镜估算。</p></li>
 <section id="id8">
 <h2>激励计算与绘制<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <p>对应 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/exciter.py</span></code> 中的 single_fm、single_fm_am、dual_fm、dual_fm_am。
-输入带符号极板间峰值电压差、间距、有效长、周长、激励 tune 或频率、扫频全宽、周期以及原模型的双频/AM 参数。
-切换 tune/频率输入方式时保留实际中心频率和宽度。</p>
+输入以 rad 为单位的带符号名义踢角、周长、激励 tune 或频率、扫频全宽、周期、双路扫频偏移（默认 0.5 个周期）及 AM 参数。
+默认使用 tune 模式；切换 tune/频率输入方式时保留实际中心频率和宽度。
+参数按参考束流、激励波形、AM 和采样窗口平铺显示。
+角度输入、数值结果、图轴和摘要均使用 rad，以 <code class="docutils literal notranslate"><span class="pre">1e-6</span></code> 形式的科学计数法显示。</p>
 <div class="math notranslate nohighlight">
-\[A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0 cB\rho},\quad f_c=Q_{excite}f_0,\quad
+\[\theta_0=\text{Kick angle (rad)},\quad f_c=Q_{excite}f_0,\quad
 \Delta f=\Delta Q f_0,\quad
 t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.\]</div>
-<p>不添加名义束团槽位偏移，z 不折叠；仅波形内部将到达时间对扫频周期取余。
-<span class="math notranslate nohighlight">\(B\rho\)</span> 为正磁刚度幅值，电荷符号显式计入。
-电荷或电压反号使偏转角反号，包络和频谱仍显示幅值大小。
-电压或极板有效长为零时冲量为零。
-单频相位为 <code class="docutils literal notranslate"><span class="pre">phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T</span></code>；双频使用 Exciter 的两段相位和
-<code class="docutils literal notranslate"><span class="pre">2*cos(pi*df*tau/2)</span></code> 包络，无 AM 时其幅值可达 <span class="math notranslate nohighlight">\(2|A_0|\)</span> 。
-详细公式窗口列出两段相位导数和完整 AM 公式。</p>
-<p>预览固定 <span class="math notranslate nohighlight">\(\delta=p_x=p_y=0\)</span> ，因此跟踪中的速度因子
-<span class="math notranslate nohighlight">\(R_i=\beta_0c/v_{s,i}\)</span> 为 1；所设 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 只改变到达相位。
-实际跟踪使用逐粒子系数 <span class="math notranslate nohighlight">\(A_i=A_0R_i\)</span> ，见 <a class="reference internal" href="element/exciter.html"><span class="doc">激励器（Exciter）</span></a> 。
-偏转角显示和 CSV 角度单位采用近轴参考粒子近似 <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span> 。</p>
-<p>AM 按有效圈 <code class="docutils literal notranslate"><span class="pre">floor(t_elapsed*f0)</span></code> 更新，并在 t_ext 发散，绘图窗口必须在 t_ext 前结束。
+<p>不添加名义束团槽位偏移，z 不折叠。波形使用 <span class="math notranslate nohighlight">\(u=t_{arrive}-t_{0,start}\)</span>，
+两个 DDS 都从零相位启动，启动前信号为零；只有扫频进度对周期取余，累计相位保持连续。
+输入踢角反号使波形反号，包络和频谱仍显示幅值大小；输入踢角为零时冲量为零。
+单频相位为 <code class="docutils literal notranslate"><span class="pre">phi=2*pi*fc*u+pi*df*tau*(tau-T)/T</span></code>，其中 <code class="docutils literal notranslate"><span class="pre">tau=u</span> <span class="pre">%</span> <span class="pre">T</span></code>。
+双频将两路分别积分相位的 DDS 信号相加，每路都扫描完整带宽；DDS1 按设定的扫频进度
+偏移领先 DDS2，并非两路正弦相差固定相位。偏移不是半周期时弹出警告。
+只设一个踢角，作为两个 DDS 信号的共同幅值；没有分路幅度输入，也不自动除以二。
+因此无 AM 时双路信号峰值上界为 <span class="math notranslate nohighlight">\(2|\theta_0|\)</span>。
+详细公式窗口列出频率、相位积分和完整 AM 公式。</p>
+<p>所设 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 改变 FM 和 AM 共用的到达时间。预览与跟踪都直接使用配置的踢角作为
+归一化横向动量幅度，见 <a class="reference internal" href="element/exciter.html"><span class="doc">激励器（Exciter）</span></a>。
+角度单位采用近轴参考粒子近似 <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>；
+不进行逐粒子速度修正，也不随束流能量自动缩放幅度。</p>
+<p>AM 在 <span class="math notranslate nohighlight">\(u=t_{arrive}-t_{0,start}\)</span> 处连续计算，归一化使用启动时固定的圈频。
+它在 <span class="math notranslate nohighlight">\(u=t_{ext}\)</span> 发散，因此 AM 绘图中所有采样粒子的经过时间必须小于该值。
 这里用固定束流参数预览外加信号，不预测束流响应、损失或发射度增长。
-可叠加逐圈到达相位对应的采样点，查看偏转角/包络、FM 频率分支、AM 因子、Hann 窗单边振幅谱。</p>
-<p>结果包括基准偏转角、采样峰值/RMS、电场、过板时间、频率、采样率和频率间隔。
+可叠加逐圈到达相位对应的采样点，查看偏转角/包络、DDS 频率、AM 因子、Hann 窗单边振幅谱。
+DDS1/DDS2 标签及 CSV 列在频率交叉后仍保持通道身份。</p>
+<p>结果包括基准偏转角、采样峰值/RMS、频率、采样率和频率间隔。
 按平滑频率上界每周期至少 24 点采样，最多 200000 点；高频长窗口会提示缩短时间跨度。
-FM 重置可能产生额外宽频成分，FFT 间隔为 1/窗口时长；采样峰值并非全局解析上界。
+扫频频率跳变时相位保持连续，但仍可能展宽频谱；FFT 间隔为 1/窗口时长，采样峰值并非全局解析上界。
 波形 CSV 使用秒、弧度和 Hz；频谱 CSV 为 frequency_Hz、kick_amplitude_rad。
 参数和结果在同一竖向滚动栏，支持常规图形导出。</p>
+<section id="id9">
+<h3>电压与踢角换算<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>点击 <strong>电压换算…</strong> 打开独立的 <strong>电压 ↔ 踢角</strong> 窗口，电压和踢角输入同时显示。
+输入电压后按回车计算踢角，输入踢角后按回车计算电压。
+两个方向共用主页面选定的参考粒子和动能，以及间距 d（mm）和极板有效长 L（m）。
+修改极板间距、极板长度或参考束流时，根据当前电压重新计算踢角；
+只有提交踢角输入才反算电压。
+V 是带符号极板间峰值电压差（V），踢角以 rad 为单位并保留符号。
+均匀横向电场下的参考粒子估算为：</p>
+<div class="math notranslate nohighlight">
+\[E=\frac{V}{d},\qquad F=qE,\qquad \Delta t=\frac{L}{\beta_0c},\qquad
+\Delta P_u=\frac{qVL}{d\beta_0c},\qquad B\rho=\frac{P_0}{|q|},\]</div>
+<div class="math notranslate nohighlight">
+\[\theta_0\simeq\frac{\Delta P_u}{P_0}
+=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho}.\]</div>
+<p>公式中的 d 使用米。<span class="math notranslate nohighlight">\(B\rho\)</span> 是正磁刚度幅值，电荷符号显式计入。
+正电压使正电荷沿选定横向的正方向偏转；电荷或电压反号时结果反号；V 或 L 为零时
+角度为零。该式统一适用于质子和离子参考粒子，因为磁刚度已包含电荷绝对值。</p>
+<p>反算公式为：</p>
+<div class="math notranslate nohighlight">
+\[V=\operatorname{sgn}(q)\frac{\theta_0 d\beta_0c B\rho}{L}.\]</div>
+<p>反算要求 <span class="math notranslate nohighlight">\(L&gt;0\)</span>：零长度在正算时得到零踢角，无法由此唯一确定电压。
+窗口显示电压、踢角、电场和过板时间。回车只执行换算，不回填主页面，也不关闭窗口。
+点击 <strong>填入基准踢角</strong> 才会把当前角度
+复制到波形的角度输入；随后修改硬件或参考输入不会自动覆盖该角度。
+将选定结果填写到主 Exciter 配置的 <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> 即可，
+元件本身不再配置电压、间距或长度。</p>
+<p>换算采用近轴参考粒子近似，并要求通过电极期间的波形变化很小，正弦波对应
+<span class="math notranslate nohighlight">\(\omega L/v_s\ll1\)</span>。这是名义参考换算，不是有限长度电场跟踪模型。
+迁移旧电压输入时，只保留所选能量下的名义参考系数，不复现原逐粒子速度因子和
+随参考能量变化的幅度。</p>
+</section>
 </section>
 <section id="gui-data-conversion-zh">
-<span id="id9"></span><h2>数据格式转换<a class="headerlink" href="#gui-data-conversion-zh" title="Link to this heading"></a></h2>
+<span id="id10"></span><h2>数据格式转换<a class="headerlink" href="#gui-data-conversion-zh" title="Link to this heading"></a></h2>
 <p>打开或拖入 OMC3 SDDS、HDF5、CSV、TFS，选择数据、预览后另存为。
 源文件保持只读，支持 OMC3 SDDS ↔ CSV/TFS、HDF5 ↔ CSV/TFS 及 CSV ↔ TFS。
 不提供数据编辑及 SDDS ↔ HDF5 直接互转。安装 GUI 可选依赖即可；
@@ -492,8 +535,8 @@ TFS 保存可兼容 headers 及 PASS 元数据。HDF5 输出使用 <code class="
 调用返回输出路径、行数和说明，默认禁止覆盖已有文件。
 脚本可使用 <code class="docutils literal notranslate"><span class="pre">preview_file(path,</span> <span class="pre">selection,</span> <span class="pre">check_sdds=True)</span></code>，在限制显示行数的同时，
 通过返回的 <code class="docutils literal notranslate"><span class="pre">sdds_check</span></code> 获取完整选择范围的检查结果。</p>
-<section id="id10">
-<h3>尾场数据导入<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<section id="id11">
+<h3>尾场数据导入<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <p>在转换工具中选择 <strong>导入尾场…</strong>，生成标准时域尾场 TFS。选择源文件与分量，
 指定数值列，并声明源坐标轴、单位、符号、归一化与参考 beta。文件包含普通
 文本表头时，设置需跳过的行数。预览归一化后的数据与校验提示，再将每个分量
