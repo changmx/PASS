@@ -22,7 +22,7 @@ import zipfile
 from PASS import __version__
 from PASS.utils.input_snapshot import atomic_write, file_references, json_bytes, resolved_file
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 JSON_LIMIT = 64 * 1024 * 1024
 
 
@@ -77,6 +77,29 @@ def unique_name(name: str, existing) -> str:
         candidate = f"{name}_{suffix}"
         suffix += 1
     return candidate
+
+
+def _unique_filename(name: str, existing) -> str:
+    """Keep readable names portable, numbering collisions before the extension."""
+    name = re.sub(r'[\x00-\x1f<>:"/\\|?*]', "_", name).rstrip(". ") or "file"
+    if re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name):
+        name = "_" + name
+    names = {str(value).casefold() for value in existing}
+    path = PurePosixPath(name)
+    candidate, suffix = name, 1
+    while candidate.casefold() in names:
+        candidate = f"{path.stem}{suffix}{path.suffix}"
+        suffix += 1
+    return safe_member(candidate)
+
+
+def _flat_member(name: str, directory: str) -> str:
+    """Require a direct file within the format's named directory."""
+    safe_member(name)
+    path = PurePosixPath(name)
+    if len(path.parts) != 2 or path.parts[0] != directory:
+        raise ProjectError(f"Expected a file directly in {directory}/: {name}")
+    return name
 
 
 def _electron_cloud_block(data):
@@ -179,7 +202,7 @@ class Project:
                     if context is not None:
                         context.report(f"准备项目文件：{source.name}")
                     # Imported assets are immutable. A staging cache can share
-                    # their file storage; new imports always use new asset IDs.
+                    # their file storage; new imports always use unused paths.
                     if source.relative_to(self.root).parts[0] == "assets":
                         try:
                             os.link(source, target)
@@ -208,9 +231,13 @@ class Project:
         # Copy first, then hash the snapshot rather than a changing external file.
         asset_id = uuid4().hex
         name = source.name
-        relative = safe_member(f"assets/{asset_id}/{name}")
+        directory = self.root / "assets"
+        existing = [PurePosixPath(asset.path).name for asset in self.assets.values()]
+        if directory.exists():
+            existing.extend(path.name for path in directory.iterdir())
+        relative = f"assets/{_unique_filename(name, existing)}"
         target = self.root / relative
-        target.parent.mkdir(parents=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
         if context is not None:
             context.report(f"复制依赖：{name}")
             context.copy_file(source, target)
@@ -220,7 +247,6 @@ class Project:
         for asset in self.assets.values():
             if asset.sha256 == digest and asset.original_name == name and asset.kind == kind:
                 target.unlink()
-                target.parent.rmdir()
                 return asset
         asset = Asset(asset_id, relative, name, digest, target.stat().st_size, kind)
         self.assets[asset_id] = asset
@@ -244,7 +270,8 @@ class Project:
     def add_config(self, name: str, data: dict, base: Path, *, context=None) -> str:
         value = self._capture(data, base, context=context)
         config_id = uuid4().hex
-        name = unique_name(Path(name).stem or "beam", [c.name for c in self.configs.values()])
+        filename = _unique_filename(f"{Path(name).stem or 'beam'}.json", [f"{c.name}.json" for c in self.configs.values()])
+        name = PurePosixPath(filename).stem
         self.configs[config_id] = InputConfig(config_id, name, value)
         if not self.active_config_id:
             self.active_config_id = config_id
@@ -290,7 +317,8 @@ class Project:
         for config in self.configs.values():
             if context is not None:
                 context.report(f"整理输入：{config.name}")
-            path = f"configs/{config.id}.json"
+            filename = _unique_filename(f"{config.name}.json", [PurePosixPath(entry["path"]).name for entry in configs])
+            path = f"configs/{filename}"
             content = json_bytes(config.data)
             entries[path] = content
             configs.append({
@@ -302,6 +330,7 @@ class Project:
             })
         assets = []
         for asset in self.assets.values():
+            _flat_member(asset.path, "assets")
             if context is not None:
                 context.report(f"验证依赖：{asset.original_name}")
             source = self.root / asset.path
@@ -430,7 +459,8 @@ class Project:
                 if not re.fullmatch(r"[0-9a-f]{64}", asset.sha256):
                     raise ProjectError("Invalid asset checksum")
                 register(asset.path)
-                if not asset.path.startswith(f"assets/{asset.id}/") or archive.getinfo(asset.path).file_size != asset.size_bytes:
+                _flat_member(asset.path, "assets")
+                if archive.getinfo(asset.path).file_size != asset.size_bytes:
                     raise ProjectError(f"Asset metadata mismatch: {asset.path}")
                 target = self.root / asset.path
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -443,7 +473,8 @@ class Project:
                 identifier = entry["id"]
                 if identifier in self.configs or not re.fullmatch(r"[a-zA-Z0-9_-]+", identifier):
                     raise ProjectError("Invalid or duplicate config ID")
-                if entry["path"] != f"configs/{identifier}.json":
+                _flat_member(entry["path"], "configs")
+                if PurePosixPath(entry["path"]).suffix.lower() != ".json":
                     raise ProjectError("Invalid config path")
                 register(entry["path"])
                 data = read_entry(entry["path"], entry["sha256"])

@@ -232,14 +232,14 @@ handled records as resolved without deleting the recovery files.
 Container format
 ----------------
 
-Version 1 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
+Version 2 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
 
 .. code-block:: text
 
-   manifest.json                  # format/PASS versions, input and asset index
-   configs/<input-id>.json         # ordinary PASS input JSON
-   assets/<asset-id>/<filename>    # original input/source bytes
-   recipes/<index>.json            # generation settings and source references
+   manifest.json                     # format/PASS versions, input and asset index
+   configs/<configuration-name>.json  # ordinary PASS input JSON
+   assets/<filename>                 # original input/source bytes
+   recipes/<index>.json               # generation settings and source references
 
 To inspect the contents outside PASS, open the file with a ZIP-compatible archive
 application, or copy it, rename the copy to ``.zip``, and extract it. Read
@@ -249,15 +249,23 @@ extraction. Save project changes through the GUI so the dependency index and
 checksums are updated together; editing archive members by hand can invalidate
 the project.
 
-Input display names are separate from their stable IDs. Configurations refer to
-assets by relative paths. The manifest records SHA-256 checksums, the dependency
-index, the active configuration, and run settings. Copying the project requires
+Files are stored directly in ``configs/`` and ``assets/``, without UUID
+subdirectories. Configurations use their display names and assets retain their
+original filenames. Chinese characters and spaces are preserved; characters
+unsafe in filenames are replaced. If a name already exists in the same directory,
+PASS adds ``1``, ``2``, ``3``, and so on before the extension, for example
+``rf.tfs``, ``rf1.tfs``, and ``rf2.tfs``. Configuration names follow the same rule,
+for example ``beam.json`` and ``beam1.json``.
+
+Stable IDs remain internal manifest references and do not determine filenames.
+Configurations refer to assets by relative paths. The manifest records SHA-256
+checksums, the dependency index, the active configuration, and run settings. Copying the project requires
 only one file; the temporary editing cache
 does not need to be transferred. The runtime input does not depend on paths on
 the original computer. Source files are snapshots and are not silently refreshed
 when an external file changes.
 
-Saving writes and verifies a new archive before replacing the old one. Version 1
+Saving writes and verifies a new archive before replacing the old one. Version 2
 rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
 or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
 and 64 MiB per JSON member. A large project requires time and additional disk

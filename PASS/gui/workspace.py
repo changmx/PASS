@@ -186,8 +186,8 @@ class ResourceDialog(QDialog):
         assets = QTreeWidgetItem(["输入与源文件"])
         self.files.addTopLevelItem(assets)
         for entry in self.project.assets.values():
-            item = QTreeWidgetItem([entry.original_name])
-            item.setToolTip(0, f"{entry.path}\n{entry.size_bytes:,} bytes\nSHA-256: {entry.sha256}")
+            item = QTreeWidgetItem([Path(entry.path).name])
+            item.setToolTip(0, f"{entry.path}\n原始文件名：{entry.original_name}\n{entry.size_bytes:,} bytes\nSHA-256: {entry.sha256}")
             item.setData(0, Qt.UserRole, ("asset", entry.id))
             assets.addChild(item)
         recipes = QTreeWidgetItem(["生成参数"])
@@ -348,7 +348,7 @@ class ResourceDialog(QDialog):
             return
         kind, identifier = self.selection
         if kind == "asset":
-            name = self.project.assets[identifier].original_name
+            name = Path(self.project.assets[identifier].path).name
         elif kind == "config":
             name = self.project.configs[identifier].name + ".json"
         else:
