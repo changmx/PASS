@@ -5,13 +5,28 @@ from datetime import datetime
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import re
 import tempfile
 from typing import Iterator
 
 
 def json_bytes(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode("utf-8")
+
+
+def unique_filename(name: str, existing) -> str:
+    """Keep readable names portable, numbering collisions before the extension."""
+    name = re.sub(r'[\x00-\x1f<>:"/\\|?*]', "_", name).rstrip(". ") or "file"
+    if re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name):
+        name = "_" + name
+    names = {str(value).casefold() for value in existing}
+    path = PurePosixPath(name)
+    candidate, suffix = name, 1
+    while candidate.casefold() in names:
+        candidate = f"{path.stem}{suffix}{path.suffix}"
+        suffix += 1
+    return candidate
 
 
 def atomic_write(path: Path, content: bytes) -> None:
@@ -100,13 +115,16 @@ def archive_input_documents(documents, snapshot, output, *, comparison_documents
     Callers validate before and after archiving. Missing inactive inputs remain
     explicit in the record; missing active inputs fail the caller's validation.
     Execution JSON paths are relative to the snapshot and never point at copied
-    dependencies' original locations. Original dictionaries are not mutated.
+    dependencies' original locations. Dependencies are direct files in assets/;
+    filename collisions receive numeric suffixes. Original dictionaries are not mutated.
     """
     snapshot, output = Path(snapshot).resolve(), Path(output).resolve()
     if record is None:
         record = {}
     for name in ("inputs", "dependencies", "random_seeds", "unavailable_dependencies"):
         record.setdefault(name, [])
+    assets = snapshot / "assets"
+    asset_names = {path.name for path in assets.iterdir()} if assets.exists() else set()
     copied, paths = {}, []
     for index, (name, original, base) in enumerate(documents):
         if check is not None:
@@ -133,8 +151,9 @@ def archive_input_documents(documents, snapshot, output, *, comparison_documents
                 mapping[key] = relative
                 continue
             if source not in copied:
-                target = snapshot / "assets" / str(len(copied)) / source.name
+                target = assets / unique_filename(source.name, asset_names)
                 digest = copy_file(source, target) if copy_file is not None else copy_input_file(source, target, check)
+                asset_names.add(target.name)
                 copied[source] = target
                 record["dependencies"].append({
                     "file": target.relative_to(snapshot).as_posix(),

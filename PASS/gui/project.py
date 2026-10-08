@@ -20,7 +20,7 @@ from uuid import uuid4
 import zipfile
 
 from PASS import __version__
-from PASS.utils.input_snapshot import atomic_write, file_references, json_bytes, resolved_file
+from PASS.utils.input_snapshot import atomic_write, file_references, json_bytes, resolved_file, unique_filename
 
 FORMAT_VERSION = 2
 JSON_LIMIT = 64 * 1024 * 1024
@@ -77,20 +77,6 @@ def unique_name(name: str, existing) -> str:
         candidate = f"{name}_{suffix}"
         suffix += 1
     return candidate
-
-
-def _unique_filename(name: str, existing) -> str:
-    """Keep readable names portable, numbering collisions before the extension."""
-    name = re.sub(r'[\x00-\x1f<>:"/\\|?*]', "_", name).rstrip(". ") or "file"
-    if re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name):
-        name = "_" + name
-    names = {str(value).casefold() for value in existing}
-    path = PurePosixPath(name)
-    candidate, suffix = name, 1
-    while candidate.casefold() in names:
-        candidate = f"{path.stem}{suffix}{path.suffix}"
-        suffix += 1
-    return safe_member(candidate)
 
 
 def _flat_member(name: str, directory: str) -> str:
@@ -235,7 +221,7 @@ class Project:
         existing = [PurePosixPath(asset.path).name for asset in self.assets.values()]
         if directory.exists():
             existing.extend(path.name for path in directory.iterdir())
-        relative = f"assets/{_unique_filename(name, existing)}"
+        relative = f"assets/{unique_filename(name, existing)}"
         target = self.root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         if context is not None:
@@ -270,7 +256,7 @@ class Project:
     def add_config(self, name: str, data: dict, base: Path, *, context=None) -> str:
         value = self._capture(data, base, context=context)
         config_id = uuid4().hex
-        filename = _unique_filename(f"{Path(name).stem or 'beam'}.json", [f"{c.name}.json" for c in self.configs.values()])
+        filename = unique_filename(f"{Path(name).stem or 'beam'}.json", [f"{c.name}.json" for c in self.configs.values()])
         name = PurePosixPath(filename).stem
         self.configs[config_id] = InputConfig(config_id, name, value)
         if not self.active_config_id:
@@ -317,7 +303,7 @@ class Project:
         for config in self.configs.values():
             if context is not None:
                 context.report(f"整理输入：{config.name}")
-            filename = _unique_filename(f"{config.name}.json", [PurePosixPath(entry["path"]).name for entry in configs])
+            filename = unique_filename(f"{config.name}.json", [PurePosixPath(entry["path"]).name for entry in configs])
             path = f"configs/{filename}"
             content = json_bytes(config.data)
             entries[path] = content
