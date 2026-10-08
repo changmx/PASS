@@ -161,11 +161,15 @@ JSON、已保存项目和 GUI 运行默认统一使用按日期组织的结果�
        input/
            configuration0.json         # 原始配置值
            beam0.json                  # 执行输入；可选 beam1.json
-           assets/<index>/<filename>   # 已复制的输入依赖
+           assets/<filename>           # 已复制的输入依赖
            run.json                    # 路径、SHA-256 校验和及运行状态
 
 复制输入前先创建本次结果目录；必要时为时间目录添加后缀，以避免复用已有结果目录。
 运行 ID 仍保存在 ``run.json`` 中，不再单独作为一层目录。
+已复制的依赖直接放在 ``assets/`` 中，不创建编号子目录。保留原文件名；
+检查重名时不区分大小写，发生冲突就在扩展名前依次追加 ``1``、``2`` 等编号，
+例如 ``rf.tfs``、``rf1.tfs``、``rf2.tfs``。执行 JSON 和 ``run.json``
+记录实际使用的文件名。
 
 双输入运行还保存 ``configuration1.json``。执行 JSON 中的文件引用使用快照内的
 相对路径 ``assets/...``，因此可以整体移动输入快照目录。

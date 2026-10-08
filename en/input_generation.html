@@ -292,13 +292,18 @@ The input snapshot is stored in the run’s <code class="docutils literal notran
     input/
         configuration0.json         # original configuration values
         beam0.json                  # execution input; optional beam1.json
-        assets/&lt;index&gt;/&lt;filename&gt;   # copied input dependencies
+        assets/&lt;filename&gt;           # copied input dependencies
         run.json                    # paths, SHA-256 hashes and run status
 </pre></div>
 </div>
 <p>The result directory is allocated before inputs are copied. A suffix is added
 to the time directory when needed to avoid reusing an existing result directory.
-The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code>; it is not another directory level.</p>
+The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code>; it is not another directory level.
+Copied dependencies are placed directly in <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without numbered
+subdirectories. Filenames are preserved; name conflicts, compared without
+case sensitivity, are resolved by appending <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, and so on before the
+extension, for example <code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>, and <code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>. Execution JSON
+and <code class="docutils literal notranslate"><span class="pre">run.json</span></code> record the resulting filenames.</p>
 <p>Two-input runs also save <code class="docutils literal notranslate"><span class="pre">configuration1.json</span></code>. File references in execution
 JSON point to relative <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> paths inside the snapshot, so the input
 directory can be moved together. The output root, including any <code class="docutils literal notranslate"><span class="pre">--output</span></code> or

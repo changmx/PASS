@@ -216,12 +216,14 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
     input/
         beam0.json                  # 固定运行输入；可选 beam1.json
         configuration0.json         # 用于比较的原始配置
-        assets/...                  # 已复制的依赖字节
+        assets/&lt;filename&gt;           # 已复制的依赖字节
         run.json                    # 运行记录
         gui.log                     # GUI 运行的完整进程日志
 </pre></div>
 </div>
-<p>运行 JSON 使用指向已复制 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> 文件的相对路径，并以绝对路径指定输出根目录。
+<p>依赖直接复制到 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不创建编号子目录。保留原文件名；检查重名时不区分大小写，
+冲突时在扩展名前追加编号，例如 <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>。
+运行 JSON 使用指向这些已复制文件的相对路径，并以绝对路径指定输出根目录。
 准备阶段在复制输入前分配按日期组织的结果目录，并将路径保存到 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 的
 <code class="docutils literal notranslate"><span class="pre">results_directory</span></code>。初始化使用该目录，不再追加一层日期和时间。
 必要时为时间目录添加后缀，以避免复用已有结果目录。

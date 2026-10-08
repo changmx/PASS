@@ -123,11 +123,14 @@ as standalone JSON runs:
        input/
            beam0.json                  # fixed runtime input; optional beam1.json
            configuration0.json         # original configuration for comparison
-           assets/...                  # copied dependency bytes
+           assets/<filename>           # copied dependency bytes
            run.json                    # run record
            gui.log                     # complete process log for GUI runs
 
-Runtime JSON uses relative paths to copied ``assets/...`` files and an absolute
+Dependencies are copied directly into ``assets/``, without numbered subdirectories.
+Filenames are preserved; conflicts are checked without case sensitivity and
+resolved by appending a number before the extension, such as ``rf1.tfs`` or
+``rf2.tfs``. Runtime JSON uses relative paths to these copied files and an absolute
 path to the output root. Preparation allocates the dated result directory before
 copying inputs and stores its path in ``run.json`` as ``results_directory``.
 Initialization uses that directory without adding another date/time level.

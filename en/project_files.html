@@ -234,12 +234,15 @@ as standalone JSON runs:</p>
     input/
         beam0.json                  # fixed runtime input; optional beam1.json
         configuration0.json         # original configuration for comparison
-        assets/...                  # copied dependency bytes
+        assets/&lt;filename&gt;           # copied dependency bytes
         run.json                    # run record
         gui.log                     # complete process log for GUI runs
 </pre></div>
 </div>
-<p>Runtime JSON uses relative paths to copied <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> files and an absolute
+<p>Dependencies are copied directly into <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without numbered subdirectories.
+Filenames are preserved; conflicts are checked without case sensitivity and
+resolved by appending a number before the extension, such as <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code> or
+<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>. Runtime JSON uses relative paths to these copied files and an absolute
 path to the output root. Preparation allocates the dated result directory before
 copying inputs and stores its path in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> as <code class="docutils literal notranslate"><span class="pre">results_directory</span></code>.
 Initialization uses that directory without adding another date/time level.

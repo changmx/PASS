@@ -283,12 +283,16 @@ Python 集成可使用
     input/
         configuration0.json         # 原始配置值
         beam0.json                  # 执行输入；可选 beam1.json
-        assets/&lt;index&gt;/&lt;filename&gt;   # 已复制的输入依赖
+        assets/&lt;filename&gt;           # 已复制的输入依赖
         run.json                    # 路径、SHA-256 校验和及运行状态
 </pre></div>
 </div>
 <p>复制输入前先创建本次结果目录；必要时为时间目录添加后缀，以避免复用已有结果目录。
-运行 ID 仍保存在 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 中，不再单独作为一层目录。</p>
+运行 ID 仍保存在 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 中，不再单独作为一层目录。
+已复制的依赖直接放在 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不创建编号子目录。保留原文件名；
+检查重名时不区分大小写，发生冲突就在扩展名前依次追加 <code class="docutils literal notranslate"><span class="pre">1</span></code>、<code class="docutils literal notranslate"><span class="pre">2</span></code> 等编号，
+例如 <code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>。执行 JSON 和 <code class="docutils literal notranslate"><span class="pre">run.json</span></code>
+记录实际使用的文件名。</p>
 <p>双输入运行还保存 <code class="docutils literal notranslate"><span class="pre">configuration1.json</span></code>。执行 JSON 中的文件引用使用快照内的
 相对路径 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code>，因此可以整体移动输入快照目录。
 输出根目录（包括 <code class="docutils literal notranslate"><span class="pre">--output</span></code> 或 Python <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> 的覆盖值）在复制前解析，

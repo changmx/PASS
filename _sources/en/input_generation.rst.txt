@@ -170,12 +170,17 @@ The input snapshot is stored in the run's ``input`` subdirectory:
        input/
            configuration0.json         # original configuration values
            beam0.json                  # execution input; optional beam1.json
-           assets/<index>/<filename>   # copied input dependencies
+           assets/<filename>           # copied input dependencies
            run.json                    # paths, SHA-256 hashes and run status
 
 The result directory is allocated before inputs are copied. A suffix is added
 to the time directory when needed to avoid reusing an existing result directory.
 The run ID remains in ``run.json``; it is not another directory level.
+Copied dependencies are placed directly in ``assets/``, without numbered
+subdirectories. Filenames are preserved; name conflicts, compared without
+case sensitivity, are resolved by appending ``1``, ``2``, and so on before the
+extension, for example ``rf.tfs``, ``rf1.tfs``, and ``rf2.tfs``. Execution JSON
+and ``run.json`` record the resulting filenames.
 
 Two-input runs also save ``configuration1.json``. File references in execution
 JSON point to relative ``assets/...`` paths inside the snapshot, so the input
