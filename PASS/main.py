@@ -163,6 +163,7 @@ def main(beam0_path: str,
          *,
          stop_requested=None,
          on_initialized=None,
+         on_completed=None,
          flat_output=False,
          raise_errors: bool = False,
          archive_inputs: bool = True,
@@ -177,6 +178,8 @@ def main(beam0_path: str,
     keeps results directly in that root and stores snapshots beside it.
     output_dir overrides the output root for this run, relative to the caller's
     working directory. It requires archiving and never changes the original inputs.
+    on_completed(sim) runs after successful tracking, while the Simulation is still
+    available. Callback failures mark the run failed; stopped runs skip this callback.
     """
     from PASS.validation.rules import validate_documents
 
@@ -279,6 +282,8 @@ def main(beam0_path: str,
 
         executor = Executor()
         completed = executor.run(sim, seqs, stop_requested=stop_requested)
+        if completed is not False and on_completed is not None:
+            on_completed(sim)
         status, exit_code = ("stopped", 3) if completed is False else ("completed", 0)
         return completed
     except KeyboardInterrupt:
@@ -299,7 +304,7 @@ def main(beam0_path: str,
             atomic_write(record_path, json_bytes(record))
 
 
-def cli_main(argv: list[str] | None = None) -> int:
+def cli_main(argv: list[str] | None = None, *, on_completed=None) -> int:
     """Run JSON inputs or a project's saved selection without loading Qt."""
     from PASS import __version__
 
@@ -364,6 +369,7 @@ Relative --output paths use the current working directory.
         completed = main(paths[0],
                          paths[1] if len(paths) > 1 else None,
                          stop_requested=stop_path.is_file if stop_path else None,
+                         on_completed=on_completed,
                          raise_errors=True,
                          output_dir=args.output)
     except KeyboardInterrupt:

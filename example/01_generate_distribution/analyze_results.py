@@ -30,7 +30,7 @@ def latest_run_dir(case_name: str) -> Path:
     candidates = [path for path in root.glob("*/*") if path.is_dir() and (path / "distribution").is_dir()]
     if not candidates:
         raise FileNotFoundError(f"No completed run found for '{case_name}'. Run "
-                                f"`python run_simulation.py --case {case_name}` first.")
+                                f"`pass-run --beam0 {CASES[case_name]['input_name']}` first.")
     return max(candidates, key=lambda path: path.stat().st_mtime)
 
 

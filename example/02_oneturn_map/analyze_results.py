@@ -1,6 +1,6 @@
 """Analyse single-turn Twiss map tracking results.
 
-Reads PASS ParticleMonitor TBT data and StatMonitor CSV, then verifies:
+Reads PASS ParticleMonitor TBT data and StatMonitor tables, then verifies:
 
     1. Tune measurement  — FFT of single-particle TBT → Qx, Qy, Qs
     2. CS invariant      — Courant-Snyder invariant per turn (should be constant)
@@ -15,13 +15,14 @@ Usage:
     python analyze_results.py --output-dir output/2026_0801/1820_23
 """
 
+import csv
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from PASS.utils.particle_monitor_read import read_particle_trajectories
-from PASS.utils.table_io import find_table_files
+from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
 # Lattice parameters (must match generate_input.py)
@@ -293,19 +294,23 @@ def read_pass_tbt(output_dir, max_tag=12):
 
 
 def read_pass_stat(output_dir):
-    """Read PASS StatMonitor CSV.
+    """Read StatMonitor HDF5/TFS or CSV as a dict of arrays."""
+    files = find_table_files(output_dir, "*_stat_*")
+    if files:
+        frame = read_table(files[0])
+        if frame.empty:
+            return None
+        return {name: frame[name].to_numpy() for name in frame.columns}
 
-    Returns dict of arrays.
-    """
-    import csv
-
-    csv_files = list(output_dir.glob("*_stat_*.csv"))
+    csv_files = sorted(output_dir.glob("*_stat_*.csv"))
     if not csv_files:
         return None
 
     with open(csv_files[0], "r") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
+    if not rows:
+        return None
 
     result = {}
     for key in rows[0]:

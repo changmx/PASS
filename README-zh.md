@@ -142,11 +142,11 @@ pass-run -h
 ```bash
 cd example/01_generate_distribution
 python generate_input.py --case longi-gaussian
-python run_simulation.py --case longi-gaussian
+pass-run --beam0 beam0_longi_gaussian.json
 python analyze_results.py --case longi-gaussian
 ```
 
-生成脚本写入所选算例的输入文件，运行脚本将结果保存到该示例的 `output/` 目录，分析脚本读取该算例最近一次运行的结果。参数、其他算例及输出文件见[示例说明](example/01_generate_distribution/README.md)。
+生成脚本写入所选算例的输入文件，`pass-run` 将结果保存到该示例的 `output/` 目录，分析脚本读取该算例最近一次运行的结果。分布和 RF 示例还提供 `run_simulation.py --case all`，通过同一 CLI 依次运行各自的预定义算例。参数、其他算例及输出文件见[示例说明](example/01_generate_distribution/README.md)。
 
 已有输入也可以先单独校验：
 

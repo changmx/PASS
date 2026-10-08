@@ -1,37 +1,16 @@
-"""Run a validated input; exceptions propagate and partial runs are not success."""
-import argparse
+"""Use the pass-run CLI and also save completed.json with final particle counts."""
 import json
 from pathlib import Path
 import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from PASS.core.config import Config
-from PASS.core.beam import Beam
-from PASS.core.simulation import Simulation
-from PASS.core.state import SimulationState
-from PASS.core.sequence import CommandSequence
-from PASS.core.executor import Executor
-from PASS.commands.space_charge import initialize_space_charge_resources
-from PASS.validation import validate_file
-from PASS.utils.logger import setup_logging
+from PASS.main import cli_main as pass_cli_main, main as pass_main
+from PASS.utils.input_snapshot import atomic_write, json_bytes
 
 
-def run(path):
-    report = validate_file(path)
-    if not report.ok:
-        raise ValueError(report.text())
-    cfg = Config()
-    cfg.load_input(str(path))
-    setup_logging(log_file=cfg.get_log_path())
-    if cfg.use_gpu:
-        cfg.select_gpu_device()
-    sim = Simulation(cfg, [Beam(cfg.input_path[0], cfg)], SimulationState())
-    initialize_space_charge_resources(sim)
-    seq = CommandSequence(cfg.input_data[0], 0, sim)
-    seq.sort()
-    started = time.perf_counter()
-    Executor().run(sim, [seq])
+def _save_completed(sim, started):
+    cfg = sim.cfg
     p = sim.beams[0].particles
     result = {
         "completed_turns": cfg.num_turn,
@@ -41,12 +20,27 @@ def run(path):
         "pending": int((p.tag == 0).sum()),
         "output_directory": cfg.output_dir
     }
-    (Path(cfg.output_dir) / "completed.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    atomic_write(Path(cfg.output_dir) / "completed.json", json_bytes(result))
     print(json.dumps(result), flush=True)
     return result
 
 
+def run(path):
+    """Run one input through the shared pipeline and return its completion report."""
+    started = time.perf_counter()
+    result = {}
+
+    def on_completed(sim):
+        result.update(_save_completed(sim, started))
+
+    pass_main(str(path), raise_errors=True, on_completed=on_completed)
+    return result
+
+
+def cli_main(argv=None):
+    started = time.perf_counter()
+    return pass_cli_main(argv, on_completed=lambda sim: _save_completed(sim, started))
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input", type=Path)
-    run(parser.parse_args().input)
+    raise SystemExit(cli_main())

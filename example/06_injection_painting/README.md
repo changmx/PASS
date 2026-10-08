@@ -1,6 +1,6 @@
 # Two-plane injection painting
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 This example imports the real-magnet CISP injection case into PASS. Four Bump
@@ -11,6 +11,7 @@ them and records SHA-256 hashes and the translated element locations.
 
 ## Generate and run
 
+Install PASS following the [installation instructions](../../README.md#install).
 Run these commands from the PASS repository root, replacing the example source
 path with your CISP command file. Use a new output directory for each case.
 
@@ -23,7 +24,7 @@ counter-electrode potential. Do not use guessed values for physical conclusions.
 $esVoltage = [double](Read-Host "ES septum-minus-counter voltage (V)")
 $esGap = [double](Read-Host "ES clear gap (m)")
 python example/06_injection_painting/generate_input.py --source C:/data/thread3/cisp_cmd.txt --output runs/injection_painting --turns 100 --stage aperture --clock reference --es-voltage $esVoltage --es-gap $esGap
-python example/06_injection_painting/run_simulation.py runs/injection_painting/beam0.json
+pass-run --beam0 runs/injection_painting/beam0.json
 ```
 
 Alternatively, replace `--es-voltage` with `--es-vl` to supply the longitudinal
@@ -41,11 +42,28 @@ preserving their coordinates and increasing their individual weights so that
 the total physical charge stays unchanged. Such a small sample checks the
 workflow; it is not a statistically converged PIC simulation.
 
-The default backend is GPU; select `--backend cpu` if needed. The runner validates
-the input before tracking, propagates errors, and writes `completed.json` only
-after the requested number of turns finishes. PASS creates a dated run directory
-under the case's `tracking` directory. The final console line reports its path,
-duration, surviving/lost counts, and remaining reserved particles.
+The default backend is GPU; select `--backend cpu` if needed. `pass-run` validates
+the input and archives the execution input and dependencies before tracking.
+PASS creates a dated run directory under the case's `tracking` directory, with
+its input snapshot in `input/`. Use `pass-run --help` for options such as
+`--output` and `--stop-file`.
+
+For an additional `completed.json` summary, use the example wrapper in place of
+the `pass-run` command above:
+
+```powershell
+python example/06_injection_painting/run_simulation.py --beam0 runs/injection_painting/beam0.json
+```
+
+This wrapper uses the same CLI and adds a completion callback. Only after all
+requested turns finish, it writes and prints the result directory, completed
+turns, surviving/lost counts, and remaining reserved particles for beam 0. The `seconds`
+field measures the invocation through completion, including input validation,
+archiving, initialization, and tracking. Stopped runs and tracking failures skip
+this summary. Check `input/run.json` for the final run status: a later summary
+or finalization error can still fail the run after `completed.json` is written.
+The wrapper accepts the standard CLI input and output options;
+the earlier positional input form is also supported.
 
 ## Physics options and clocks
 

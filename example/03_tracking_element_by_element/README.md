@@ -1,6 +1,6 @@
 # Example 03 — Element-by-Element Tracking
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 ## Overview
@@ -11,7 +11,7 @@ The workflow consists of four steps:
 
 1. **Run MADX** (`fodo.madx`) — generate a MADX Twiss TFS and SEQUENCE files
 2. **Generate input** (`generate_input.py`) — read a MADX Twiss TFS, produce `beam0.json` with 17 test particles
-3. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
+3. **Run simulation** (`pass-run`) — execute PASS tracking for 1024 turns
 4. **Analyze results** (`analyze_results.py`) — extract tunes using a Hann window, FFT and peak interpolation; fit chromaticity and dispersion
 
 `generate_input.py` fixes the Injection random seed to `2026`, making the generated
@@ -27,7 +27,7 @@ cd example/03_tracking_element_by_element
 
 ### Prerequisites
 
-- PASS installed: `pip install -e .` (from project root)
+- PASS installed: `python -m pip install --editable .` (from project root), or use the [PyPI installation instructions](../../README.md#install-from-pypi).
 - MAD-X executable on PATH, to generate the required TFS input files
 
 ### 1. Generate MADX Twiss files
@@ -49,10 +49,14 @@ This reads `fodo.tfs` and writes `beam0.json` with 17 test particles, 1024 turns
 ### 3. Run PASS tracking
 
 ```bash
-python run_simulation.py
+pass-run --beam0 beam0.json
 ```
 
 Output is saved to `output/YYYY_MMDD/HHMM_SS/` with one TBT particle-monitor file per monitor and beam.
+The run's `input/` folder archives its execution input and dependencies.
+Use `pass-run --help` for CLI options. `run_simulation.py` remains a compatibility
+wrapper around the same CLI, with `--beam0`, optional `--beam1`, `--output`, and
+`--stop-file` arguments.
 
 ### 4. Analyze results
 
@@ -142,6 +146,6 @@ Group D uses single-plane excitation (y=0 for x-scan, x=0 for y-scan) to measure
 | `fodo.tfs` | MADX Twiss table (linear optics) |
 | `fodo_ptc.tfs` | Additional optics table produced by `fodo.madx` and read by the analyzer |
 | `generate_input.py` | Generate `beam0.json` from Twiss TFS |
-| `run_simulation.py` | Run PASS simulation |
+| `run_simulation.py` | Optional compatibility wrapper for the PASS CLI |
 | `analyze_results.py` | Analyze PASS output (FFT, chromaticity, ADTS) |
 | `beam0.json` | Generated PASS input (overwritten each run) |

@@ -1,6 +1,6 @@
 """Analyse twiss-by-twiss tracking results.
 
-Reads PASS ParticleMonitor TBT data and StatMonitor CSV, then verifies:
+Reads PASS ParticleMonitor TBT data and StatMonitor tables, then verifies:
 
     1. Tune measurement       — FFT of single-particle TBT → Qx, Qy
     2. Courant-Snyder invariant — Jx, Jy should be constant per particle
@@ -187,14 +187,23 @@ def read_pass_tbt(output_dir, max_tag=12):
 
 
 def read_pass_stat(output_dir):
-    """Read PASS StatMonitor CSV."""
-    csv_files = list(output_dir.glob("*_stat_*.csv"))
+    """Read StatMonitor HDF5/TFS or CSV as a dict of arrays."""
+    files = find_table_files(output_dir, "*_stat_*")
+    if files:
+        frame = read_table(files[0])
+        if frame.empty:
+            return None
+        return {name: frame[name].to_numpy() for name in frame.columns}
+
+    csv_files = sorted(output_dir.glob("*_stat_*.csv"))
     if not csv_files:
         return None
 
     with open(csv_files[0], "r") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
+    if not rows:
+        return None
 
     result = {}
     for key in rows[0]:

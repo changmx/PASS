@@ -142,11 +142,11 @@ Each normal run saves its input snapshot inside its result directory, at `<outpu
 ```bash
 cd example/01_generate_distribution
 python generate_input.py --case longi-gaussian
-python run_simulation.py --case longi-gaussian
+pass-run --beam0 beam0_longi_gaussian.json
 python analyze_results.py --case longi-gaussian
 ```
 
-The generator writes the case input; the runner saves results under the example's `output/` directory; the analyzer uses the latest run for that case. See the [example README](example/01_generate_distribution/README.md) for parameters, other cases, and output files.
+The generator writes the case input; `pass-run` saves results under the example's `output/` directory; the analyzer uses the latest run for that case. The distribution and RF examples also provide `run_simulation.py --case all` helpers for running their predefined cases serially through the same CLI. See the [example README](example/01_generate_distribution/README.md) for parameters, other cases, and output files.
 
 An existing input can also be checked before execution:
 

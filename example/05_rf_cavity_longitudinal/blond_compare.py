@@ -8,7 +8,12 @@ Results and embedded figures are written to one standalone HTML file.
 """
 from __future__ import annotations
 
-import argparse, base64, importlib.util, importlib.metadata, io, json
+import argparse
+import base64
+import importlib.metadata
+import importlib.util
+import io
+import json
 from pathlib import Path
 
 import numpy as np
@@ -20,9 +25,9 @@ import matplotlib.pyplot as plt
 
 from PASS.utils.particle_monitor_read import read_particle_trajectories
 from PASS.utils.table_io import find_table_files, read_table
-from analyze_results import find_latest_output, measure_tune
-from generate_input import CASES, CIRCUM, GAMMA_T, NUM_CHARGE, NUM_PROTON, NUM_NEUTRON, build_case, SCRIPT_DIR
 from PASS.utils.constants import const
+from analyze_results import find_latest_output
+from generate_input import CIRCUM, GAMMA_T, NUM_CHARGE, NUM_PROTON, NUM_NEUTRON, build_case, SCRIPT_DIR
 
 CASES_TO_COMPARE = ('twiss_h1_fixed', 'twiss_h1_ramping', 'twiss_h1_waveform')
 TAGS = (1, 2, 3, 4, 5)
@@ -37,27 +42,45 @@ def native_backend():
 
 
 def run_pass(case):
-    from PASS.core.config import Config
-    from PASS.core.beam import Beam
-    from PASS.core.state import SimulationState
-    from PASS.core.simulation import Simulation
-    from PASS.core.sequence import CommandSequence
-    from PASS.core.executor import Executor
-    from PASS.utils.logger import setup_logging
-    from PASS.validation import validate_files
+    from PASS.main import main as pass_main
+
     path = build_case(case, SCRIPT_DIR, include_reference=True)
-    report = validate_files([path])
-    if not report.ok:
-        raise ValueError(report.text())
-    cfg = Config()
-    cfg.load_input(path)
-    setup_logging(log_file=cfg.get_log_path())
-    beam = Beam(path, cfg)
-    sim = Simulation(cfg, [beam], SimulationState())
-    seq = CommandSequence(cfg.input_data[0], 0, sim)
-    seq.sort()
-    Executor().run(sim, [seq])
-    return Path(cfg.output_dir_stat)
+    output = None
+
+    def capture_output(cfg):
+        nonlocal output
+        output = Path(cfg.output_dir_stat)
+
+    completed = pass_main(path, raise_errors=True, on_initialized=capture_output)
+    if completed is False or output is None:
+        raise RuntimeError('PASS did not complete; BLonD comparison requires a completed run')
+    return output
+
+
+def _find_input_snapshot(output):
+    """Select this run's archived beam0 input, including known older layouts."""
+    archive = output / 'input'
+    if archive.exists():
+        path = archive / 'beam0.json'
+        if not path.is_file():
+            raise FileNotFoundError(f'Missing archived input: {path}; rerun PASS before BLonD comparison')
+        return path
+    for directory in (output, output / 'para'):
+        for name in (f'{output.name}_beam0.json', 'run_beam0_snapshot.json'):
+            path = directory / name
+            if path.is_file():
+                return path
+    raise FileNotFoundError(f'{output}: no archived beam0 input; rerun PASS before BLonD comparison')
+
+
+def _read_rf_program(output):
+    snapshot = _find_input_snapshot(output)
+    raw = json.loads(snapshot.read_text(encoding='utf-8-sig'))
+    rf = next(v for v in raw['Sequence'].values() if v.get('Command') == 'RFCavity')
+    path = Path(rf['Components'][0]['Program file'])
+    if not path.is_absolute():
+        path = snapshot.parent / path
+    return path
 
 
 def read_particles(output):
@@ -117,15 +140,7 @@ def compare(case, output, destination):
     A = NUM_PROTON + NUM_NEUTRON
     mass = A * const.m_u_eV
     # Resolve the waveform from the input snapshot belonging to this run.
-    inputs = list(output.glob('*input*.json')) + list((output / 'para').glob('*.json'))
-    if not inputs:
-        sibling = output.parent / 'beam0.json'
-        inputs = [sibling if sibling.is_file() else SCRIPT_DIR / f'beam0_{case}.json']
-    raw = json.loads(inputs[0].read_text(encoding='utf-8-sig'))
-    rf = next(v for v in raw['Sequence'].values() if v.get('Command') == 'RFCavity')
-    path = Path(rf['Components'][0]['Program file'])
-    if not path.is_absolute():
-        path = inputs[0].parent / path
+    path = _read_rf_program(output)
     sample = program_functions(path, 0.)
     ref_p = A * float(first.referenceMomentum.iloc[0])
     energy = np.hypot(ref_p, mass)

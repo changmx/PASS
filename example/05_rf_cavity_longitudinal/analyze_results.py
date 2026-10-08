@@ -1,6 +1,6 @@
 """Analyse RF cavity longitudinal tracking results (Example 05).
 
-Reads PASS ParticleMonitor TBT + StatMonitor CSV for one or more cases and
+Reads PASS ParticleMonitor TBT + StatMonitor HDF5/TFS (or legacy CSV) for one or more cases and
 verifies, against the theory in generate_input.calc_theory():
 
   energy_gain    - synchronous particle Ek(n) slope vs (q/A) V sin(phi_s)
@@ -35,7 +35,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PASS.utils.particle_monitor_read import read_particle_trajectories
-from PASS.utils.table_io import find_table_files
+from PASS.utils.table_io import find_table_files, read_table
 
 from generate_input import (
     CASES,
@@ -72,7 +72,8 @@ def find_latest_output(case_name: str):
             continue
         for time_dir in sorted(date_dir.iterdir(), reverse=True):
             particle_dir = time_dir / "particle"
-            if (time_dir.is_dir() and particle_dir.is_dir() and bool(find_table_files(particle_dir)) and any(time_dir.glob("*_stat_*.csv"))):
+            statistics = find_table_files(time_dir, "*_stat_*") or sorted(time_dir.glob("*_stat_*.csv"))
+            if time_dir.is_dir() and particle_dir.is_dir() and find_table_files(particle_dir) and statistics:
                 return time_dir
     return None
 
@@ -88,12 +89,17 @@ def read_pass_tbt(output_dir, max_tag=20):
 
 
 def read_pass_stat(output_dir):
-    """Read PASS StatMonitor CSV -> {column: np.array}."""
-    csv_files = list(output_dir.glob("*_stat_*.csv"))
+    """Read PASS StatMonitor HDF5/TFS or legacy CSV -> {column: np.array}."""
+    table_files = find_table_files(output_dir, "*_stat_*")
+    if table_files:
+        return {name: values.to_numpy() for name, values in read_table(table_files[0]).items()}
+    csv_files = sorted(output_dir.glob("*_stat_*.csv"))
     if not csv_files:
         return None
     with open(csv_files[0], "r") as f:
         rows = list(csv.DictReader(f))
+    if not rows:
+        return None
     return {k: np.array([float(r[k]) for r in rows]) for k in rows[0]}
 
 
@@ -441,7 +447,7 @@ def analyse_case(name, output_dir=None, is_plot=True):
     theory = calc_theory(case["voltage"], case["harmonic"], case["phase"])
     out = Path(output_dir) if output_dir else find_latest_output(name)
     if out is None:
-        print(f"[{name}] no output directory found (run run_simulation.py first)")
+        print(f"[{name}] no output directory found (run pass-run --beam0 beam0_{name}.json first)")
         return
 
     data = read_pass_tbt(out)

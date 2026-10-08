@@ -1,6 +1,6 @@
 # Example 05 - RF Cavity Longitudinal Dynamics Test
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 ## Overview
@@ -23,25 +23,53 @@ reproducible generated particle distribution.
 
 ## Run the example
 
-Install PASS and run commands from this example directory. A fresh clone needs
+Install PASS following the [installation instructions](../../README.md#install)
+and run commands from this example directory. A fresh clone needs
 `fodo.tfs`; generate it with the supplied `fodo.madx` using a MAD-X executable
 (`madx fodo.madx`). The table supplies the lattice and reference optical parameters.
 
 ```bash
 cd example/05_rf_cavity_longitudinal
-python generate_input.py    # generate 5 JSON inputs and physical-time RF tables
-python run_simulation.py           # run the 5 cases serially
-python analyze_results.py       # print all verification results + interactive plots
+python generate_input.py --case twiss_h1_fixed
+pass-run --beam0 beam0_twiss_h1_fixed.json
+python analyze_results.py --case twiss_h1_fixed
 ```
 
-You can also generate or run a single case:
+To generate the five JSON inputs and physical-time RF tables, run all cases
+serially, and analyze their results:
 
 ```bash
-python generate_input.py --case twiss_h1_fixed
-python run_simulation.py --case twiss_h1_fixed
+python generate_input.py --case all
 python run_simulation.py --case all
-python run_simulation.py --beam0 beam0_twiss_h1_fixed.json
+python analyze_results.py --case all
 ```
+
+The batch helper invokes the same CLI and stops if a run fails or is stopped.
+It defaults to `--case all`; `--case <name>` selects one predefined input, and
+`--beam0 <path>` overrides the case selection with an existing input. The helper
+also accepts `--output` and `--stop-file`. Use `pass-run --help` for the standard
+CLI options.
+
+By default, results are saved to `output/<case>/YYYY_MMDD/HHMM_SS/`, with the
+execution input and copied dependencies, including the RF program, in `input/`. An output
+override changes where results are saved; the analyzer's automatic case lookup
+uses the original case folders.
+
+Statistics are read from the run's HDF5 tables by default, or TFS when selected.
+The analyzer also accepts CSV statistics when no HDF5/TFS table is available.
+
+For a BLonD comparison with recorded reference states:
+
+```bash
+python generate_input.py --case twiss_h1_fixed --include-reference
+pass-run --beam0 beam0_twiss_h1_fixed.json
+python blond_compare.py --case twiss_h1_fixed --output-dir output/twiss_h1_fixed/YYYY_MMDD/HHMM_SS
+```
+
+Replace the dated path with the actual run directory printed by PASS. The
+comparison requires BLonD and reads the configuration and RF program archived
+with that run. Without `--output-dir` or `--skip-pass`, `blond_compare.py`
+generates and runs the selected case through the shared PASS runner first.
 
 
 ### Optics and transition
@@ -154,7 +182,7 @@ Use the saved reference state when reconstructing those times.
 ```text
 05_rf_cavity_longitudinal/
 ├── generate_input.py   # single source of truth: CASES + calc_theory() + build_case()
-├── run_simulation.py          # --case/--beam0 -> PASS.main
+├── run_simulation.py       # serial --case helper -> PASS CLI
 ├── analyze_results.py      # verification modules + A/B comparison (imports generate_input)
 ├── fodo.madx/.seq/.ps/.tfs  # FODO lattice from examples 03/04 (provides C and gamma_t)
 ├── rf_physical_h<h>_<lattice>_<mode>.tfs  # physical-time programs
@@ -179,7 +207,7 @@ tracking:
 
 ```bash
 python generate_input.py --case twiss_h1_fixed --include-reference
-python run_simulation.py --case twiss_h1_fixed
+pass-run --beam0 beam0_twiss_h1_fixed.json
 ```
 
 This adds `referenceTime`, `referenceBeta`, and `referenceMomentum` to each row.

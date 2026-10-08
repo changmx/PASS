@@ -15,17 +15,23 @@ for any machine's dynamic aperture. Set `--k2l 0` for the linear baseline.
 Add your own element lattice and supported effects using the normal sequence.
 There is no DA tracking command or passive test-particle model.
 
+Install PASS following the [installation instructions](../../README.md#install).
 Run these commands from the repository root, in order:
 
 ```powershell
 python example/07_dynamic_aperture/generate_input.py
-python example/07_dynamic_aperture/run_simulation.py
+pass-run --beam0 example/07_dynamic_aperture/beam0.json
 ```
 
 The generator accepts `--backend cpu|gpu`, `--turns`, `--points` (per transverse
 axis), `--k2l`, and `--output`. The default scan is 31 x 31 x 3 = 2,883 particles,
 x/y from -20 to +20 mm, dp = -0.003, 0, +0.003, and 256 turns. A different output
 input path places its simulation output folder next to that input.
+
+`pass-run` saves results beneath that output folder in `YYYY_MMDD/HHMM_SS/`,
+with the execution input and dependencies archived in `input/`. Use
+`pass-run --help` for CLI options. `run_simulation.py` remains a compatibility
+wrapper, accepting `--input` (or `--beam0`), `--output`, and `--stop-file`.
 
 The monitor is ordered after all physical operations at s = 100 m. Its turn 0
 sample is after the first complete map; its final turn 255 sample is after 256

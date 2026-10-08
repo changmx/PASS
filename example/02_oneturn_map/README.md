@@ -1,6 +1,6 @@
 # Example 02 — Single-Turn Twiss Map Tracking
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 ## Overview
@@ -10,7 +10,7 @@ This example validates the single-turn Twiss transfer matrix in PASS. The lattic
 The workflow consists of three steps:
 
 1. **Generate input** (`generate_input.py`) — write `beam0.json` with 12 prescribed particles and 10000 sampled particles
-2. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
+2. **Run simulation** (`pass-run`) — execute PASS tracking for 1024 turns
 3. **Analyze results** (`analyze_results.py`) — five verification modules: tune FFT, CS invariant, analytic matrix comparison, chromaticity, beam statistics
 
 `generate_input.py` fixes the Injection random seed to `2026`, making the generated
@@ -26,7 +26,7 @@ cd example/02_oneturn_map
 
 ### Prerequisites
 
-- PASS installed: `pip install -e .` (from project root)
+- PASS installed: `python -m pip install --editable .` (from project root), or use the [PyPI installation instructions](../../README.md#install-from-pypi).
 
 ### 1. Generate input
 
@@ -37,10 +37,13 @@ python generate_input.py
 ### 2. Run simulation
 
 ```bash
-python run_simulation.py
+pass-run --beam0 beam0.json
 ```
 
-Output is saved to `output/YYYY_MMDD/HHMM_SS/`.
+Output is saved to `output/YYYY_MMDD/HHMM_SS/`, including the execution input
+and its dependencies in `input/`. Use `pass-run --help` for CLI options.
+`run_simulation.py` remains a compatibility wrapper around the same CLI, with
+`--beam0`, optional `--beam1`, `--output`, and `--stop-file` arguments.
 
 ### 3. Analyze results
 
@@ -49,6 +52,9 @@ python analyze_results.py
 ```
 
 Auto-detects the latest output directory. Prints all five verification results and displays plots via `plt.show()`.
+
+Statistics are read from the run's HDF5 tables by default, or TFS when selected.
+The analyzer also accepts CSV statistics when no HDF5/TFS table is available.
 
 ParticleMonitor and Injection default to uncompressed HDF5 (`.h5`);
 other diagnostic tables default to gzip-1 + shuffle HDF5. The analysis scripts
@@ -139,6 +145,6 @@ constants in `analyze_results.py` synchronized with `generate_input.py`.
 | File | Description |
 |------|-------------|
 | `generate_input.py` | Generate `beam0.json` with PASS Python API |
-| `run_simulation.py` | Run PASS simulation |
+| `run_simulation.py` | Optional compatibility wrapper for the PASS CLI |
 | `analyze_results.py` | Five verification modules + plots |
 | `beam0.json` | Generated PASS input (overwritten by the generator) |

@@ -1,13 +1,13 @@
 # Example 01 - Particle Distribution Generation
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 This is the first PASS distribution-generation example. It introduces the
 three basic steps used by the other examples:
 
 1. `generate_input.py` generates `beam0_*.json` using the PASS Python API.
-2. `run_simulation.py` reads a JSON input, performs one injection, and saves the initial
+2. `pass-run` reads a JSON input, performs one injection, and saves the initial
    particle distribution.
 3. `analyze_results.py` reads the generated HDF5 files (or TFS files), validates the distribution
    types, calculates statistics, and compares them with theory.
@@ -22,20 +22,21 @@ running the same case produces the same initial particle distribution.
 
 ## Run the example
 
+Install PASS following the [installation instructions](../../README.md#install).
 From the repository root, run:
 
 ```powershell
 cd example/01_generate_distribution
 python generate_input.py --case transverse
-python run_simulation.py --case transverse
+pass-run --beam0 beam0_transverse.json
 python analyze_results.py --case transverse
 ```
 
-The scripts generate, run, and analyse the case in that order. In normal use,
+These commands generate, run, and analyse the case in that order. In normal use,
 do not edit the generated JSON directly. Modify constants or `CASES` in
 `generate_input.py`, then regenerate the input.
 
-To process every predefined case:
+To process every predefined case, use the batch helper:
 
 ```powershell
 python generate_input.py --case all
@@ -43,18 +44,21 @@ python run_simulation.py --case all
 python analyze_results.py --case all
 ```
 
-`run_simulation.py` defaults to `transverse`, so this is equivalent to
-`python run_simulation.py --case transverse`:
-
-```powershell
-python run_simulation.py
-```
+`run_simulation.py --case all` invokes the same CLI for each case serially and
+stops if a run fails or is stopped. The helper also accepts a single `--case`
+and defaults to `transverse` when that option is omitted.
 
 An existing input can also be run directly, without the case mapping:
 
 ```powershell
-python run_simulation.py --beam0 C:\path\to\beam0.json
+pass-run --beam0 C:\path\to\beam0.json
 ```
+
+Use `pass-run --help` for input, output, and stop-file options. The batch helper
+also accepts `--output` and `--stop-file`. By default, each case uses
+`output/<case>/YYYY_MMDD/HHMM_SS/`, with its execution input and dependencies
+archived in the run's `input/` folder. An output override changes where results
+are saved; the analyzer's automatic case lookup uses the original case folders.
 
 ## Cases
 
@@ -195,7 +199,7 @@ and the RF bucket theory.
 ## Troubleshooting
 
 - `Input file does not exist`: run `python generate_input.py --case <case>` first.
-- `No completed run found`: run `python run_simulation.py --case <case>` before analysis.
+- `No completed run found`: run `pass-run --beam0 <case-input.json>` with the input filename from the table above before analysis.
 - Results do not change after editing `generate_input.py`: regenerate the JSON
   because it is a generated file.
 - Measured `sigma_z` is smaller than requested for `matchz`: check whether the

@@ -1,6 +1,6 @@
 # Example 04 — Twiss-by-Twiss Tracking
 
-Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+Use `generate_input.py`, `pass-run`, and `analyze_results.py` as the
 workflow entry points for input generation, tracking, and result analysis.
 
 ## Overview
@@ -35,7 +35,7 @@ cd example/04_tracking_twiss_by_twiss
 
 ### Prerequisites
 
-- PASS installed: `pip install -e .` (from project root)
+- PASS installed: `python -m pip install --editable .` (from project root), or use the [PyPI installation instructions](../../README.md#install-from-pypi).
 - MADX executable available in PATH
 
 ### 1. Generate the TFS inputs
@@ -55,8 +55,13 @@ python generate_input.py
 ### 3. Run simulation
 
 ```bash
-python run_simulation.py
+pass-run --beam0 beam0.json
 ```
+
+Output is saved to `output/YYYY_MMDD/HHMM_SS/`, including the execution input
+and its dependencies in `input/`. Use `pass-run --help` for CLI options.
+`run_simulation.py` remains a compatibility wrapper around the same CLI, with
+`--beam0`, optional `--beam1`, `--output`, and `--stop-file` arguments.
 
 ### 4. Analyze results
 
@@ -65,6 +70,9 @@ python analyze_results.py
 ```
 
 Plots are displayed interactively via `plt.show()` (not saved to disk).
+
+Statistics are read from the run's HDF5 tables by default, or TFS when selected.
+The analyzer also accepts CSV statistics when no HDF5/TFS table is available.
 
 ParticleMonitor and Injection default to uncompressed HDF5 (`.h5`);
 other diagnostic tables default to gzip-1 + shuffle HDF5. The analysis scripts
@@ -153,6 +161,6 @@ before interpreting fitted chromaticity or dispersion.
 | `fodo_natural.tfs` | MADX Twiss with K2=0 (natural chromaticity) |
 | `fodo.tfs` | MADX Twiss with K2≠0 (corrected chromaticity) |
 | `generate_input.py` | Generate `beam0.json` from TFS files |
-| `run_simulation.py` | Run PASS simulation |
+| `run_simulation.py` | Optional compatibility wrapper for the PASS CLI |
 | `analyze_results.py` | Five verification modules + interactive plots |
 | `beam0.json` | Generated PASS input |
