@@ -63,7 +63,70 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
 .. code-block:: console
 
    python input/generate_beam0.py
-   python -c "from PASS.main import main; main('input/beam0.json', raise_errors=True)"
+   pass-run input/beam0.json
+
+安装 PASS 会在对应 Python 环境中注册 ``pass-run``。
+安装后，``python -m PASS`` 接受完全相同的参数，并明确使用所选 Python 解释器。
+两种入口都不需要 Qt 或 PySide6。安装后执行 ``pass-run --version`` 或
+``python -m PASS --version`` 查看版本号并退出，无需提供输入文件。
+程序根据文件后缀识别输入类型：
+
+.. code-block:: console
+
+   pass-run input/beam0.json
+   pass-run input/beam0.json input/beam1.json
+   pass-run example.passproj
+   python -m PASS example.passproj
+
+命名输入选项也支持相同的三种运行方式：
+
+.. code-block:: console
+
+   pass-run --beam0 input/beam0.json
+   pass-run --beam0 input/beam0.json --beam1 input/beam1.json
+   pass-run --passproj example.passproj
+
+位置参数和命名输入选项只能选择其中一种，不能混用。
+``--beam0`` 和 ``--beam1`` 要求 JSON 文件，``--beam1`` 必须与 ``--beam0`` 一起使用。
+``--passproj`` 要求 ``.passproj`` 文件，不能与任何束流选项组合使用。
+相对输入路径以终端当前工作目录为基准，包含空格的路径需要加引号。
+
+一个或两个 JSON 分别用于单束流或双束流运行。单个 ``.passproj`` 文件使用已保存的
+Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
+不会依次执行项目中的全部配置。已保存的选择失效或两束选择重复时会报错。
+项目选择和输出路径规则见 :doc:`project_files`。
+
+使用 ``--output DIR`` 指定本次运行的输出根目录，优先于 JSON 或项目保存的设置，
+支持单份 JSON、双份 JSON 或一个项目。命令行指定的相对输出路径以启动时的工作目录
+为基准，原始 JSON 和项目文件保持不变：
+
+.. code-block:: console
+
+   pass-run input/beam0.json --output results
+   pass-run input/beam0.json input/beam1.json --output "results/two beams"
+   python -m PASS example.passproj --output results
+
+不使用此选项时，JSON 运行使用第一份 JSON 的 ``Output directory``，
+配置内的相对路径以该 JSON 所在目录为基准。字段缺省或设为 ``default``
+（不区分大小写）时，输出根目录为第一份 JSON 旁的 ``output``。
+生成输入的默认值仍为 ``./output``，不再回退到仓库或安装目录。
+
+以下两条帮助命令均显示输入方式、选项、路径规则和示例，不启动仿真：
+
+.. code-block:: console
+
+   pass-run --help
+   pass-run -h
+
+``--stop-file`` 指定的文件存在时，在初始化前或圈边界停止。
+退出码 0 表示完成，1 表示失败，2 表示命令参数错误，3 表示请求停止，
+130 表示中断。Python 集成也可直接调用
+``PASS.main.main('input/beam0.json', raise_errors=True)``。
+Python 集成可使用
+``PASS.main.main('input/beam0.json', output_dir='results', raise_errors=True)``
+覆盖输出根目录；相对 ``output_dir`` 路径以调用 ``main()`` 时的工作目录为基准。
+此覆盖要求保留默认的 ``archive_inputs=True``，不能与供已有快照使用的
+``archive_inputs=False`` 组合。
 
 脚本生成 ``input/beam0.json``，其中的相对输出目录解析为 ``input/output``，每次运行在其下创建独立运行目录。运行目录包含 CSV 与 HDF5 统计表，共 64 行（圈号 0–63）；具体目录由日志给出。运行完成后可读取最新统计文件：
 
@@ -89,23 +152,28 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
 校验生成的快照，再从快照初始化跟踪。依赖包括粒子分布、RF 程序、偏移表、
 尾场模型和磁铁 ramping 表。之后修改原始文件不会影响本次运行。
 
-命令行/Python 工作流保留原有按日期组织的结果目录：
+JSON、已保存项目和 GUI 运行默认统一使用按日期组织的结果目录，
+输入快照保存在本次结果目录的 ``input`` 子目录中：
 
 .. code-block:: text
 
-   <output>/input_snapshots/<run-id>/
-       configuration0.json         # 原始配置值
-       beam0.json                  # 实际执行输入；可选 beam1.json
-       assets/<index>/<filename>   # 已复制的输入依赖
-       run.json                    # 路径、SHA-256 校验和及运行状态
-   <output>/<YYYY_MMDD>/<HHMM_SS>/   # 原有仿真结果布局
+   <output>/<YYYY_MMDD>/<HHMM_SS>/       # 本次仿真结果
+       input/
+           configuration0.json         # 原始配置值
+           beam0.json                  # 执行输入；可选 beam1.json
+           assets/<index>/<filename>   # 已复制的输入依赖
+           run.json                    # 路径、SHA-256 校验和及运行状态
+
+复制输入前先创建本次结果目录；必要时为时间目录添加后缀，以避免复用已有结果目录。
+运行 ID 仍保存在 ``run.json`` 中，不再单独作为一层目录。
 
 双输入运行还保存 ``configuration1.json``。执行 JSON 中的文件引用使用快照内的
 相对路径 ``assets/...``，因此可以整体移动输入快照目录。
-``Output directory`` 在复制前按原始 Beam 0 JSON 所在目录解析，并保存为绝对路径；
-移动快照不会改变结果目的地。原始 JSON 和输入文件保持不变。
+输出根目录（包括 ``--output`` 或 Python ``output_dir`` 的覆盖值）在复制前解析，
+并以绝对 ``Output directory`` 保存到执行快照；移动快照不会改变结果目的地。
+覆盖同时改变快照和结果的输出根目录，保留上述布局。原始 JSON 和输入文件保持不变。
 ``configurationN.json`` 重新序列化原始配置值；依赖文件则逐字节原样复制。
-GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局，见 :doc:`project_files`。
+GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录规则，见 :doc:`project_files`。
 
 结果目录中的参数 JSON 保留原有文件名，并保存绝对输入路径和输出路径。
 它从已经载入的配置生成，使用解析路径后、展开命名配置前的内容，不再次读取源 JSON。
@@ -116,7 +184,8 @@ GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局�
 未启用资源的缺失文件保留原有校验警告，并列入 ``unavailable_dependencies``；
 已启用功能所需输入缺失则阻止运行。缺失引用指向快照内未创建的路径，
 之后恢复原始文件也不会使其成为未经归档的运行输入。记录随准备及执行过程更新状态。
-``output_directory`` 保存配置中的输出根目录，``results_directory`` 在初始化后保存实际结果目录。
+``output_root`` 保存选定的输出根目录，``output_directory`` 保存写入执行配置的输出路径。
+``results_directory`` 从准备阶段起保存已分配的结果目录，包括日期子目录。
 ``on_initialized(cfg)`` 回调可通过 ``cfg.input_snapshot_path`` 定位本次运行的 ``run.json``。
 准备失败时，若记录已创建，则状态记为 ``preparation_failed``。
 
@@ -127,7 +196,8 @@ GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局�
 
 已有输入快照的集成程序可用 ``archive_inputs=False`` 关闭再次复制；GUI 子进程使用此设置。
 依赖自动归档由 ``main()`` 负责，底层 ``Config.load_input()`` 本身不归档依赖。
-设置 ``flat_output=True`` 时，结果仍直接写入指定输出目录，
+Python API 显式设置 ``flat_output=True`` 时，为兼容已有集成保留原有布局：
+结果仍直接写入指定输出目录，
 快照则位于该目录的父目录下的 ``input_snapshots/<run-id>``。
 若结果目录本身名为 ``input_snapshots``，则改用旁边的 ``input_snapshots_archive/<run-id>``，
 使 flat 结果目录不包含快照子目录。
@@ -254,7 +324,7 @@ MainConfig（全局参数）
      - ``Output directory``
      - ``str``
      - ``'./output'``
-     - 输出目录；相对路径以输入 JSON 所在目录为基准。
+     - 输出目录；相对路径以输入 JSON 所在目录为基准。缺省或 ``default``（不区分大小写）时使用第一份 JSON 旁的 ``output``。
    * - ``is_plot``
      - ``Is plot figure``
      - ``bool``

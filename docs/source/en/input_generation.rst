@@ -63,7 +63,77 @@ Run these commands from the repository root:
 .. code-block:: console
 
    python input/generate_beam0.py
-   python -c "from PASS.main import main; main('input/beam0.json', raise_errors=True)"
+   pass-run input/beam0.json
+
+Installing PASS registers ``pass-run`` in that Python environment. After
+installation, ``python -m PASS`` accepts exactly the same arguments
+and explicitly uses the selected Python interpreter. Neither entry point requires
+Qt or PySide6. After installation, use ``pass-run --version`` or
+``python -m PASS --version`` to print the version and exit without an input file.
+Input type is selected by the file extension:
+
+.. code-block:: console
+
+   pass-run input/beam0.json
+   pass-run input/beam0.json input/beam1.json
+   pass-run example.passproj
+   python -m PASS example.passproj
+
+Named input options provide the same three modes:
+
+.. code-block:: console
+
+   pass-run --beam0 input/beam0.json
+   pass-run --beam0 input/beam0.json --beam1 input/beam1.json
+   pass-run --passproj example.passproj
+
+Use either positional inputs or named input options; do not mix them.
+``--beam0`` and ``--beam1`` require JSON files, and ``--beam1`` requires
+``--beam0``. ``--passproj`` requires a ``.passproj`` file and cannot be combined
+with either beam option. Relative input paths use the terminal's working
+directory; quote paths containing spaces.
+
+One or two JSON files run the corresponding beams. A single ``.passproj`` file
+runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
+saved, it uses the active configuration. It does not execute every configuration
+in the project. Invalid saved selections or duplicate beams are errors. See
+:doc:`project_files` for project selection and output paths.
+
+Use ``--output DIR`` to choose the output root for this run. It takes precedence
+over the JSON or saved project setting and works with one JSON, two JSON files,
+or one project. Relative command-line output paths are resolved from the working
+directory at launch; the original JSON and project files remain unchanged:
+
+.. code-block:: console
+
+   pass-run input/beam0.json --output results
+   pass-run input/beam0.json input/beam1.json --output "results/two beams"
+   python -m PASS example.passproj --output results
+
+Without this option, JSON execution uses the first JSON's ``Output directory``.
+Relative configuration paths are resolved beside that JSON. If the field is
+omitted or set to ``default`` (case-insensitive), the output root is ``output``
+beside the first JSON. Generated inputs still default to ``./output``. The
+repository or installation directory is no longer used as a fallback.
+
+Use either help command to display input modes, options, path rules, and examples
+without starting a simulation:
+
+.. code-block:: console
+
+   pass-run --help
+   pass-run -h
+
+The ``--stop-file`` option requests a stop when the named file exists, before
+initialization or at a turn boundary. Exit codes are 0 for completion, 1 for a
+failure, 2 for invalid command arguments, 3 for a requested stop and 130 for an
+interruption. Python integrations can call
+``PASS.main.main('input/beam0.json', raise_errors=True)`` directly.
+To override output in a Python integration, use
+``PASS.main.main('input/beam0.json', output_dir='results', raise_errors=True)``.
+Relative ``output_dir`` paths use the working directory when ``main()`` is called.
+This override requires the default ``archive_inputs=True``; it cannot be combined
+with ``archive_inputs=False`` for an already prepared snapshot.
 
 The script writes ``input/beam0.json``. Its relative output directory resolves to ``input/output``; each run creates a run directory beneath it. The run directory contains a CSV file and an HDF5 file with 64 statistics rows (turns 0–63). Log output gives the exact run path. Read the newest statistics file after the run:
 
@@ -91,26 +161,33 @@ snapshot, and initializes tracking from that snapshot. This includes particle
 distributions, RF programs, offset tables, wakefield models, and magnet ramping
 tables. Later changes to their original files do not affect the run.
 
-The command-line/Python workflow preserves its existing dated result layout:
+JSON, saved project, and GUI runs all use the same dated result layout by default.
+The input snapshot is stored in the run's ``input`` subdirectory:
 
 .. code-block:: text
 
-   <output>/input_snapshots/<run-id>/
-       configuration0.json         # original configuration values
-       beam0.json                  # actual execution input; optional beam1.json
-       assets/<index>/<filename>   # copied input dependencies
-       run.json                    # paths, SHA-256 hashes and run status
-   <output>/<YYYY_MMDD>/<HHMM_SS>/   # existing simulation result layout
+   <output>/<YYYY_MMDD>/<HHMM_SS>/       # simulation results for this run
+       input/
+           configuration0.json         # original configuration values
+           beam0.json                  # execution input; optional beam1.json
+           assets/<index>/<filename>   # copied input dependencies
+           run.json                    # paths, SHA-256 hashes and run status
+
+The result directory is allocated before inputs are copied. A suffix is added
+to the time directory when needed to avoid reusing an existing result directory.
+The run ID remains in ``run.json``; it is not another directory level.
 
 Two-input runs also save ``configuration1.json``. File references in execution
 JSON point to relative ``assets/...`` paths inside the snapshot, so the input
-directory can be moved together. ``Output directory`` is resolved against the
-original Beam 0 JSON directory before copying and stored as an absolute path;
-moving the snapshot does not redirect its results. The original JSON and input
+directory can be moved together. The output root, including any ``--output`` or
+Python ``output_dir`` override, is resolved before copying and stored as an
+absolute ``Output directory`` in the execution snapshot; moving the snapshot
+does not redirect its results. An override changes the root for both snapshots
+and results while preserving the layout above. The original JSON and input
 files remain unchanged. ``configurationN.json`` serializes the original
 configuration values; copied dependency files preserve their exact bytes.
-The GUI uses the same input-copying and hashing rules
-with its own result layout; see :doc:`project_files`.
+The GUI and command-line project runs use the same input-copying, hashing, and
+result-directory rules; see :doc:`project_files`.
 
 The parameter JSON saved alongside results retains its existing filename and
 stores absolute input and output paths. It is generated from the configuration
@@ -125,9 +202,11 @@ disabled resources retain their validation warnings and are listed in
 ``unavailable_dependencies``; missing required active inputs block execution.
 Missing references point to uncreated paths inside the snapshot, so restoring
 an original file later cannot make it an unarchived runtime input.
-The record follows preparation and execution status. ``output_directory`` stores
-the configured output root; ``results_directory`` stores the actual result
-directory after initialization. The ``on_initialized(cfg)`` callback can read
+The record follows preparation and execution status. ``output_root`` stores the
+chosen output root, and ``output_directory`` stores the output path written into
+the execution configuration. ``results_directory`` stores the allocated result
+directory, including the dated subdirectories, from preparation onward.
+The ``on_initialized(cfg)`` callback can read
 ``cfg.input_snapshot_path`` to locate this run's ``run.json``. A preparation
 failure is recorded as ``preparation_failed`` when a record has already been created.
 
@@ -141,8 +220,9 @@ For integrations that already prepared an input snapshot, ``archive_inputs=False
 disables this additional copy; the GUI child process uses that setting. Automatic
 dependency archiving belongs to ``main()``; the lower-level ``Config.load_input()``
 does not archive dependencies itself.
-With ``flat_output=True``, results remain directly in the specified output
-directory and snapshots are placed in its parent's ``input_snapshots/<run-id>``.
+The explicit Python API option ``flat_output=True`` retains its existing layout
+for integrations: results remain directly in the specified output directory,
+and snapshots are placed in its parent's ``input_snapshots/<run-id>``.
 If the result directory itself is named ``input_snapshots``, the sibling
 ``input_snapshots_archive/<run-id>`` is used instead, keeping the flat result
 directory free of snapshot subdirectories.
@@ -269,7 +349,7 @@ MainConfig (Global Parameters)
      - ``Output directory``
      - ``str``
      - ``'./output'``
-     - Output directory; relative paths resolve against the input JSON directory.
+     - Output directory; relative paths resolve against the input JSON directory. Omitted or ``default`` (case-insensitive) uses ``output`` beside the first JSON.
    * - ``is_plot``
      - ``Is plot figure``
      - ``bool``

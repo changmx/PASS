@@ -27,7 +27,7 @@ from PASS import __version__
 from PASS.gui.appearance import code_font
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import read_json
-from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, json_bytes, resolved_file
+from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, create_run_directory, json_bytes, resolved_file
 from PASS.gui.runner import RunExitCode
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 
@@ -101,12 +101,13 @@ class RunPreparation(QThread):
         if not report.ok:
             raise ValueError(report.text())
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid4().hex[:10]
-        snapshot = self.output_root / "input_snapshots" / run_id
-        output = self.output_root / "runs" / run_id
+        output = create_run_directory(self.output_root)
+        snapshot = output / "input"
         snapshot.mkdir(parents=True, exist_ok=False)
         self.record_path = snapshot / "run.json"
         self.record = {
             "format_version": 1,
+            "snapshot_layout": "results/input",
             "id": run_id,
             "status": "preparing",
             "created_at": _utc_now(),
@@ -124,7 +125,7 @@ class RunPreparation(QThread):
             "configured_device_ids": deepcopy(self.documents[0][1].get("Device Id", [])),
             "observed_gpu": None,
             "output_root": str(self.output_root),
-            "output_directory": str(output),
+            "output_directory": str(self.output_root),
             "results_directory": str(output),
             "inputs": [],
             "dependencies": [],
@@ -141,7 +142,7 @@ class RunPreparation(QThread):
         self.progress.emit("复制依赖并计算快照校验和…")
         paths = archive_input_documents(self.documents,
                                         snapshot,
-                                        output,
+                                        self.output_root,
                                         comparison_documents=self._comparison_documents,
                                         check=self._check,
                                         copy_file=self._copy_file,
@@ -270,7 +271,12 @@ class RunHistoryDialog(QDialog):
     def _open_output(self):
         selected = self._selected()
         if selected:
-            self.owner._open_directory(selected[0][1]["results_directory"])
+            path, record = selected[0]
+            try:
+                record = read_json(path.read_bytes())
+            except (OSError, ValueError):
+                pass
+            self.owner._open_directory(record["results_directory"])
 
     def _open_snapshot(self):
         selected = self._selected()
@@ -643,7 +649,7 @@ class RunPage(QWidget):
         self._updating_log = False
         self._log_decoder.reset()
         self._progress_tail = ""
-        self._append_output(f"输入快照：{prepared['snapshot']}\n输出目录：{prepared['output']}\n\n")
+        self._append_output(f"输入快照：{prepared['snapshot']}\n结果目录：{prepared['output']}\n\n")
         self.run_path.setText(" + ".join(entry["name"] for entry in self._record["inputs"]))
         self.started_at = time.monotonic()
         self._stopped = self._forced = self._finish_recorded = False
@@ -780,6 +786,11 @@ class RunPage(QWidget):
                 QMessageBox.warning(self, "日志导出失败", str(exc))
 
     def open_output(self):
+        if self._record_path:
+            try:
+                self._output_path = Path(read_json(self._record_path.read_bytes())["results_directory"])
+            except (OSError, ValueError, KeyError):
+                pass
         if self._output_path:
             self._open_directory(self._output_path)
 

@@ -1,6 +1,7 @@
 """Qt-free input snapshots shared by command-line and GUI runs."""
 
 from copy import deepcopy
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -36,9 +37,29 @@ def resolved_file(value: str, base: Path) -> Path:
 def resolve_output_base(value, input_path) -> Path:
     """Resolve output paths against the original beam-0 JSON, before relocation."""
     if value is None or (isinstance(value, str) and value.lower() == "default"):
-        return Path(__file__).resolve().parents[2] / "output"
+        value = "output"
     path = Path(value)
     return (path if path.is_absolute() else Path(input_path).resolve().parent / path).resolve()
+
+
+def create_run_directory(output_root) -> Path:
+    """Reserve a dated result directory before archiving inputs or loading Config."""
+    now = datetime.now()
+    day = Path(output_root).resolve() / now.strftime("%Y_%m%d")
+    day.mkdir(parents=True, exist_ok=True)
+    name = now.strftime("%H%M_%S")
+    milliseconds = now.microsecond // 1000
+    for attempt in range(1000):
+        suffix = "" if attempt == 0 else f".{milliseconds:03d}"
+        if attempt > 1:
+            suffix += f"_{attempt - 1}"
+        directory = day / (name + suffix)
+        try:
+            directory.mkdir()
+        except FileExistsError:
+            continue
+        return directory
+    raise FileExistsError(f"Cannot allocate a new run directory beneath {day}")
 
 
 def file_references(value: object, pointer: str = "") -> Iterator[tuple[dict, str, str]]:

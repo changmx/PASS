@@ -84,8 +84,9 @@ def model_draft(model, supplied=None):
 
 class ScalarField(StructuredField):
 
-    def __init__(self, annotation, value, label, base_dir):
+    def __init__(self, annotation, value, label, base_dir, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.annotation, self.label = bare(annotation), label
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -161,22 +162,44 @@ class ScalarField(StructuredField):
 
 class OptionalField(StructuredField):
 
-    def __init__(self, annotation, value, label, base_dir):
+    def __init__(self, annotation, value, label, base_dir, parent=None):
         super().__init__()
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
+        self.setParent(parent)
+        self._root = QVBoxLayout(self)
+        self._root.setContentsMargins(0, 0, 0, 0)
         self.enabled_box = QCheckBox("指定此项")
         self.enabled_box.setChecked(value is not None)
-        root.addWidget(self.enabled_box)
+        self._root.addWidget(self.enabled_box)
         args = tuple(a for a in get_args(bare(annotation)) if a is not type(None))
-        self.editor = make_editor(args[0] if len(args) == 1 else Union[args], value, label, base_dir)
-        root.addWidget(self.editor)
-        self.editor.setEnabled(value is not None)
-        self.editor.setVisible(value is not None)
-        self.enabled_box.toggled.connect(self.editor.setEnabled)
-        self.enabled_box.toggled.connect(self.editor.setVisible)
+        self._annotation = args[0] if len(args) == 1 else Union[args]
+        self._value, self._label, self._base_dir = deepcopy(value), label, base_dir
+        self._editor = None
+        self._toggle(value is not None)
+        self.enabled_box.toggled.connect(self._toggle)
         self.enabled_box.toggled.connect(self.changed)
-        self.editor.changed.connect(self.changed)
+
+    @property
+    def editor(self):
+        if self._editor is None:
+            self._editor = make_editor(self._annotation, self._value, self._label, self._base_dir, parent=self)
+            self._editor.changed.connect(self.changed)
+            self._root.addWidget(self._editor)
+            self._toggle(self.enabled_box.isChecked())
+        return self._editor
+
+    def _toggle(self, enabled):
+        if enabled:
+            self.editor
+        if self._editor is not None:
+            self._editor.setEnabled(enabled)
+            self._editor.setVisible(enabled)
+
+    def reset_editor(self):
+        if self._editor is not None:
+            self._root.removeWidget(self._editor)
+            self._editor.hide()
+            self._editor.deleteLater()
+            self._editor = None
 
     def get_value(self):
         return self.editor.get_value() if self.enabled_box.isChecked() else None
@@ -427,13 +450,26 @@ class ActiveStack(QWidget):
 
     def addWidget(self, widget):
         self.pages.append(widget)
-        self.body.addWidget(widget)
-        widget.setVisible(len(self.pages) == 1)
+        if widget is not None:
+            self.body.addWidget(widget)
+            widget.setVisible(len(self.pages) == 1)
+
+    def setWidget(self, index, widget):
+        previous = self.pages[index]
+        if previous is not None:
+            self.body.removeWidget(previous)
+            previous.hide()
+            previous.deleteLater()
+        self.pages[index] = widget
+        if widget is not None:
+            self.body.addWidget(widget)
+            widget.setVisible(index == self.index)
 
     def setCurrentIndex(self, index):
         self.index = index
         for i, widget in enumerate(self.pages):
-            widget.setVisible(i == index)
+            if widget is not None:
+                widget.setVisible(i == index)
         self.body.invalidate()
         self.updateGeometry()
 
@@ -442,16 +478,19 @@ class ActiveStack(QWidget):
 
 
 class UnionField(StructuredField):
-    """Keep drafts for each scalar/table or discriminated model alternative."""
+    """Create alternatives on first use and retain their independent drafts."""
 
-    def __init__(self, annotation, value, label, base_dir):
+    def __init__(self, annotation, value, label, base_dir, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.types = get_args(bare(annotation))
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         self.mode = Choice()
         self.stack = ActiveStack()
         self.editors = []
+        self._values = []
+        self._label, self._base_dir = label, base_dir
         selected = 0
         matched = False
         for index, typ in enumerate(self.types):
@@ -465,10 +504,9 @@ class UnionField(StructuredField):
                 selected = index
                 matched = True
             self.mode.addItem(title)
-            editor = make_editor(typ, value if matches else None, label, base_dir)
-            editor.changed.connect(self.changed)
-            self.editors.append(editor)
-            self.stack.addWidget(editor)
+            self._values.append(deepcopy(value) if matches else None)
+            self.editors.append(None)
+            self.stack.addWidget(None)
         root.addWidget(self.mode)
         root.addWidget(self.stack)
         self.mode.setCurrentIndex(selected)
@@ -481,24 +519,41 @@ class UnionField(StructuredField):
         self._select(self.mode.currentIndex())
 
     def _select(self, index):
-        if index < len(self.editors):
+        if 0 <= index < len(self.editors):
+            self.ensure_editor(index)
             self.stack.setCurrentIndex(index)
         for i, editor in enumerate(self.editors):
+            if editor is None:
+                continue
             editor.setSizePolicy(QSizePolicy.Expanding if i == index else QSizePolicy.Ignored,
                                  QSizePolicy.Preferred if i == index else QSizePolicy.Ignored)
-        self.stack.setVisible(index < len(self.editors))
+        self.stack.setVisible(0 <= index < len(self.editors))
         self.stack.updateGeometry()
 
+    def ensure_editor(self, index):
+        editor = self.editors[index]
+        if editor is None:
+            editor = make_editor(self.types[index], self._values[index], self._label, self._base_dir, parent=self.stack)
+            editor.changed.connect(self.changed)
+            self.editors[index] = editor
+            self.stack.setWidget(index, editor)
+        return editor
+
+    def reset_editor(self, index):
+        self.stack.setWidget(index, None)
+        self.editors[index] = None
+
     def get_value(self):
-        if self.mode.currentIndex() >= len(self.editors):
+        if not 0 <= self.mode.currentIndex() < len(self.editors):
             raise ValueError("未知模型类型；请选择受支持的模型并明确填写参数")
-        return self.editors[self.mode.currentIndex()].get_value()
+        return self.ensure_editor(self.mode.currentIndex()).get_value()
 
 
 class ModelListEditor(StructuredField):
 
-    def __init__(self, model, value, label, base_dir):
+    def __init__(self, model, value, label, base_dir, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.model, self.base_dir, self.label = model, base_dir, label
         self.entries = []
         root = QVBoxLayout(self)
@@ -512,9 +567,9 @@ class ModelListEditor(StructuredField):
             self.add_entry(item)
 
     def add_entry(self, value=None):
-        panel = QGroupBox(f"{self.label} {len(self.entries)+1}")
+        panel = QGroupBox(f"{self.label} {len(self.entries)+1}", self)
         layout = QVBoxLayout(panel)
-        editor = make_editor(self.model, value, self.label, self.base_dir)
+        editor = make_editor(self.model, value, self.label, self.base_dir, parent=panel)
         editor.changed.connect(self.changed)
         layout.addWidget(editor)
         buttons = QHBoxLayout()
@@ -558,14 +613,16 @@ class ModelListEditor(StructuredField):
         return values
 
 
-def make_editor(annotation, value, label, base_dir):
+def make_editor(annotation, value, label, base_dir, parent=None):
+    # Establish ancestry before filling nested forms, so Qt does not repeatedly
+    # propagate style/palette changes through completed alternative subtrees.
     typ = bare(annotation)
     if nullable(typ):
-        return OptionalField(typ, value, label, base_dir)
+        return OptionalField(typ, value, label, base_dir, parent)
     if get_origin(typ) in (Union, types.UnionType):
-        return UnionField(typ, value, label, base_dir)
+        return UnionField(typ, value, label, base_dir, parent)
     if isinstance(typ, type) and issubclass(typ, BaseModel):
-        return SchemaEditor(typ, value, base_dir)
+        return SchemaEditor(typ, value, base_dir, parent)
     if get_origin(typ) in (list, tuple):
         # These physical matrices have fixed column counts even in an empty draft.
         if label == "Velocity covariance (m2/s2)":
@@ -574,17 +631,18 @@ def make_editor(annotation, value, label, base_dir):
             typ = list[tuple[float, float]]
         item_type = bare(get_args(typ)[0])
         if isinstance(item_type, type) and issubclass(item_type, BaseModel):
-            return ModelListEditor(item_type, value, label, base_dir)
+            return ModelListEditor(item_type, value, label, base_dir, parent)
         if get_origin(typ) is list and item_type in (int, float) and value is not None and len(value) > 4096:
             return LargeArrayField(typ, value, label)
         return ArrayField(typ, value, label)
-    return ScalarField(typ, value, label, base_dir)
+    return ScalarField(typ, value, label, base_dir, parent)
 
 
 class SchemaEditor(StructuredField):
 
-    def __init__(self, model, value=None, base_dir=Path(".")):
+    def __init__(self, model, value=None, base_dir=Path("."), parent=None):
         super().__init__()
+        self.setParent(parent)
         self.model = model
         self.original = model_draft(model, value)
         self.fields, self.labels, self.inactive = {}, {}, {}
@@ -594,7 +652,7 @@ class SchemaEditor(StructuredField):
         self.form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         for name, info in model.model_fields.items():
             key = info.alias or name
-            field = make_editor(info.annotation, self.original[key], key, base_dir)
+            field = make_editor(info.annotation, self.original[key], key, base_dir, parent=self)
             field.setToolTip(info.description or key)
             self.fields[key] = field
             label = QLabel(key + ("\N{NO-BREAK SPACE}*" if info.is_required() else ""))

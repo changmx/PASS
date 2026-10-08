@@ -1,17 +1,10 @@
 """Process entry point with a reliable exit status for GUI and exported bundles."""
 from __future__ import annotations
 
-from enum import IntEnum
 import logging
 from pathlib import Path
 
-
-class RunExitCode(IntEnum):
-    """Distinct process outcomes; 2 remains reserved for CLI argument errors."""
-    COMPLETED = 0
-    FAILED = 1
-    STOPPED = 3
-    INTERRUPTED = 130
+from PASS.main import RunExitCode
 
 
 def run_inputs(beam0: str, beam1: str | None = None, *, stop_file: str | None = None, record_path: str | None = None) -> int:
@@ -45,12 +38,18 @@ def run_inputs(beam0: str, beam1: str | None = None, *, stop_file: str | None = 
             atomic_write(path, json_bytes(record))
 
     try:
+        run_directory = None
+        if record_path:
+            from PASS.gui.project import read_json
+            record = read_json(Path(record_path).read_bytes())
+            if record.get("snapshot_layout") == "results/input":
+                run_directory = record["results_directory"]
         completed = main(beam0,
                          beam1,
                          stop_requested=stop_path.is_file if stop_path else None,
                          on_initialized=initialized,
-                         flat_output=bool(record_path),
                          archive_inputs=not bool(record_path),
+                         _run_directory=run_directory,
                          raise_errors=True)
     except KeyboardInterrupt:
         logger.warning("Run interrupted; the current turn may be incomplete")

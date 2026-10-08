@@ -1,8 +1,10 @@
 图形界面
 ========
 
-使用 ``python -m pip install --editable ".[gui]"`` 安装界面，通过
-``python -m PASS.gui`` 或 ``pass-gui`` 启动。
+使用 ``python -m pip install "pass-sim[gui]"`` 从 PyPI 安装界面。
+也可以从 GitHub 克隆仓库或下载并解压源码，在包含 ``pyproject.toml`` 的目录中
+执行 ``python -m pip install --editable ".[gui]"`` 安装。
+通过 ``python -m PASS.gui`` 或 ``pass-gui`` 启动。
 
 1. 打开 PASS 输入 JSON 或 ``.passproj`` 工程文件，或创建新的输入配置。
 2. 设置全局参数、注入与执行序列。每份属性表单通过 **应用修改** 写入输入；

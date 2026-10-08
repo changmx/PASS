@@ -1,8 +1,9 @@
 Single-file projects
 ====================
 
-The GUI supports ordinary standalone JSON inputs and single-file ``.passproj``
-projects. The **File** menu separates JSON, project, and export actions.
+PASS supports ordinary standalone JSON inputs and single-file ``.passproj``
+projects through the GUI and command line. The GUI **File** menu separates JSON,
+project, and export actions.
 
 Saving and opening
 ------------------
@@ -64,6 +65,46 @@ A project can store more candidate configurations than the engine runs at once.
 Relative output directories are resolved beside the JSON or saved project; an
 unsaved project uses the current working directory.
 
+After installing PASS, a saved project can also be run without Qt:
+
+.. code-block:: console
+
+   pass-run example.passproj
+   pass-run --passproj example.passproj
+   python -m PASS example.passproj
+
+These commands are equivalent. The ``.passproj`` extension selects project
+loading, including archive and checksum validation. The command line uses
+``run_settings.beam0`` and the optional ``run_settings.beam1`` saved by the GUI.
+When no Beam 0 selection has been saved, ``active_config_id`` supplies Beam 0;
+Beam 1 is omitted unless selected. A saved selection that no longer exists, or
+selecting the same configuration for both beams, is an error. Other configurations
+are not run automatically. A project file cannot be combined with a second input
+argument. Do not mix positional inputs with named input options. ``--passproj``
+cannot be combined with ``--beam0`` or ``--beam1``; those options select standalone
+JSON inputs instead. See :doc:`input_generation` for the JSON command forms.
+
+Without an override, command-line project runs use ``run_settings.output_directory``, defaulting to
+``output``. Relative paths are resolved beside the saved project, regardless of
+the shell's working directory or output directories inside the selected JSON
+configurations. Absolute output paths remain absolute. Results and input snapshots
+use the layout below and stay outside the temporary project cache. The project
+file is unchanged by execution.
+
+To choose a different output root for this run, use ``--output DIR``:
+
+.. code-block:: console
+
+   pass-run example.passproj --output results
+   python -m PASS example.passproj --output "results/project run"
+
+This option takes precedence over the saved output setting and does not modify
+the project. Relative override paths use the working directory at launch;
+snapshots and results both use the chosen root with the same layout below.
+``pass-run --help`` or ``pass-run -h`` displays the input modes, options, path
+rules, and examples, including ``--stop-file``;
+exit codes are documented in :doc:`input_generation`.
+
 The GUI freezes the selected configurations, then validates them, copies their
 dependencies using the same snapshot service as ``PASS.main.main``, and verifies
 the snapshot in a background worker before starting the child process.
@@ -72,26 +113,36 @@ duplicate starts are disabled during preparation and execution. Failed or
 cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.
 
-Each run has separate snapshot and result directories:
+Each GUI run and command-line project run has its own result directory, with
+the input snapshot in its ``input`` subdirectory. This is the same dated layout
+as standalone JSON runs:
 
 .. code-block:: text
 
-   <output>/input_snapshots/<run-id>/
-       beam0.json                  # fixed runtime input; optional beam1.json
-       configuration0.json         # original configuration for comparison
-       assets/...                  # copied dependency bytes
-       run.json                    # run record
-       gui.log                     # complete process log
-   <output>/runs/<run-id>/          # simulation results for this run
+   <output>/<YYYY_MMDD>/<HHMM_SS>/       # simulation results for this run
+       input/
+           beam0.json                  # fixed runtime input; optional beam1.json
+           configuration0.json         # original configuration for comparison
+           assets/...                  # copied dependency bytes
+           run.json                    # run record
+           gui.log                     # complete process log for GUI runs
 
 Runtime JSON uses relative paths to copied ``assets/...`` files and an absolute
-path to the dedicated result directory. The child process reads these copied
-inputs without creating a second snapshot. Editing the project later does not
+path to the output root. Preparation allocates the dated result directory before
+copying inputs and stores its path in ``run.json`` as ``results_directory``.
+Initialization uses that directory without adding another date/time level.
+A suffix is added to the time directory when needed to avoid reusing an existing
+result directory. The run ID remains in ``run.json`` rather than forming another
+directory level.
+Tracking reads these copied inputs
+without creating a second snapshot. Editing the project later does not
 change the running task, and a new run does not share the preceding run's output
-directory. Both directories remain outside the temporary project cache.
+directory. Results and their input snapshots remain outside the temporary
+project cache.
 
-The command-line/Python entry point uses the same snapshot format while retaining
-its dated result directories; see :doc:`input_generation`. Missing dependencies
+Running standalone JSON through the command-line/Python entry point uses the
+same snapshot format and result layout; see
+:doc:`input_generation`. Missing dependencies
 of disabled resources are recorded in ``unavailable_dependencies`` with the
 existing validation warnings. Missing required active inputs prevent execution.
 
@@ -190,9 +241,18 @@ Version 1 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
    assets/<asset-id>/<filename>    # original input/source bytes
    recipes/<index>.json            # generation settings and source references
 
+To inspect the contents outside PASS, open the file with a ZIP-compatible archive
+application, or copy it, rename the copy to ``.zip``, and extract it. Read
+``manifest.json`` and ``configs/*.json`` with an ordinary text editor. In the GUI,
+**Project contents** provides configuration and source previews without manual
+extraction. Save project changes through the GUI so the dependency index and
+checksums are updated together; editing archive members by hand can invalidate
+the project.
+
 Input display names are separate from their stable IDs. Configurations refer to
-assets by relative paths. The manifest records SHA-256 checksums and the dependency
-index. Copying the project requires only one file; the temporary editing cache
+assets by relative paths. The manifest records SHA-256 checksums, the dependency
+index, the active configuration, and run settings. Copying the project requires
+only one file; the temporary editing cache
 does not need to be transferred. The runtime input does not depend on paths on
 the original computer. Source files are snapshots and are not silently refreshed
 when an external file changes.

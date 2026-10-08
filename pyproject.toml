@@ -62,6 +62,7 @@ cuda = [
 ]
 
 [project.scripts]
+pass-run = "PASS.main:cli_main"
 pass-gui = "PASS.gui.__main__:main"
 
 [project.urls]

@@ -367,12 +367,12 @@ class Validator:
             if self.backend == "gpu" and (len(ids) != g.get("Number of GPU devices") or len(ids) > 1):
                 self.add(("Device Id", ), "gpu.single_device", "当前进程只使用第一个 GPU；数量应与列表一致", True)
         output = g.get("Output directory")
-        if isinstance(output, str) and output != "default":
+        if isinstance(output, str):
             if not output.strip():
                 self.add(("Output directory", ), "output.empty", "输出目录不能留空")
             elif self.check_files:
                 try:
-                    p = Path(output).expanduser()
+                    p = Path("output" if output.lower() == "default" else output).expanduser()
                     if not p.is_absolute():
                         p = self.base / p
                     if p.exists() and not p.is_dir():

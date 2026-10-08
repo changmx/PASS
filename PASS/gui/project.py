@@ -507,15 +507,16 @@ class Project:
             for record in dependencies:
                 asset = self.assets[record["asset_id"]]
                 entries[asset.path] = self.root / asset.path
-        # Engine readers historically use process-relative paths. A controlled
-        # cwd makes this extracted package directly runnable with existing PASS.
+        # Inputs resolve assets beside their JSON; leave cwd intact for CLI overrides.
         entries["run.py"] = ('"""Run this exported PASS input bundle: python run.py."""\n'
-                             'import os\nfrom pathlib import Path\nfrom PASS.gui.runner import run_inputs\n'
-                             'root = Path(__file__).resolve().parent\nos.chdir(root)\n' +
-                             ('raise SystemExit(run_inputs(str(root / "beam0.json"), str(root / "beam1.json")))\n'
-                              if len(config_ids) == 2 else 'raise SystemExit(run_inputs(str(root / "beam0.json")))\n')).encode("utf-8")
-        entries[
-            "README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
+                             'from pathlib import Path\nimport sys\nfrom PASS.main import cli_main\n'
+                             'root = Path(__file__).resolve().parent\n' +
+                             ('raise SystemExit(cli_main([str(root / "beam0.json"), str(root / "beam1.json"), *sys.argv[1:]]))\n'
+                              if len(config_ids) == 2 else 'raise SystemExit(cli_main([str(root / "beam0.json"), *sys.argv[1:]]))\n')).encode("utf-8")
+        entries["README.txt"] = (b"Extract all files together. Install PASS, then run: python run.py\n"
+                                 b"Use python run.py --help for CLI options; no GUI installation is required.\n"
+                                 b"Inputs use paths relative to this folder. Outputs are written under output/.\n"
+                                 b"Override output with --output DIR; a relative DIR uses your terminal's working directory.\n")
         self._write_archive(Path(destination), entries, context=context)
 
     def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, context=None) -> str:

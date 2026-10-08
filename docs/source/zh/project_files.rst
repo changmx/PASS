@@ -1,8 +1,8 @@
 单文件项目
 ==========
 
-GUI 支持普通独立 JSON 输入和单文件 ``.passproj`` 项目。
-顶部 **文件** 菜单区分 JSON、项目以及导出操作。
+PASS 的 GUI 和命令行均支持普通独立 JSON 输入和单文件 ``.passproj`` 项目。
+GUI 顶部 **文件** 菜单区分 JSON、项目以及导出操作。
 
 保存与打开
 ----------
@@ -58,29 +58,67 @@ TFS 和 CSV 提供最多 500 行的数据预览。文本预览限制为 2 MiB，
 相对输出目录以 JSON 或已保存项目所在目录为基准；
 未保存项目以当前工作目录为基准。
 
+安装 PASS 后，也可通过命令行运行已保存项目，无需 Qt：
+
+.. code-block:: console
+
+   pass-run example.passproj
+   pass-run --passproj example.passproj
+   python -m PASS example.passproj
+
+这些命令等价。``.passproj`` 后缀触发项目读取，包括归档和校验和验证。
+命令行使用 GUI 保存的 ``run_settings.beam0`` 和可选的 ``run_settings.beam1``。
+未保存 Beam 0 选择时，使用 ``active_config_id`` 对应配置；未选择 Beam 1 时仅运行单束流。
+已保存的选择不再存在，或两束选择了同一份配置时，会明确报错。
+项目中的其他配置不会自动执行，项目文件也不能与第二个输入参数组合使用。
+位置参数与命名输入选项不能混用。``--passproj`` 不能与 ``--beam0`` 或 ``--beam1``
+组合使用；这两个选项用于选择独立 JSON 输入，具体用法见 :doc:`input_generation`。
+
+未覆盖输出目录时，命令行项目运行使用 ``run_settings.output_directory``，默认为 ``output``。
+相对路径以已保存项目所在目录为基准，不受命令行当前工作目录或所选 JSON 内输出目录影响；
+绝对路径保持不变。结果与输入快照采用下述布局，均位于项目临时缓存之外。
+运行不会修改项目文件。
+
+使用 ``--output DIR`` 为本次运行选择其他输出根目录：
+
+.. code-block:: console
+
+   pass-run example.passproj --output results
+   python -m PASS example.passproj --output "results/project run"
+
+此选项优先于保存的输出设置，不会修改项目。相对覆盖路径以启动时的工作目录为基准；
+快照和结果均使用所选根目录，并保留下述布局。``pass-run --help`` 或 ``pass-run -h``
+显示输入方式、选项、路径规则和示例，包括 ``--stop-file`` 的用法，
+退出码见 :doc:`input_generation`。
+
 GUI 先固定所选配置，再在后台线程中依次校验输入、复制依赖和校验快照；
 依赖复制使用与 ``PASS.main.main`` 相同的快照服务，
 完成后才启动子进程。准备过程显示当前阶段并支持取消；准备和运行期间不能重复启动。
 准备失败或取消时，保留此前显示的运行记录。单次校验调用完成后才会响应取消请求。
 
-每次运行分别使用独立的快照目录和结果目录：
+每次 GUI 运行和命令行项目运行使用独立的结果目录，输入快照保存在其 ``input`` 子目录中，
+采用与独立 JSON 运行相同的日期布局：
 
 .. code-block:: text
 
-   <output>/input_snapshots/<run-id>/
-       beam0.json                  # 固定运行输入；可选 beam1.json
-       configuration0.json         # 用于比较的原始配置
-       assets/...                  # 已复制的依赖字节
-       run.json                    # 运行记录
-       gui.log                     # 完整进程日志
-   <output>/runs/<run-id>/          # 本次仿真结果
+   <output>/<YYYY_MMDD>/<HHMM_SS>/       # 本次仿真结果
+       input/
+           beam0.json                  # 固定运行输入；可选 beam1.json
+           configuration0.json         # 用于比较的原始配置
+           assets/...                  # 已复制的依赖字节
+           run.json                    # 运行记录
+           gui.log                     # GUI 运行的完整进程日志
 
-运行 JSON 使用指向已复制 ``assets/...`` 文件的相对路径，并以绝对路径指定本次独立结果目录。
-子进程读取这些已复制的输入，不再创建第二份快照。
+运行 JSON 使用指向已复制 ``assets/...`` 文件的相对路径，并以绝对路径指定输出根目录。
+准备阶段在复制输入前分配按日期组织的结果目录，并将路径保存到 ``run.json`` 的
+``results_directory``。初始化使用该目录，不再追加一层日期和时间。
+必要时为时间目录添加后缀，以避免复用已有结果目录。
+运行 ID 仍保存在 ``run.json`` 中，不再单独作为一层目录。
+跟踪读取这些已复制的输入，不再创建第二份快照。
 之后编辑项目不会改变正在运行的任务，新运行也不共用前次结果目录。
-这两类目录均位于项目临时缓存之外。
+结果及其中的输入快照均位于项目临时缓存之外。
 
-命令行/Python 入口使用相同快照格式，并保留原有按日期组织的结果目录，见 :doc:`input_generation`。
+通过命令行/Python 入口运行独立 JSON 时使用相同快照格式和结果布局，见 :doc:`input_generation`。
 未启用资源的缺失依赖记录在 ``unavailable_dependencies``，并保留原有校验警告；
 已启用功能所需输入缺失则阻止运行。
 
@@ -163,8 +201,15 @@ GUI 启动或关闭时不会删除这些文件。
    assets/<asset-id>/<filename>    # 原始输入/源文件字节
    recipes/<index>.json            # 生成设置和源文件引用
 
+在 PASS 外查看内容时，可用支持 ZIP 的压缩软件打开文件，
+或复制一份并将副本改名为 ``.zip`` 后解压。
+``manifest.json`` 和 ``configs/*.json`` 可用普通文本编辑器阅读。
+GUI 中的 **项目内容** 可直接预览配置和源文件，无需手工解压。
+修改后应通过 GUI 保存项目，使依赖索引和校验和一同更新；
+手工修改归档成员可能导致项目校验失败。
+
 输入显示名称与稳定 ID 分开保存。配置采用相对路径引用资产；
-清单记录 SHA-256 校验和与依赖索引。移动项目只需复制一个文件，
+清单记录 SHA-256 校验和、依赖索引、当前活动配置和运行设置。移动项目只需复制一个文件，
 不需要携带临时编辑缓存；运行输入不依赖原电脑路径。
 源文件是快照，外部同名文件变化不会自动改变项目。
 

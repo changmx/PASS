@@ -1,8 +1,10 @@
 Graphical interface
 ===================
 
-Install the interface with ``python -m pip install --editable ".[gui]"`` and
-launch it with ``python -m PASS.gui`` or ``pass-gui``.
+Install the interface from PyPI with ``python -m pip install "pass-sim[gui]"``.
+To install from a GitHub clone or extracted source archive, run
+``python -m pip install --editable ".[gui]"`` from the directory containing ``pyproject.toml``.
+Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
 1. Open a PASS input JSON or a ``.passproj`` project, or configure a new input.
 2. Edit the global parameters, injection, and execution sequence. Select **Apply**

@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from copy import deepcopy
 from typing import Literal
-from datetime import datetime
 from pathlib import Path
 import json
 import os
@@ -9,14 +8,13 @@ import sys
 import socket
 import platform
 import logging
-import time
 
 import numpy as np
 
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.helper import convert_keys_to_lower
 from PASS.utils.program import LinearProgram
-from PASS.utils.input_snapshot import json_bytes, resolve_output_base
+from PASS.utils.input_snapshot import create_run_directory, json_bytes, resolve_output_base
 
 logger = logging.getLogger(__name__)
 
@@ -65,13 +63,22 @@ class Config:
     output_dir_slice: str = ""
     output_dir_slowExt_particle: str = ""
 
-    def load_input(self, beam0_path: str, beam1_path: str | None = None, *, flat_output: bool = False) -> None:
+    def load_input(self,
+                   beam0_path: str,
+                   beam1_path: str | None = None,
+                   *,
+                   flat_output: bool = False,
+                   _run_directory: str | Path | None = None) -> None:
         """Load inputs; optionally write a caller-managed run into one directory.
 
         ``flat_output`` is a runtime option for isolated verification workflows.
         The caller must provide a separate output directory for every run.
         Normal application runs retain the dated output layout.
+        Internal launchers pass _run_directory to reuse the directory reserved
+        for the input archive, with the normal result filenames and subdirectories.
         """
+        if flat_output and _run_directory is not None:
+            raise ValueError("A prepared dated run directory cannot be combined with flat_output")
         self.flat_output = flat_output
         self.beam_name.clear()
         self.harmonic_number.clear()
@@ -222,43 +229,26 @@ class Config:
                 self._write_parameter_snapshot(destination, data)
             return
 
-        now = datetime.now()
-        self.output_ymd = f"{now.year}_{now.month:02d}{now.day:02d}"
-
-        hour_min = f"{now.hour:02d}{now.minute:02d}"
-        second = f"{now.second:02d}"
-        base_hms = f"{hour_min}_{second}"
-        self.output_hms = base_hms
-        self.output_dir = str(Path(output_base) / self.output_ymd / self.output_hms)
-
-        if Path(self.output_dir).exists():
-            micro = now.microsecond // 1000
-            self.output_hms = f"{hour_min}_{second}.{micro:03d}"
-            self.output_dir = str(Path(output_base) / self.output_ymd / self.output_hms)
-
-        max_attempts = 10
-        attempt = 0
-        while Path(self.output_dir).exists() and attempt < max_attempts:
-            time.sleep(1)
-            now = datetime.now()
-            hour_min = f"{now.hour:02d}{now.minute:02d}"
-            second = f"{now.second:02d}"
-            micro = now.microsecond // 1000
-            self.output_hms = f"{hour_min}_{second}.{micro:03d}"
-            self.output_dir = str(Path(output_base) / self.output_ymd / self.output_hms)
-            attempt += 1
-
-        self.output_dir_log = str(Path(output_base) / self.output_ymd / self.output_hms)
-        self.output_dir_stat = str(Path(output_base) / self.output_ymd / self.output_hms)
-        self.output_dir_para = str(Path(output_base) / self.output_ymd / self.output_hms)
-        self.output_dir_dist = str(Path(output_base) / self.output_ymd / self.output_hms / "distribution")
-        self.output_dir_tuneSpread = str(Path(output_base) / self.output_ymd / self.output_hms / "tuneSpread")
-        self.output_dir_chargeDensity = str(Path(output_base) / self.output_ymd / self.output_hms / "chargeDensity")
-        self.output_dir_space_charge = str(Path(output_base) / self.output_ymd / self.output_hms / "space_charge")
-        self.output_dir_plot = str(Path(output_base) / self.output_ymd / self.output_hms / "plot")
-        self.output_dir_particle = str(Path(output_base) / self.output_ymd / self.output_hms / "particle")
-        self.output_dir_slice = str(Path(output_base) / self.output_ymd / self.output_hms / "slice")
-        self.output_dir_slowExt_particle = str(Path(output_base) / self.output_ymd / self.output_hms / "slowExt_particle")
+        if _run_directory is None:
+            results = create_run_directory(output_base)
+        else:
+            results = Path(_run_directory).resolve()
+            if len(results.relative_to(output_base).parts) != 2 or not results.is_dir():
+                raise ValueError("The prepared run directory must exist directly beneath the output root's date directory")
+        self.output_ymd = results.parent.name
+        self.output_hms = results.name
+        self.output_dir = str(results)
+        self.output_dir_log = str(results)
+        self.output_dir_stat = str(results)
+        self.output_dir_para = str(results)
+        self.output_dir_dist = str(results / "distribution")
+        self.output_dir_tuneSpread = str(results / "tuneSpread")
+        self.output_dir_chargeDensity = str(results / "chargeDensity")
+        self.output_dir_space_charge = str(results / "space_charge")
+        self.output_dir_plot = str(results / "plot")
+        self.output_dir_particle = str(results / "particle")
+        self.output_dir_slice = str(results / "slice")
+        self.output_dir_slowExt_particle = str(results / "slowExt_particle")
 
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         Path(self.output_dir_log).mkdir(parents=True, exist_ok=True)

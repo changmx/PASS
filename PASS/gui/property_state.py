@@ -41,9 +41,17 @@ def capture_field(field):
     if isinstance(field, ScalarField):
         return {"kind": "scalar", "input": capture_field(field.input)}
     if isinstance(field, OptionalField):
-        return {"kind": "optional", "enabled": field.enabled_box.isChecked(), "editor": capture_field(field.editor)}
+        return {
+            "kind": "optional",
+            "enabled": field.enabled_box.isChecked(),
+            "editor": capture_field(field._editor) if field._editor is not None else None
+        }
     if isinstance(field, UnionField):
-        return {"kind": "union", "index": field.mode.currentIndex(), "editors": [capture_field(editor) for editor in field.editors]}
+        return {
+            "kind": "union",
+            "index": field.mode.currentIndex(),
+            "editors": [capture_field(editor) if editor is not None else None for editor in field.editors]
+        }
     if isinstance(field, ApertureEditor):
         return {
             "kind": "aperture",
@@ -113,11 +121,18 @@ def restore_field(field, state):
         restore_field(field.input, state["input"])
     elif kind == "optional" and isinstance(field, OptionalField):
         field.enabled_box.setChecked(state["enabled"])
-        restore_field(field.editor, state["editor"])
+        if state["editor"] is None:
+            field.reset_editor()
+        else:
+            restore_field(field.editor, state["editor"])
     elif kind == "union" and isinstance(field, UnionField):
         field.mode.setCurrentIndex(state["index"])
-        for editor, value in zip(field.editors, state["editors"]):
-            restore_field(editor, value)
+        for index, value in enumerate(state["editors"][:len(field.editors)]):
+            if value is None:
+                field.reset_editor(index)
+            else:
+                restore_field(field.ensure_editor(index), value)
+        field._select(field.mode.currentIndex())
     elif kind == "aperture" and isinstance(field, ApertureEditor):
         field.set_kind(state["shape"])
         for item, value in zip(field.fields, state["fields"]):
@@ -225,7 +240,8 @@ def named_fields(field, path):
         for index, (_, child) in enumerate(field.entries):
             yield from named_fields(child, (*path, str(index)))
     elif isinstance(field, OptionalField):
-        yield from named_fields(field.editor, (*path, "详细参数"))
+        if field._editor is not None:
+            yield from named_fields(field._editor, (*path, "详细参数"))
     elif isinstance(field, UnionField) and field.mode.currentIndex() < len(field.editors):
         yield from named_fields(field.editors[field.mode.currentIndex()], (*path, field.mode.currentText()))
     elif not isinstance(field, (ScalarField, NumericTable)):
