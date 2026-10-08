@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-10-08
+
+### Added
+
+- Slow-extraction particle collection and spill monitoring, with CPU and GPU support.
+- Standalone FFT, refined FFT, and frequency-map analysis with a GUI workspace.
+- Dynamic-aperture scans, particle-file injection, and analysis and export tools.
+- Bunch-by-bunch transverse feedback with FIR design tools and a GUI coefficient generator.
+- HIAF RF data conversion and an exciter voltage-to-kick-angle calculator.
+- Unified `pass-run` command-line interface for JSON inputs and saved projects, without GUI dependencies.
+
+### Changed
+
+- Consolidated ParticleMonitor output into one file per monitor and beam, including injection coordinates; ParticleMonitor and Injection now default to uncompressed HDF5.
+- Derived the design reference clock automatically from injection and RF settings; old inputs must remove `Reference clock`.
+- Replaced exciter voltage, gap, and length inputs with `Kick angle (rad)`.
+- Used tabulated ion masses in tracking and improved GPU execution, data reading, and input validation.
+
+### Fixed
+
+- Corrected MAD-X dispersion and chromaticity conversion to momentum deviation.
+- Preserved exciter phase continuity across frequency-sweep periods.
+- Protected existing output and committed history, and corrected injection snapshot handling.
+
+### Removed
+
+- Joint beam-beam checkpoint save/restore and stopped-run continuation.
+
+---
+
 ## [0.5.0] - 2026-10-03
 
 ### Added
