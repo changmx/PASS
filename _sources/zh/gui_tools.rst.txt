@@ -424,8 +424,10 @@ V 是带符号极板间峰值电压差（V），踢角以 rad 为单位并保留
 打开或拖入 OMC3 SDDS、HDF5、CSV、TFS，选择数据、预览后另存为。
 源文件保持只读，支持 OMC3 SDDS ↔ CSV/TFS、HDF5 ↔ CSV/TFS 及 CSV ↔ TFS。
 不提供数据编辑及 SDDS ↔ HDF5 直接互转。安装 GUI 可选依赖即可；
-脚本单独使用时执行 ``python -m pip install --editable ".[conversion]"``，
-安装 PyLHC ``sdds`` 与 ``turn-by-turn``。
+脚本单独使用时执行 ``python -m pip install "pass-sim[conversion]"``，
+安装 PyLHC ``sdds`` 与 ``turn-by-turn``。从 GitHub 克隆仓库或下载并解压源码后，
+也可以在包含 ``pyproject.toml`` 的目录中执行
+``python -m pip install --editable ".[conversion]"`` 安装。
 
 SDDS 专门支持 OMC3 的 **LHC/TbT SDDS1 数组结构**，由 PyLHC ``sdds`` 读写。
 ``turn_by_turn`` 是 OMC3 使用的 Python 读取库，并不是另一种文件格式。

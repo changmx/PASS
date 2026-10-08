@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>射频腔（RFCavity） &mdash; PASS 0.5.0 使用手册</title>
+  <title>射频腔（RFCavity） &mdash; PASS 0.6.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -156,7 +156,7 @@
 CPU 与 CUDA 使用相同算法，计算中间量采用 float64。</p>
 <div class="math notranslate nohighlight">
 \[t_i=T_b-\frac{z_i}{\beta_b c},\qquad
-U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</div>
+U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_0^{t}f_k(u)du+\phi_k(t)\right].\]</div>
 <p>频率必须积分；变频时不能使用 <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code>。<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 <span class="math notranslate nohighlight">\(2\pi\)</span>。<code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 和派生的名义槽位位置不进入运行中的相位公式。</p>
 <p>以下接口中的字段用于 <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.elements.RFCavityItem</span></code> 配置类；
 元件名称由 <code class="docutils literal notranslate"><span class="pre">Sequence.add(name,</span> <span class="pre">item)</span></code> 的序列键给出，不是配置类字段。</p>
@@ -235,7 +235,7 @@ U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</di
 <p>每个分量选择以下两种频率定义之一：</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>：规定的实际载波频率，正标量或列表。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>：正整数，乘以共同 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 的回旋频率；不依赖当前束团能量，也不受分组谐波整除限制。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>：正整数，乘以自动派生的设计回旋频率；不随集体效应引起的跟踪束团能量变化而改变，也不受分组谐波整除限制。</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 默认为 0，可为标量或列表。
 列表共享严格递增的有限 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code>，并采用分段线性插值。
@@ -246,7 +246,7 @@ U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</di
 <p>每个粒子按自身到达时间 <span class="math notranslate nohighlight">\(t_i\)</span> 判断，参考粒子按 <span class="math notranslate nohighlight">\(T_b\)</span> 判断，
 因此同一束团内的粒子可以分别位于数据边界两侧。频率程序、积分得到的载波相位
 及共享参考时钟保持连续，并保留原有的端点外推；仅分量电压受数据时间域限制。
-参考时钟与默认值见 <a class="reference internal" href="../input_generation.html#zh-reference-clock"><span class="std std-ref">规定的机器时钟与初始化</span></a>。</p>
+自动纯 RF 设计时钟及其限制见 <a class="reference internal" href="../input_generation.html#zh-reference-clock"><span class="std std-ref">自动设计时钟与初始化</span></a>。</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RFCavity"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Components"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -349,21 +349,25 @@ SHA-256 校验值、单位和时间范围。默认保护已有输出；只有显
 </div>
 <p>这些时间是 2026-10-05 BRing 导出数据的示例，并非通用机器常数。
 <code class="docutils literal notranslate"><span class="pre">--start-time</span></code> 和 <code class="docutils literal notranslate"><span class="pre">--end-time</span></code> 以物理秒选择源数据内的范围；新增端点的模拟量
-采用线性插值，谐波标签保持离散。<code class="docutils literal notranslate"><span class="pre">--phase-origin</span></code> 指定时钟积分相位为零的物理时刻，
-不平移导出的时间列。截取分量时间域时仍保留完整导出时钟，避免改变累计相位。</p>
+采用线性插值，谐波标签保持离散。<code class="docutils literal notranslate"><span class="pre">--phase-origin</span></code> 指定原信号源时钟积分相位为零的物理时刻，
+不平移时间列。即使截取分量时间域，仍使用完整源频率前史计算各段的相位修正。</p>
 <p>上述示例明确规定 <span class="math notranslate nohighlight">\(\psi_4=\mathrm{Phase}\)</span>、
 <span class="math notranslate nohighlight">\(\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}\)</span>。
 数据中的 <span class="math notranslate nohighlight">\(\mathrm{DeltaPhi1}=\pi-2\mathrm{Phase}\)</span> 关系因此给出
 <span class="math notranslate nohighlight">\(\psi_8=\pi\)</span>。该数值关系支持这种解释，但不能证明控制系统的相位语义；
 将结果作为实机过程复现前仍需确认。相位列必须已展开，转换器不会自行展开相位，
 也不会隐式叠加 <code class="docutils literal notranslate"><span class="pre">Phase1</span></code>。后续 <span class="math notranslate nohighlight">\(h=2,1\)</span> 合束阶段必须提供各自的明确映射。</p>
-<p>指定映射后还会输出包含 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Components</span></code> 的
-<code class="docutils literal notranslate"><span class="pre">rf_config.json</span></code> ，以及每个固定谐波段的 TFS 文件。将 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code>
-填入根级 MainConfig 设置，将 <code class="docutils literal notranslate"><span class="pre">Components</span></code> 填入 RFCavity 设置。
-时钟频率等于基础通道导出频率除以 <code class="docutils literal notranslate"><span class="pre">--base-harmonic</span></code> （默认 4）；每个活动通道
-必须满足其频率等于谐波数乘以该共享频率。PASS 按物理时间积分这一规定时钟，
-粒子能量不会重新定义时钟。相邻零电压节点保留导出的线性开关过程，分量时间域外
-电压为零。没有零电压分隔的谐波切换、缺失的活动相位映射、频率不一致均在写出前拒绝。</p>
+<p>指定映射后输出仅包含 <code class="docutils literal notranslate"><span class="pre">Components</span></code> 的 <code class="docutils literal notranslate"><span class="pre">rf_config.json</span></code>，将该列表填入 RFCavity。
+每个分量只指定 <code class="docutils literal notranslate"><span class="pre">Program</span> <span class="pre">file</span></code>，文件包含 TIME、VOLTAGE、FREQUENCY、PHASE，
+不再输出 <code class="docutils literal notranslate"><span class="pre">Harmonic</span></code> 字段；源谐波标签保留在文件名及转换元数据中。
+显式 RF 频率等于该段源谐波数乘以基础通道频率，再除以 <code class="docutils literal notranslate"><span class="pre">--base-harmonic</span></code> （默认 4）。
+活动通道频率必须在报告的容差内满足此关系。相邻禁用零电压节点继续采用该频率程序，
+不使用禁用通道的零频率标记，从而保留旧共享源时钟转换实际生成的物理波形。</p>
+<p>对于从 <span class="math notranslate nohighlight">\(a\)</span> 开始的分量段，转换器增加常量相位
+<span class="math notranslate nohighlight">\(2\pi[h\int_{t_*}^{a}f_{base}(u)/h_{base}\,du-\int_0^a f_{segment}(u)\,du]\)</span>
+并对 <span class="math notranslate nohighlight">\(2\pi\)</span> 取模，使运行时从零开始积分仍保留原始时间原点与频率前史。
+这种外部 RF 波形不会按自动设计时钟重新标定。相邻零电压节点保留线性开关过程，
+分量时间域外电压为零。没有零电压分隔的谐波切换、缺失的活动相位映射、频率不一致均在写出前拒绝。</p>
 <p>Python 接口 <code class="docutils literal notranslate"><span class="pre">load_hiaf_rf(source_directory)</span></code> 返回归一化数组；
 <code class="docutils literal notranslate"><span class="pre">convert_hiaf_rf(source_directory,</span> <span class="pre">output_directory,</span> <span class="pre">phase_rules=...,</span>
 <span class="pre">phase_origin=...,</span> <span class="pre">base_harmonic=4,</span> <span class="pre">start_time=None,</span> <span class="pre">end_time=None)</span></code> 生成输出。
@@ -373,7 +377,10 @@ SHA-256 校验值、单位和时间范围。默认保护已有输出；只有显
 <section id="id6">
 <h2>物理范围<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <p>模型采用有效电压、理想纵向薄透镜作用与零长度腔。不额外建模有限间隙渡越、RF 横向聚焦或腔内轨迹；若输入已包含渡越时间因子，不重复乘入。准确的 RF 能量增量不消除其他输运映射或准静态集体效应的近似。</p>
-<p>物理 RF 表使用 tfs-pandas 的 <code class="docutils literal notranslate"><span class="pre">colwidth=25,</span> <span class="pre">headerswidth=25</span></code> 保存，保留 float64 时间精度。同步输入生成器中的 <code class="docutils literal notranslate"><span class="pre">origin</span></code> 是首次通过腔的时刻，<code class="docutils literal notranslate"><span class="pre">time_origin</span></code> 是共同波形基准时刻，两者可以不同。</p>
+<p>物理 RF 表使用 tfs-pandas 的 <code class="docutils literal notranslate"><span class="pre">colwidth=25,</span> <span class="pre">headerswidth=25</span></code> 保存，保留 float64 时间精度。
+同步输入生成器中的 <code class="docutils literal notranslate"><span class="pre">origin</span></code> 仍是首次通过腔的时刻。旧 <code class="docutils literal notranslate"><span class="pre">time_origin</span></code> 参数继续接受并记录，
+但其常量载波相位已吸收到输出 PHASE，使表格采用运行时的零时间原点。这保留要求的通过相位
+与物理波形，不平移时间列，也不恢复公开机器时钟输入。</p>
 </section>
 </section>
 

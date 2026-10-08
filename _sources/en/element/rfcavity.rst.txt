@@ -6,7 +6,7 @@ RFCavity
 .. math::
 
    t_i=T_b-\frac{z_i}{\beta_b c},\qquad
-   U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].
+   U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_0^{t}f_k(u)du+\phi_k(t)\right].
 
 Frequency must be integrated; ``2*pi*f(t)*t`` is incorrect for a chirp. ``Phase (rad)`` is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by :math:`2\pi`. ``harmonic_id`` and the derived nominal slot position do not enter the tracking phase formula.
 
@@ -73,7 +73,7 @@ Input interface
 Each component selects one frequency definition:
 
 * ``Frequency (Hz)``: prescribed positive carrier frequency, scalar or list.
-* ``Harmonic``: positive integer multiplying the shared ``Reference clock`` revolution frequency. It neither follows current bunch energy nor needs to be divisible by the grouping harmonic.
+* ``Harmonic``: positive integer multiplying the automatically derived design revolution frequency. It does not follow collective changes to tracked bunch energy and need not be divisible by the grouping harmonic.
 
 ``Voltage (V)`` and ``Phase (rad)`` default to zero and accept scalars or lists.
 Lists share finite, strictly increasing ``Time (s)`` samples and use piecewise
@@ -89,7 +89,7 @@ uses :math:`T_b`; particles in the same bunch can therefore lie on opposite
 sides of a data boundary. The frequency program, its integrated carrier phase,
 and the shared reference clock remain continuous and retain their existing
 endpoint extrapolation. Only the component voltage is gated by the data domain.
-See :ref:`en-reference-clock` for the reference clock and defaults.
+See :ref:`en-reference-clock` for the automatic RF-only design clock and its limitations.
 
 
 .. code-block:: json
@@ -236,9 +236,9 @@ Save this as ``phase_rules.json`` and convert an applicable interval:
 Those times are an example for the 2026-10-05 BRing export, not universal machine
 constants. ``--start-time`` and ``--end-time`` select physical seconds within
 the source range. Analog values are interpolated at a new endpoint; harmonic
-labels are discrete. The full exported clock history is retained when cropping
-component domains so their integrated phase does not change. ``--phase-origin`` sets the physical epoch of zero
-integrated reference-clock phase and does not shift the exported timestamps.
+labels are discrete. ``--phase-origin`` specifies the original source clock's
+zero-phase epoch, without shifting timestamps. The full source frequency history
+is used to compute each segment's phase adjustment, even when its domain is cropped.
 
 The example explicitly sets :math:`\psi_4=\mathrm{Phase}` and
 :math:`\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}`. The observed relation
@@ -249,14 +249,22 @@ the output as a reproduction of machine operation. Phase columns must already
 be unwrapped; the converter neither unwraps nor silently adds ``Phase1``.
 The later :math:`h=2,1` bunch-merging stages need their own explicit rules.
 
-Mapped conversion additionally writes ``rf_config.json`` with ``Reference clock``
-and ``Components`` entries, plus one TFS per constant-harmonic segment. Copy
-``Reference clock`` into the root-level MainConfig settings and ``Components`` into
-the RFCavity settings. The clock frequency is the base channel's exported
-frequency divided by ``--base-harmonic`` (default 4). Each active channel must
-agree with its harmonic times that shared frequency. PASS integrates this
-prescribed clock in physical time; particle energies do not redefine it.
-The nearest zero-voltage nodes preserve the exported linear on/off ramps,
+Mapped conversion writes ``rf_config.json`` containing only ``Components``;
+copy that list into the RFCavity settings. Each entry supplies a ``Program file``
+with TIME, VOLTAGE, FREQUENCY and PHASE columns, without a ``Harmonic`` field.
+Source harmonic labels remain in filenames and conversion metadata.
+The explicit RF frequency equals the source segment harmonic times the base
+channel's frequency divided by ``--base-harmonic`` (default 4). Active channel
+frequencies must agree with that relation within the reported tolerance. At
+adjacent disabled zero-voltage nodes, this frequency continues rather than
+using a disabled channel's zero-frequency marker. This retains the actual
+waveform of the earlier shared-source-clock conversion.
+
+For a segment beginning at :math:`a`, the converter adds a constant phase
+:math:`2\pi[h\int_{t_*}^{a}f_{base}(u)/h_{base}\,du-\int_0^a f_{segment}(u)\,du]`
+modulo :math:`2\pi`. Thus runtime integration from zero preserves the original
+source epoch and prehistory. This external RF waveform is not recalibrated to
+the automatic design clock. The nearest zero-voltage nodes preserve the linear on/off ramps,
 and voltage vanishes outside a component's domain. A harmonic switch without
 a zero-voltage separator is rejected. Unknown active phase rules and frequency
 inconsistencies are also rejected before output is written.
@@ -272,4 +280,10 @@ Physical scope
 
 The model is an ideal longitudinal, zero-length kick with effective voltage. It does not add finite-gap transit dynamics, RF transverse focusing or cavity trajectories. Do not multiply a transit-time factor twice if the supplied voltage already includes it. Exact RF kinematics do not remove approximations in other transport maps or quasi-static collective effects.
 
-Physical RF tables are written with ``colwidth=25, headerswidth=25`` in tfs-pandas to retain float64 timing. In the synchronous input generator, ``origin`` is the first cavity passage and ``time_origin`` is the shared waveform epoch; these need not be equal.
+Physical RF tables are written with ``colwidth=25, headerswidth=25`` in tfs-pandas
+to retain float64 timing. In the synchronous input generator, ``origin`` remains
+the first cavity passage. The legacy ``time_origin`` argument is accepted and
+recorded, but its constant carrier phase is absorbed into the output PHASE so
+that the table uses runtime epoch zero. This preserves the requested passage
+phases and the physical waveform; it does not shift timestamps or restore a
+public machine-clock input.

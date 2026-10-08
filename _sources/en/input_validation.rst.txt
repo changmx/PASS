@@ -49,9 +49,9 @@ commands there must supply distinct Order values. See :doc:`beam_beam`.
   spellings; old names, Python attribute names and coercible strings are rejected.
 * Global particle identity, nonzero charge, positive circumference/transition
   gamma, turn count, backend, precision, timing and device-ID constraints.
-  Explicit reference clocks require positive frequency and subluminal design
-  speed (revolution frequency times circumference); nested errors identify the
-  clock/RF table or WakeField group/component field.
+  There is no public reference-clock table. RF table domains and frequencies
+  are validated; nested errors identify the RF table or WakeField group/component
+  field. The automatic design trajectory must retain a physical reference energy.
 * Injection at ``Sequence.injection`` and :math:`S=0`, continuous bunch numbering,
   bunch-group count and unique harmonic IDs, positive kinetic energy, intensities,
   emittances, Twiss functions, supported distributions and mutually exclusive

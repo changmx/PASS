@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Injection / Particle Generation &mdash; PASS 0.5.0 User Manual</title>
+  <title>Injection / Particle Generation &mdash; PASS 0.6.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -231,13 +231,13 @@ of removed electrons, and adds their cumulative ionization energy. It does not
 approximate every nucleon by one atomic mass unit. Electron/positron and
 single-proton tracking retain their established constants.</p>
 <p>This mass is shared by tracking, generated distributions, GUI energy/momentum
-offset conversion, the default reference clock and input validation. Kinetic
+offset conversion, the automatic design clock and input validation. Kinetic
 energy and momentum remain per nucleon. The stored charge-to-mass-number
 magnitude is <span class="math notranslate nohighlight">\(|q|/A\)</span>; RF applies the charge sign, giving the physical
 energy-gain factor <span class="math notranslate nohighlight">\(q/A\)</span>. Unsupported catalog species or charge states are reported as
 errors. Changing the species mass changes reference velocity and magnetic
-rigidity; explicitly supplied RF frequency tables and reference-clock programs
-are prescribed input and are not automatically recalibrated.</p>
+rigidity and the derived design clock. Explicitly supplied RF frequency tables
+are physical waveform input and are not automatically recalibrated.</p>
 <section id="transverse-parameters">
 <h3>Transverse parameters<a class="headerlink" href="#transverse-parameters" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
@@ -670,7 +670,7 @@ are prescribed input and are not automatically recalibrated.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">arrival</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>Initial source reference passage time in seconds; None uses the prescribed reference clock.</p></td>
+<td><p>Initial source reference passage time in seconds; None uses the automatic design clock.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
@@ -1191,7 +1191,7 @@ of the circulating population and its statistical moments.</p>
 <h3>Multi-bunch Longitudinal Coordinates<a class="headerlink" href="#multi-bunch-longitudinal-coordinates" title="Link to this heading"></a></h3>
 <p>The source distribution uses <span class="math notranslate nohighlight">\(z_s=\beta_s c(T_s-t_i)\)</span>. The prescribed
 machine clock, injection turn and slot select its reference event; an explicit
-initial time is also supported, as described in <a class="reference internal" href="input_generation.html#en-reference-clock"><span class="std std-ref">Prescribed machine clock and initialization</span></a>.
+initial time is also supported, as described in <a class="reference internal" href="input_generation.html#en-reference-clock"><span class="std std-ref">Automatic design clock and initialization</span></a>.
 Before writing to the destination bunch, PASS transforms</p>
 <div class="math notranslate nohighlight">
 \[z_d=\frac{\beta_d}{\beta_s}z_s+\beta_d c(T_d-T_s).\]</div>

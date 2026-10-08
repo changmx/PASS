@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Input File Generation (Command-Line Mode) &mdash; PASS 0.5.0 User Manual</title>
+  <title>Input File Generation (Command-Line Mode) &mdash; PASS 0.6.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -65,7 +65,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#prescribed-machine-clock-and-initialization">Prescribed machine clock and initialization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#automatic-design-clock-and-initialization">Automatic design clock and initialization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#sequence-sequence-container">Sequence (Sequence Container)</a></li>
@@ -203,9 +203,67 @@
 </div>
 <p>Run these commands from the repository root:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python input/generate_beam0.py</span>
-<span class="go">python -c "from PASS.main import main; main('input/beam0.json', raise_errors=True)"</span>
+<span class="go">pass-run input/beam0.json</span>
 </pre></div>
 </div>
+<p>Installing PASS registers <code class="docutils literal notranslate"><span class="pre">pass-run</span></code> in that Python environment. After
+installation, <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS</span></code> accepts exactly the same arguments
+and explicitly uses the selected Python interpreter. Neither entry point requires
+Qt or PySide6. After installation, use <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--version</span></code> or
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS</span> <span class="pre">--version</span></code> to print the version and exit without an input file.
+Input type is selected by the file extension:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json</span>
+<span class="go">pass-run input/beam0.json input/beam1.json</span>
+<span class="go">pass-run example.passproj</span>
+<span class="go">python -m PASS example.passproj</span>
+</pre></div>
+</div>
+<p>Named input options provide the same three modes:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run --beam0 input/beam0.json</span>
+<span class="go">pass-run --beam0 input/beam0.json --beam1 input/beam1.json</span>
+<span class="go">pass-run --passproj example.passproj</span>
+</pre></div>
+</div>
+<p>Use either positional inputs or named input options; do not mix them.
+<code class="docutils literal notranslate"><span class="pre">--beam0</span></code> and <code class="docutils literal notranslate"><span class="pre">--beam1</span></code> require JSON files, and <code class="docutils literal notranslate"><span class="pre">--beam1</span></code> requires
+<code class="docutils literal notranslate"><span class="pre">--beam0</span></code>. <code class="docutils literal notranslate"><span class="pre">--passproj</span></code> requires a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file and cannot be combined
+with either beam option. Relative input paths use the terminal’s working
+directory; quote paths containing spaces.</p>
+<p>One or two JSON files run the corresponding beams. A single <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file
+runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
+saved, it uses the active configuration. It does not execute every configuration
+in the project. Invalid saved selections or duplicate beams are errors. See
+<a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a> for project selection and output paths.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code> to choose the output root for this run. It takes precedence
+over the JSON or saved project setting and works with one JSON, two JSON files,
+or one project. Relative command-line output paths are resolved from the working
+directory at launch; the original JSON and project files remain unchanged:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json --output results</span>
+<span class="go">pass-run input/beam0.json input/beam1.json --output "results/two beams"</span>
+<span class="go">python -m PASS example.passproj --output results</span>
+</pre></div>
+</div>
+<p>Without this option, JSON execution uses the first JSON’s <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code>.
+Relative configuration paths are resolved beside that JSON. If the field is
+omitted or set to <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive), the output root is <code class="docutils literal notranslate"><span class="pre">output</span></code>
+beside the first JSON. Generated inputs still default to <code class="docutils literal notranslate"><span class="pre">./output</span></code>. The
+repository or installation directory is no longer used as a fallback.</p>
+<p>Use either help command to display input modes, options, path rules, and examples
+without starting a simulation:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run --help</span>
+<span class="go">pass-run -h</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--stop-file</span></code> option requests a stop when the named file exists, before
+initialization or at a turn boundary. Exit codes are 0 for completion, 1 for a
+failure, 2 for invalid command arguments, 3 for a requested stop and 130 for an
+interruption. Python integrations can call
+<code class="docutils literal notranslate"><span class="pre">PASS.main.main('input/beam0.json',</span> <span class="pre">raise_errors=True)</span></code> directly.
+To override output in a Python integration, use
+<code class="docutils literal notranslate"><span class="pre">PASS.main.main('input/beam0.json',</span> <span class="pre">output_dir='results',</span> <span class="pre">raise_errors=True)</span></code>.
+Relative <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> paths use the working directory when <code class="docutils literal notranslate"><span class="pre">main()</span></code> is called.
+This override requires the default <code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>; it cannot be combined
+with <code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> for an already prepared snapshot.</p>
 <p>The script writes <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code>. Its relative output directory resolves to <code class="docutils literal notranslate"><span class="pre">input/output</span></code>; each run creates a run directory beneath it. The run directory contains a CSV file and an HDF5 file with 64 statistics rows (turns 0–63). Log output gives the exact run path. Read the newest statistics file after the run:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
@@ -228,24 +286,30 @@ the JSON configuration and referenced input files, validates the resulting
 snapshot, and initializes tracking from that snapshot. This includes particle
 distributions, RF programs, offset tables, wakefield models, and magnet ramping
 tables. Later changes to their original files do not affect the run.</p>
-<p>The command-line/Python workflow preserves its existing dated result layout:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
-    configuration0.json         # original configuration values
-    beam0.json                  # actual execution input; optional beam1.json
-    assets/&lt;index&gt;/&lt;filename&gt;   # copied input dependencies
-    run.json                    # paths, SHA-256 hashes and run status
-&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/   # existing simulation result layout
+<p>JSON, saved project, and GUI runs all use the same dated result layout by default.
+The input snapshot is stored in the run’s <code class="docutils literal notranslate"><span class="pre">input</span></code> subdirectory:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # simulation results for this run
+    input/
+        configuration0.json         # original configuration values
+        beam0.json                  # execution input; optional beam1.json
+        assets/&lt;index&gt;/&lt;filename&gt;   # copied input dependencies
+        run.json                    # paths, SHA-256 hashes and run status
 </pre></div>
 </div>
+<p>The result directory is allocated before inputs are copied. A suffix is added
+to the time directory when needed to avoid reusing an existing result directory.
+The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code>; it is not another directory level.</p>
 <p>Two-input runs also save <code class="docutils literal notranslate"><span class="pre">configuration1.json</span></code>. File references in execution
 JSON point to relative <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> paths inside the snapshot, so the input
-directory can be moved together. <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> is resolved against the
-original Beam 0 JSON directory before copying and stored as an absolute path;
-moving the snapshot does not redirect its results. The original JSON and input
+directory can be moved together. The output root, including any <code class="docutils literal notranslate"><span class="pre">--output</span></code> or
+Python <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> override, is resolved before copying and stored as an
+absolute <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> in the execution snapshot; moving the snapshot
+does not redirect its results. An override changes the root for both snapshots
+and results while preserving the layout above. The original JSON and input
 files remain unchanged. <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> serializes the original
 configuration values; copied dependency files preserve their exact bytes.
-The GUI uses the same input-copying and hashing rules
-with its own result layout; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.</p>
+The GUI and command-line project runs use the same input-copying, hashing, and
+result-directory rules; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.</p>
 <p>The parameter JSON saved alongside results retains its existing filename and
 stores absolute input and output paths. It is generated from the configuration
 already loaded, after resolving paths and before expanding named configurations,
@@ -258,9 +322,11 @@ disabled resources retain their validation warnings and are listed in
 <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code>; missing required active inputs block execution.
 Missing references point to uncreated paths inside the snapshot, so restoring
 an original file later cannot make it an unarchived runtime input.
-The record follows preparation and execution status. <code class="docutils literal notranslate"><span class="pre">output_directory</span></code> stores
-the configured output root; <code class="docutils literal notranslate"><span class="pre">results_directory</span></code> stores the actual result
-directory after initialization. The <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> callback can read
+The record follows preparation and execution status. <code class="docutils literal notranslate"><span class="pre">output_root</span></code> stores the
+chosen output root, and <code class="docutils literal notranslate"><span class="pre">output_directory</span></code> stores the output path written into
+the execution configuration. <code class="docutils literal notranslate"><span class="pre">results_directory</span></code> stores the allocated result
+directory, including the dated subdirectories, from preparation onward.
+The <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> callback can read
 <code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> to locate this run’s <code class="docutils literal notranslate"><span class="pre">run.json</span></code>. A preparation
 failure is recorded as <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code> when a record has already been created.</p>
 <p>Running <code class="docutils literal notranslate"><span class="pre">main()</span></code> on a saved <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> starts again from its initial
@@ -272,8 +338,9 @@ the previous Python environment, code version or random-generator state;
 disables this additional copy; the GUI child process uses that setting. Automatic
 dependency archiving belongs to <code class="docutils literal notranslate"><span class="pre">main()</span></code>; the lower-level <code class="docutils literal notranslate"><span class="pre">Config.load_input()</span></code>
 does not archive dependencies itself.
-With <code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code>, results remain directly in the specified output
-directory and snapshots are placed in its parent’s <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>.
+The explicit Python API option <code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code> retains its existing layout
+for integrations: results remain directly in the specified output directory,
+and snapshots are placed in its parent’s <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>.
 If the result directory itself is named <code class="docutils literal notranslate"><span class="pre">input_snapshots</span></code>, the sibling
 <code class="docutils literal notranslate"><span class="pre">input_snapshots_archive/&lt;run-id&gt;</span></code> is used instead, keeping the flat result
 directory free of snapshot subdirectories.</p>
@@ -367,73 +434,67 @@ directory free of snapshot subdirectories.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
 <td><p>Signed charge number Z (q=Z e), not electron count; nonzero integer.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">reference_clock</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">ReferenceClock</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>Prescribed revolution-frequency program; see the reference-clock section.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gamma_t</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gamma_t</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Transition</span> <span class="pre">Gamma</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">7.635</span></code></p></td>
 <td><p>Transition gamma of the lattice.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circumference</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">circumference</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Circumference</span> <span class="pre">(m)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">569.1</span></code></p></td>
 <td><p>Positive ring circumference (m).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_turns</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
 <td><p>Number of simulated turns; positive integer.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">backend</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backend</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Backend</span> <span class="pre">(gpu/cpu)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'cpu'</span></code></p></td>
 <td><p>Compute backend: cpu or gpu.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">particle_precision</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">particle_precision</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Precision</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'float64'</span></code></p></td>
 <td><p>Coordinate storage: float32 or float64.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_gpu</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_gpu</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">GPU</span> <span class="pre">devices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
 <td><p>Number of GPU devices.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gpu_id</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gpu_id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Device</span> <span class="pre">Id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list[int]</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">[0]</span></code></p></td>
 <td><p>List of GPU device identifiers.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'./output'</span></code></p></td>
-<td><p>Output directory; relative paths resolve against the input JSON directory.</p></td>
+<td><p>Output directory; relative paths resolve against the input JSON directory. Omitted or <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive) uses <code class="docutils literal notranslate"><span class="pre">output</span></code> beside the first JSON.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p>Whether to generate plots after tracking.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig()</span></code></p></td>
 <td><p>TimingConfig: mode=command, log_interval=10, warmup_turns=1, include_io=True.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
@@ -465,19 +526,36 @@ a named model with <code class="docutils literal notranslate"><span class="pre">
 require explicit local <code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code>; binary collisions use a local
 three-dimensional mesh. See <a class="reference internal" href="ibs.html"><span class="doc">Intrabeam Scattering (IBS)</span></a> for rates, exposure time and model limits.</p>
 </section>
-<section id="prescribed-machine-clock-and-initialization">
-<span id="en-reference-clock"></span><h3>Prescribed machine clock and initialization<a class="headerlink" href="#prescribed-machine-clock-and-initialization" title="Link to this heading"></a></h3>
-<p>The optional top-level <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> defines a positive revolution
-frequency <span class="math notranslate nohighlight">\(f_{rev}(t)\)</span> and an epoch <span class="math notranslate nohighlight">\(t_*\)</span>:</p>
+<section id="automatic-design-clock-and-initialization">
+<span id="en-reference-clock"></span><h3>Automatic design clock and initialization<a class="headerlink" href="#automatic-design-clock-and-initialization" title="Link to this heading"></a></h3>
+<p>PASS derives one shared ideal RF-only design trajectory before tracking, using
+the initial energy of the harmonic-ID-zero bunch, species mass and charge,
+circumference, and enabled RFCavity waveforms at their physical positions.
+Colocated RF components sample the same design passage and their energy gains
+are summed. Design flights use the reference velocity after the preceding kick.
+The design revolution frequency is <span class="math notranslate nohighlight">\(f_{rev}=\beta_{design}c/C\)</span>;
+its accumulated phase has the fixed physical-time origin zero:</p>
 <div class="math notranslate nohighlight">
-\[\Psi(t)=\int_{t_*}^{t} f_{rev}(u)\,du.\]</div>
-<p>Use <code class="docutils literal notranslate"><span class="pre">Revolution</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code> (scalar or list), <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> for list
-samples, and <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">origin</span> <span class="pre">(s)</span></code> (default 0). Samples are linearly interpolated,
-end values are held, and the integral is evaluated analytically on each
-segment. This prescribed program is independent of tracked bunch energies.
-Without a program, PASS fixes its frequency to the initial reference
-velocity of harmonic-id-zero divided by circumference; it does not follow
-subsequent acceleration automatically.</p>
+\[\Psi(t)=\int_0^t f_{rev}(u)\,du.\]</div>
+<p>Frequency nodes occur at turn boundaries and just before RF passages. They are
+linearly interpolated in physical time, with constant endpoint extrapolation
+and an analytic integral on each segment. RF kicks are simulated only for the
+requested turns. One additional design passage at the final design energy
+closes the interpolation interval without applying further RF kicks.
+With no active RF voltage the design clock is constant. Collective kicks,
+particle loss and changes to the tracked
+bunch energies do not redefine this ideal design clock. Physical RF phase
+samples remain additive waveform modulation; they are not reinterpreted as
+requested synchronous-particle phases.</p>
+<p>There is no public <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> input or <code class="docutils literal notranslate"><span class="pre">ReferenceClock</span></code> schema.
+Remove that field from older inputs. An arbitrary externally prescribed clock
+cannot, in general, be inferred uniquely from an initial energy and RF data.
+If an external generator specifies the physical RF frequency, use each
+component’s explicit <code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code> or file <code class="docutils literal notranslate"><span class="pre">FREQUENCY</span></code> column and preserve
+its integrated phase, including any nonzero original epoch. The HIAF converter
+in <a class="reference internal" href="element/rfcavity.html"><span class="doc">RFCavity</span></a> performs that migration. Reconstructing an archived
+design trajectory is a model calculation, not a promise of bitwise identical
+frequency or energy samples; compare its timing, phase and energy explicitly.</p>
 <p>Initially, <span class="math notranslate nohighlight">\(T_b=\Psi^{-1}(-h_{id}/h_{group})\)</span>, unless BunchConfig supplies
 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">arrival</span> <span class="pre">time</span> <span class="pre">(s)</span></code>. Injection on turn n uses
 <span class="math notranslate nohighlight">\(\Psi^{-1}(n-h_{id}/h_{group})\)</span>; an explicit initial arrival time shifts
@@ -489,7 +567,7 @@ The nominal slot position <code class="docutils literal notranslate"><span class
 when needed for metadata output. Adding it to z does not reconstruct a
 physical position or arrival time. RF harmonics are
 independent of this grouping count. <a class="reference internal" href="reorganize.html"><span class="doc">Bunch Regrouping (ReorganizeBunch)</span></a> explains regrouping by
-the prescribed clock phase while retaining unwrapped particle times.</p>
+the automatic design-clock phase while retaining unwrapped particle times.</p>
 </section>
 <section id="injectionitem-injection-and-grouping">
 <h3>InjectionItem (Injection and Grouping)<a class="headerlink" href="#injectionitem-injection-and-grouping" title="Link to this heading"></a></h3>

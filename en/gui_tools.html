@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GUI tools &mdash; PASS 0.5.0 User Manual</title>
+  <title>GUI tools &mdash; PASS 0.6.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -597,8 +597,10 @@ or energy-dependent amplitude.</p>
 Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
 HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
 outside the scope. Install the GUI extra or, for scripts only,
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[conversion]&quot;</span></code> for PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> and
-<code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code> support.</p>
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pass-sim[conversion]&quot;</span></code> for PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> and
+<code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code> support. When installing from a GitHub clone or extracted source
+archive, use <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[conversion]&quot;</span></code> from the directory
+containing <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
 <p>SDDS support is specifically the OMC3 <strong>LHC/TbT SDDS1 array layout</strong>, read through
 PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code>. <code class="docutils literal notranslate"><span class="pre">turn_by_turn</span></code> is the Python reader used by OMC3, not another
 file format. Other SDDS layouts, SPS-specific readers and legacy ASCII TbT files

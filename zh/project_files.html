@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>单文件项目 &mdash; PASS 0.5.0 使用手册</title>
+  <title>单文件项目 &mdash; PASS 0.6.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -45,7 +45,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -133,8 +133,8 @@
              
   <section id="id1">
 <h1>单文件项目<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
-<p>GUI 支持普通独立 JSON 输入和单文件 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 项目。
-顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作。</p>
+<p>PASS 的 GUI 和命令行均支持普通独立 JSON 输入和单文件 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 项目。
+GUI 顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作。</p>
 <section id="id2">
 <h2>保存与打开<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>独立模式下，<strong>保存 JSON</strong> 和 <strong>JSON 另存为</strong> 写入普通 PASS 输入。
@@ -158,9 +158,9 @@ WakeField 模型文件和磁铁 ramping 文件，
 选择 JSON 或其中的命令，查看参数表与原始文本；可以复制单个值或当前命令 JSON。
 <strong>复制命令到当前输入</strong> 还会带入引用的空间电荷配置、切片器和文件依赖。
 WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引用。
-复制 RFCavity、Bump 或 WakeField 前，如果规定时钟不同，需选择保留目标时钟、复制源时钟或取消。
-源配置的隐式默认时钟按其初始 harmonic ID=0 束团和环长解析。
-复制源时钟会改变目标全局时钟，可能影响目标已有命令；这不是跟踪束流或尾场历史状态的迁移。
+设计时钟由目标输入派生，不作为独立资源复制。导入 RFCavity 可能改变目标的理想纯 RF
+设计轨迹及其他依赖该时钟的命令。显式 RF 频率表保留物理频率；谐波 RF 采用目标派生时钟。
+这不是跟踪束流或尾场历史状态的迁移。
 目标中已有名称保持不变；导入名称冲突时添加数字后缀。
 也可以只读打开另一份项目作为参数来源。</p>
 <p>复制命令到当前输入只增加一个撤销步骤，不会清空此前历史。
@@ -180,25 +180,56 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 项目可保存多份候选配置，不代表引擎一次执行全部配置。
 相对输出目录以 JSON 或已保存项目所在目录为基准；
 未保存项目以当前工作目录为基准。</p>
+<p>安装 PASS 后，也可通过命令行运行已保存项目，无需 Qt：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj</span>
+<span class="go">pass-run --passproj example.passproj</span>
+<span class="go">python -m PASS example.passproj</span>
+</pre></div>
+</div>
+<p>这些命令等价。<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 后缀触发项目读取，包括归档和校验和验证。
+命令行使用 GUI 保存的 <code class="docutils literal notranslate"><span class="pre">run_settings.beam0</span></code> 和可选的 <code class="docutils literal notranslate"><span class="pre">run_settings.beam1</span></code>。
+未保存 Beam 0 选择时，使用 <code class="docutils literal notranslate"><span class="pre">active_config_id</span></code> 对应配置；未选择 Beam 1 时仅运行单束流。
+已保存的选择不再存在，或两束选择了同一份配置时，会明确报错。
+项目中的其他配置不会自动执行，项目文件也不能与第二个输入参数组合使用。
+位置参数与命名输入选项不能混用。<code class="docutils literal notranslate"><span class="pre">--passproj</span></code> 不能与 <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> 或 <code class="docutils literal notranslate"><span class="pre">--beam1</span></code>
+组合使用；这两个选项用于选择独立 JSON 输入，具体用法见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。</p>
+<p>未覆盖输出目录时，命令行项目运行使用 <code class="docutils literal notranslate"><span class="pre">run_settings.output_directory</span></code>，默认为 <code class="docutils literal notranslate"><span class="pre">output</span></code>。
+相对路径以已保存项目所在目录为基准，不受命令行当前工作目录或所选 JSON 内输出目录影响；
+绝对路径保持不变。结果与输入快照采用下述布局，均位于项目临时缓存之外。
+运行不会修改项目文件。</p>
+<p>使用 <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code> 为本次运行选择其他输出根目录：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj --output results</span>
+<span class="go">python -m PASS example.passproj --output "results/project run"</span>
+</pre></div>
+</div>
+<p>此选项优先于保存的输出设置，不会修改项目。相对覆盖路径以启动时的工作目录为基准；
+快照和结果均使用所选根目录，并保留下述布局。<code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--help</span></code> 或 <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">-h</span></code>
+显示输入方式、选项、路径规则和示例，包括 <code class="docutils literal notranslate"><span class="pre">--stop-file</span></code> 的用法，
+退出码见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。</p>
 <p>GUI 先固定所选配置，再在后台线程中依次校验输入、复制依赖和校验快照；
 依赖复制使用与 <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code> 相同的快照服务，
 完成后才启动子进程。准备过程显示当前阶段并支持取消；准备和运行期间不能重复启动。
 准备失败或取消时，保留此前显示的运行记录。单次校验调用完成后才会响应取消请求。</p>
-<p>每次运行分别使用独立的快照目录和结果目录：</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
-    beam0.json                  # 固定运行输入；可选 beam1.json
-    configuration0.json         # 用于比较的原始配置
-    assets/...                  # 已复制的依赖字节
-    run.json                    # 运行记录
-    gui.log                     # 完整进程日志
-&lt;output&gt;/runs/&lt;run-id&gt;/          # 本次仿真结果
+<p>每次 GUI 运行和命令行项目运行使用独立的结果目录，输入快照保存在其 <code class="docutils literal notranslate"><span class="pre">input</span></code> 子目录中，
+采用与独立 JSON 运行相同的日期布局：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # 本次仿真结果
+    input/
+        beam0.json                  # 固定运行输入；可选 beam1.json
+        configuration0.json         # 用于比较的原始配置
+        assets/...                  # 已复制的依赖字节
+        run.json                    # 运行记录
+        gui.log                     # GUI 运行的完整进程日志
 </pre></div>
 </div>
-<p>运行 JSON 使用指向已复制 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> 文件的相对路径，并以绝对路径指定本次独立结果目录。
-子进程读取这些已复制的输入，不再创建第二份快照。
+<p>运行 JSON 使用指向已复制 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> 文件的相对路径，并以绝对路径指定输出根目录。
+准备阶段在复制输入前分配按日期组织的结果目录，并将路径保存到 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 的
+<code class="docutils literal notranslate"><span class="pre">results_directory</span></code>。初始化使用该目录，不再追加一层日期和时间。
+必要时为时间目录添加后缀，以避免复用已有结果目录。
+运行 ID 仍保存在 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 中，不再单独作为一层目录。
+跟踪读取这些已复制的输入，不再创建第二份快照。
 之后编辑项目不会改变正在运行的任务，新运行也不共用前次结果目录。
-这两类目录均位于项目临时缓存之外。</p>
-<p>命令行/Python 入口使用相同快照格式，并保留原有按日期组织的结果目录，见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。
+结果及其中的输入快照均位于项目临时缓存之外。</p>
+<p>通过命令行/Python 入口运行独立 JSON 时使用相同快照格式和结果布局，见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。
 未启用资源的缺失依赖记录在 <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code>，并保留原有校验警告；
 已启用功能所需输入缺失则阻止运行。</p>
 <p><strong>停止</strong> 在圈边界协作结束运行：先完成当前圈，再执行命令收尾以保存已有输出，
@@ -269,8 +300,14 @@ assets/&lt;asset-id&gt;/&lt;filename&gt;    # 原始输入/源文件字节
 recipes/&lt;index&gt;.json            # 生成设置和源文件引用
 </pre></div>
 </div>
+<p>在 PASS 外查看内容时，可用支持 ZIP 的压缩软件打开文件，
+或复制一份并将副本改名为 <code class="docutils literal notranslate"><span class="pre">.zip</span></code> 后解压。
+<code class="docutils literal notranslate"><span class="pre">manifest.json</span></code> 和 <code class="docutils literal notranslate"><span class="pre">configs/*.json</span></code> 可用普通文本编辑器阅读。
+GUI 中的 <strong>项目内容</strong> 可直接预览配置和源文件，无需手工解压。
+修改后应通过 GUI 保存项目，使依赖索引和校验和一同更新；
+手工修改归档成员可能导致项目校验失败。</p>
 <p>输入显示名称与稳定 ID 分开保存。配置采用相对路径引用资产；
-清单记录 SHA-256 校验和与依赖索引。移动项目只需复制一个文件，
+清单记录 SHA-256 校验和、依赖索引、当前活动配置和运行设置。移动项目只需复制一个文件，
 不需要携带临时编辑缓存；运行输入不依赖原电脑路径。
 源文件是快照，外部同名文件变化不会自动改变项目。</p>
 <p>保存时先写入并校验新归档，再替换旧文件。版本 1 拒绝不支持的格式版本、

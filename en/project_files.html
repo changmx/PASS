@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single-file projects &mdash; PASS 0.5.0 User Manual</title>
+  <title>Single-file projects &mdash; PASS 0.6.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -45,7 +45,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -133,8 +133,9 @@
              
   <section id="single-file-projects">
 <h1>Single-file projects<a class="headerlink" href="#single-file-projects" title="Link to this heading"></a></h1>
-<p>The GUI supports ordinary standalone JSON inputs and single-file <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>
-projects. The <strong>File</strong> menu separates JSON, project, and export actions.</p>
+<p>PASS supports ordinary standalone JSON inputs and single-file <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>
+projects through the GUI and command line. The GUI <strong>File</strong> menu separates JSON,
+project, and export actions.</p>
 <section id="saving-and-opening">
 <h2>Saving and opening<a class="headerlink" href="#saving-and-opening" title="Link to this heading"></a></h2>
 <p>In standalone mode, <strong>Save JSON</strong> and <strong>JSON Save as</strong> write an ordinary PASS input.
@@ -162,15 +163,15 @@ Select a JSON or command to view its parameters and raw text. Copy a value or th
 selected command’s JSON to the clipboard. <strong>Copy command into current input</strong>
 also brings its named space-charge configurations, slicers, and file dependencies.
 WakeField copies its referenced Slicer, including conflict-safe slice-set renaming.
-Before copying RFCavity, Bump or WakeField, differing prescribed clocks require a
-choice: retain the target clock, copy the source clock, or cancel. An implicit
-source clock is resolved from its harmonic-ID-zero initial bunch and circumference.
-Copying that clock changes the target’s global clock and can affect its existing
-commands. This is not a transfer of tracked beam or wake history.
+The design clock is derived from the target input, rather than copied as a
+separate resource. Importing an RFCavity can therefore change the target’s
+ideal RF-only trajectory and other commands using that clock. Explicit RF
+frequency tables retain their physical frequency; harmonic RF follows the
+target’s derived clock. This is not a transfer of tracked beam or wake history.
 Existing names are preserved; conflicting imported names receive numeric suffixes.
 Another project can be opened read-only as a parameter source.</p>
-<p>Copying a command adds one undo step, including imported dependencies and clock
-settings. Cancelled or failed copies leave the active input unchanged.</p>
+<p>Copying a command adds one undo step, including imported dependencies.
+Cancelled or failed copies leave the active input unchanged.</p>
 <p>TFS and CSV files have a table preview of up to 500 rows. Text previews are bounded
 to 2 MiB and parameter tables to 5,000 entries; exact files can always be exported.
 Binary files display metadata and offer original-file export. Dependencies copied
@@ -186,6 +187,39 @@ but do not retain this additional generation metadata.</p>
 A project can store more candidate configurations than the engine runs at once.
 Relative output directories are resolved beside the JSON or saved project; an
 unsaved project uses the current working directory.</p>
+<p>After installing PASS, a saved project can also be run without Qt:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj</span>
+<span class="go">pass-run --passproj example.passproj</span>
+<span class="go">python -m PASS example.passproj</span>
+</pre></div>
+</div>
+<p>These commands are equivalent. The <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> extension selects project
+loading, including archive and checksum validation. The command line uses
+<code class="docutils literal notranslate"><span class="pre">run_settings.beam0</span></code> and the optional <code class="docutils literal notranslate"><span class="pre">run_settings.beam1</span></code> saved by the GUI.
+When no Beam 0 selection has been saved, <code class="docutils literal notranslate"><span class="pre">active_config_id</span></code> supplies Beam 0;
+Beam 1 is omitted unless selected. A saved selection that no longer exists, or
+selecting the same configuration for both beams, is an error. Other configurations
+are not run automatically. A project file cannot be combined with a second input
+argument. Do not mix positional inputs with named input options. <code class="docutils literal notranslate"><span class="pre">--passproj</span></code>
+cannot be combined with <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> or <code class="docutils literal notranslate"><span class="pre">--beam1</span></code>; those options select standalone
+JSON inputs instead. See <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a> for the JSON command forms.</p>
+<p>Without an override, command-line project runs use <code class="docutils literal notranslate"><span class="pre">run_settings.output_directory</span></code>, defaulting to
+<code class="docutils literal notranslate"><span class="pre">output</span></code>. Relative paths are resolved beside the saved project, regardless of
+the shell’s working directory or output directories inside the selected JSON
+configurations. Absolute output paths remain absolute. Results and input snapshots
+use the layout below and stay outside the temporary project cache. The project
+file is unchanged by execution.</p>
+<p>To choose a different output root for this run, use <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj --output results</span>
+<span class="go">python -m PASS example.passproj --output "results/project run"</span>
+</pre></div>
+</div>
+<p>This option takes precedence over the saved output setting and does not modify
+the project. Relative override paths use the working directory at launch;
+snapshots and results both use the chosen root with the same layout below.
+<code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--help</span></code> or <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">-h</span></code> displays the input modes, options, path
+rules, and examples, including <code class="docutils literal notranslate"><span class="pre">--stop-file</span></code>;
+exit codes are documented in <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>.</p>
 <p>The GUI freezes the selected configurations, then validates them, copies their
 dependencies using the same snapshot service as <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code>, and verifies
 the snapshot in a background worker before starting the child process.
@@ -193,23 +227,33 @@ Preparation reports its current stage and can be cancelled;
 duplicate starts are disabled during preparation and execution. Failed or
 cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.</p>
-<p>Each run has separate snapshot and result directories:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
-    beam0.json                  # fixed runtime input; optional beam1.json
-    configuration0.json         # original configuration for comparison
-    assets/...                  # copied dependency bytes
-    run.json                    # run record
-    gui.log                     # complete process log
-&lt;output&gt;/runs/&lt;run-id&gt;/          # simulation results for this run
+<p>Each GUI run and command-line project run has its own result directory, with
+the input snapshot in its <code class="docutils literal notranslate"><span class="pre">input</span></code> subdirectory. This is the same dated layout
+as standalone JSON runs:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # simulation results for this run
+    input/
+        beam0.json                  # fixed runtime input; optional beam1.json
+        configuration0.json         # original configuration for comparison
+        assets/...                  # copied dependency bytes
+        run.json                    # run record
+        gui.log                     # complete process log for GUI runs
 </pre></div>
 </div>
 <p>Runtime JSON uses relative paths to copied <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> files and an absolute
-path to the dedicated result directory. The child process reads these copied
-inputs without creating a second snapshot. Editing the project later does not
+path to the output root. Preparation allocates the dated result directory before
+copying inputs and stores its path in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> as <code class="docutils literal notranslate"><span class="pre">results_directory</span></code>.
+Initialization uses that directory without adding another date/time level.
+A suffix is added to the time directory when needed to avoid reusing an existing
+result directory. The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> rather than forming another
+directory level.
+Tracking reads these copied inputs
+without creating a second snapshot. Editing the project later does not
 change the running task, and a new run does not share the preceding run’s output
-directory. Both directories remain outside the temporary project cache.</p>
-<p>The command-line/Python entry point uses the same snapshot format while retaining
-its dated result directories; see <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>. Missing dependencies
+directory. Results and their input snapshots remain outside the temporary
+project cache.</p>
+<p>Running standalone JSON through the command-line/Python entry point uses the
+same snapshot format and result layout; see
+<a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>. Missing dependencies
 of disabled resources are recorded in <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code> with the
 existing validation warnings. Missing required active inputs prevent execution.</p>
 <p><strong>Stop</strong> requests a cooperative stop at a turn boundary: the current turn finishes,
@@ -296,9 +340,17 @@ assets/&lt;asset-id&gt;/&lt;filename&gt;    # original input/source bytes
 recipes/&lt;index&gt;.json            # generation settings and source references
 </pre></div>
 </div>
+<p>To inspect the contents outside PASS, open the file with a ZIP-compatible archive
+application, or copy it, rename the copy to <code class="docutils literal notranslate"><span class="pre">.zip</span></code>, and extract it. Read
+<code class="docutils literal notranslate"><span class="pre">manifest.json</span></code> and <code class="docutils literal notranslate"><span class="pre">configs/*.json</span></code> with an ordinary text editor. In the GUI,
+<strong>Project contents</strong> provides configuration and source previews without manual
+extraction. Save project changes through the GUI so the dependency index and
+checksums are updated together; editing archive members by hand can invalidate
+the project.</p>
 <p>Input display names are separate from their stable IDs. Configurations refer to
-assets by relative paths. The manifest records SHA-256 checksums and the dependency
-index. Copying the project requires only one file; the temporary editing cache
+assets by relative paths. The manifest records SHA-256 checksums, the dependency
+index, the active configuration, and run settings. Copying the project requires
+only one file; the temporary editing cache
 does not need to be transferred. The runtime input does not depend on paths on
 the original computer. Source files are snapshots and are not silently refreshed
 when an external file changes.</p>

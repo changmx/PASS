@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>激励器（Exciter） &mdash; PASS 0.5.0 使用手册</title>
+  <title>激励器（Exciter） &mdash; PASS 0.6.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -583,9 +583,9 @@
 \[f_c(t) = Q_{\text{excite}} \cdot f_0(t)\]</div>
 <div class="math notranslate nohighlight">
 \[\Delta f(t) = \Delta Q \cdot f_0(t)\]</div>
-<p>规定参考钟独立于跟踪中束团的能量变化，默认取初始参考回旋频率，也可通过
-<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 表指定频率变化。相位对真实时间上的瞬时频率积分，包含参考钟的变化，
-不能用当前频率乘经过时间代替。需成对提供 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 。</p>
+<p>共同参考钟采用自动生成的理想纯 RF 设计轨迹，不随集体效应引起的跟踪束团能量变化而改变。
+没有活动 RF 电压时保持常频，见 <a class="reference internal" href="../input_generation.html#zh-reference-clock"><span class="std std-ref">自动设计时钟与初始化</span></a>。相位对真实时间上的瞬时频率积分，
+包含参考钟的变化，不能用当前频率乘经过时间代替。需成对提供 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 。</p>
 <p><strong>频率模式</strong></p>
 <p>直接输入中心频率和扫频宽度 （单位 Hz），适用于需要精确控制频率的场景。需成对提供 <code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code> 。</p>
 <div class="admonition note">

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>注入与粒子生成（Injection） &mdash; PASS 0.5.0 使用手册</title>
+  <title>注入与粒子生成（Injection） &mdash; PASS 0.6.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -228,11 +228,11 @@
 <code class="docutils literal notranslate"><span class="pre">ion_mass(A,</span> <span class="pre">Z,</span> <span class="pre">q)</span></code> 给出。数据库从中性原子质量中扣除已剥离电子的质量，
 再加上累计电离能，不再将每个核子的质量统一近似为一个原子质量单位。
 电子／正电子及单质子跟踪保留既有常量。</p>
-<p>跟踪、分布生成、GUI 能量／动量偏移换算、默认参考时钟和输入校验共享这套质量。
+<p>跟踪、分布生成、GUI 能量／动量偏移换算、自动设计时钟和输入校验共享这套质量。
 动能和动量仍按每核子表示；内部保存的电荷数与质量数之比的大小为 <span class="math notranslate nohighlight">\(|q|/A\)</span>，
 RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 <span class="math notranslate nohighlight">\(q/A\)</span>。
-数据库不支持的粒子或电荷态会明确报错。改变质量会改变参考速度和磁刚度；
-显式提供的 RF 频率表和参考时钟程序属于规定输入，不会自动重新标定。</p>
+数据库不支持的粒子或电荷态会明确报错。改变质量会改变参考速度、磁刚度及派生的设计时钟；
+显式提供的 RF 频率表属于物理波形输入，不会自动重新标定。</p>
 <section id="id3">
 <h3>横向参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
@@ -665,7 +665,7 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 <
 <td><p><code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">arrival</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
-<td><p>初始注入参考到达时间，单位 s；None 时由给定参考时钟确定。</p></td>
+<td><p>初始注入参考到达时间，单位 s；None 时由自动设计时钟确定。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
@@ -1140,7 +1140,7 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 <h3>多束团纵向坐标<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
 <p>源分布的 z 表示相对于源参考粒子的米制时间差，<span class="math notranslate nohighlight">\(z_s=\beta_s c(T_s-t_i)\)</span>。
 源参考事件由规定机器时钟、注入圈号和槽位选择，初始时刻也可显式指定，见
-<a class="reference internal" href="input_generation.html#zh-reference-clock"><span class="std std-ref">规定的机器时钟与初始化</span></a>。写入目标束团前应用</p>
+<a class="reference internal" href="input_generation.html#zh-reference-clock"><span class="std std-ref">自动设计时钟与初始化</span></a>。写入目标束团前应用</p>
 <div class="math notranslate nohighlight">
 \[z_d=\frac{\beta_d}{\beta_s}z_s+\beta_d c(T_d-T_s).\]</div>
 <p>机械动量同时重归一化，物理时间和动量不变。z 不做环周折叠。

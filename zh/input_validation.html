@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JSON 输入文件检测 &mdash; PASS 0.5.0 使用手册</title>
+  <title>JSON 输入文件检测 &mdash; PASS 0.6.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -163,8 +163,8 @@ Timing 必须一致，因为引擎共享这些设置。直接调用 <code class=
 拼写；旧名称、Python 属性名和可被强制转换的字符串均不接受。</p></li>
 <li><p>全局粒子种类、非零电荷、正的周长及过渡 gamma、圈数、后端、粒子精度、
 Timing 和 GPU 设备编号。
-显式规定时钟要求正频率，设计速度（回转频率乘环长）小于光速；嵌套错误可定位到
-时钟/RF 时间表或 WakeField 求解组、分量字段。</p></li>
+不再提供公开参考时钟表；检查 RF 时间域与频率，嵌套错误可定位到 RF 时间表或
+WakeField 求解组、分量字段。自动设计轨迹必须保持物理上有效的参考能量。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Sequence.injection</span></code> 且 <span class="math notranslate nohighlight">\(S=0\)</span>、连续束团编号、分组数和唯一谐波 ID、
 正的动能、粒子数量、发射度、Twiss 参数、分布类型和动量/动能偏移互斥关系。
 同一束流的非空束团必须具有相同的“真实粒子数 / 宏粒子数”，空束团继承此固定权重。

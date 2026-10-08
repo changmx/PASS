@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RFCavity &mdash; PASS 0.5.0 User Manual</title>
+  <title>RFCavity &mdash; PASS 0.6.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -46,7 +46,7 @@
   </form>
 </div>
   <div class="pass-language-switch">
-    <span>PASS 0.5.0</span>
+    <span>PASS 0.6.0</span>
     
       
       
@@ -154,7 +154,7 @@
 <p><code class="docutils literal notranslate"><span class="pre">RFCavity</span></code> applies simultaneous effective-voltage components at one location. All bunches sample the same physical waveforms. CPU and CUDA share the algorithm and float64 intermediates.</p>
 <div class="math notranslate nohighlight">
 \[t_i=T_b-\frac{z_i}{\beta_b c},\qquad
-U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</div>
+U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_0^{t}f_k(u)du+\phi_k(t)\right].\]</div>
 <p>Frequency must be integrated; <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code> is incorrect for a chirp. <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by <span class="math notranslate nohighlight">\(2\pi\)</span>. <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> and the derived nominal slot position do not enter the tracking phase formula.</p>
 <p>The fields below configure <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.elements.RFCavityItem</span></code>.
 The key in <code class="docutils literal notranslate"><span class="pre">Sequence.add(name,</span> <span class="pre">item)</span></code> supplies the element name; it is not a configuration-model field.</p>
@@ -233,7 +233,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <p>Each component selects one frequency definition:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>: prescribed positive carrier frequency, scalar or list.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>: positive integer multiplying the shared <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> revolution frequency. It neither follows current bunch energy nor needs to be divisible by the grouping harmonic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>: positive integer multiplying the automatically derived design revolution frequency. It does not follow collective changes to tracked bunch energy and need not be divisible by the grouping harmonic.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> default to zero and accept scalars or lists.
 Lists share finite, strictly increasing <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> samples and use piecewise
@@ -248,7 +248,7 @@ uses <span class="math notranslate nohighlight">\(T_b\)</span>; particles in the
 sides of a data boundary. The frequency program, its integrated carrier phase,
 and the shared reference clock remain continuous and retain their existing
 endpoint extrapolation. Only the component voltage is gated by the data domain.
-See <a class="reference internal" href="../input_generation.html#en-reference-clock"><span class="std std-ref">Prescribed machine clock and initialization</span></a> for the reference clock and defaults.</p>
+See <a class="reference internal" href="../input_generation.html#en-reference-clock"><span class="std std-ref">Automatic design clock and initialization</span></a> for the automatic RF-only design clock and its limitations.</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RFCavity"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Components"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -362,9 +362,9 @@ interpretation of BRing capture and acceleration before bunch merging is:</p>
 <p>Those times are an example for the 2026-10-05 BRing export, not universal machine
 constants. <code class="docutils literal notranslate"><span class="pre">--start-time</span></code> and <code class="docutils literal notranslate"><span class="pre">--end-time</span></code> select physical seconds within
 the source range. Analog values are interpolated at a new endpoint; harmonic
-labels are discrete. The full exported clock history is retained when cropping
-component domains so their integrated phase does not change. <code class="docutils literal notranslate"><span class="pre">--phase-origin</span></code> sets the physical epoch of zero
-integrated reference-clock phase and does not shift the exported timestamps.</p>
+labels are discrete. <code class="docutils literal notranslate"><span class="pre">--phase-origin</span></code> specifies the original source clock’s
+zero-phase epoch, without shifting timestamps. The full source frequency history
+is used to compute each segment’s phase adjustment, even when its domain is cropped.</p>
 <p>The example explicitly sets <span class="math notranslate nohighlight">\(\psi_4=\mathrm{Phase}\)</span> and
 <span class="math notranslate nohighlight">\(\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}\)</span>. The observed relation
 <span class="math notranslate nohighlight">\(\mathrm{DeltaPhi1}=\pi-2\mathrm{Phase}\)</span> then gives
@@ -373,14 +373,21 @@ establish the control system’s phase semantics. Confirm them before treating
 the output as a reproduction of machine operation. Phase columns must already
 be unwrapped; the converter neither unwraps nor silently adds <code class="docutils literal notranslate"><span class="pre">Phase1</span></code>.
 The later <span class="math notranslate nohighlight">\(h=2,1\)</span> bunch-merging stages need their own explicit rules.</p>
-<p>Mapped conversion additionally writes <code class="docutils literal notranslate"><span class="pre">rf_config.json</span></code> with <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code>
-and <code class="docutils literal notranslate"><span class="pre">Components</span></code> entries, plus one TFS per constant-harmonic segment. Copy
-<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> into the root-level MainConfig settings and <code class="docutils literal notranslate"><span class="pre">Components</span></code> into
-the RFCavity settings. The clock frequency is the base channel’s exported
-frequency divided by <code class="docutils literal notranslate"><span class="pre">--base-harmonic</span></code> (default 4). Each active channel must
-agree with its harmonic times that shared frequency. PASS integrates this
-prescribed clock in physical time; particle energies do not redefine it.
-The nearest zero-voltage nodes preserve the exported linear on/off ramps,
+<p>Mapped conversion writes <code class="docutils literal notranslate"><span class="pre">rf_config.json</span></code> containing only <code class="docutils literal notranslate"><span class="pre">Components</span></code>;
+copy that list into the RFCavity settings. Each entry supplies a <code class="docutils literal notranslate"><span class="pre">Program</span> <span class="pre">file</span></code>
+with TIME, VOLTAGE, FREQUENCY and PHASE columns, without a <code class="docutils literal notranslate"><span class="pre">Harmonic</span></code> field.
+Source harmonic labels remain in filenames and conversion metadata.
+The explicit RF frequency equals the source segment harmonic times the base
+channel’s frequency divided by <code class="docutils literal notranslate"><span class="pre">--base-harmonic</span></code> (default 4). Active channel
+frequencies must agree with that relation within the reported tolerance. At
+adjacent disabled zero-voltage nodes, this frequency continues rather than
+using a disabled channel’s zero-frequency marker. This retains the actual
+waveform of the earlier shared-source-clock conversion.</p>
+<p>For a segment beginning at <span class="math notranslate nohighlight">\(a\)</span>, the converter adds a constant phase
+<span class="math notranslate nohighlight">\(2\pi[h\int_{t_*}^{a}f_{base}(u)/h_{base}\,du-\int_0^a f_{segment}(u)\,du]\)</span>
+modulo <span class="math notranslate nohighlight">\(2\pi\)</span>. Thus runtime integration from zero preserves the original
+source epoch and prehistory. This external RF waveform is not recalibrated to
+the automatic design clock. The nearest zero-voltage nodes preserve the linear on/off ramps,
 and voltage vanishes outside a component’s domain. A harmonic switch without
 a zero-voltage separator is rejected. Unknown active phase rules and frequency
 inconsistencies are also rejected before output is written.</p>
@@ -394,7 +401,13 @@ operation; ordinary file conversion preserves the supplied frequency program.</p
 <section id="physical-scope">
 <h2>Physical scope<a class="headerlink" href="#physical-scope" title="Link to this heading"></a></h2>
 <p>The model is an ideal longitudinal, zero-length kick with effective voltage. It does not add finite-gap transit dynamics, RF transverse focusing or cavity trajectories. Do not multiply a transit-time factor twice if the supplied voltage already includes it. Exact RF kinematics do not remove approximations in other transport maps or quasi-static collective effects.</p>
-<p>Physical RF tables are written with <code class="docutils literal notranslate"><span class="pre">colwidth=25,</span> <span class="pre">headerswidth=25</span></code> in tfs-pandas to retain float64 timing. In the synchronous input generator, <code class="docutils literal notranslate"><span class="pre">origin</span></code> is the first cavity passage and <code class="docutils literal notranslate"><span class="pre">time_origin</span></code> is the shared waveform epoch; these need not be equal.</p>
+<p>Physical RF tables are written with <code class="docutils literal notranslate"><span class="pre">colwidth=25,</span> <span class="pre">headerswidth=25</span></code> in tfs-pandas
+to retain float64 timing. In the synchronous input generator, <code class="docutils literal notranslate"><span class="pre">origin</span></code> remains
+the first cavity passage. The legacy <code class="docutils literal notranslate"><span class="pre">time_origin</span></code> argument is accepted and
+recorded, but its constant carrier phase is absorbed into the output PHASE so
+that the table uses runtime epoch zero. This preserves the requested passage
+phases and the physical waveform; it does not shift timestamps or restore a
+public machine-clock input.</p>
 </section>
 </section>
 
