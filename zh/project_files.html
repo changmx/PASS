@@ -293,10 +293,10 @@ GUI 启动或关闭时不会删除这些文件。</p>
 </section>
 <section id="id8">
 <h2>容器格式<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<p>格式版本 1 使用标准 ZIP/ZIP64，元数据采用 UTF-8 JSON：</p>
+<p>格式版本 2 使用标准 ZIP/ZIP64，元数据采用 UTF-8 JSON：</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>manifest.json                  # 格式/PASS 版本、输入和文件清单
-configs/&lt;input-id&gt;.json         # 普通 PASS 输入 JSON
-assets/&lt;asset-id&gt;/&lt;filename&gt;    # 原始输入/源文件字节
+configs/&lt;配置名称&gt;.json         # 普通 PASS 输入 JSON
+assets/&lt;文件名&gt;                # 原始输入/源文件字节
 recipes/&lt;index&gt;.json            # 生成设置和源文件引用
 </pre></div>
 </div>
@@ -306,11 +306,16 @@ recipes/&lt;index&gt;.json            # 生成设置和源文件引用
 GUI 中的 <strong>项目内容</strong> 可直接预览配置和源文件，无需手工解压。
 修改后应通过 GUI 保存项目，使依赖索引和校验和一同更新；
 手工修改归档成员可能导致项目校验失败。</p>
-<p>输入显示名称与稳定 ID 分开保存。配置采用相对路径引用资产；
+<p>文件直接放在 <code class="docutils literal notranslate"><span class="pre">configs/</span></code> 和 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不再使用 UUID 子目录。
+配置使用其显示名称，依赖文件保留原始文件名；中文和空格保留，
+不安全的文件名字符会被替换。同一目录内出现重名时，在扩展名前依次添加
+<code class="docutils literal notranslate"><span class="pre">1</span></code>、<code class="docutils literal notranslate"><span class="pre">2</span></code>、<code class="docutils literal notranslate"><span class="pre">3</span></code> 等，例如 <code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>。
+配置文件也遵循相同规则，例如 <code class="docutils literal notranslate"><span class="pre">beam.json</span></code> 和 <code class="docutils literal notranslate"><span class="pre">beam1.json</span></code>。</p>
+<p>稳定 ID 仅用于清单内部引用，不决定文件名。配置采用相对路径引用资产；
 清单记录 SHA-256 校验和、依赖索引、当前活动配置和运行设置。移动项目只需复制一个文件，
 不需要携带临时编辑缓存；运行输入不依赖原电脑路径。
 源文件是快照，外部同名文件变化不会自动改变项目。</p>
-<p>保存时先写入并校验新归档，再替换旧文件。版本 1 拒绝不支持的格式版本、
+<p>保存时先写入并校验新归档，再替换旧文件。版本 2 拒绝不支持的格式版本、
 不安全路径、重复条目、校验和或依赖索引不一致。
 限制为 100,000 个条目、256 GiB 解压后总大小以及每个 JSON 条目 64 MiB。
 大型项目保存需要写入完整新归档的时间和额外磁盘空间。

@@ -333,11 +333,11 @@ handled records as resolved without deleting the recovery files.</p>
 </section>
 <section id="container-format">
 <h2>Container format<a class="headerlink" href="#container-format" title="Link to this heading"></a></h2>
-<p>Version 1 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>manifest.json                  # format/PASS versions, input and asset index
-configs/&lt;input-id&gt;.json         # ordinary PASS input JSON
-assets/&lt;asset-id&gt;/&lt;filename&gt;    # original input/source bytes
-recipes/&lt;index&gt;.json            # generation settings and source references
+<p>Version 2 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>manifest.json                     # format/PASS versions, input and asset index
+configs/&lt;configuration-name&gt;.json  # ordinary PASS input JSON
+assets/&lt;filename&gt;                 # original input/source bytes
+recipes/&lt;index&gt;.json               # generation settings and source references
 </pre></div>
 </div>
 <p>To inspect the contents outside PASS, open the file with a ZIP-compatible archive
@@ -347,14 +347,21 @@ application, or copy it, rename the copy to <code class="docutils literal notran
 extraction. Save project changes through the GUI so the dependency index and
 checksums are updated together; editing archive members by hand can invalidate
 the project.</p>
-<p>Input display names are separate from their stable IDs. Configurations refer to
-assets by relative paths. The manifest records SHA-256 checksums, the dependency
-index, the active configuration, and run settings. Copying the project requires
+<p>Files are stored directly in <code class="docutils literal notranslate"><span class="pre">configs/</span></code> and <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without UUID
+subdirectories. Configurations use their display names and assets retain their
+original filenames. Chinese characters and spaces are preserved; characters
+unsafe in filenames are replaced. If a name already exists in the same directory,
+PASS adds <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, and so on before the extension, for example
+<code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>, and <code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>. Configuration names follow the same rule,
+for example <code class="docutils literal notranslate"><span class="pre">beam.json</span></code> and <code class="docutils literal notranslate"><span class="pre">beam1.json</span></code>.</p>
+<p>Stable IDs remain internal manifest references and do not determine filenames.
+Configurations refer to assets by relative paths. The manifest records SHA-256
+checksums, the dependency index, the active configuration, and run settings. Copying the project requires
 only one file; the temporary editing cache
 does not need to be transferred. The runtime input does not depend on paths on
 the original computer. Source files are snapshots and are not silently refreshed
 when an external file changes.</p>
-<p>Saving writes and verifies a new archive before replacing the old one. Version 1
+<p>Saving writes and verifies a new archive before replacing the old one. Version 2
 rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
 or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
 and 64 MiB per JSON member. A large project requires time and additional disk
