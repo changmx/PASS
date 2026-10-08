@@ -210,6 +210,14 @@ The ``on_initialized(cfg)`` callback can read
 ``cfg.input_snapshot_path`` to locate this run's ``run.json``. A preparation
 failure is recorded as ``preparation_failed`` when a record has already been created.
 
+For result summaries that need the final particle state, ``main()`` also accepts
+``on_completed(sim)``. This callback receives the ``Simulation`` after tracking
+finishes successfully, before the run record is marked complete. It is not called
+for stopped or failed runs. A callback exception marks the run as failed and
+follows the normal ``raise_errors`` behavior. Integrations using the command-line
+parser can pass the same callback to ``cli_main(argv, on_completed=callback)``;
+for example, the injection-painting wrapper uses it to write ``completed.json``.
+
 Running ``main()`` on a saved ``beam0.json`` starts again from its initial
 conditions and creates a new input snapshot and result directory. This is input
 reproduction, not checkpoint continuation. An input snapshot does not restore

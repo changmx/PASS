@@ -329,6 +329,13 @@ directory, including the dated subdirectories, from preparation onward.
 The <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> callback can read
 <code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> to locate this run’s <code class="docutils literal notranslate"><span class="pre">run.json</span></code>. A preparation
 failure is recorded as <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code> when a record has already been created.</p>
+<p>For result summaries that need the final particle state, <code class="docutils literal notranslate"><span class="pre">main()</span></code> also accepts
+<code class="docutils literal notranslate"><span class="pre">on_completed(sim)</span></code>. This callback receives the <code class="docutils literal notranslate"><span class="pre">Simulation</span></code> after tracking
+finishes successfully, before the run record is marked complete. It is not called
+for stopped or failed runs. A callback exception marks the run as failed and
+follows the normal <code class="docutils literal notranslate"><span class="pre">raise_errors</span></code> behavior. Integrations using the command-line
+parser can pass the same callback to <code class="docutils literal notranslate"><span class="pre">cli_main(argv,</span> <span class="pre">on_completed=callback)</span></code>;
+for example, the injection-painting wrapper uses it to write <code class="docutils literal notranslate"><span class="pre">completed.json</span></code>.</p>
 <p>Running <code class="docutils literal notranslate"><span class="pre">main()</span></code> on a saved <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> starts again from its initial
 conditions and creates a new input snapshot and result directory. This is input
 reproduction, not checkpoint continuation. An input snapshot does not restore

@@ -189,6 +189,13 @@ GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录�
 ``on_initialized(cfg)`` 回调可通过 ``cfg.input_snapshot_path`` 定位本次运行的 ``run.json``。
 准备失败时，若记录已创建，则状态记为 ``preparation_failed``。
 
+需要最终粒子状态来生成结果摘要时，``main()`` 还接受 ``on_completed(sim)``。
+该回调在跟踪成功结束后、运行记录标记为完成前接收 ``Simulation``，
+停止或失败的运行不会调用它。回调抛出异常时，运行记为失败，
+并遵循通常的 ``raise_errors`` 行为。复用命令行解析器的集成程序可通过
+``cli_main(argv, on_completed=callback)`` 传入同一回调；
+例如，注入涂抹示例的运行包装脚本用它生成 ``completed.json``。
+
 对已保存的 ``beam0.json`` 调用 ``main()`` 会从初始条件重新运行，
 并创建新的输入快照及结果目录。这是输入复现，不是检查点续算。
 输入快照不会恢复之前的 Python 环境、源码版本或随机数生成器状态；
