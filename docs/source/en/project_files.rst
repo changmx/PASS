@@ -35,16 +35,16 @@ Select a JSON or command to view its parameters and raw text. Copy a value or th
 selected command's JSON to the clipboard. **Copy command into current input**
 also brings its named space-charge configurations, slicers, and file dependencies.
 WakeField copies its referenced Slicer, including conflict-safe slice-set renaming.
-Before copying RFCavity, Bump or WakeField, differing prescribed clocks require a
-choice: retain the target clock, copy the source clock, or cancel. An implicit
-source clock is resolved from its harmonic-ID-zero initial bunch and circumference.
-Copying that clock changes the target's global clock and can affect its existing
-commands. This is not a transfer of tracked beam or wake history.
+The design clock is derived from the target input, rather than copied as a
+separate resource. Importing an RFCavity can therefore change the target's
+ideal RF-only trajectory and other commands using that clock. Explicit RF
+frequency tables retain their physical frequency; harmonic RF follows the
+target's derived clock. This is not a transfer of tracked beam or wake history.
 Existing names are preserved; conflicting imported names receive numeric suffixes.
 Another project can be opened read-only as a parameter source.
 
-Copying a command adds one undo step, including imported dependencies and clock
-settings. Cancelled or failed copies leave the active input unchanged.
+Copying a command adds one undo step, including imported dependencies.
+Cancelled or failed copies leave the active input unchanged.
 
 TFS and CSV files have a table preview of up to 500 rows. Text previews are bounded
 to 2 MiB and parameter tables to 5,000 entries; exact files can always be exported.

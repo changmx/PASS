@@ -304,6 +304,11 @@ class Validator:
             for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"}
             and str(k).casefold() not in {"electron cloud", "intrabeam scattering"}
         }
+        for key in tuple(raw):
+            if str(key).casefold().replace("_", " ") == "reference clock":
+                if raw[key] is not None:
+                    self.add((key, ), "clock.removed", "Reference clock 输入已移除；PASS 由理想 RF 参考轨道自动计算时钟。请删除此字段，并检查或重新生成 RF 相位程序后再运行。")
+                raw.pop(key)
         self.intrabeam_scattering_config = None
         try:
             self.intrabeam_scattering_config = load_intrabeam_scattering(self.data, validate_sequence=False)
@@ -343,13 +348,6 @@ class Validator:
             self.turn_count = 0
         if not is_finite_number(self.circumference) or self.circumference <= 0:
             self.circumference = 0
-        clock = g.get("Reference clock")
-        if isinstance(clock, dict) and self.circumference:
-            frequencies = clock.get("Revolution frequency (Hz)")
-            frequencies = frequencies if isinstance(frequencies, list) else [frequencies]
-            from PASS.utils.constants import const
-            if frequencies and all(is_finite_number(f) for f in frequencies) and max(frequencies) * self.circumference >= const.c:
-                self.add(("Reference clock", "Revolution frequency (Hz)"), "clock.speed", "规定回旋频率 × 周长必须小于光速")
         self.backend = g.get("Backend (gpu/cpu)", "cpu")
         self.choice(g, "Backend (gpu/cpu)", {"cpu", "gpu"}, ())
         self.numeric(g, "Transition Gamma", (), positive=True)

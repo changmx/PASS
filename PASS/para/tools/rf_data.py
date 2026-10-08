@@ -30,7 +30,9 @@ def synchronous_rf_program(voltage, phase, harmonic, circumference, mass, kineti
 
     This is an input generator, not a runtime reset of bunch phase or energy.
     Between the design samples both frequency and additive phase are linear.
-    origin is the first cavity passage; time_origin is the shared RF clock epoch.
+    origin is the first cavity passage. Legacy time_origin values are accepted,
+    but their constant carrier phase is absorbed into PHASE for runtime epoch
+    zero. The prescribed passage phases and physical waveform are unchanged.
     """
     voltage = np.asarray(voltage, dtype=float)
     phase = np.broadcast_to(np.asarray(phase, dtype=float), voltage.shape)
@@ -49,6 +51,16 @@ def synchronous_rf_program(voltage, phase, harmonic, circumference, mass, kineti
         time += circumference / (beta * const.c)
     times = np.asarray(times)
     frequencies = np.asarray(frequencies)
-    carrier = LinearProgram(frequencies, times, origin=time_origin)
+    legacy_origin = float(time_origin)
+    if not np.isfinite(legacy_origin):
+        raise ValueError('The original RF phase epoch must be finite')
+    # Rebasing adds -2*pi*integral(0, legacy_origin, f) to the old modulation.
+    # Form the algebraically equivalent zero-epoch result directly, avoiding
+    # cancellation between two potentially large constant phase offsets.
+    carrier = LinearProgram(frequencies, times, origin=0.)
     modulation = phase + 2 * np.pi * (harmonic * np.arange(len(times)) - carrier.integral(0., times))
-    return tfs.TfsDataFrame(dict(TIME=times, VOLTAGE=voltage, FREQUENCY=frequencies, PHASE=modulation))
+    return tfs.TfsDataFrame(dict(TIME=times, VOLTAGE=voltage, FREQUENCY=frequencies, PHASE=modulation),
+                            headers={
+                                'PHASE_ORIGIN_S': 0.,
+                                'LEGACY_PHASE_ORIGIN_S': legacy_origin
+                            })

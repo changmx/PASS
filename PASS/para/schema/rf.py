@@ -2,21 +2,6 @@
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 
-class ReferenceClock(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
-    origin: float = Field(default=0., alias='Time origin (s)')
-    frequency: float | list[float] = Field(alias='Revolution frequency (Hz)')
-    times: list[float] | None = Field(default=None, alias='Time (s)')
-
-    @model_validator(mode='after')
-    def validate_program(self):
-        from PASS.utils.program import LinearProgram
-        p = LinearProgram(self.frequency, self.times, origin=self.origin)
-        if (p.values <= 0).any():
-            raise ValueError('Reference frequency must be positive')
-        return self
-
-
 class RFComponent(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
     voltage: float | list[float] = Field(default=0., alias='Voltage (V)')

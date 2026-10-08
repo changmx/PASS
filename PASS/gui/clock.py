@@ -1,27 +1,13 @@
-"""Resolve a portable prescribed-clock snapshot without allocating particles."""
-import math
+"""Inspect the automatically derived clock without allocating particles."""
 
-from PASS.para.schema.rf import ReferenceClock
-from PASS.tool.particle_masses import tracking_mass_per_nucleon
-from PASS.utils.constants import const
+from PASS.utils.reference_clock import build_reference_program
 
 
-def reference_clock_snapshot(data):
-    if data.get("Reference clock") is not None:
-        return ReferenceClock.model_validate(data["Reference clock"]).model_dump(by_alias=True)
-    injection = next((v for v in data.get("Sequence", {}).values() if isinstance(v, dict) and v.get("Command") == "Injection"), None)
-    if injection is None:
-        raise ValueError("默认时钟需要 Injection")
-    bunch = next((v for k, v in injection.items() if k.startswith("bunch") and isinstance(v, dict) and v.get("Harmonic ID of this bunch", 0) == 0),
-                 None)
-    if bunch is None:
-        raise ValueError("默认时钟需要 harmonic ID=0 的束团")
-    protons, neutrons = data["Number of Protons"], data["Number of Neutrons"]
-    mass = tracking_mass_per_nucleon(protons, neutrons, data["Number of Charges"])
-    energy = float(bunch["Kinetic Energy per Nucleon (eV/u)"])
-    circumference = float(data["Circumference (m)"])
-    if not math.isfinite(energy) or energy <= 0 or not math.isfinite(circumference) or circumference <= 0:
-        raise ValueError("默认时钟需要正的有限动能与环长")
-    gamma = 1.0 + energy / mass
-    beta = math.sqrt(1.0 - 1.0 / gamma / gamma)
-    return ReferenceClock(frequency=beta * const.c / circumference).model_dump(by_alias=True)
+def reference_clock_snapshot(data, base_dir=None):
+    program = build_reference_program(data, base_dir)
+    scalar = len(program.values) == 1
+    return {
+        "Time origin (s)": program.origin,
+        "Revolution frequency (Hz)": float(program.values[0]) if scalar else program.values.tolist(),
+        "Time (s)": None if scalar else program.times.tolist(),
+    }

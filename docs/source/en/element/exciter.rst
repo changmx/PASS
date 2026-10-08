@@ -381,11 +381,12 @@ The program uses the beam's shared prescribed reference-clock frequency:
 
   \Delta f(t) = \Delta Q \cdot f_0(t)
 
-The prescribed clock is independent of tracked bunch energy changes. Its default
-is the initial reference revolution frequency; a ``Reference clock`` table can
-prescribe a ramp. Phase integrates the instantaneous frequency over physical
-time, including clock ramps; it is not computed as the current frequency times
-elapsed time. ``excite tune`` and ``sweep tune`` must be provided as a pair.
+The shared clock follows the automatic ideal RF-only design trajectory, not
+collective changes to tracked bunch energies. Without active RF voltage it is
+constant; see :ref:`en-reference-clock`. Phase integrates the instantaneous
+frequency over physical time, including clock ramps; it is not computed as the
+current frequency times elapsed time. ``excite tune`` and ``sweep tune`` must be
+provided as a pair.
 
 **Frequency mode**
 

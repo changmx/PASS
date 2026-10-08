@@ -14,7 +14,8 @@ import re
 import numpy as np
 import tfs
 
-from PASS.para.schema.rf import RFComponent, ReferenceClock
+from PASS.para.schema.rf import RFComponent
+from PASS.utils.program import LinearProgram
 
 
 @dataclass(frozen=True)
@@ -133,9 +134,10 @@ def _build_components(data, clock_data, phase_rules, base_harmonic, phase_origin
     frequency = data.channels['Frequency'] / base_harmonic
     # Keep the full prescribed clock when cropping component domains: changing
     # prehistory would change the integrated phase at every retained sample.
-    clock = ReferenceClock(origin=float(phase_origin),
-                           times=clock_data.times.tolist(),
-                           frequency=(clock_data.channels['Frequency'] / base_harmonic).tolist())
+    clock_frequency = clock_data.channels['Frequency'] / base_harmonic
+    if np.any(clock_frequency <= 0):
+        raise ValueError('The source base revolution frequency must be positive')
+    clock = LinearProgram(clock_frequency, clock_data.times, origin=float(phase_origin))
     tables = []
     relations = []
     for channel, suffix in enumerate(('', '1', '2')):
@@ -157,12 +159,6 @@ def _build_components(data, clock_data, phase_rules, base_harmonic, phase_origin
             if not np.allclose(observed_frequency, expected_frequency, rtol=5e-12, atol=1e-8):
                 error = float(np.max(np.abs(observed_frequency - expected_frequency)))
                 raise ValueError(f'Channel {channel}, h={h}: frequency differs from shared harmonic clock; max error {error:g} Hz')
-            relations.append({
-                'channel': channel,
-                'harmonic': h,
-                'maximum_frequency_error_hz': float(np.max(np.abs(observed_frequency - expected_frequency)))
-            })
-
             # Keep the nearest zero on each side to retain the exported linear
             # voltage ramp. Frequencies and phases at disabled nodes are not
             # guessed; the common harmonic clock continues through them.
@@ -174,10 +170,35 @@ def _build_components(data, clock_data, phase_rules, base_harmonic, phase_origin
                 raise ValueError(f'Channel {channel}: harmonic switch without a zero-voltage separator is ambiguous')
             selection = slice(lower, upper + 1)
             phase = _phase_values(data.channels, phase_rules[key])
-            table = tfs.TfsDataFrame({'TIME': data.times[selection], 'VOLTAGE': voltage[selection], 'PHASE': phase[selection]})
-            RFComponent(times=table.TIME.tolist(), voltage=table.VOLTAGE.tolist(), phase=table.PHASE.tolist(), harmonic=h)
+            times = data.times[selection]
+            explicit_frequency = h * frequency[selection]
+            explicit = LinearProgram(explicit_frequency, times, origin=0.)
+            # Both integrals have the same derivative inside this segment.
+            # One constant phase preserves the old epoch and cropped prehistory.
+            phase_adjustment = 2 * np.pi * np.remainder(h * clock.phase_cycles(float(times[0])) - explicit.phase_cycles(float(times[0])), 1.)
+            table = tfs.TfsDataFrame({
+                'TIME': times,
+                'VOLTAGE': voltage[selection],
+                'FREQUENCY': explicit_frequency,
+                'PHASE': phase[selection] + phase_adjustment
+            })
+            RFComponent(times=table.TIME.tolist(), voltage=table.VOLTAGE.tolist(), phase=table.PHASE.tolist(), frequency=table.FREQUENCY.tolist())
             tables.append((channel, h, table))
-    return clock, tables, relations
+            relations.append({
+                'channel':
+                channel,
+                'harmonic':
+                h,
+                'maximum_frequency_error_hz':
+                float(np.max(np.abs(observed_frequency - expected_frequency))),
+                'phase_adjustment_rad':
+                float(phase_adjustment),
+                'program_domain_s':
+                times[[0, -1]].tolist(),
+                'frequency_construction':
+                'Source base Frequency/base_harmonic multiplied by this segment harmonic, including zero-voltage boundaries.'
+            })
+    return tables, relations
 
 
 def convert_hiaf_rf(source_directory,
@@ -197,11 +218,13 @@ def convert_hiaf_rf(source_directory,
     declared interpretation of low-energy BRing RF. It is not automatically
     identified or certified from the export. Phase inputs must be unwrapped.
 
-    Executable output uses a shared prescribed clock Frequency/base_harmonic
-    and constant-harmonic component segments. ``phase_origin`` is the physical
-    time at which that clock's accumulated phase is zero; it is not a shift of
-    the exported time column. Voltages are linear between samples and zero
-    outside each component's domain. No ion-mass or frequency correction occurs.
+    Executable output uses explicit RF FREQUENCY samples on each constant-
+    harmonic source segment, with a constant phase adjustment preserving the
+    original integral of Frequency/base_harmonic. ``phase_origin`` is that
+    original integral's zero epoch; it does not shift the exported time column.
+    No public machine-clock input is emitted. Voltages are linear between
+    samples and zero outside each component's domain. No ion-mass calibration
+    or adjustment to the automatically derived machine trajectory occurs.
 
     Omit phase_rules for a raw-only conversion, which needs no phase assumption.
     Existing files are retained unless overwrite=True is explicitly requested.
@@ -209,11 +232,11 @@ def convert_hiaf_rf(source_directory,
     original = load_hiaf_rf(source_directory)
     data = _select_time_range(original, start_time, end_time)
     output = Path(output_directory).resolve()
-    clock, tables, relations = None, [], []
+    tables, relations = [], []
     if phase_rules is not None:
-        clock, tables, relations = _build_components(data, original, phase_rules, base_harmonic, phase_origin)
+        tables, relations = _build_components(data, original, phase_rules, base_harmonic, phase_origin)
     manifest = {
-        'format': 'PASS HIAF RF conversion v1',
+        'format': 'PASS HIAF RF conversion v2',
         'provenance': data.provenance,
         'input_units': {
             'time': 'ms',
@@ -236,20 +259,24 @@ def convert_hiaf_rf(source_directory,
         'base_harmonic': base_harmonic,
         'frequency_relations': relations,
         'source_frequency_modified': False,
+        'frequency_semantics': 'Explicit RF frequency is segment harmonic times the original base frequency/base_harmonic; '
+        'disabled boundary frequencies continue that program rather than using disabled-channel zeros.',
+        'phase_adjustment': 'Each segment preserves the original phase_origin and frequency prehistory modulo 2*pi; '
+        'the runtime frequency integral uses physical time with origin zero.',
         'phase_semantics': 'User-declared linear combinations; source phase semantics are not inferred.',
         'interpolation': 'Analog channels are linear; harmonic labels are discrete. Adjacent zero-voltage nodes retain on/off ramps.',
         'mass_convention': 'Not supplied by these chart files; verify source frequency against the intended ion mass and lattice independently.',
         'normalized_data': str(output / 'hiaf_rf_normalized.tfs'),
-        'configuration': str(output / 'rf_config.json') if clock is not None else None,
+        'configuration': str(output / 'rf_config.json') if phase_rules is not None else None,
         'components': [],
     }
     products = {output / 'hiaf_rf_normalized.tfs': tfs.TfsDataFrame({'TIME': data.times, **{k.upper(): v for k, v in data.channels.items()}})}
     for index, (channel, harmonic, table) in enumerate(tables, start=1):
         path = output / f'rf_channel_{channel}_h{harmonic}_{index:02d}.tfs'
         products[path] = table
-        manifest['components'].append({'Program file': str(path), 'Harmonic': harmonic})
+        manifest['components'].append({'Program file': str(path)})
     paths = list(products) + [output / 'conversion_report.json']
-    if clock is not None:
+    if phase_rules is not None:
         paths.append(output / 'rf_config.json')
     existing = [str(path) for path in paths if path.exists()]
     if existing and not overwrite:
@@ -257,8 +284,8 @@ def convert_hiaf_rf(source_directory,
     output.mkdir(parents=True, exist_ok=True)
     for path, table in products.items():
         tfs.write(path, table, colwidth=25, headerswidth=25)
-    if clock is not None:
-        config = {'Reference clock': clock.model_dump(by_alias=True, exclude_none=True), 'Components': manifest['components']}
+    if phase_rules is not None:
+        config = {'Components': manifest['components']}
         (output / 'rf_config.json').write_text(json.dumps(config, indent=2, allow_nan=False) + '\n', encoding='utf-8')
     (output / 'conversion_report.json').write_text(json.dumps(manifest, indent=2, allow_nan=False) + '\n', encoding='utf-8')
     return manifest
@@ -273,7 +300,7 @@ def main():
                         help='JSON object declaring channel:harmonic phase-column coefficients; omit for raw-only conversion')
     parser.add_argument('--phase-origin',
                         type=float,
-                        help='Physical epoch (s) of zero accumulated reference-clock phase; required with --phase-rules')
+                        help='Original physical epoch (s) of zero accumulated source-clock phase; preserved in PHASE; required with --phase-rules')
     parser.add_argument('--base-harmonic', type=int, default=4)
     parser.add_argument('--start-time', type=float, help='First physical time (s), within the source interval')
     parser.add_argument('--end-time', type=float, help='Last physical time (s), within the source interval')

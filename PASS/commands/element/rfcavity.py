@@ -87,8 +87,9 @@ class RFCavity(Command):
 
     Inputs: Components, S (m), Is enabled, Dp aperture, transverse aperture.
     Scalar legacy RF inputs and turn-row RF tables are deliberately rejected.
-    Frequencies are prescribed physical functions, never inferred from the
-    instantaneous energy of a tracked bunch. Positive z means earlier arrival.
+    Frequencies are physical functions. Harmonics use the automatically derived
+    ideal design clock, never a tracked bunch's instantaneous energy.
+    Positive z means earlier arrival.
     """
 
     def __init__(self, beam_id, sim, **command_kwargs):

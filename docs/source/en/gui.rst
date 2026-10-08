@@ -279,12 +279,11 @@ Distribution input offers ``sequential`` or ``repeat``. Random seeds and
 reference arrival times can be cleared to null. Integer fields accept large
 particle counts without a signed-32-bit limit.
 
-Global configuration includes ``Reference clock`` even for older JSON files
-that omitted the key. Disable custom input for the default clock derived from
-the initial harmonic-ID-zero bunch. Otherwise enter time origin and constant
-revolution frequency, or increasing time/frequency tables. The frequency times
-circumference must remain below the speed of light. This clock does not follow
-the instantaneous energy of a tracked bunch.
+The shared design clock is calculated from the initial beam, circumference and
+enabled RF waveforms; global configuration has no clock-table input. It is
+independent of collective changes to the tracked particles. To preserve an
+external RF frequency program, use the component's direct-frequency mode.
+See :ref:`en-reference-clock` for the design calculation and migration limits.
 
 RFCavity components support inline/file and harmonic/direct-frequency modes.
 Voltage, phase and direct frequency can be scalars or tables sharing ``Time (s)``.

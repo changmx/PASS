@@ -215,11 +215,6 @@ MainConfig（全局参数）
      - ``int``
      - ``1``
      - 带符号电荷数 Z（q=Z e），并非电子数；为非零整数。
-   * - ``reference_clock``
-     - ``Reference clock``
-     - ``ReferenceClock | None``
-     - ``None``
-     - 给定的回转频率函数；定义与默认规则见下文参考时钟小节。
    * - ``gamma_t``
      - ``Transition Gamma``
      - ``float``
@@ -303,21 +298,31 @@ MainConfig（全局参数）
 
 .. _zh-reference-clock:
 
-规定的机器时钟与初始化
+自动设计时钟与初始化
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-顶层可选 ``Reference clock`` 定义正值回转频率 :math:`f_{rev}(t)` 和基准时刻
-:math:`t_*`：
+PASS 在跟踪前，根据 harmonic ID=0 束团的初始能量、粒子质量与电荷、环周长，
+以及各实际位置处启用的 RFCavity 波形，构造共同的理想纯 RF 设计轨迹。
+同一位置的 RF 分量在同一个设计通过时刻采样并合计能量增量；飞行时间采用前一踢
+之后的参考速度。设计回旋频率为 :math:`f_{rev}=\beta_{design}c/C`，累计相位
+固定以物理时刻零为原点：
 
 .. math::
 
-   \Psi(t)=\int_{t_*}^{t} f_{rev}(u)\,du.
+   \Psi(t)=\int_0^t f_{rev}(u)\,du.
 
-输入为 ``Revolution frequency (Hz)``（标量或列表）、列表对应的 ``Time (s)``，
-以及默认 0 的 ``Time origin (s)``。采样值分段线性插值，区间外保持端点值，
-每段积分解析计算。该规定程序独立于实际跟踪束团的能量。
-未指定时，PASS 固定使用 harmonic-id-zero 束团初始参考速度除以周长；
-后续加速不会自动改变这个频率。
+在圈边界和 RF 通过前记录频率节点，在物理时间上分段线性插值，区间外保持端点值，
+每段积分解析计算。RF 踢只计算请求的圈数；之后以最终设计能量增加一次设计通过，
+封闭插值区间，不再施加 RF 踢。没有活动 RF 电压时，设计时钟保持常频。集体效应踢角、粒子损失
+及跟踪束团能量的变化不会重新定义这条理想设计时钟。输入 RF 相位仍是波形的附加
+相位调制，不会被解释成要求设计粒子达到的同步相位。
+
+不再提供公开 ``Reference clock`` 输入或 ``ReferenceClock`` schema；旧输入需删除该字段。
+仅由初始能量和 RF 数据，一般无法唯一反推出任意外部规定时钟。外部信号源给定实际
+RF 频率时，应使用分量的 ``Frequency (Hz)`` 或文件 ``FREQUENCY`` 列，并保留其
+积分相位，包括原有非零时间原点。:doc:`element/rfcavity` 中的 HIAF 转换器执行这种迁移。
+重构已有设计轨迹属于模型计算，不保证频率、能量采样逐位相同；应显式比较通过时间、
+相位和能量。
 
 初始 :math:`T_b=\Psi^{-1}(-h_{id}/h_{group})`，也可由 BunchConfig 的
 ``Reference arrival time (s)`` 指定。第 n 圈注入使用
@@ -328,7 +333,7 @@ MainConfig（全局参数）
 ``harmonic_id``、``harmonic_number`` 表示名义槽位。
 名义槽位位置 ``harmonic_id*C/harmonic_number`` 在需要输出元数据时计算；
 将它加到 z 不能重建实际位置或到达时间。RF 谐波与分组数相互独立。:doc:`reorganize` 说明如何用
-规定时钟相位重分组，同时保留展开的粒子时间。
+自动设计时钟相位重分组，同时保留展开的粒子时间。
 
 InjectionItem（注入与分组）
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

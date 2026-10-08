@@ -8,7 +8,7 @@ CPU 与 CUDA 使用相同算法，计算中间量采用 float64。
 .. math::
 
    t_i=T_b-\frac{z_i}{\beta_b c},\qquad
-   U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].
+   U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_0^{t}f_k(u)du+\phi_k(t)\right].
 
 频率必须积分；变频时不能使用 ``2*pi*f(t)*t``。``Phase (rad)`` 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 :math:`2\pi`。``harmonic_id`` 和派生的名义槽位位置不进入运行中的相位公式。
 
@@ -75,7 +75,7 @@ CPU 与 CUDA 使用相同算法，计算中间量采用 float64。
 每个分量选择以下两种频率定义之一：
 
 * ``Frequency (Hz)``：规定的实际载波频率，正标量或列表。
-* ``Harmonic``：正整数，乘以共同 ``Reference clock`` 的回旋频率；不依赖当前束团能量，也不受分组谐波整除限制。
+* ``Harmonic``：正整数，乘以自动派生的设计回旋频率；不随集体效应引起的跟踪束团能量变化而改变，也不受分组谐波整除限制。
 
 ``Voltage (V)`` 与 ``Phase (rad)`` 默认为 0，可为标量或列表。
 列表共享严格递增的有限 ``Time (s)``，并采用分段线性插值。
@@ -87,7 +87,7 @@ CPU 与 CUDA 使用相同算法，计算中间量采用 float64。
 每个粒子按自身到达时间 :math:`t_i` 判断，参考粒子按 :math:`T_b` 判断，
 因此同一束团内的粒子可以分别位于数据边界两侧。频率程序、积分得到的载波相位
 及共享参考时钟保持连续，并保留原有的端点外推；仅分量电压受数据时间域限制。
-参考时钟与默认值见 :ref:`zh-reference-clock`。
+自动纯 RF 设计时钟及其限制见 :ref:`zh-reference-clock`。
 
 
 .. code-block:: json
@@ -223,8 +223,8 @@ SHA-256 校验值、单位和时间范围。默认保护已有输出；只有显
 
 这些时间是 2026-10-05 BRing 导出数据的示例，并非通用机器常数。
 ``--start-time`` 和 ``--end-time`` 以物理秒选择源数据内的范围；新增端点的模拟量
-采用线性插值，谐波标签保持离散。``--phase-origin`` 指定时钟积分相位为零的物理时刻，
-不平移导出的时间列。截取分量时间域时仍保留完整导出时钟，避免改变累计相位。
+采用线性插值，谐波标签保持离散。``--phase-origin`` 指定原信号源时钟积分相位为零的物理时刻，
+不平移时间列。即使截取分量时间域，仍使用完整源频率前史计算各段的相位修正。
 
 上述示例明确规定 :math:`\psi_4=\mathrm{Phase}`、
 :math:`\psi_8=2\mathrm{Phase}+\mathrm{DeltaPhi1}`。
@@ -233,13 +233,18 @@ SHA-256 校验值、单位和时间范围。默认保护已有输出；只有显
 将结果作为实机过程复现前仍需确认。相位列必须已展开，转换器不会自行展开相位，
 也不会隐式叠加 ``Phase1``。后续 :math:`h=2,1` 合束阶段必须提供各自的明确映射。
 
-指定映射后还会输出包含 ``Reference clock`` 和 ``Components`` 的
-``rf_config.json`` ，以及每个固定谐波段的 TFS 文件。将 ``Reference clock``
-填入根级 MainConfig 设置，将 ``Components`` 填入 RFCavity 设置。
-时钟频率等于基础通道导出频率除以 ``--base-harmonic`` （默认 4）；每个活动通道
-必须满足其频率等于谐波数乘以该共享频率。PASS 按物理时间积分这一规定时钟，
-粒子能量不会重新定义时钟。相邻零电压节点保留导出的线性开关过程，分量时间域外
-电压为零。没有零电压分隔的谐波切换、缺失的活动相位映射、频率不一致均在写出前拒绝。
+指定映射后输出仅包含 ``Components`` 的 ``rf_config.json``，将该列表填入 RFCavity。
+每个分量只指定 ``Program file``，文件包含 TIME、VOLTAGE、FREQUENCY、PHASE，
+不再输出 ``Harmonic`` 字段；源谐波标签保留在文件名及转换元数据中。
+显式 RF 频率等于该段源谐波数乘以基础通道频率，再除以 ``--base-harmonic`` （默认 4）。
+活动通道频率必须在报告的容差内满足此关系。相邻禁用零电压节点继续采用该频率程序，
+不使用禁用通道的零频率标记，从而保留旧共享源时钟转换实际生成的物理波形。
+
+对于从 :math:`a` 开始的分量段，转换器增加常量相位
+:math:`2\pi[h\int_{t_*}^{a}f_{base}(u)/h_{base}\,du-\int_0^a f_{segment}(u)\,du]`
+并对 :math:`2\pi` 取模，使运行时从零开始积分仍保留原始时间原点与频率前史。
+这种外部 RF 波形不会按自动设计时钟重新标定。相邻零电压节点保留线性开关过程，
+分量时间域外电压为零。没有零电压分隔的谐波切换、缺失的活动相位映射、频率不一致均在写出前拒绝。
 
 Python 接口 ``load_hiaf_rf(source_directory)`` 返回归一化数组；
 ``convert_hiaf_rf(source_directory, output_directory, phase_rules=...,
@@ -251,4 +256,7 @@ phase_origin=..., base_harmonic=4, start_time=None, end_time=None)`` 生成输�
 
 模型采用有效电压、理想纵向薄透镜作用与零长度腔。不额外建模有限间隙渡越、RF 横向聚焦或腔内轨迹；若输入已包含渡越时间因子，不重复乘入。准确的 RF 能量增量不消除其他输运映射或准静态集体效应的近似。
 
-物理 RF 表使用 tfs-pandas 的 ``colwidth=25, headerswidth=25`` 保存，保留 float64 时间精度。同步输入生成器中的 ``origin`` 是首次通过腔的时刻，``time_origin`` 是共同波形基准时刻，两者可以不同。
+物理 RF 表使用 tfs-pandas 的 ``colwidth=25, headerswidth=25`` 保存，保留 float64 时间精度。
+同步输入生成器中的 ``origin`` 仍是首次通过腔的时刻。旧 ``time_origin`` 参数继续接受并记录，
+但其常量载波相位已吸收到输出 PHASE，使表格采用运行时的零时间原点。这保留要求的通过相位
+与物理波形，不平移时间列，也不恢复公开机器时钟输入。

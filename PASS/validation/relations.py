@@ -6,7 +6,6 @@ from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResource
 from PASS.tool.particle_masses import tracking_mass_per_nucleon
 from PASS.utils.constants import const
 from PASS.utils.coordinates import resolve_slice_coordinate
-from PASS.utils.program import LinearProgram
 from .rules import is_finite_number, is_integer
 
 
@@ -534,7 +533,7 @@ def check_longitudinal(check):
     except ValueError as exc:
         check.add(("Number of Charges", ), "beam.mass", str(exc))
         return
-    initial_frequencies = []
+    has_initial_energy = False
     for path, bunch in check.bunch_models:
         energy = bunch.get("Kinetic Energy per Nucleon (eV/u)")
         if not is_finite_number(energy) or energy <= 0:
@@ -553,24 +552,10 @@ def check_longitudinal(check):
         if beta_squared <= 0:
             check.add((*path, "Kinetic Energy per Nucleon (eV/u)"), "beam.beta", "动能太小，浮点精度下 beta 为 0，无法跟踪")
             continue
-        frequency = math.sqrt(beta_squared) * const.c / check.circumference if check.circumference else 0
-        harmonic_id = bunch.get("Harmonic ID of this bunch", 0)
-        if frequency > 0 and is_integer(harmonic_id):
-            initial_frequencies.append((harmonic_id, frequency))
-    if not initial_frequencies:
+        has_initial_energy = True
+    if not has_initial_energy or not check.circumference:
         return
-    clock = g.get("Reference clock") or {}
-    if not isinstance(clock, dict):
-        return
-    try:
-        reference = LinearProgram(clock.get("Revolution frequency (Hz)",
-                                            min(initial_frequencies, key=lambda value: value[0])[1]),
-                                  clock.get("Time (s)"),
-                                  origin=clock.get("Time origin (s)", 0.))
-    except (TypeError, ValueError):
-        return  # Invalid reference clocks are reported by the schema checks.
-    if any(reference.values <= 0):
-        return
+    windows = []
     for name, (kind, values) in check.commands.items():
         if kind != "Exciter" or not str(values.get("Mode", "")).endswith("_am") or not values.get("Enable", True):
             continue
@@ -581,7 +566,18 @@ def check_longitudinal(check):
         last_turn = min(end, check.turn_count) - 1
         if last_turn < start:
             continue
+        windows.append((name, ext, start, last_turn, position))
+    # Draft editing must not resolve files or construct a long design trajectory.
+    if not windows or not check.check_files or check.report.errors:
+        return
+    from PASS.utils.reference_clock import build_reference_program
+    try:
+        reference = build_reference_program(check.data, check.base)
+    except (TypeError, ValueError, KeyError, OSError, OverflowError) as exc:
+        check.add(("Sequence", ), "clock.design", f"无法计算自动设计参考时钟：{exc}")
+        return
+    for name, ext, start, last_turn, position in windows:
         start_time = reference.inverse_integral(start + position / check.circumference)
         last_time = reference.inverse_integral(last_turn + position / check.circumference)
         if last_time - start_time >= ext:
-            check.add(("Sequence", name, "AM t ext (s)"), "exciter.am_singularity", "按规定参考钟估算，激励窗口达到 AM t ext，AM 公式在该时刻奇异；请缩短窗口或增大 AM t ext", True)
+            check.add(("Sequence", name, "AM t ext (s)"), "exciter.am_singularity", "按自动设计参考时钟估算，激励窗口达到 AM t ext，AM 公式在该时刻奇异；请缩短窗口或增大 AM t ext", True)

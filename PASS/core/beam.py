@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from PASS.core.config import Config
-from PASS.utils.program import LinearProgram
+from PASS.utils.reference_clock import build_reference_program
 from PASS.core.bunch import BunchInfo
 from PASS.core.particle import ParticlePool
 from PASS.utils.constants import const
@@ -112,11 +112,9 @@ class Beam:
 
 
 def initialize_reference_clock(beam, data):
-    """One prescribed grouping/RF clock; never follows a tracked bunch's energy."""
-    values = {k.lower(): v for k, v in (data.get('reference clock') or {}).items()}
+    """One automatic design clock; never follows a tracked bunch's energy."""
     initial = min(beam.bunches, key=lambda b: b.harmonic_id)
-    frequency = values.get('revolution frequency (hz)', initial.beta * const.c / initial.circum)
-    beam.reference_program = LinearProgram(frequency, values.get('time (s)'), origin=values.get('time origin (s)', 0.))
+    beam.reference_program = build_reference_program(data)
     if (np.any(beam.reference_program.values <= 0) or np.any(beam.reference_program.values * initial.circum >= const.c)):
         raise ValueError("Reference clock must define a positive subluminal design velocity")
     for b in beam.bunches:

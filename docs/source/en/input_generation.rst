@@ -230,11 +230,6 @@ MainConfig (Global Parameters)
      - ``int``
      - ``1``
      - Signed charge number Z (q=Z e), not electron count; nonzero integer.
-   * - ``reference_clock``
-     - ``Reference clock``
-     - ``ReferenceClock | None``
-     - ``None``
-     - Prescribed revolution-frequency program; see the reference-clock section.
    * - ``gamma_t``
      - ``Transition Gamma``
      - ``float``
@@ -321,23 +316,41 @@ three-dimensional mesh. See :doc:`ibs` for rates, exposure time and model limits
 
 .. _en-reference-clock:
 
-Prescribed machine clock and initialization
+Automatic design clock and initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The optional top-level ``Reference clock`` defines a positive revolution
-frequency :math:`f_{rev}(t)` and an epoch :math:`t_*`:
+PASS derives one shared ideal RF-only design trajectory before tracking, using
+the initial energy of the harmonic-ID-zero bunch, species mass and charge,
+circumference, and enabled RFCavity waveforms at their physical positions.
+Colocated RF components sample the same design passage and their energy gains
+are summed. Design flights use the reference velocity after the preceding kick.
+The design revolution frequency is :math:`f_{rev}=\beta_{design}c/C`;
+its accumulated phase has the fixed physical-time origin zero:
 
 .. math::
 
-   \Psi(t)=\int_{t_*}^{t} f_{rev}(u)\,du.
+   \Psi(t)=\int_0^t f_{rev}(u)\,du.
 
-Use ``Revolution frequency (Hz)`` (scalar or list), ``Time (s)`` for list
-samples, and ``Time origin (s)`` (default 0). Samples are linearly interpolated,
-end values are held, and the integral is evaluated analytically on each
-segment. This prescribed program is independent of tracked bunch energies.
-Without a program, PASS fixes its frequency to the initial reference
-velocity of harmonic-id-zero divided by circumference; it does not follow
-subsequent acceleration automatically.
+Frequency nodes occur at turn boundaries and just before RF passages. They are
+linearly interpolated in physical time, with constant endpoint extrapolation
+and an analytic integral on each segment. RF kicks are simulated only for the
+requested turns. One additional design passage at the final design energy
+closes the interpolation interval without applying further RF kicks.
+With no active RF voltage the design clock is constant. Collective kicks,
+particle loss and changes to the tracked
+bunch energies do not redefine this ideal design clock. Physical RF phase
+samples remain additive waveform modulation; they are not reinterpreted as
+requested synchronous-particle phases.
+
+There is no public ``Reference clock`` input or ``ReferenceClock`` schema.
+Remove that field from older inputs. An arbitrary externally prescribed clock
+cannot, in general, be inferred uniquely from an initial energy and RF data.
+If an external generator specifies the physical RF frequency, use each
+component's explicit ``Frequency (Hz)`` or file ``FREQUENCY`` column and preserve
+its integrated phase, including any nonzero original epoch. The HIAF converter
+in :doc:`element/rfcavity` performs that migration. Reconstructing an archived
+design trajectory is a model calculation, not a promise of bitwise identical
+frequency or energy samples; compare its timing, phase and energy explicitly.
 
 Initially, :math:`T_b=\Psi^{-1}(-h_{id}/h_{group})`, unless BunchConfig supplies
 ``Reference arrival time (s)``. Injection on turn n uses
@@ -351,7 +364,7 @@ The nominal slot position ``harmonic_id*C/harmonic_number`` is calculated
 when needed for metadata output. Adding it to z does not reconstruct a
 physical position or arrival time. RF harmonics are
 independent of this grouping count. :doc:`reorganize` explains regrouping by
-the prescribed clock phase while retaining unwrapped particle times.
+the automatic design-clock phase while retaining unwrapped particle times.
 
 InjectionItem (Injection and Grouping)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

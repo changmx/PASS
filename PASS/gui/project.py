@@ -518,21 +518,18 @@ class Project:
             "README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
         self._write_archive(Path(destination), entries, context=context)
 
-    def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, clock_policy: str = "check", context=None) -> str:
-        """Copy a command and its named physics/Slicer/file dependencies without overwrite."""
+    def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, context=None) -> str:
+        """Copy dependencies without overwrite; the target derives its own design clock."""
+        from PASS.para.schema.main import MainConfig
         source = self.configs[source_id].data
+        try:
+            MainConfig.reject_removed_reference_clock(source)
+            MainConfig.reject_removed_reference_clock(target.configs[target_id].data)
+        except ValueError as exc:
+            raise ProjectError(str(exc)) from exc
         result = deepcopy(target.configs[target_id].data)
         sequence = result.setdefault("Sequence", {})
         command = deepcopy(source["Sequence"][name])
-        clock_difference = self.command_clock_difference(source_id, name, target, target_id)
-        if clock_difference and clock_policy == "check":
-            raise ProjectError("该命令依赖规定时钟，源与目标时钟/默认时钟条件不同。请选择保留目标时钟或复制源时钟。")
-        if clock_policy not in {"check", "target", "source"}:
-            raise ProjectError("Invalid clock copy policy")
-        if clock_difference and clock_policy == "source":
-            # Materialize the actual source clock, including the implicit default.
-            from PASS.gui.clock import reference_clock_snapshot
-            result["Reference clock"] = reference_clock_snapshot(source)
         config_names = {}
         slice_names = {}
 
@@ -629,27 +626,3 @@ class Project:
         if context is not None:
             context.check()
         return new_name
-
-    def command_clock_difference(self, source_id, name, target, target_id):
-        """Describe dependencies before changing the target project."""
-        source = self.configs[source_id].data
-        destination = target.configs[target_id].data
-        command = source["Sequence"][name]
-        kind = command.get("Command")
-        # Direct-frequency RF also integrates from the prescribed time origin.
-        # Initial particle times for Bump/Wake and dynamic clouds use this clock.
-        needs_clock = kind in {"WakeField", "Bump", "RFCavity"}
-        if kind == "ElectronCloud":
-            _, block = _electron_cloud_block(source)
-            resource = block.get("Configurations", {}).get(command.get("Configuration"), {})
-            needs_clock = _electron_cloud_mode(resource) in {"build_up", "coupled"}
-        if not needs_clock:
-            return None
-        from PASS.gui.clock import reference_clock_snapshot
-        try:
-            a, b = reference_clock_snapshot(source), reference_clock_snapshot(destination)
-        except (ValueError, KeyError, TypeError):
-            a, b = source.get("Reference clock"), destination.get("Reference clock")
-            if a is None or b is None:
-                return {"source": a, "target": b, "detail": "默认时钟需完整束流信息，当前无法确定"}
-        return {"source": a, "target": b} if a != b else None

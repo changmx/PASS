@@ -126,8 +126,7 @@ def compare(case, output, destination):
     path = Path(rf['Components'][0]['Program file'])
     if not path.is_absolute():
         path = inputs[0].parent / path
-    clock = raw.get('Reference clock') or {}
-    sample = program_functions(path, float(clock.get('Time origin (s)', 0.)))
+    sample = program_functions(path, 0.)
     ref_p = A * float(first.referenceMomentum.iloc[0])
     energy = np.hypot(ref_p, mass)
     beta = float(first.referenceBeta.iloc[0])

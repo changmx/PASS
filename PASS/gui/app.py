@@ -163,7 +163,6 @@ FIELD_HELP = {
     "Timing": "运行进度和 ETA 的输出方式。",
     "Device Id": "GPU 后端使用的设备编号列表。",
     "Insert Particle Coordinate": "每行一个粒子：x、px、y、py、z_rel、dp/p。行数就是手动插入粒子数，包含在宏粒子总数内。",
-    "Reference clock": "共享规定时钟：默认由 harmonic ID=0 的初始束团设定；频率不跟随跟踪能量变化。关闭自定义写入 null。",
     "Reference arrival time (s)": "理想参考粒子在注入点的实际到达时间；留空由规定时钟和 harmonic ID 初始化。不是实测质心。",
     "Distribution File Mode": "sequential：各批读取束团本地的后续行；repeat：每批重复文件首部。",
     "Coordinate": "SC 使用 z_periodic；尾场使用 z_rel 或 arrival_phase。均不改写粒子连续 z_rel。",
@@ -2667,7 +2666,7 @@ class ConfigPage(QWidget):
     def _populate_root_field(self, key: str) -> None:
         if key not in self.data:
             return
-        if key == "Reference clock":
+        if str(key).casefold().replace("_", " ") == "reference clock":
             self._populate_root_configuration()
             return
         if key == "Space charge" and isinstance(self.data[key], dict):
@@ -2705,7 +2704,8 @@ class ConfigPage(QWidget):
         self._clear_form()
         from PASS.para.schema.main import MainConfig
         self._field_model = MainConfig
-        self._field_defaults = model_draft(MainConfig, self.data)
+        supplied = {key: value for key, value in self.data.items() if str(key).casefold().replace("_", " ") != "reference clock"}
+        self._field_defaults = model_draft(MainConfig, supplied)
         self._selected_mapping = self.data
         self._selected_path = ("__root__", None)
         self.form_title.setText("全局配置")
@@ -3055,7 +3055,17 @@ class ConfigPage(QWidget):
                         value[key] = self._read_field_value(key, field, value.get(key))
             else:
                 self._write_form_values(value)
-            ParameterPreview(value, self.data, self.base_dir, self).exec()
+            preview_data = self.data
+            if value.get("Command") == "RFCavity":
+                # The design clock must include the RF parameters being previewed.
+                preview_data = deepcopy(self.data)
+                sequence = preview_data.setdefault("Sequence", {})
+                if not self._pending_command and self._selected_path and self._selected_path[0] == "Sequence":
+                    name = self._selected_path[1]
+                else:
+                    name = self._unique_sequence_name("rf_preview", sequence)
+                sequence[name] = value
+            ParameterPreview(value, preview_data, self.base_dir, self).exec()
         except (ValueError, TypeError, KeyError, OSError) as exc:
             if self._selected_mapping.get("Command") == "Bump":
                 from PASS.gui.parameter_preview import bump_preview_error
@@ -3837,7 +3847,7 @@ class ConfigPage(QWidget):
         elif key == "Scan Grid":
             from PASS.gui.scan_grid import ScanGridEditor
             structured = ScanGridEditor(value)
-        elif key in {"Reference clock", "Groups", "Electron beam"} and spec is not None:
+        elif key in {"Groups", "Electron beam"} and spec is not None:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key == "Save turns":
             if getattr(self, "_field_context", {}).get("Command") in {"ElectronCloud", "ElectronCooler"} and value and all(
@@ -4461,13 +4471,7 @@ class ConfigPage(QWidget):
                 load_electron_cloud({"Electron cloud": self.data.get("Electron cloud", {}), "Sequence": {"point": target}})
         elif target is self.data:
             from PASS.para.schema.main import MainConfig
-            from PASS.utils.constants import const
-            global_config = MainConfig.model_validate(target)
-            clock = global_config.reference_clock
-            if clock is not None:
-                frequencies = clock.frequency if isinstance(clock.frequency, list) else [clock.frequency]
-                if max(frequencies) * global_config.circumference >= const.c:
-                    raise ValueError("Reference clock：回旋频率 × 周长必须小于光速")
+            MainConfig.model_validate(target)
 
     def _write_bunch_values(self, target: dict | None) -> None:
         if not isinstance(target, dict) or not self._active_bunch_key:

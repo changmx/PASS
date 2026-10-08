@@ -62,13 +62,13 @@ approximate every nucleon by one atomic mass unit. Electron/positron and
 single-proton tracking retain their established constants.
 
 This mass is shared by tracking, generated distributions, GUI energy/momentum
-offset conversion, the default reference clock and input validation. Kinetic
+offset conversion, the automatic design clock and input validation. Kinetic
 energy and momentum remain per nucleon. The stored charge-to-mass-number
 magnitude is :math:`|q|/A`; RF applies the charge sign, giving the physical
 energy-gain factor :math:`q/A`. Unsupported catalog species or charge states are reported as
 errors. Changing the species mass changes reference velocity and magnetic
-rigidity; explicitly supplied RF frequency tables and reference-clock programs
-are prescribed input and are not automatically recalibrated.
+rigidity and the derived design clock. Explicitly supplied RF frequency tables
+are physical waveform input and are not automatically recalibrated.
 
 Transverse parameters
 ~~~~~~~~~~~~~~~~~~~~~
@@ -379,7 +379,7 @@ Additional bunch options
      - ``Reference arrival time (s)``
      - ``float | None``
      - ``None``
-     - Initial source reference passage time in seconds; None uses the prescribed reference clock.
+     - Initial source reference passage time in seconds; None uses the automatic design clock.
    * - ``output_format``
      - ``Output format``
      - ``str``

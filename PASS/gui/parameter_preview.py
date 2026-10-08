@@ -115,10 +115,8 @@ def read_bump_preview(command, base_dir):
 
 def rf_waveforms(command, data, base_dir):
     from PASS.commands.element.rfcavity import RFWaveform
-    from PASS.gui.clock import reference_clock_snapshot
-    from PASS.utils.program import LinearProgram
-    clock = reference_clock_snapshot(data)
-    reference = LinearProgram(clock["Revolution frequency (Hz)"], clock["Time (s)"], origin=clock["Time origin (s)"])
+    from PASS.utils.reference_clock import build_reference_program
+    reference = build_reference_program(data, base_dir)
     components = deepcopy(command["Components"])
     for item in components:
         if item.get("Program file"):

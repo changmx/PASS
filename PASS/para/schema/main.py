@@ -42,9 +42,6 @@ class TimingConfig(BaseModel):
     )
 
 
-from PASS.para.schema.rf import ReferenceClock
-
-
 class MainConfig(BaseModel):
     """Global parameters for a PASS simulation.
 
@@ -52,6 +49,19 @@ class MainConfig(BaseModel):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_removed_reference_clock(cls, value):
+        if not isinstance(value, dict):
+            return value
+        legacy_keys = [key for key in value if str(key).casefold().replace("_", " ") == "reference clock"]
+        if any(value[key] is not None for key in legacy_keys):
+            raise ValueError("Reference clock input was removed. PASS now derives the clock from the ideal RF-only reference trajectory. "
+                             "Remove this field and review or regenerate RF phase programs before rerunning.")
+        if legacy_keys:
+            return {key: item for key, item in value.items() if key not in legacy_keys}
+        return value
 
     @model_validator(mode="before")
     @classmethod
@@ -84,8 +94,6 @@ class MainConfig(BaseModel):
         alias="Number of Charges",
         description="Charge count per particle (can be negative, not zero)",
     )
-
-    reference_clock: ReferenceClock | None = Field(default=None, alias="Reference clock")
 
     # --- ring ---
     gamma_t: float = Field(

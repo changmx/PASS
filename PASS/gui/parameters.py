@@ -6,6 +6,8 @@ The public Pydantic models own all physical and cross-field constraints.
 from __future__ import annotations
 
 from copy import deepcopy
+import csv
+import io
 from pathlib import Path
 import math
 import re
@@ -13,24 +15,33 @@ import types
 from typing import Annotated, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel
-from PySide6.QtGui import QValidator
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PySide6.QtGui import QAction, QKeySequence, QValidator
 from PySide6.QtWidgets import (
+    QApplication,
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
+    QMessageBox,
     QPushButton,
+    QTableView,
     QWidget,
     QVBoxLayout,
     QSizePolicy,
 )
 
 from PASS.gui.widgets import file_dialog_directory
-from PASS.gui.structured import Column, NumericTable, StructuredField
+from PASS.gui.structured import Column, NumberDelegate, NumericTable, StructuredField
 from PASS.gui.widgets import Choice
 from PASS.gui.project import input_file_fields
 
@@ -154,7 +165,7 @@ class OptionalField(StructuredField):
         super().__init__()
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        self.enabled_box = QCheckBox("自定义（关闭使用默认时钟）" if label == "Reference clock" else "指定此项")
+        self.enabled_box = QCheckBox("指定此项")
         self.enabled_box.setChecked(value is not None)
         root.addWidget(self.enabled_box)
         args = tuple(a for a in get_args(bare(annotation)) if a is not type(None))
@@ -192,6 +203,217 @@ class ArrayField(NumericTable):
                 raise ValueError("需要一行坐标分量")
             return tuple(rows[0])
         return rows if self.matrix else [row[0] for row in rows]
+
+
+class _NumericArrayModel(QAbstractTableModel):
+    """Keep numeric values in Python; Qt requests only visible cell data."""
+
+    def __init__(self, column, parent):
+        super().__init__(parent)
+        self.column = column
+        self.values = []
+
+    def rowCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else len(self.values)
+
+    def columnCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else 1
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid() or index.column() != 0 or not 0 <= index.row() < len(self.values):
+            return None
+        if role == Qt.DisplayRole:
+            return str(self.values[index.row()])
+        if role == Qt.EditRole:
+            return self.values[index.row()]
+        if role == Qt.TextAlignmentRole:
+            return Qt.AlignRight | Qt.AlignVCenter
+        return None
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if role == Qt.DisplayRole:
+            return self.column.title if orientation == Qt.Horizontal else str(section + 1)
+        return None
+
+    def flags(self, index):
+        return super().flags(index) | Qt.ItemIsEditable if index.isValid() else Qt.NoItemFlags
+
+    def setData(self, index, value, role=Qt.EditRole):
+        if role != Qt.EditRole or not index.isValid() or index.column() != 0 or not 0 <= index.row() < len(self.values):
+            return False
+        try:
+            value = self.column.parse(value)
+        except (ValueError, TypeError, OverflowError):
+            return False
+        if self.values[index.row()] != value:
+            self.values[index.row()] = value
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+        return True
+
+    def replace(self, values):
+        self.beginResetModel()
+        self.values = list(values)
+        self.endResetModel()
+
+    def append(self, values):
+        if values:
+            start = len(self.values)
+            self.beginInsertRows(QModelIndex(), start, start + len(values) - 1)
+            self.values.extend(values)
+            self.endInsertRows()
+
+    def remove_rows(self, rows):
+        # Remove contiguous ranges from the end so remaining indices stay valid.
+        ranges = []
+        for row in sorted(set(rows)):
+            if ranges and row == ranges[-1][1] + 1:
+                ranges[-1][1] = row
+            else:
+                ranges.append([row, row])
+        for start, end in reversed(ranges):
+            self.beginRemoveRows(QModelIndex(), start, end)
+            del self.values[start:end + 1]
+            self.endRemoveRows()
+
+
+class LargeArrayField(StructuredField):
+    """Editable full-resolution arrays without per-row Qt items or widgets."""
+
+    def __init__(self, annotation, value, label):
+        super().__init__()
+        self.annotation, self.label = bare(annotation), label
+        integer = bare(get_args(self.annotation)[0]) is int
+        self.column = Column(label, integer, -2147483647 if integer else -1e100, 2147483647 if integer else 1e100)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(5)
+        self.count = QLabel()
+        self.count.setWordWrap(True)
+        self.count.setObjectName('muted')
+        root.addWidget(self.count)
+        self.table = QTableView()
+        self.model = _NumericArrayModel(self.column, self.table)
+        self.table.setModel(self.model)
+        self.table.setItemDelegate(NumberDelegate([self.column], self.table, self))
+        self.table.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed | QAbstractItemView.AnyKeyPressed)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.table.verticalHeader().setDefaultSectionSize(26)
+        self.table.setFixedHeight(148)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._menu)
+        paste = QAction('粘贴表格', self.table)
+        paste.setShortcut(QKeySequence.Paste)
+        paste.setShortcutContext(Qt.WidgetShortcut)
+        paste.triggered.connect(self._paste_clipboard)
+        self.table.addAction(paste)
+        root.addWidget(self.table)
+        bar = QHBoxLayout()
+        self.add_button = QPushButton('添加')
+        self.add_button.clicked.connect(lambda: self.append_row())
+        self.remove_button = QPushButton('删除')
+        self.remove_button.clicked.connect(self.remove_selected)
+        self.expand_button = QPushButton('表格窗口…')
+        self.expand_button.clicked.connect(self.expand)
+        for button in (self.add_button, self.remove_button, self.expand_button):
+            bar.addWidget(button)
+        root.addLayout(bar)
+        for signal in (self.model.modelReset, self.model.rowsInserted, self.model.rowsRemoved, self.model.dataChanged):
+            signal.connect(self._edited)
+        # Keep invalid imported drafts visible; get_value validates before apply.
+        self.model.replace(value or [])
+
+    def _edited(self, *_args):
+        self.count.setText(f'{self.model.rowCount():,} 行 · 全部节点均保留；滚动按需显示，双击可编辑。')
+        self.changed.emit()
+
+    def get_value(self):
+        self.table.itemDelegate().flush()
+        return [self.column.parse(value) for value in self.model.values]
+
+    def set_values(self, values):
+        parsed = [self.column.parse(value) for value in values]
+        self.model.replace(parsed)
+
+    def append_row(self, values=None):
+        self.table.itemDelegate().flush()
+        value = 0 if values is None else values[0]
+        self.model.append([self.column.parse(value)])
+        self.table.setCurrentIndex(self.model.index(self.model.rowCount() - 1, 0))
+        self.table.scrollTo(self.table.currentIndex())
+
+    def remove_selected(self):
+        self.table.itemDelegate().flush()
+        self.model.remove_rows(index.row() for index in self.table.selectedIndexes())
+
+    def paste(self, text):
+        lines = text.strip().splitlines()
+        if lines and lines[0] == self.label:
+            lines = lines[1:]
+        if not lines:
+            return
+        text = '\n'.join(lines)
+        first = lines[0]
+        delimiter = '\t' if '\t' in first else ',' if ',' in first else None
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter)) if delimiter else [line.split() for line in lines]
+        if rows and rows[0] == [self.label]:
+            rows = rows[1:]
+        if any(len(row) != 1 for row in rows):
+            raise ValueError('每行需要一个数值')
+        values = [self.column.parse(row[0]) for row in rows]
+        self.table.itemDelegate().flush()
+        self.model.append(values)
+
+    def _paste_clipboard(self):
+        try:
+            self.paste(QApplication.clipboard().text())
+        except (ValueError, TypeError, csv.Error) as exc:
+            QMessageBox.warning(self, '无法粘贴表格', str(exc) + '。原有数据保持不变。')
+
+    def _menu(self, point):
+        menu = QMenu(self)
+        menu.addAction('粘贴表格行', self._paste_clipboard)
+        menu.addAction('复制表格', lambda: QApplication.clipboard().setText('\n'.join(map(str, self.get_value()))))
+        menu.addAction('清空', lambda: self.set_values([]))
+        menu.exec(self.table.viewport().mapToGlobal(point))
+
+    def expand(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.label)
+        dialog.resize(820, 520)
+        layout = QVBoxLayout(dialog)
+        editor = LargeArrayField(self.annotation, self.get_value(), self.label)
+        editor.expand_button.hide()
+        editor.table.setMinimumHeight(320)
+        editor.table.setMaximumHeight(16777215)
+        layout.addWidget(editor)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        def accept():
+            try:
+                self.set_values(editor.get_value())
+            except (ValueError, TypeError) as exc:
+                QMessageBox.warning(dialog, '无法应用表格', str(exc))
+                return
+            dialog.accept()
+
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.exec()
+        dialog.deleteLater()
+
+    def capture_draft(self):
+        values = list(self.model.values)
+        delegate = self.table.itemDelegate()
+        if delegate.editor is not None and delegate.index.isValid():
+            values[delegate.index.row()] = delegate.editor.lineEdit().text()
+        return {'values': values}
+
+    def restore_draft(self, state):
+        self.model.replace(state['values'])
 
 
 class ActiveStack(QWidget):
@@ -353,6 +575,8 @@ def make_editor(annotation, value, label, base_dir):
         item_type = bare(get_args(typ)[0])
         if isinstance(item_type, type) and issubclass(item_type, BaseModel):
             return ModelListEditor(item_type, value, label, base_dir)
+        if get_origin(typ) is list and item_type in (int, float) and value is not None and len(value) > 4096:
+            return LargeArrayField(typ, value, label)
         return ArrayField(typ, value, label)
     return ScalarField(typ, value, label, base_dir)
 
@@ -509,4 +733,9 @@ def focus_parameter(field, path):
         if row < field.table.rowCount() and col < field.table.columnCount():
             field.table.setCurrentCell(row, col)
             field.table.scrollToItem(field.table.item(row, col))
+    if isinstance(field, LargeArrayField) and path and isinstance(path[0], int):
+        if 0 <= path[0] < field.model.rowCount():
+            index = field.model.index(path[0], 0)
+            field.table.setCurrentIndex(index)
+            field.table.scrollTo(index)
     (field.input if isinstance(field, ScalarField) else field).setFocus()
