@@ -1,7 +1,7 @@
 """Generate distribution-only PASS inputs for Example 01.
 
 Cases:
-    transverse       Five transverse distributions with longitudinal Gaussian
+    transverse       Six transverse distributions with longitudinal Gaussian
     longi-gaussian   One Gaussian/Gaussian bunch
     longi-matchz     One Gaussian/MatchZ bunch with h=1
     longi-matchdp    One Gaussian/MatchDp bunch with h=1
@@ -52,7 +52,7 @@ CASES = {
         "input_name":
         "beam0_transverse.json",
         "description":
-        "Five transverse distributions with longitudinal Gaussian bunches.",
+        "Six transverse distributions with longitudinal Gaussian bunches.",
         "bunches": [
             {
                 "transverse": "gaussian",
@@ -71,7 +71,11 @@ CASES = {
                 "longitudinal": "gaussian"
             },
             {
-                "transverse": "uniform",
+                "transverse": "uniform-real",
+                "longitudinal": "gaussian"
+            },
+            {
+                "transverse": "uniform-phase",
                 "longitudinal": "gaussian"
             },
         ],
@@ -111,12 +115,12 @@ CASES = {
 }
 
 
-def input_path(case_name: str) -> Path:
+def input_path(case_name: str, work_dir: Path = SCRIPT_DIR) -> Path:
     """Return the generated JSON path for a named case."""
-    return SCRIPT_DIR / CASES[case_name]["input_name"]
+    return work_dir / CASES[case_name]["input_name"]
 
 
-def make_main(case_name: str) -> MainConfig:
+def make_main(case_name: str, work_dir: Path = SCRIPT_DIR) -> MainConfig:
     """Create a one-turn, CPU-only configuration for initial generation."""
     return MainConfig(
         beam_name="proton",
@@ -129,7 +133,7 @@ def make_main(case_name: str) -> MainConfig:
         backend="cpu",
         num_gpu=1,
         gpu_id=[0],
-        output_dir=str(SCRIPT_DIR / "output" / case_name),
+        output_dir=str(work_dir / "output" / case_name),
         is_plot=True,
         is_beambeam=False,
     )
@@ -170,14 +174,16 @@ def make_bunch(spec: dict) -> BunchConfig:
     )
 
 
-def make_case(case_name: str) -> Path:
+def make_case(case_name: str, work_dir: Path = SCRIPT_DIR) -> Path:
     """Generate the named PASS input JSON."""
     case = CASES[case_name]
     bunches = [make_bunch(spec) for spec in case["bunches"]]
     sequence = build_sequence(items=[], names=[], bunches=bunches, random_seed=RANDOM_SEED)
-    path = input_path(case_name)
+    work_dir = work_dir.resolve()
+    work_dir.mkdir(parents=True, exist_ok=True)
+    path = input_path(case_name, work_dir)
 
-    generate_input(make_main(case_name), sequence, str(path))
+    generate_input(make_main(case_name, work_dir), sequence, str(path))
 
     print(f"[Done] {case_name}: {path.name}")
     print(f"  {case['description']}")
@@ -203,10 +209,14 @@ def main() -> None:
         default="all",
         help="Input case to generate (default: all).",
     )
+    parser.add_argument("--work-dir",
+                        type=Path,
+                        default=SCRIPT_DIR,
+                        help="Directory for generated inputs and output/ (default: this example directory).")
     args = parser.parse_args()
 
     for case_name in selected_cases(args.case):
-        make_case(case_name)
+        make_case(case_name, args.work_dir)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ import argparse
 from pathlib import Path
 
 from PASS.main import cli_main
-from generate_input import CASES, input_path, selected_cases
+from generate_input import CASES, SCRIPT_DIR, input_path, selected_cases
 
 
 def run(beam0_path: str, *, output: str | None = None, stop_file: str | None = None) -> int:
@@ -38,6 +38,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Explicit input path. Cannot be combined with --case all.",
     )
     parser.add_argument("--output", help="Override the output root for every selected case")
+    parser.add_argument("--work-dir",
+                        type=Path,
+                        default=SCRIPT_DIR,
+                        help="Directory containing generated case inputs (default: this example directory).")
     parser.add_argument("--stop-file", help="Stop when this file exists (forwarded to pass-run)")
     args = parser.parse_args(argv)
 
@@ -46,7 +50,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--beam0 cannot be combined with --case all")
         paths = [Path(args.beam0)]
     else:
-        paths = [input_path(case_name) for case_name in selected_cases(args.case)]
+        paths = [input_path(case_name, args.work_dir) for case_name in selected_cases(args.case)]
 
     for path in paths:
         if not path.exists():

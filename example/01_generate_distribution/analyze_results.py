@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import re
 from pathlib import Path
@@ -24,9 +25,9 @@ from generate_input import CASES, selected_cases
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-def latest_run_dir(case_name: str) -> Path:
+def latest_run_dir(case_name: str, work_dir: Path = SCRIPT_DIR) -> Path:
     """Return the most recent output directory for a generated case."""
-    root = SCRIPT_DIR / "output" / case_name
+    root = work_dir / "output" / case_name
     candidates = [path for path in root.glob("*/*") if path.is_dir() and (path / "distribution").is_dir()]
     if not candidates:
         raise FileNotFoundError(f"No completed run found for '{case_name}'. Run "
@@ -70,6 +71,121 @@ def relative_error(actual: float, theory: float | None) -> float | None:
     if theory is None or abs(theory) < 1e-30:
         return None
     return (actual - theory) / theory
+
+
+def normalized_actions(df) -> tuple[np.ndarray, np.ndarray]:
+    """Return I_x/(4 epsilon_x), I_y/(4 epsilon_y) using configured Twiss values.
+
+    The example has zero dispersion and zero centroid offsets. The stable
+    normalized-coordinate formula avoids cancellation at nonzero alpha.
+    """
+    actions = []
+    for axis, beta_key in (("x", "Beta x"), ("y", "Beta Y")):
+        alpha = float(df.headers[f"Alpha {axis}"])
+        beta = float(df.headers[beta_key])
+        emit = float(df.headers[f"Emit {axis}"])
+        if emit <= 0.0:
+            raise ValueError("Action diagnostics require positive RMS geometric emittance in both planes")
+        position = df[axis].to_numpy(dtype=float)
+        momentum = df[f"p{axis}"].to_numpy(dtype=float)
+        u = position / math.sqrt(beta * emit)
+        v = (alpha * position + beta * momentum) / math.sqrt(beta * emit)
+        actions.append((u * u + v * v) / 4.0)
+    return actions[0], actions[1]
+
+
+def _action_roundoff_tolerance(df) -> float:
+    """Propagate stored-coordinate rounding through the Twiss action map."""
+    errors = np.zeros(len(df), dtype=float)
+    arithmetic_epsilon = np.finfo(float).eps
+    for axis, beta_key in (("x", "Beta x"), ("y", "Beta Y")):
+        alpha = float(df.headers[f"Alpha {axis}"])
+        beta = float(df.headers[beta_key])
+        emit = float(df.headers[f"Emit {axis}"])
+        position_raw = df[axis].to_numpy()
+        momentum_raw = df[f"p{axis}"].to_numpy()
+        position_epsilon = np.finfo(position_raw.dtype).eps if position_raw.dtype.kind == "f" else 0.0
+        momentum_epsilon = np.finfo(momentum_raw.dtype).eps if momentum_raw.dtype.kind == "f" else 0.0
+        position = position_raw.astype(float)
+        momentum = momentum_raw.astype(float)
+        scale = math.sqrt(beta * emit)
+        u = position / scale
+        v = (alpha * position + beta * momentum) / scale
+        # Absolute termwise errors account for cancellation in alpha*x + beta*px.
+        u_error = (position_epsilon + 2.0 * arithmetic_epsilon) * np.abs(u)
+        v_error = ((position_epsilon + 4.0 * arithmetic_epsilon) * np.abs(alpha * position) +
+                   (momentum_epsilon + 4.0 * arithmetic_epsilon) * np.abs(beta * momentum)) / scale
+        errors += (0.5 * (np.abs(u) * u_error + np.abs(v) * v_error) + 0.25 * (u_error**2 + v_error**2) + arithmetic_epsilon * (u**2 + v**2))
+    # A factor of two covers coefficient rounding; keep the strict float64 floor.
+    return max(1e-10, 2.0 * float(np.max(errors)))
+
+
+def uniform_cdf_error(values: np.ndarray) -> float:
+    """Return the two-sided empirical CDF distance from Uniform[0, 1]."""
+    ordered = np.sort(values)
+    cdf = np.clip(ordered, 0.0, 1.0)
+    n = len(ordered)
+    return float(max(np.max(np.arange(1, n + 1) / n - cdf), np.max(cdf - np.arange(n) / n)))
+
+
+def transverse_checks(df, summary: dict) -> list[dict]:
+    """Check second moments, action correlations, and the defining support."""
+    action_x, action_y = normalized_actions(df)
+    n = len(df)
+    distribution = summary["transverse"]
+    checks = []
+    moment_tolerance = max(0.02, 8.0 / math.sqrt(n))
+    correlation_tolerance = max(0.025, 8.0 / math.sqrt(n))
+
+    def check(name: str, measured: float, theory: float, tolerance: float, *, upper_bound: bool = False):
+        error = measured - theory
+        checks.append({
+            "transverse": distribution,
+            "check": name,
+            "measured": measured,
+            "theory": theory,
+            "error": error,
+            "tolerance": tolerance,
+            "comparison": "upper_bound" if upper_bound else "absolute_error",
+            "passed": bool(error <= tolerance if upper_bound else abs(error) <= tolerance),
+        })
+
+    for axis in ("x", "y"):
+        check(f"rms_geometric_emittance_{axis}_ratio", summary[f"emit_{axis}"] / summary[f"theory_emit_{axis}"], 1.0, moment_tolerance)
+        check(f"twiss_beta_{axis}_ratio", summary[f"beta_{axis}"] / summary[f"theory_beta_{axis}"], 1.0, moment_tolerance)
+        check(f"twiss_alpha_{axis}", summary[f"alpha_{axis}"], summary[f"theory_alpha_{axis}"],
+              moment_tolerance * max(1.0, abs(summary[f"theory_alpha_{axis}"])))
+    check("action_x_mean", float(np.mean(action_x)), 0.5, moment_tolerance / 2.0)
+    check("action_y_mean", float(np.mean(action_y)), 0.5, moment_tolerance / 2.0)
+    theory_correlation = {"gaussian": 0.0, "uniform-real": 0.0, "uniform-phase": 0.0, "kv": -1.0, "waterbag": -0.5, "parabolic": -1.0 / 3.0}
+    correlation = float(np.corrcoef(action_x, action_y)[0, 1])
+    check("action_correlation", correlation, theory_correlation[distribution], correlation_tolerance)
+    summary.update(action_x_mean=float(np.mean(action_x)),
+                   action_y_mean=float(np.mean(action_y)),
+                   action_correlation=correlation,
+                   theory_action_correlation=theory_correlation[distribution],
+                   action_x_max=float(np.max(action_x)),
+                   action_y_max=float(np.max(action_y)),
+                   action_sum_max=float(np.max(action_x + action_y)))
+    support_tolerance = _action_roundoff_tolerance(df)
+    summary["action_support_tolerance"] = support_tolerance
+    if distribution == "uniform-phase":
+        for axis, values in (("x", action_x), ("y", action_y)):
+            check(f"action_{axis}_max", float(np.max(values)), 1.0, support_tolerance, upper_bound=True)
+            distance = uniform_cdf_error(values)
+            summary[f"action_{axis}_uniform_cdf_error"] = distance
+            check(f"action_{axis}_uniform_cdf_error", distance, 0.0, max(0.012, 4.0 / math.sqrt(n)))
+        joint = np.histogram2d(action_x, action_y, bins=10, range=((0.0, 1.0), (0.0, 1.0)))[0] / n
+        check("joint_action_cell_max_error", float(np.max(np.abs(joint - 0.01))), 0.0, max(0.0015, 0.8 / math.sqrt(n)))
+    elif distribution == "kv":
+        check("action_sum_max_error", float(np.max(np.abs(action_x + action_y - 1.0))), 0.0, support_tolerance)
+    elif distribution in {"waterbag", "parabolic"}:
+        bound = 1.5 if distribution == "waterbag" else 2.0
+        check("action_sum_max", float(np.max(action_x + action_y)), bound, support_tolerance, upper_bound=True)
+    elif distribution == "uniform-real":
+        for axis, values in (("x", action_x), ("y", action_y)):
+            check(f"action_{axis}_max", float(np.max(values)), 1.5, support_tolerance, upper_bound=True)
+    return checks
 
 
 def rf_bucket_theory(headers) -> dict:
@@ -273,9 +389,41 @@ def plot_distributions(case_name: str, files: list[Path], analysis_dir: Path) ->
     return plot_path
 
 
-def analyse_case(case_name: str) -> None:
+def plot_action_diagnostics(case_name: str, files: list[Path], analysis_dir: Path) -> Path:
+    """Save joint normalized actions, which distinguish KV from independent disks."""
+    columns = min(3, len(files))
+    rows = math.ceil(len(files) / columns)
+    fig, axes = plt.subplots(rows, columns, figsize=(4.8 * columns, 4.2 * rows), squeeze=False)
+    for axis, path in zip(axes.flat, files):
+        df = read_table(path)
+        action_x, action_y = normalized_actions(df)
+        distribution = str(df.headers["Trans type"])
+        limit = max(1.05, float(np.max(action_x)), float(np.max(action_y)))
+        axis.hist2d(action_x, action_y, bins=80, range=((0.0, limit), (0.0, limit)), cmap="Blues", cmin=1)
+        if distribution == "uniform-phase":
+            axis.plot([0, 1, 1, 0, 0], [0, 0, 1, 1, 0], color="darkorange", linewidth=1.2)
+        elif distribution in {"kv", "waterbag", "parabolic"}:
+            bound = {"kv": 1.0, "waterbag": 1.5, "parabolic": 2.0}[distribution]
+            axis.plot([0, bound], [bound, 0], color="darkorange", linewidth=1.2)
+        axis.set(xlabel=r"$I_x/(4\varepsilon_x)$",
+                 ylabel=r"$I_y/(4\varepsilon_y)$",
+                 title=f"{distribution}: correlation = {np.corrcoef(action_x, action_y)[0, 1]:+.4f}",
+                 xlim=(0, limit),
+                 ylim=(0, limit))
+        axis.set_aspect("equal")
+    for axis in list(axes.flat)[len(files):]:
+        axis.set_visible(False)
+    fig.tight_layout()
+    plot_path = analysis_dir / f"{case_name}_joint_actions.png"
+    fig.savefig(plot_path, dpi=180)
+    fig.savefig(plot_path.with_suffix(".pdf"))
+    plt.close(fig)
+    return plot_path
+
+
+def analyse_case(case_name: str, work_dir: Path = SCRIPT_DIR) -> None:
     """Validate files and write a compact summary plus distribution plots."""
-    run_dir = latest_run_dir(case_name)
+    run_dir = latest_run_dir(case_name, work_dir)
     files = distribution_files(run_dir)
     expected_specs = CASES[case_name]["bunches"]
 
@@ -283,6 +431,7 @@ def analyse_case(case_name: str) -> None:
         raise ValueError(f"{case_name}: expected {len(expected_specs)} saved bunches, found {len(files)}")
 
     summaries = []
+    checks = []
     for bunch_id, (path, expected) in enumerate(zip(files, expected_specs)):
         summary = summarise(path)
         if summary["transverse"] != expected["transverse"]:
@@ -292,6 +441,10 @@ def analyse_case(case_name: str) -> None:
             raise ValueError(f"{path.name}: expected longitudinal={expected['longitudinal']}, "
                              f"got {summary['longitudinal']}")
         summary["bunch"] = bunch_id
+        bunch_checks = transverse_checks(read_table(path), summary)
+        for check in bunch_checks:
+            check["bunch"] = bunch_id
+        checks.extend(bunch_checks)
         summaries.append(summary)
 
     analysis_dir = run_dir / "analysis"
@@ -299,11 +452,18 @@ def analyse_case(case_name: str) -> None:
     summary_path = analysis_dir / f"{case_name}_summary.csv"
     pd.DataFrame(summaries).to_csv(summary_path, index=False)
     plot_path = plot_distributions(case_name, files, analysis_dir)
+    action_plot_path = plot_action_diagnostics(case_name, files, analysis_dir)
+    checks_path = analysis_dir / f"{case_name}_physics_checks.csv"
+    pd.DataFrame(checks).to_csv(checks_path, index=False)
+    report_path = analysis_dir / f"{case_name}_physics_checks.json"
+    report_path.write_text(json.dumps({"passed": all(check["passed"] for check in checks), "checks": checks}, indent=2), encoding="utf-8")
 
     print(f"[Analyse] {case_name}")
     print(f"  run: {run_dir}")
     print(f"  summary: {summary_path}")
     print(f"  plot: {plot_path}")
+    print(f"  joint actions: {action_plot_path}")
+    print(f"  physics checks: {checks_path} ({sum(check['passed'] for check in checks)}/{len(checks)} passed)")
     for summary in summaries:
         print(f"  bunch{summary['bunch']}: {summary['transverse']}/"
               f"{summary['longitudinal']}, N={summary['particles']}, "
@@ -334,6 +494,11 @@ def analyse_case(case_name: str) -> None:
             if summary["longitudinal"].lower() == "matchz":
                 print(f"    MatchZ requested sigma_z={summary['requested_sigma_z']:.4e}; "
                       f"bucket z span is not large enough for 4 sigma")
+    failures = [check for check in checks if not check["passed"]]
+    if failures:
+        details = "; ".join(f"{check['transverse']} {check['check']}: measured={check['measured']:.8g}, theory={check['theory']:.8g}, "
+                            f"error={check['error']:.8g}, tolerance={check['tolerance']:.8g}" for check in failures)
+        raise ValueError(f"Transverse physics validation failed: {details}")
 
 
 def main() -> None:
@@ -344,10 +509,11 @@ def main() -> None:
         default="all",
         help="Completed case to analyse (default: all).",
     )
+    parser.add_argument("--work-dir", type=Path, default=SCRIPT_DIR, help="Directory containing output/<case>/ (default: this example directory).")
     args = parser.parse_args()
 
     for case_name in selected_cases(args.case):
-        analyse_case(case_name)
+        analyse_case(case_name, args.work_dir)
 
 
 if __name__ == "__main__":

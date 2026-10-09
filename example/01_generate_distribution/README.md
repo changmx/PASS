@@ -57,20 +57,32 @@ pass-run --beam0 C:\path\to\beam0.json
 Use `pass-run --help` for input, output, and stop-file options. The batch helper
 also accepts `--output` and `--stop-file`. By default, each case uses
 `output/<case>/YYYY_MMDD/HHMM_SS/`, with its execution input and dependencies
-archived in the run's `input/` folder. An output override changes where results
-are saved; the analyzer's automatic case lookup uses the original case folders.
+archived in the run's `input/` folder. To keep a separate set of inputs and
+results together, pass the same `--work-dir` to all three scripts:
+
+```powershell
+python generate_input.py --case transverse --work-dir C:\path\to\distribution-study
+python run_simulation.py --case transverse --work-dir C:\path\to\distribution-study
+python analyze_results.py --case transverse --work-dir C:\path\to\distribution-study
+```
+
+Inputs go directly in that directory; results go in its `output/<case>/`
+subdirectories. Input generation rewrites the selected JSON files, so use a new
+work directory to preserve an earlier configuration. Each simulation creates a
+timestamped run. A raw `--output` override on the runner still changes the output
+root directly; the analyzer expects the `output/<case>/` layout.
 
 ## Cases
 
 | Case | Input file | Bunches | Purpose |
 |------|------------|---------|---------|
-| `transverse` | `beam0_transverse.json` | 5 | Gaussian, KV, waterbag, parabolic, and uniform transverse distributions; all use longitudinal Gaussian |
+| `transverse` | `beam0_transverse.json` | 6 | Gaussian, KV, waterbag, parabolic, uniform-real, and uniform-phase transverse distributions; all use longitudinal Gaussian |
 | `longi-gaussian` | `beam0_longi_gaussian.json` | 1 | Ordinary Gaussian longitudinal distribution |
 | `longi-matchz` | `beam0_longi_matchz.json` | 1 | RF-matched longitudinal distribution specified by target `Sigma z` |
 | `longi-matchdp` | `beam0_longi_matchdp.json` | 1 | RF-matched longitudinal distribution specified by target `Sigma dp/p` |
 | `coasting` | `beam0_coasting.json` | 1 | Coasting beam with longitudinal particles uniformly distributed around the ring |
 
-The transverse test uses five bunches so that several transverse sampling
+The transverse test uses six bunches so that several transverse sampling
 methods can be compared in one input. They all use ordinary longitudinal
 Gaussian distributions, preventing RF-matching parameters from affecting the
 transverse comparison.
@@ -99,9 +111,16 @@ Circumference = 251.327 m
 Gamma T = 4.8
 Kinetic energy = 45 MeV/u
 Macro particles per bunch = 100000
-Emit x / Emit y = 200e-6 / 100e-6 m rad
+RMS geometric emittance x / y = 200e-6 / 100e-6 m rad
 Beta x / Beta y = 0.5 / 0.5 m
 ```
+
+The Python arguments remain `emit_x` and `emit_y`. Generated JSON uses
+`RMS geometric emittance x (m'rad)` and `RMS geometric emittance y (m'rad)`.
+The former `Emittance x (m'rad)` / `Emittance y (m'rad)` keys are not supported.
+These values specify the intrinsic RMS geometric emittance in each transverse
+plane. All six distributions use this same convention.
+The saved distribution headers retain `Emit x` and `Emit y` with this meaning.
 
 The ordinary longitudinal Gaussian bunch uses:
 
@@ -135,6 +154,10 @@ output/<case>/<date>/<time>/
     distribution/*_injection.h5
     analysis/<case>_summary.csv
     analysis/<case>_distributions.png
+    analysis/<case>_joint_actions.png
+    analysis/<case>_joint_actions.pdf
+    analysis/<case>_physics_checks.csv
+    analysis/<case>_physics_checks.json
 ```
 
 The CSV contains particle count, measured RMS values, transverse RMS
@@ -152,6 +175,57 @@ The same relations apply in the vertical plane. The longitudinal theory for an
 ordinary Gaussian distribution is the configured `Sigma z` and `Sigma dp/p`.
 For a coasting beam, the theoretical `sigma_z` is `C / sqrt(12)`, the RMS of a
 uniform distribution over one circumference.
+
+The action plots use the configured, uncentered Courant-Snyder invariants:
+
+```text
+I_x = x^2/beta_x + (alpha_x*x + beta_x*px)^2/beta_x
+a_x = I_x / (4*emit_x)
+```
+
+The vertical formula is identical. This example has zero centroid offsets and
+zero dispersion, so these invariants describe the intrinsic distribution
+directly. If you introduce either, subtract the corresponding centroid and
+dispersion before comparing intrinsic emittances or actions.
+
+| Distribution | Joint normalized actions | Ideal correlation of a_x and a_y | Spatial x-y projection |
+|---|---|---:|---|
+| `gaussian` | Independent exponential variables, apart from the position cuts | 0 | Gaussian |
+| `kv` | Uniform along `a_x + a_y = 1` | -1 | Uniform ellipse |
+| `waterbag` | Uniform inside `a_x + a_y <= 3/2` | -1/2 | Parabolic ellipse |
+| `parabolic` | Density proportional to `1 - (a_x + a_y)/2` inside `a_x + a_y <= 2` | -1/3 | Squared-parabolic ellipse |
+| `uniform-real` | Independent actions from square phase-space samples; each is bounded by 3/2 | 0 | Uniform rectangle |
+| `uniform-phase` | Independent Uniform[0, 1] variables | 0 | Product of two semicircle profiles inside a rectangle |
+
+The checks verify RMS emittances, Twiss parameters, action means and correlation,
+and each bounded distribution's support. For `uniform-phase` they also test both
+uniform action CDFs and a 10-by-10 joint action histogram. The CSV and JSON record
+the measured value, theory, signed error, tolerance, comparison rule, and pass
+status for every check; analysis raises an error after saving results if any
+check fails. Moment ratios use `max(0.02, 8/sqrt(N))`, correlations use
+`max(0.025, 8/sqrt(N))`, and action CDFs use `max(0.012, 4/sqrt(N))`.
+At 100000 particles these are approximately 2.53%, 0.0253, and 0.012.
+Statistical tolerances expand with `1/sqrt(N)` for smaller samples. Support
+checks propagate the stored coordinate precision through the Twiss action map,
+including cancellation in `alpha*x + beta*px`; their tolerance has a `1e-10`
+floor for float64 samples and expands for float32 rounding. Gaussian sampling
+retains its existing position cuts at
+4 sigma, so its target covariance differs very slightly from the untruncated
+Gaussian theory.
+
+`uniform-phase` fills each transverse phase-space ellipse independently. Its
+single-plane boundary emittance is four times the RMS value; a stable sampling
+formula is `r = sqrt(U)`, `phase = 2*pi*V`, with independent uniform draws in
+each plane. This is a useful idealized initial state after two-plane painting
+when the final transverse actions are approximately independent. A particular
+painting history may instead correlate those actions or change the density.
+This initial-state example does not simulate injection turns, moving closed
+orbits, foil scattering, losses, or collective evolution.
+
+KV and `uniform-phase` have the same uniformly filled single-plane phase-space
+ellipses. Their joint action plots and spatial x-y projections distinguish them:
+KV links the actions through a fixed sum, while `uniform-phase` fills an action
+rectangle. Uniform single-plane phase space does not imply uniform x-y density.
 
 For `matchz` and `matchdp`, the analysis also calculates first-order RF bucket
 limits, `dp_max`, synchrotron tune `Qs`, and the slip factor from the output
@@ -182,8 +256,13 @@ a specific harmonic number, keep the separate one-case, one-bunch structure.
 Supported transverse distributions:
 
 ```text
-gaussian, kv, waterbag, parabolic, uniform
+gaussian, kv, waterbag, parabolic, uniform-real, uniform-phase
 ```
+
+The former `uniform` name is no longer accepted. Use `uniform-real` for its
+existing independent normalized-square sampling, or `uniform-phase` for
+independent uniformly filled phase-space ellipses. Regenerate older inputs to
+update both the distribution name and the RMS geometric emittance JSON keys.
 
 Supported longitudinal distributions:
 
