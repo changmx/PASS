@@ -172,6 +172,11 @@ def check_relations(check):
                 check.add((*p, "Slice set"), "wake.slicer_missing", f"未定义 Slice set {slice_name!r}")
             elif slice_name not in valid_slices:
                 check.add(p, "wake.slicer_order", "WakeField 之前必须运行对应的 Slicer")
+            if any(isinstance(group, dict) and group.get("Solver") == "quasistatic_fft" for group in v.get("Groups", [])):
+                if slice_name in check.slice_sets and check.slice_sets[slice_name][4] != "arrival_phase":
+                    check.add(p, "wake.quasistatic_coordinate", "quasistatic_fft 需要 arrival_phase 全环均匀切片")
+                if slice_name in valid_slices and slice_positions.get(slice_name) != v.get("S (m)"):
+                    check.add(p, "wake.quasistatic_location", "quasistatic_fft 之前必须在同一位置运行对应 Slicer")
         cloud_config = check.electron_cloud_config
         if kind == "ElectronCloud" and cloud_config is not None and cloud_config.enabled and v.get("Is enabled", True):
             cloud = cloud_config.configurations.get(v.get("Configuration"))

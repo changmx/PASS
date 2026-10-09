@@ -13,6 +13,10 @@ class GroupExecution:
         self.config, self.components, self.backend = config, components, backend
         from .wake_solvers import FFTConvolutionSolver
         self.single_pass = FFTConvolutionSolver() if config.solver == "fft" else None
+        self.quasistatic = None
+        if config.solver == "quasistatic_fft":
+            from .quasistatic import QuasistaticFFT
+            self.quasistatic = QuasistaticFFT(components, config.memory_turns, backend=backend)
         self.convolution = None
         if config.solver == "partitioned_fft":
             self.convolution = PartitionedConvolution(components,
@@ -30,7 +34,7 @@ class GroupExecution:
                                                method=config.partition or "dyadic",
                                                max_workspace_mb=config.max_workspace_mb or 1024)
 
-    def preview(self, source, state, turn):
+    def preview(self, source, state, turn, *, period=None, observation_period=None):
         cfg, components = self.config, self.components
         gpu = self.backend == "gpu"
         if gpu:
@@ -49,7 +53,9 @@ class GroupExecution:
             else:
                 source = Sources(source.times, xp.zeros_like(source.widths), source.moments, source.betas)
         update = None
-        if self.convolution is not None:
+        if self.quasistatic is not None:
+            values, candidate = self.quasistatic.preview(source, state, turn=turn, period=period, observation_period=observation_period)
+        elif self.convolution is not None:
             conv_state = state.convolution
             if isinstance(conv_state, dict):
                 cls = TimeConvolutionState if cfg.solver == "time_fft" else ConvolutionState
@@ -108,4 +114,8 @@ class GroupExecution:
                 diagnostics["completed_time_blocks"] = update.blocks.start_turn + update.blocks.count + len(update.operations)
             else:
                 diagnostics["history_horizon_turns"] = cfg.memory_turns
+        if self.quasistatic is not None:
+            diagnostics.update(self.quasistatic.diagnostics)
+            diagnostics["state_bytes"] = sum(array.nbytes for _, snapshot in candidate.history
+                                             for array in (snapshot.times, snapshot.widths, snapshot.betas, *snapshot.moments.values()))
         return values, candidate, update, diagnostics

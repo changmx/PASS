@@ -231,7 +231,7 @@ class WakeTimeGrid(WakeParameters):
 class WakeSolverGroup(WakeParameters):
     name: str = Field(min_length=1, alias="Name")
     components: list[WakeComponentConfig] = Field(min_length=1, alias="Components")
-    solver: Literal["direct", "fft", "recursive", "modal", "partitioned_fft", "time_fft"] = Field(alias="Solver")
+    solver: Literal["direct", "fft", "quasistatic_fft", "recursive", "modal", "partitioned_fft", "time_fft"] = Field(alias="Solver")
     history: Literal["none", "direct", "state", "partitioned"] = Field(alias="History")
     convolution_grid: WakeConvolutionGrid | None = Field(default=None, alias="Convolution grid")
     time_grid: WakeTimeGrid | None = Field(default=None, alias="Time grid")
@@ -246,6 +246,11 @@ class WakeSolverGroup(WakeParameters):
 
     @model_validator(mode="after")
     def combinations(self):
+        if self.solver == "quasistatic_fft":
+            if self.history != "direct" or self.memory_turns is None:
+                raise ValueError("quasistatic_fft requires direct history and finite Memory turns")
+            if self.memory_time is not None or self.boundary != "causal_passages":
+                raise ValueError("quasistatic_fft requires causal_passages without Memory time")
         if self.history not in {"direct", "partitioned"} and (self.memory_turns is not None or self.memory_time is not None):
             raise ValueError("Memory cutoffs are only used with direct or partitioned history")
         if (self.solver in {"partitioned_fft", "time_fft"}) != (self.history == "partitioned"):

@@ -701,6 +701,10 @@ class SchemaEditor(StructuredField):
             self.fields["Solver"].input.currentIndexChanged.connect(self._solver_changed)
             for key in ("History", "Boundary"):
                 self.fields[key].input.currentIndexChanged.connect(self._wake_modes)
+            self.wake_solver_hint = QLabel("准静态 FFT 用当前束流速度重算历史延迟；需单一 PASS bunch 的全圈 arrival_phase 切片。"
+                                           "Memory turns 保留完整前 H 圈，当前圈另计；加速较快时须检验该近似。")
+            self.wake_solver_hint.setWordWrap(True)
+            self.form.addRow(self.wake_solver_hint)
             self._wake_modes()
         elif name == "WakeVelocity":
             self.fields["Kind"].input.currentIndexChanged.connect(self._velocity_modes)
@@ -725,21 +729,33 @@ class SchemaEditor(StructuredField):
 
     def _solver_changed(self):
         solver = self._choice_value("Solver")
-        history = ("partitioned" if solver in {"partitioned_fft", "time_fft"} else "state" if solver in {"recursive", "modal"} else "none")
+        history = ("partitioned" if solver in {"partitioned_fft", "time_fft"} else
+                   "state" if solver in {"recursive", "modal"} else "direct" if solver == "quasistatic_fft" else "none")
         field = self.fields["History"].input
         field.setCurrentIndex(field.findData(history))
         for key, enabled in (("Convolution grid", solver == "partitioned_fft"), ("Time grid", solver == "time_fft"),
-                             ("Memory turns", solver == "partitioned_fft"), ("Memory time (s)", solver == "time_fft")):
+                             ("Memory turns", solver in {"partitioned_fft", "quasistatic_fft"}), ("Memory time (s)", solver == "time_fft")):
             self.fields[key].enabled_box.setChecked(enabled)
+        if solver == "quasistatic_fft":
+            boundary = self.fields["Boundary"].input
+            boundary.setCurrentIndex(boundary.findData("causal_passages"))
+            turns = self.fields["Memory turns"].editor.input
+            if not turns.text().strip():
+                turns.setText("10")
         self._wake_modes()
 
     def _wake_modes(self):
         solver, history, boundary = (self._choice_value(k) for k in ("Solver", "History", "Boundary"))
+        quasistatic = solver == "quasistatic_fft"
+        for key in ("History", "Boundary"):
+            self.fields[key].input.setEnabled(not quasistatic)
+        self.fields["Memory turns"].enabled_box.setEnabled(not quasistatic)
+        self.wake_solver_hint.setVisible(quasistatic)
         active = {
             "Convolution grid": solver == "partitioned_fft",
             "Time grid": solver == "time_fft",
             "Memory turns": history in {"direct", "partitioned"} and solver != "time_fft",
-            "Memory time (s)": history in {"direct", "partitioned"} and solver != "partitioned_fft",
+            "Memory time (s)": history in {"direct", "partitioned"} and solver not in {"partitioned_fft", "quasistatic_fft"},
             "Partition": solver in {"partitioned_fft", "time_fft"},
             "Max workspace (MiB)": solver in {"partitioned_fft", "time_fft"},
             "Period (s)": boundary == "periodic",

@@ -201,7 +201,10 @@ class WakeField(Command):
         projection = project(beam, cfg.slice_set, turn, self.components, "uniform")
         results, candidates, updates, diagnostics = [], [], [], []
         for plan, state in zip(plans, self.group_states):
-            value, candidate, update, diagnostic = plan.preview(projection.sources, state, turn)
+            geometry = {}
+            if plan.config.solver == "quasistatic_fft":
+                geometry = self._quasistatic_geometry(beam, turn)
+            value, candidate, update, diagnostic = plan.preview(projection.sources, state, turn, **geometry)
             results.append(value)
             candidates.append(candidate)
             updates.append(update)
@@ -228,6 +231,22 @@ class WakeField(Command):
         self.last_coefficients, self.last_sources = coefficients, projection.sources
         self.last_diagnostics = diagnostics
         return True
+
+    def _quasistatic_geometry(self, beam, turn):
+        """Separate the saved observation window from the current-speed period."""
+        from PASS.utils.constants import const
+        if len(beam.bunches) != 1:
+            raise ValueError("quasistatic_fft requires one PASS bunch containing the complete ring population")
+        bunch = beam.bunches[0]
+        slices = bunch.slice_sets.get(self.slice_set_name)
+        if (slices is None or slices.coordinate != "arrival_phase" or slices.model != "equal_length" or slices.explicit is None
+                or slices.valid_s != self.s or slices.valid_turn != turn):
+            raise ValueError("quasistatic_fft requires full-ring arrival_phase Slicer execution at this location and turn")
+        if not np.isclose(slices.explicit.z_max - slices.explicit.z_min, bunch.circum, rtol=1e-13, atol=0):
+            raise ValueError("quasistatic_fft slice interval must span one circumference")
+        # The user Slicer retains its prescribed observation clock. Only this
+        # solver evaluates all ring-phase bins with the current reference speed.
+        return {"period": bunch.circum / (bunch.beta * const.c), "observation_period": bunch.circum / slices.observation_velocity}
 
     def print(self):
         logger.info("S=%.4f, Command=WakeField, Name=%s, Slice set=%s, Groups=%s, Components=%d", self.s, self.cmd_name, self.slice_set_name,

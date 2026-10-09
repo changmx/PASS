@@ -69,15 +69,15 @@ Command fields are ``S (m)``, ``Command="WakeField"``, ``Slice set``,
    * - Field
      - Meaning
    * - ``Solver``
-     - Required: ``direct``, ``fft``, ``recursive`` (resonator), ``modal`` (pole/residue), ``partitioned_fft`` (stationary gapped train), or ``time_fft`` (variable-period physical-time history).
+     - Required: ``direct``, ``fft``, ``quasistatic_fft`` (current-velocity full-ring history), ``recursive`` (resonator), ``modal`` (pole/residue), ``partitioned_fft`` (stationary gapped train), or ``time_fft`` (variable-period physical-time history).
    * - ``History``
-     - Required: ``none``, ``direct`` (stored source bins), ``state`` (resonator/modal state), or ``partitioned``. The last requires ``partitioned_fft`` or ``time_fft``.
+     - Required: ``none``, ``direct`` (stored source bins), ``state`` (resonator/modal state), or ``partitioned``. ``quasistatic_fft`` requires ``direct``; the last requires ``partitioned_fft`` or ``time_fft``.
    * - ``Source shape``
      - ``uniform`` (default) or ``point``; independently selected per group.
    * - ``Memory turns``
-     - Positive integer or null for direct history; required finite positive integer for ``partitioned_fft``. Counts preceding passages, with the current passage also included. Must be null for ``time_fft``.
+     - Positive integer or null for direct history; required finite positive integer for ``quasistatic_fft`` and ``partitioned_fft``. Counts preceding passages, with the current passage also included. Must be null for ``time_fft``.
    * - ``Memory time (s)``
-     - Positive value or null for direct/partitioned history; required finite positive value for ``time_fft``. Clips the kernel at this delay, including a partial uniform source bin. Physical-time projection introduces mesh error at a discontinuous cutoff.
+     - Positive value or null for direct/partitioned history; required finite positive value for ``time_fft`` and must be null for ``quasistatic_fft``. Clips the kernel at this delay, including a partial uniform source bin. Physical-time projection introduces mesh error at a discontinuous cutoff.
    * - ``Convolution grid``
      - Required for ``partitioned_fft``; stationary physical time layout described below.
    * - ``Time grid``
@@ -93,11 +93,16 @@ Command fields are ``S (m)``, ``Command="WakeField"``, ``Slice set``,
 
 ``fft`` requires an increasing uniform current grid with equal source widths no
 larger than the spacing. With ``History="direct"``, previous passages are
-explicitly calculated directly. No ``auto`` option or silent solver fallback is
+explicitly calculated directly using saved physical times and widths. This
+existing ``fft`` behavior is unchanged. ``quasistatic_fft`` instead evaluates
+the retained history by FFT using the explicit approximation described below;
+its ``History="direct"`` denotes snapshot storage, not direct summation.
+No ``auto`` option or silent solver fallback is
 provided. Modes retain unlimited decay history with memory proportional to mode
 count. Gaps between bunches use physical elapsed time.
 
-Causal passages must be ordered and nonoverlapping in physical time, including
+Physical-time causal solvers require passages to be ordered and nonoverlapping
+in physical time, including
 uniform-bin support. Overlap across tracking turns is rejected: turn-batched
 tracking cannot infer future trajectories. A spatial ``isolated`` boundary
 declares that the complete source train is present in the current batch;
@@ -499,6 +504,69 @@ resolve the slice width after accumulated motion; prefer float64 for long
 coasting runs. An ordinary explicit Slicer keeps its original boundary
 clipping behavior unless periodic arrival slicing is enabled.
 
+Quasistatic full-ring history
+------------------------------
+
+Set ``Solver="quasistatic_fft"``, ``History="direct"``,
+``Boundary="causal_passages"`` and a finite positive ``Memory turns=H``.
+Do not set ``Memory time (s)``, ``Convolution grid``, ``Time grid``,
+``Partition``, ``Max workspace (MiB)`` or periodic-boundary parameters.
+Both ``Source shape="point"`` and ``"uniform"`` are supported. The GUI selects
+direct history and defaults an unset H to 10 when this solver is selected.
+
+This solver requires one PASS bunch and an explicit full-circumference,
+uniform ``Coordinate="arrival_phase"`` Slicer at the wake position, executed
+in the current tracking turn. The one PASS bunch may contain several physical
+RF bunches. A local bunch interval, multiple PASS bunches, changing slice
+counts or nonuniform snapshot grids are rejected. Nonempty grids require at
+least two slices. Empty bins are allowed and remain part of the full-ring grid.
+
+At each evaluation let N be the number of bins and let the current bunch
+reference velocity define
+
+.. math::
+
+   T_n = \frac{C}{\beta_n c}, \qquad
+   \Delta t_n = \frac{T_n}{N}, \qquad
+   \tau^{\rm qs}_{n,i;m,j} = [(n-m)N+i-j]\Delta t_n .
+
+Here i and j increase in arrival-time order and m is a source turn. All
+retained source turns are laid out using the current spacing. Point sources
+have zero width; uniform sources use the current width
+:math:`\Delta t_n` for the causal cell integral, including the current cell.
+The current and saved full-ring windows are checked against their own saved
+spacing and widths before evaluation. In particular, a Slicer's observation
+window may follow integrated-clock boundaries and need not have duration
+:math:`C/(\beta_n c)`. The solver deliberately remaps that window to
+:math:`T_n` for this approximation.
+
+Stored source moments, emission velocities, physical times and widths are
+preserved. For response evaluation, both source and witness velocity factors
+use the current velocity, including the coupling of older sources. Thus this
+solver freezes the delay grid, integration widths and velocity coupling at
+their current values; it does not change the stored emission data. Missing
+turns contribute zero. With H previous turns, the complete snapshots n-H through n
+are retained, subject to causal ordering within the reconstructed grid.
+This is not a maximum-lag cutoff of :math:`HC`: pairs in the oldest retained
+snapshot can have delays approaching :math:`(H+1)T_n`.
+
+This is a current-velocity approximation to physical-time history, useful
+when the revolution period changes little over the retained turns and the
+response is insensitive to the corresponding delay change. Compare with
+physical-time ``direct`` or converged ``time_fft`` results when acceleration
+or narrow-band phase sensitivity matters. There is no universal accuracy
+bound for collective growth or loss. FFT evaluates a zero-padded linear
+convolution with one inverse-transform normalization; this does not import
+an extra normalization or a distance cutoff from another code.
+
+The complete retained source window is transformed on each call; old-source
+FFT work is not amortized as in a partitioned solver. The response spectrum
+can be reused while the current spacing, source shape and window length stay
+unchanged. For N bins and H previous
+turns the transform size grows with :math:`(H+1)N`. Runtime depends on grid,
+history and active components, so selecting this solver does not guarantee
+a fixed speedup.
+
 Stationary multibunch and long history
 --------------------------------------
 
@@ -666,8 +734,12 @@ preserve this time; regrouping transforms z and momenta into the destination
 reference. The wake adapter converts the latest user-supplied z intervals:
 centers are :math:`T_b-z_{slice}/(\beta_b c)` and widths are
 :math:`\Delta z/(\beta_b c)`. RF does not alter saved intervals or membership.
-Newly emitted sources retain their sampled physical times and widths forever;
-later reference changes do not reinterpret causal history. See :ref:`en-longitudinal-reference`.
+Stored emitted snapshots retain their sampled physical times and widths;
+later reference changes do not alter those records. Physical-time solvers
+evaluate them without reinterpretation. The explicitly selected
+``quasistatic_fft`` approximation instead reconstructs delays, widths and
+velocity coupling from the current reference, as described above.
+See :ref:`en-longitudinal-reference`.
 
 The canonical frequency convention is
 
@@ -686,7 +758,8 @@ The transverse kick uses incoming particle :math:`\beta_i`:
 :math:`\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)`.
 
 Causal kernels use half of a finite jump at zero delay. A ``uniform`` source
-represents constant charge density over the slice's full time width; its kernel
+represents constant charge density over the slice's full time width (the
+reconstructed current width for ``quasistatic_fft``); its kernel
 is integrated analytically or through its primitive. ``point`` sources are at
 the slice centers. Slicing convergence and parameter scans are user-controlled;
 there is no automatic slice-error controller.
@@ -700,9 +773,11 @@ Each component declares ``Velocity``:
   A different reference speed is rejected, including changes during tracking.
 * ``Kind="factorized"``, increasing ``Betas`` and matching real ``Source`` and
   ``Witness`` tables: :math:`W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)`.
-  Linear interpolation is restricted to the supplied beta interval. Historical
-  excitation uses the source speed at that passage; the current witness factor
-  is applied when observing the stored field.
+  Linear interpolation is restricted to the supplied beta interval.
+  Physical-time history uses the source speed at that passage and applies
+  the current witness factor when observing the stored field.
+  ``quasistatic_fft`` instead evaluates both factors at the current reference
+  speed, including all retained source turns.
 * ``Kind="ideal"`` explicitly defines a velocity-independent point-response
   coupling. This is a model assumption, not an inferred transit-time correction
   for a physical cavity.
