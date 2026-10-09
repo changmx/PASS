@@ -103,17 +103,17 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
     - ``1.0``
     - 垂直 Twiss 参数 :math:`\beta_y`
   * - ``emit_x``
-    - ``Emittance x (m'rad)``
+    - ``RMS geometric emittance x (m'rad)``
     - float
     - m·rad
     - ``0.0``
-    - 水平发射度 :math:`\varepsilon_x`
+    - 水平 RMS 几何发射度 :math:`\varepsilon_x`
   * - ``emit_y``
-    - ``Emittance y (m'rad)``
+    - ``RMS geometric emittance y (m'rad)``
     - float
     - m·rad
     - ``0.0``
-    - 垂直发射度 :math:`\varepsilon_y`
+    - 垂直 RMS 几何发射度 :math:`\varepsilon_y`
   * - ``dx``
     - ``Dx (m)``
     - float
@@ -131,7 +131,7 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
     - str
     - -
     - ``'gaussian'``
-    - 横向分布类型，可选： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform``
+    - 横向分布类型，可选： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform-real`` 、 ``uniform-phase``
 
 
 纵向参数
@@ -430,8 +430,8 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
                   "Alpha y": 1.57442348,
                   "Beta x (m)": 0.5,
                   "Beta y (m)": 0.5,
-                  "Emittance x (m'rad)": 0.00019999999999999998,
-                  "Emittance y (m'rad)": 9.999999999999999e-05,
+                  "RMS geometric emittance x (m'rad)": 0.00019999999999999998,
+                  "RMS geometric emittance y (m'rad)": 9.999999999999999e-05,
                   "Dx (m)": 0.0,
                   "Dpx": 0.0,
                   "Sigma z (m)": 30,
@@ -687,9 +687,11 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 横向粒子分布
 ------------
 
-目前 PASS 程序支持生成的横向粒子分布有 **水平垂直解耦的 2D 高斯分布** 、 **4D KV分布** 、 **4D 水袋分布** 、 **4D 抛物线分布** 、 **2D 相空间均匀分布** 。
+目前 PASS 程序支持生成的横向粒子分布有 **水平垂直解耦的 2D 高斯分布** 、 **4D KV分布** 、 **4D 水袋分布** 、 **4D 抛物线分布** 、 **uniform-real** 和 **uniform-phase** 。
 
-其中 4D 分布是指在 4D 相空间 :math:`(x, p_x, y, p_y)` 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 **归一化坐标** ：
+输入发射度 :math:`\varepsilon_x,\varepsilon_y` 均为 RMS 几何发射度，单位为 m rad。``uniform-real`` 和 ``uniform-phase`` 分别强调实空间矩形均匀投影与两个独立的相空间椭圆均匀分布；这里的 phase 指横向相空间。以下分布均指加入色散与注入偏移之前的本征横向坐标。
+
+其中 KV、水袋和抛物线分布在 4D 相空间 :math:`(x, p_x, y, p_y)` 中定义一个广义的超椭球边界。为了简化推导，先取 Twiss alpha 为零，并引入 **归一化坐标** ：
 
 .. math::
 
@@ -700,6 +702,8 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 .. math::
 
   r^2 = X^2 + P_x^2 + Y^2 + P_y^2 \le 1
+
+Twiss alpha 非零时，相应的归一化动量需包含剪切项 :math:`\alpha_x x+\beta_xp_x`，y 平面同理；仅缩放物理动量不能消除相空间倾斜。
 
 下面详细介绍各横向粒子分布。对于 4D 分布，其在 1D 平面的投影具有统一的幂函数形式。设 4D 相空间中分布密度为 :math:`f(r^2) \propto (1-r^2)^{\alpha}` （ `\alpha \ge 0` ，定义在 4D 单位球 :math:`B^4` 内），则对任意单一归一化坐标 :math:`u` 的 1D 边缘分布为：
 
@@ -724,11 +728,16 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
     - :math:`\alpha`
     - 1D投影幂次
     - 1D投影形式
-  * - Uniform（2D方块）
+  * - uniform-real（2D方块直积）
     - —
     - —
     - 0
     - :math:`\rho(u) = \mathrm{const}`
+  * - uniform-phase（2D圆盘直积）
+    - :math:`B^2\times B^2` 内为常数
+    - —
+    - :math:`\frac{1}{2}`
+    - :math:`\rho(u) \propto \sqrt{1-u^2}`
   * - KV（ :math:`S^3` 球面）
     - :math:`\delta(r-1)`
     - —
@@ -865,17 +874,62 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
     的粒子。
 
 
-  - **Uniform（均匀分布）**
+  - **uniform-real（实空间矩形均匀分布）**
 
-    在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立生成 2D 均匀方块分布。对于每个横向平面，在归一化坐标 :math:`(u, v)` 中于 :math:`[-1, 1] \times [-1, 1]` 方块区域内均匀采样，再通过 Twiss 参数映射到物理坐标。该分布的 理想连续分布的 RMS 发射度等于输入参数 :math:`\varepsilon` ，坐标半宽的平方为其方差的 3 倍，所有粒子均处在 :math:`\sqrt{3}\sigma` 截断范围内。这种分布可以模拟电子枪等产生的初始束流。
+    在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立生成 2D 均匀方块分布。对于每个横向平面，在归一化坐标 :math:`(u, v)` 中于 :math:`[-1, 1] \times [-1, 1]` 方块区域内均匀采样，再通过 Twiss 参数映射到物理坐标。理想连续分布的 RMS 发射度等于输入参数 :math:`\varepsilon` ，位置坐标半宽的平方为其方差的 3 倍，位置投影处在 :math:`\sqrt{3}\sigma` 截断范围内。这种分布可以模拟电子枪等产生的初始束流。
 
-    积分掉一个维度后，均匀分布在 1D 平面的投影是一个常数（均匀）分布。由于 :math:`u_x` 和 :math:`v_x` 独立均匀分布在 :math:`[-1, 1]` 上，对 :math:`v_x` 积分后：
+    积分掉一个维度后，位置投影是一个常数（均匀）分布。由于 :math:`u_x` 和 :math:`v_x` 独立均匀分布在 :math:`[-1, 1]` 上，对 :math:`v_x` 积分后：
 
     .. math::
 
        \rho(u_x) = \frac{1}{2} = \mathrm{const} \propto (1-u_x^2)^{0}
 
     即 1D 投影幂次为 :math:`0` 。
+
+    因此，本征 :math:`x-y` 密度在半宽分别为 :math:`\sqrt{3\varepsilon_x\beta_x}` 和 :math:`\sqrt{3\varepsilon_y\beta_y}` 的矩形内均匀。Twiss alpha 非零时，物理相空间中的方块变为平行四边形，动量投影不一定均匀。色散、后续传输及多个注入回合的叠加也会改变实空间密度。旧类型 ``uniform`` 已被 ``uniform-real`` 替代，不再接受旧名称。
+
+
+  - **uniform-phase（双平面椭圆相空间均匀分布）**
+
+    两个横向相空间椭圆分别均匀填充，且两平面独立采样。令 :math:`\gamma_u=(1+\alpha_u^2)/\beta_u`，定义 Courant--Snyder 不变量及作用量：
+
+    .. math::
+
+       I_u=\gamma_u u^2+2\alpha_u u p_u+\beta_u p_u^2=2J_u,
+       \qquad u\in\{x,y\}.
+
+    支持域是两个实心椭圆的直积：
+
+    .. math::
+
+       I_x\le4\varepsilon_x,\qquad I_y\le4\varepsilon_y.
+
+    直接面积采样使用彼此独立的 :math:`U_u\sim\mathcal U(0,1)` 和 :math:`\theta_u\sim\mathcal U(0,2\pi)`：
+
+    .. math::
+
+       r_u=\sqrt{4\varepsilon_u U_u},\qquad
+       u=\sqrt{\beta_u}\,r_u\cos\theta_u,\qquad
+       p_u=\frac{r_u}{\sqrt{\beta_u}}
+       \left(\sin\theta_u-\alpha_u\cos\theta_u\right).
+
+    生成分布的中心协方差为 :math:`\varepsilon_u\begin{pmatrix}\beta_u&-\alpha_u\\-\alpha_u&\gamma_u\end{pmatrix}`，因此 RMS 几何发射度等于输入值 :math:`\varepsilon_u`，边界不变量为其四倍。两个归一化作用量 :math:`q_u=I_u/(4\varepsilon_u)` 独立且均匀分布在 :math:`[0,1]`。
+
+    归一化作用量公式要求相应平面的发射度为正。当 :math:`\varepsilon_u=0` 时，该平面生成于 :math:`u=p_u=0`；随后仍按既有流程叠加色散和注入偏移。
+
+    实空间密度具有矩形支持域，但并不均匀。取 :math:`a=2\sqrt{\varepsilon_x\beta_x}`、:math:`b=2\sqrt{\varepsilon_y\beta_y}`，有
+
+    .. math::
+
+       \rho(x,y)=\frac{4}{\pi^2ab}
+       \sqrt{1-\frac{x^2}{a^2}}\sqrt{1-\frac{y^2}{b^2}},
+       \qquad |x|\le a,\quad |y|\le b,
+
+    矩形外密度为零。单个位置坐标的投影为半椭圆，与相应 KV 投影形状相同。
+
+    当横向作用量相互独立是合理假设时，可用该分布近似双平面涂抹后的束流。它不生成涂抹轨道，也不自动实现相关或反相关涂抹。非耦合线性光学中的相混合只混合相位，并不会消除作用量相关性。
+
+    uniform-phase 与 KV 可以具有相同的单平面投影和 RMS 发射度，但联合作用量不同：uniform-phase 填充 :math:`0\le q_x,q_y\le1`，KV 则满足 :math:`q_x+q_y=1`。4D 水袋填充的支持域为 :math:`I_x/(6\varepsilon_x)+I_y/(6\varepsilon_y)\le1`。三者的理想作用量相关系数依次为 :math:`0`、:math:`-1` 和 :math:`-1/2`。uniform-real 与 uniform-phase 在各自支持域内均具有常数相空间密度；这两个名称并非互斥的数学分类。
 
 
 纵向粒子分布
@@ -1218,7 +1272,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   "Transverse dist": "gaussian",
   "Longitudinal dist": "matchz"
 
-其中横向分布的取值为： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform`` ，纵向分布的取值为： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp`` 。
+其中横向分布的取值为： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform-real`` 、 ``uniform-phase`` ，纵向分布的取值为： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp`` 。
 
 在生成纵向 gaussian 与 coasting 分布时，不需要射频相关参数，在生成 matchz 与 matchdp 分布时，需要提供射频参数。
 
@@ -1226,9 +1280,9 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 1D 投影理论曲线
 ------------------
 
-下图展示了四种横向分布（ Uniform 、 KV 、 Waterbag 、 Parabolic ）在 1D 平面的理论投影曲线。所有曲线均归一化至 :math:`\int_{-1}^{1} \rho(u) \, du = 1` ，横轴为归一化坐标 :math:`u \in [-1, 1]` 。可以清晰看到从 Uniform （平顶）到 Parabolic （尖峰）的幂次递增趋势。
+下图展示了 uniform-real、uniform-phase、KV、水袋和抛物线分布的位置理论投影。所有曲线均归一化至 :math:`\int_{-1}^{1} \rho(u) \, du = 1`，横轴为位置坐标除以其支持域半宽：:math:`u\in[-1,1]`。uniform-phase 与 KV 曲线重合。可以清晰看到从 uniform-real（平顶）到抛物线分布（尖峰）的幂次递增趋势。
 
-.. figure:: images_injection/dist_1d_projections.png
+.. figure:: images_injection/transverse_position_projection_theory.png
   :alt: 1D projections of transverse distributions
   :width: 80%
   :align: center
@@ -1332,28 +1386,60 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 
   Figure 13. Transverse parabolic distribution: x-y
 
-- 横向均匀分布：
+- 横向 uniform-real 分布：
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png
-  :alt: uniform x-px
+以下 uniform-real、uniform-phase 图及联合作用量对比图来自 ``example/01_generate_distribution`` 的 ``transverse`` 算例实际生成的 HDF5 注入输出，每种分布包含 100,000 粒子，纵向为高斯分布。横向输入为 :math:`\varepsilon_x=200` mm mrad、:math:`\varepsilon_y=100` mm mrad、:math:`\beta_x=\beta_y=0.5` m、:math:`\alpha_x=-2.614303952`、:math:`\alpha_y=1.57442348`，色散为零。
+
+.. figure:: images_injection/example01_uniform-real_x-px.png
+  :alt: uniform-real x-px
   :width: 100%
   :align: center
 
-  Figure 14. Transverse uniform distribution: x-px
+  Figure 14. Transverse uniform-real distribution: x-px
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png
-  :alt: uniform y-py
+.. figure:: images_injection/example01_uniform-real_y-py.png
+  :alt: uniform-real y-py
   :width: 100%
   :align: center
 
-  Figure 15. Transverse uniform distribution: y-py
+  Figure 15. Transverse uniform-real distribution: y-py
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png
-  :alt: uniform x-y
+.. figure:: images_injection/example01_uniform-real_x-y.png
+  :alt: uniform-real x-y
   :width: 100%
   :align: center
 
-  Figure 16. Transverse uniform distribution: x-y
+  Figure 16. Transverse uniform-real distribution: x-y
+
+- 横向 uniform-phase 分布：
+
+.. figure:: images_injection/example01_uniform-phase_x-px.png
+  :alt: 实际 PASS 输出的 uniform-phase x-px
+  :width: 100%
+  :align: center
+
+  图 17. 横向 uniform-phase 分布：x-px
+
+.. figure:: images_injection/example01_uniform-phase_y-py.png
+  :alt: 实际 PASS 输出的 uniform-phase y-py
+  :width: 100%
+  :align: center
+
+  图 18. 横向 uniform-phase 分布：y-py
+
+.. figure:: images_injection/example01_uniform-phase_x-y.png
+  :alt: 实际 PASS 输出的 uniform-phase x-y
+  :width: 100%
+  :align: center
+
+  图 19. 横向 uniform-phase 分布：x-y，支持域为矩形，但密度并不均匀。
+
+.. figure:: images_injection/example01_transverse_joint_actions.png
+  :alt: 实际 PASS 输出的横向联合作用量对比
+  :width: 100%
+  :align: center
+
+  图 20. 联合作用量 :math:`q_x=I_x/(4\varepsilon_x)` 与 :math:`q_y=I_y/(4\varepsilon_y)`。红线标出 uniform-phase 正方形、水袋三角形及 KV 直线的边界；颜色表示实测每格粒子数，四图共用同一对数色标。
 
 - 纵向 MatchZ 分布：
 
@@ -1362,7 +1448,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   :width: 100%
   :align: center
 
-  Figure 17. Longitudinal matchz distribution: z-pz
+  Figure 21. Longitudinal matchz distribution: z-pz
 
 - 纵向 MatchDp 分布：
 
@@ -1371,7 +1457,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   :width: 100%
   :align: center
 
-  Figure 18. Longitudinal matchdp distribution: z-pz
+  Figure 22. Longitudinal matchdp distribution: z-pz
 
 - 纵向 Gaussian 分布：
 
@@ -1380,7 +1466,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   :width: 100%
   :align: center
 
-  Figure 19. Longitudinal gaussian distribution: z-pz
+  Figure 23. Longitudinal gaussian distribution: z-pz
 
 - 纵向 Coasting 分布：
 
@@ -1389,7 +1475,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   :width: 100%
   :align: center
 
-  Figure 20. Longitudinal coasting distribution: z-pz
+  Figure 24. Longitudinal coasting distribution: z-pz
 
 初始分布输出格式
 ----------------

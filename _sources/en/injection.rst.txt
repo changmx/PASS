@@ -108,17 +108,17 @@ Transverse parameters
     - ``1.0``
     - Vertical Twiss parameter :math:`\beta_y`
   * - ``emit_x``
-    - ``Emittance x (m'rad)``
+    - ``RMS geometric emittance x (m'rad)``
     - float
     - m·rad
     - ``0.0``
-    - Horizontal emittance :math:`\varepsilon_x`
+    - Horizontal RMS geometric emittance :math:`\varepsilon_x`
   * - ``emit_y``
-    - ``Emittance y (m'rad)``
+    - ``RMS geometric emittance y (m'rad)``
     - float
     - m·rad
     - ``0.0``
-    - Vertical emittance :math:`\varepsilon_y`
+    - Vertical RMS geometric emittance :math:`\varepsilon_y`
   * - ``dx``
     - ``Dx (m)``
     - float
@@ -136,7 +136,7 @@ Transverse parameters
     - str
     - -
     - ``'gaussian'``
-    - Transverse distribution type, options: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform``
+    - Transverse distribution type, options: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform-real`` , ``uniform-phase``
 
 
 Longitudinal parameters
@@ -435,8 +435,8 @@ Input file
                   "Alpha y": 1.57442348,
                   "Beta x (m)": 0.5,
                   "Beta y (m)": 0.5,
-                  "Emittance x (m'rad)": 0.00019999999999999998,
-                  "Emittance y (m'rad)": 9.999999999999999e-05,
+                  "RMS geometric emittance x (m'rad)": 0.00019999999999999998,
+                  "RMS geometric emittance y (m'rad)": 9.999999999999999e-05,
                   "Dx (m)": 0.0,
                   "Dpx": 0.0,
                   "Sigma z (m)": 30,
@@ -741,9 +741,11 @@ In the PASS program, the initial particle distribution is implemented by the **I
 Transverse particle distribution
 --------------------------------
 
-Currently, the PASS program supports generating the following transverse particle distributions: **horizontally-vertically decoupled 2D Gaussian distribution** , **4D KV distribution** , **4D waterbag distribution** , **4D parabolic distribution** , **2D uniform distribution in phase space** .
+Currently, the PASS program supports generating the following transverse particle distributions: **horizontally-vertically decoupled 2D Gaussian distribution** , **4D KV distribution** , **4D waterbag distribution** , **4D parabolic distribution** , **uniform-real** , and **uniform-phase**.
 
-The 4D distribution refers to defining a generalized hyper-ellipsoid boundary in the 4D phase space :math:`(x, p_x, y, p_y)`. To simplify the derivation without loss of generality, we introduce **normalized coordinates** :
+The input emittances :math:`\varepsilon_x,\varepsilon_y` are RMS geometric emittances in m rad. The names ``uniform-real`` and ``uniform-phase`` describe the defining transverse projections: a uniform spatial rectangle and independently uniform phase-space ellipses, respectively. Here "phase" means transverse phase space. The distributions below describe the intrinsic transverse coordinates before dispersion and injection offsets are added.
+
+The KV, waterbag and parabolic distributions define a generalized hyper-ellipsoid boundary in the 4D phase space :math:`(x, p_x, y, p_y)`. To simplify the derivation, first take zero Twiss alpha and introduce **normalized coordinates** :
 
 .. math::
 
@@ -754,6 +756,8 @@ where :math:`a, b, c, d` are the **maximum physical envelope boundaries (hard bo
 .. math::
 
   r^2 = X^2 + P_x^2 + Y^2 + P_y^2 \le 1
+
+For nonzero Twiss alpha, the corresponding normalized momentum includes the shear :math:`\alpha_x x+\beta_xp_x` (and similarly in y); rescaling the physical momentum alone does not remove the phase-space tilt.
 
 The following describes each transverse particle distribution in detail. For 4D distributions, their projections onto the 1D plane have a unified power-law form. Let the distribution density in 4D phase space be :math:`f(r^2) \propto (1-r^2)^{\alpha}` (`\alpha \ge 0`, defined within the 4D unit ball :math:`B^4`), then the 1D marginal distribution for any single normalized coordinate :math:`u` is:
 
@@ -778,11 +782,16 @@ The 1D projections of each distribution are summarized below:
     - :math:`\alpha`
     - 1D projection power
     - 1D projection form
-  * - Uniform (2D square)
+  * - uniform-real (2D squares)
     - —
     - —
     - 0
     - :math:`\rho(u) = \mathrm{const}`
+  * - uniform-phase (2D disks)
+    - Constant on :math:`B^2\times B^2`
+    - —
+    - :math:`\frac{1}{2}`
+    - :math:`\rho(u) \propto \sqrt{1-u^2}`
   * - KV ( :math:`S^3` sphere)
     - :math:`\delta(r-1)`
     - —
@@ -913,17 +922,62 @@ The following describes each transverse particle distribution in detail:
        |x| \le 4\sigma_x, \quad |y| \le 4\sigma_y
 
 
-  - **Uniform distribution**
+  - **uniform-real distribution**
 
     In the :math:`x-p_x` and :math:`y-p_y` phase spaces, 2D uniform square distributions are generated independently. For each transverse plane, uniform sampling is performed within the square region :math:`[-1, 1] \times [-1, 1]` in normalized coordinates :math:`(u, v)` , and then mapped to physical coordinates through Twiss parameters. The ideal continuous distribution has RMS emittance equal to the input parameter :math:`\varepsilon` , the squared coordinate half-width is 3 times its variance, and the position projection lies within the :math:`\sqrt{3}\sigma` truncation range. This distribution can simulate the initial beam produced by an electron gun, etc.
 
-    After integrating out one dimension, the projection of the uniform distribution onto the 1D plane is a constant (uniform) distribution. Since :math:`u_x` and :math:`v_x` are independently and uniformly distributed on :math:`[-1, 1]` , after integrating over :math:`v_x`:
+    After integrating out one dimension, the position projection is a constant (uniform) distribution. Since :math:`u_x` and :math:`v_x` are independently and uniformly distributed on :math:`[-1, 1]` , after integrating over :math:`v_x`:
 
     .. math::
 
        \rho(u_x) = \frac{1}{2} = \mathrm{const} \propto (1-u_x^2)^{0}
 
     i.e., the 1D projection power is :math:`0` .
+
+    Consequently, the intrinsic :math:`x-y` density is uniform on a rectangle with half-widths :math:`\sqrt{3\varepsilon_x\beta_x}` and :math:`\sqrt{3\varepsilon_y\beta_y}`. At nonzero Twiss alpha, the physical phase-space squares become parallelograms and the momentum projections need not be uniform. Dispersion, subsequent transport and superposition of injection turns can also change the spatial density. The old ``uniform`` type has been replaced by ``uniform-real`` and is no longer accepted.
+
+
+  - **uniform-phase distribution**
+
+    Each transverse phase-space ellipse is filled uniformly and the two planes are sampled independently. With :math:`\gamma_u=(1+\alpha_u^2)/\beta_u`, define the Courant--Snyder invariant and action by
+
+    .. math::
+
+       I_u=\gamma_u u^2+2\alpha_u u p_u+\beta_u p_u^2=2J_u,
+       \qquad u\in\{x,y\}.
+
+    The support is the product of two filled ellipses:
+
+    .. math::
+
+       I_x\le4\varepsilon_x,\qquad I_y\le4\varepsilon_y.
+
+    Direct area sampling uses independent :math:`U_u\sim\mathcal U(0,1)` and :math:`\theta_u\sim\mathcal U(0,2\pi)`:
+
+    .. math::
+
+       r_u=\sqrt{4\varepsilon_u U_u},\qquad
+       u=\sqrt{\beta_u}\,r_u\cos\theta_u,\qquad
+       p_u=\frac{r_u}{\sqrt{\beta_u}}
+       \left(\sin\theta_u-\alpha_u\cos\theta_u\right).
+
+    The resulting centered covariance is :math:`\varepsilon_u\begin{pmatrix}\beta_u&-\alpha_u\\-\alpha_u&\gamma_u\end{pmatrix}`, so its RMS geometric emittance equals the input :math:`\varepsilon_u`. The boundary invariant is four times that value. Both normalized actions :math:`q_u=I_u/(4\varepsilon_u)` are independent and uniform on :math:`[0,1]`.
+
+    The normalized-action formulas assume positive emittance in the corresponding plane. If :math:`\varepsilon_u=0`, that plane is generated at :math:`u=p_u=0`; the usual dispersion and injection offsets are added afterward.
+
+    The spatial density has rectangular support but is not uniform. For :math:`a=2\sqrt{\varepsilon_x\beta_x}` and :math:`b=2\sqrt{\varepsilon_y\beta_y}`,
+
+    .. math::
+
+       \rho(x,y)=\frac{4}{\pi^2ab}
+       \sqrt{1-\frac{x^2}{a^2}}\sqrt{1-\frac{y^2}{b^2}},
+       \qquad |x|\le a,\quad |y|\le b,
+
+    and it vanishes outside that rectangle. Each position projection is a semi-ellipse, with the same shape as the corresponding KV projection.
+
+    This distribution can approximate a beam after two-plane painting when independent transverse actions are an appropriate assumption. It does not generate the painting orbit or enforce correlated/anti-correlated painting. Phase mixing in uncoupled linear optics randomizes phases without removing action correlations.
+
+    A uniform-phase sample and a KV sample can have the same single-plane projections and RMS emittances, but their joint actions differ: uniform-phase fills :math:`0\le q_x,q_y\le1`, whereas KV satisfies :math:`q_x+q_y=1`. The 4D waterbag fills :math:`I_x/(6\varepsilon_x)+I_y/(6\varepsilon_y)\le1` instead. The ideal action correlation coefficients are respectively :math:`0`, :math:`-1` and :math:`-1/2`. Both uniform-real and uniform-phase have constant phase-space density within their own support; their names do not define mutually exclusive mathematical classes.
 
 
 Longitudinal particle distribution
@@ -1271,7 +1325,7 @@ Based on the input file above, a bunch with a Gaussian distribution in the trans
   "Transverse dist": "gaussian",
   "Longitudinal dist": "matchz"
 
-The values for the transverse distribution are: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform`` , and the values for the longitudinal distribution are: ``gaussian`` , ``coasting`` , ``matchz`` , ``matchdp`` .
+The values for the transverse distribution are: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform-real`` , ``uniform-phase`` , and the values for the longitudinal distribution are: ``gaussian`` , ``coasting`` , ``matchz`` , ``matchdp`` .
 
 When generating longitudinal gaussian and coasting distributions, RF-related parameters are not required. When generating matchz and matchdp distributions, RF parameters must be provided.
 
@@ -1279,9 +1333,9 @@ When generating longitudinal gaussian and coasting distributions, RF-related par
 1D projection theoretical curves
 --------------------------------
 
-The figure below shows the theoretical projection curves of the four transverse distributions ( Uniform , KV , Waterbag , Parabolic ) on the 1D plane. All curves are normalized to :math:`\int_{-1}^{1} \rho(u) \, du = 1` , with the horizontal axis being the normalized coordinate :math:`u \in [-1, 1]` . The increasing power trend from Uniform (flat-top) to Parabolic (peaked) can be clearly seen.
+The figure below shows the theoretical position projections of uniform-real, uniform-phase, KV, waterbag and parabolic distributions. All curves are normalized to :math:`\int_{-1}^{1} \rho(u) \, du = 1`, with position divided by its support half-width: :math:`u\in[-1,1]`. The uniform-phase and KV curves coincide. The increasing power trend from uniform-real (flat-top) to parabolic (peaked) can be clearly seen.
 
-.. figure:: images_injection/dist_1d_projections.png
+.. figure:: images_injection/transverse_position_projection_theory.png
   :alt: 1D projections of transverse distributions
   :width: 80%
   :align: center
@@ -1385,28 +1439,60 @@ Below, we show the simulated particle distribution figures obtained by keeping t
 
   Figure 13. Transverse parabolic distribution: x-y
 
-- Transverse uniform distribution:
+- Transverse uniform-real distribution:
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png
-  :alt: uniform x-px
+The uniform-real and uniform-phase figures below, and their joint-action comparison, use the actual HDF5 injection output of ``example/01_generate_distribution`` (the ``transverse`` case), with 100,000 particles per distribution and Gaussian longitudinal coordinates. Their transverse inputs are :math:`\varepsilon_x=200` mm mrad, :math:`\varepsilon_y=100` mm mrad, :math:`\beta_x=\beta_y=0.5` m, :math:`\alpha_x=-2.614303952`, :math:`\alpha_y=1.57442348` and zero dispersion.
+
+.. figure:: images_injection/example01_uniform-real_x-px.png
+  :alt: uniform-real x-px
   :width: 100%
   :align: center
 
-  Figure 14. Transverse uniform distribution: x-px
+  Figure 14. Transverse uniform-real distribution: x-px
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png
-  :alt: uniform y-py
+.. figure:: images_injection/example01_uniform-real_y-py.png
+  :alt: uniform-real y-py
   :width: 100%
   :align: center
 
-  Figure 15. Transverse uniform distribution: y-py
+  Figure 15. Transverse uniform-real distribution: y-py
 
-.. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png
-  :alt: uniform x-y
+.. figure:: images_injection/example01_uniform-real_x-y.png
+  :alt: uniform-real x-y
   :width: 100%
   :align: center
 
-  Figure 16. Transverse uniform distribution: x-y
+  Figure 16. Transverse uniform-real distribution: x-y
+
+- Transverse uniform-phase distribution:
+
+.. figure:: images_injection/example01_uniform-phase_x-px.png
+  :alt: uniform-phase x-px from actual PASS output
+  :width: 100%
+  :align: center
+
+  Figure 17. Transverse uniform-phase distribution: x-px
+
+.. figure:: images_injection/example01_uniform-phase_y-py.png
+  :alt: uniform-phase y-py from actual PASS output
+  :width: 100%
+  :align: center
+
+  Figure 18. Transverse uniform-phase distribution: y-py
+
+.. figure:: images_injection/example01_uniform-phase_x-y.png
+  :alt: uniform-phase x-y from actual PASS output
+  :width: 100%
+  :align: center
+
+  Figure 19. Transverse uniform-phase distribution: x-y; rectangular support with nonuniform density.
+
+.. figure:: images_injection/example01_transverse_joint_actions.png
+  :alt: Comparison of joint transverse actions from actual PASS output
+  :width: 100%
+  :align: center
+
+  Figure 20. Joint actions :math:`q_x=I_x/(4\varepsilon_x)` and :math:`q_y=I_y/(4\varepsilon_y)`. Red boundaries mark the uniform-phase square, waterbag triangle and KV line. Color gives measured particle counts per bin on one shared logarithmic scale.
 
 - Longitudinal MatchZ distribution:
 
@@ -1415,7 +1501,7 @@ Below, we show the simulated particle distribution figures obtained by keeping t
   :width: 100%
   :align: center
 
-  Figure 17. Longitudinal matchz distribution: z-pz
+  Figure 21. Longitudinal matchz distribution: z-pz
 
 - Longitudinal MatchDp distribution:
 
@@ -1424,7 +1510,7 @@ Below, we show the simulated particle distribution figures obtained by keeping t
   :width: 100%
   :align: center
 
-  Figure 18. Longitudinal matchdp distribution: z-pz
+  Figure 22. Longitudinal matchdp distribution: z-pz
 
 - Longitudinal Gaussian distribution:
 
@@ -1433,7 +1519,7 @@ Below, we show the simulated particle distribution figures obtained by keeping t
   :width: 100%
   :align: center
 
-  Figure 19. Longitudinal gaussian distribution: z-pz
+  Figure 23. Longitudinal gaussian distribution: z-pz
 
 - Longitudinal Coasting distribution:
 
@@ -1442,7 +1528,7 @@ Below, we show the simulated particle distribution figures obtained by keeping t
   :width: 100%
   :align: center
 
-  Figure 20. Longitudinal coasting distribution: z-pz
+  Figure 24. Longitudinal coasting distribution: z-pz
 
 Initial distribution output format
 ----------------------------------

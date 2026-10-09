@@ -462,9 +462,9 @@ BunchConfig（束团参数）
      - float
      - Twiss α 函数
    * - ``emit_x`` / ``emit_y``
-     - ``Emittance x (m'rad)``
+     - ``RMS geometric emittance x (m'rad)`` / ``RMS geometric emittance y (m'rad)``
      - float
-     - 发射度
+     - RMS 几何发射度（m rad）
    * - ``sigma_z``
      - ``Sigma z (m)``
      - float
@@ -476,7 +476,7 @@ BunchConfig（束团参数）
    * - ``dist_trans``
      - ``Transverse dist``
      - str
-     - 横向分布： ``kv`` / ``gaussian`` / ``uniform`` / ``waterbag`` / ``parabolic``
+     - 横向分布： ``kv`` / ``gaussian`` / ``uniform-real`` / ``uniform-phase`` / ``waterbag`` / ``parabolic``
    * - ``dist_longi``
      - ``Longitudinal dist``
      - str

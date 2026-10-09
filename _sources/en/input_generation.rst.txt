@@ -505,9 +505,9 @@ BunchConfig (Bunch Parameters)
      - float
      - Twiss α function
    * - ``emit_x`` / ``emit_y``
-     - ``Emittance x (m'rad)``
+     - ``RMS geometric emittance x (m'rad)`` / ``RMS geometric emittance y (m'rad)``
      - float
-     - Emittance
+     - RMS geometric emittance (m rad)
    * - ``sigma_z``
      - ``Sigma z (m)``
      - float
@@ -519,7 +519,7 @@ BunchConfig (Bunch Parameters)
    * - ``dist_trans``
      - ``Transverse dist``
      - str
-     - Transverse distribution: ``kv`` / ``gaussian`` / ``uniform`` / ``waterbag`` / ``parabolic``
+     - Transverse distribution: ``kv`` / ``gaussian`` / ``uniform-real`` / ``uniform-phase`` / ``waterbag`` / ``parabolic``
    * - ``dist_longi``
      - ``Longitudinal dist``
      - str
