@@ -62,15 +62,15 @@ Slicer 的 ``Purpose``：尾场要求 ``general`` 用途，即使没有 BeamBeam
    * - 字段
      - 含义
    * - ``Solver``
-     - 必填 ``direct``、``fft``、``recursive`` （谐振子）、``modal`` （极点/留数）、``partitioned_fft`` （固定带间隙束列）或 ``time_fft`` （变周期物理时间历史）。
+     - 必填 ``direct``、``fft``、``quasistatic_fft`` （按当前速度重建全圈历史）、``recursive`` （谐振子）、``modal`` （极点/留数）、``partitioned_fft`` （固定带间隙束列）或 ``time_fft`` （变周期物理时间历史）。
    * - ``History``
-     - 必填 ``none``、``direct``（源切片历史）、``state`` 或 ``partitioned``；recursive/modal 必须使用 state，partitioned_fft/time_fft 必须使用 partitioned。
+     - 必填 ``none``、``direct``（源切片历史）、``state`` 或 ``partitioned``；quasistatic_fft 必须使用 direct，recursive/modal 必须使用 state，partitioned_fft/time_fft 必须使用 partitioned。
    * - ``Source shape``
      - 各组单独选择 uniform（默认）或 point。
    * - ``Memory turns``
-     - direct 历史为正整数或 null；partitioned_fft 必须为有限正整数。计数前序通过次数，当前通过另计。time_fft 必须为 null。
+     - direct 历史为正整数或 null；quasistatic_fft 和 partitioned_fft 必须为有限正整数。计数前序通过次数，当前通过另计。time_fft 必须为 null。
    * - ``Memory time (s)``
-     - 正值或 null，用于 direct/partitioned 历史；time_fft 必须为有限正值。截断延迟核，包含均匀源部分积分；物理时间投影在不连续截断处存在网格误差。
+     - 正值或 null，用于 direct/partitioned 历史；time_fft 必须为有限正值，quasistatic_fft 必须为 null。截断延迟核，包含均匀源部分积分；物理时间投影在不连续截断处存在网格误差。
    * - ``Convolution grid``
      - partitioned_fft 必填，定义固定的物理时间网格，见下文。
    * - ``Time grid``
@@ -84,9 +84,11 @@ Slicer 的 ``Purpose``：尾场要求 ``general`` 用途，即使没有 BeamBeam
    * - ``Period (s)``、``Periodic images``
      - periodic 必填，使用 direct 求和 -N 至 +N 镜像，不保存瞬态历史。
 
-FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
-明确直接求和。没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
-状态内存随模式数增长。因果批次须按物理时间排序且不重叠（包括均匀源支撑）；
+``fft`` 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
+按保存的物理时间和宽度直接求和，原有语义不变。``quasistatic_fft`` 则按下述明确的
+准静态近似，对保留历史做 FFT；其 History=direct 表示保存源快照，并不表示直接求和。
+没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
+状态内存随模式数增长。物理时间因果求解器要求批次按物理时间排序且不重叠（包括均匀源支撑）；
 跨圈重叠会报错，按圈跟踪不能推断未来轨迹。isolated 声明完整源列已在当前
 批次，periodic 声明其周期稳态；都要求固定 β 且无瞬态历史，不能表示任意
 加速或瞬态环形分布。用户选择周期镜像数并检查收敛。
@@ -420,6 +422,52 @@ epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。该误差为一阶，�
 长期非聚束束流推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
 原有的边界截取行为。
 
+准静态全圈历史
+--------------
+
+选择 ``Solver="quasistatic_fft"``、``History="direct"``、
+``Boundary="causal_passages"`` 和有限正整数 ``Memory turns=H``。
+不设置 ``Memory time (s)``、``Convolution grid``、``Time grid``、
+``Partition``、``Max workspace (MiB)`` 及周期边界参数。
+支持 ``Source shape="point"`` 与 ``"uniform"``。GUI 选择该求解器时使用 direct
+历史，尚未填写的 H 默认设为 10。
+
+该求解器要求单一 PASS bunch，以及在尾场同一位置、当前跟踪圈执行的显式全周长、
+均匀 ``Coordinate="arrival_phase"`` Slicer。一个 PASS bunch 内可以包含多个
+物理 RF 束团。局部束长区间、多个 PASS bunch、变化的切片数或非均匀快照网格均会报错。
+非空网格至少包含两个切片；允许空切片，它们仍属于全圈网格。
+
+每次求值以当前 bunch 的参考速度定义周期和 N 个切片的时间间隔：
+
+.. math::
+
+   T_n = \frac{C}{\beta_n c}, \qquad
+   \Delta t_n = \frac{T_n}{N}, \qquad
+   \tau^{\rm qs}_{n,i;m,j} = [(n-m)N+i-j]\Delta t_n .
+
+其中 i、j 按到达时间递增，m 是源所在的圈。所有保留圈均按当前间隔排列。
+point 源宽度为零；uniform 源使用当前宽度 :math:`\Delta t_n` 做因果单元积分，
+包括当前单元。当前及历史全圈窗口在求值前，均按其各自保存的间距和宽度校验。
+Slicer 的观测窗口可以跟随积分时钟边界，其长度不必等于 :math:`C/(\beta_n c)`；
+该算法为了采用准静态近似，明确将此窗口重映射到 :math:`T_n`。
+
+存储的源矩、发出时速度、物理时间和宽度保持不变。计算响应时，源速度因子和见证粒子
+速度因子均使用当前速度，历史源的耦合也一样。因此，该求解器将延迟网格、积分宽度和
+速度耦合一起冻结为当前值，不改变保存的发出数据。
+缺失圈按零源处理。H 个前序圈表示保留 n-H 到 n 的完整快照，并按重建网格中的因果
+顺序取响应。这不是最大滞后距离 :math:`HC` 的截断；最旧快照的某些粒子对延迟可接近
+:math:`(H+1)T_n`。
+
+这是用当前速度近似物理时间历史的模型，适用于保留历史内周期变化较小，且响应对相应
+延迟变化不敏感的情况。加速较快或窄带响应对相位敏感时，应与物理时间 ``direct``
+或时间网格已收敛的 ``time_fft`` 比较；不能据此承诺集体增长率或损失率的通用误差上限。
+FFT 计算补零后的线性卷积，逆变换只归一化一次，不引入其他程序的额外归一化或距离截断。
+
+每次调用均对完整保留源窗口做变换，不像分块算法那样摊销旧源的 FFT 工作。
+当前间距、源形状和窗口长度不变时，可以复用响应频谱。
+N 个切片与 H 个前序圈的变换规模随 :math:`(H+1)N` 增长。耗时取决于网格、历史长度和
+有效分量数，选择此求解器并不保证固定的加速倍数。
+
 固定网格多束团与长历史
 ----------------------
 
@@ -549,8 +597,10 @@ PASS 跟踪解析或用户提供的响应，不求解任意三维结构的 Maxwe
 不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
 变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
 :math:`T_b-z_{slice}/(\beta_b c)`，时间宽度为 :math:`\Delta z/(\beta_b c)`。
-RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
-后续参考变换不重新解释因果历史。参见 :ref:`zh-longitudinal-reference`。
+RF 不改变保存的区间或成员。存储的源快照保留当次采样的物理时间和宽度，
+后续参考变换不改变这些记录。物理时间求解器直接按此记录求值；
+显式选择的 ``quasistatic_fft`` 近似则按当前参考重新构造延迟、宽度和速度耦合，
+具体约定见上文。参见 :ref:`zh-longitudinal-reference`。
 
 .. math::
 
@@ -561,7 +611,8 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
 :math:`\Delta E=-Z_{\mathrm{ion}}V_\parallel/A`，随后精确换算动量；横向
 :math:`\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)` 使用实际入射速度。
-因果核零点取有限跳跃的一半。``uniform`` 对整个切片时间宽度均匀积分，
+因果核零点取有限跳跃的一半。``uniform`` 对整个切片时间宽度均匀积分
+（``quasistatic_fft`` 使用重建的当前宽度），
 ``point`` 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。
 
 速度、加速与算法组
@@ -572,7 +623,8 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 * ``fixed`` 加 ``Beta``：同一参考速度的稳态响应，跟踪中参考速度变化会被拒绝。
 * ``factorized`` 加递增 ``Betas``、实数 ``Source`` 和 ``Witness`` 表：
   :math:`W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)`，只在表内线性插值。
-  历史激励保存源通过时的速度；当前观察应用测试束团因子。
+  物理时间历史使用源通过时的速度，当前观察应用测试束团因子；
+  ``quasistatic_fft`` 则用当前参考速度计算两个因子，涵盖全部保留的源圈。
 * ``ideal``：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。
 
 有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数

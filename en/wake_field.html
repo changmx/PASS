@@ -92,6 +92,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#coasting-beams">Coasting beams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quasistatic-full-ring-history">Quasistatic full-ring history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#variable-period-general-history">Variable-period general history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#numerical-precision-and-convergence">Numerical precision and convergence</a></li>
@@ -209,19 +210,19 @@ machine impedance. The Python API exports <code class="docutils literal notransl
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
-<td><p>Required: <code class="docutils literal notranslate"><span class="pre">direct</span></code>, <code class="docutils literal notranslate"><span class="pre">fft</span></code>, <code class="docutils literal notranslate"><span class="pre">recursive</span></code> (resonator), <code class="docutils literal notranslate"><span class="pre">modal</span></code> (pole/residue), <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> (stationary gapped train), or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> (variable-period physical-time history).</p></td>
+<td><p>Required: <code class="docutils literal notranslate"><span class="pre">direct</span></code>, <code class="docutils literal notranslate"><span class="pre">fft</span></code>, <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> (current-velocity full-ring history), <code class="docutils literal notranslate"><span class="pre">recursive</span></code> (resonator), <code class="docutils literal notranslate"><span class="pre">modal</span></code> (pole/residue), <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> (stationary gapped train), or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> (variable-period physical-time history).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">History</span></code></p></td>
-<td><p>Required: <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">direct</span></code> (stored source bins), <code class="docutils literal notranslate"><span class="pre">state</span></code> (resonator/modal state), or <code class="docutils literal notranslate"><span class="pre">partitioned</span></code>. The last requires <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
+<td><p>Required: <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">direct</span></code> (stored source bins), <code class="docutils literal notranslate"><span class="pre">state</span></code> (resonator/modal state), or <code class="docutils literal notranslate"><span class="pre">partitioned</span></code>. <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> requires <code class="docutils literal notranslate"><span class="pre">direct</span></code>; the last requires <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">shape</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">uniform</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">point</span></code>; independently selected per group.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code></p></td>
-<td><p>Positive integer or null for direct history; required finite positive integer for <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code>. Counts preceding passages, with the current passage also included. Must be null for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
+<td><p>Positive integer or null for direct history; required finite positive integer for <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> and <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code>. Counts preceding passages, with the current passage also included. Must be null for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
-<td><p>Positive value or null for direct/partitioned history; required finite positive value for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>. Clips the kernel at this delay, including a partial uniform source bin. Physical-time projection introduces mesh error at a discontinuous cutoff.</p></td>
+<td><p>Positive value or null for direct/partitioned history; required finite positive value for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> and must be null for <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code>. Clips the kernel at this delay, including a partial uniform source bin. Physical-time projection introduces mesh error at a discontinuous cutoff.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code></p></td>
 <td><p>Required for <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code>; stationary physical time layout described below.</p></td>
@@ -245,10 +246,15 @@ machine impedance. The Python API exports <code class="docutils literal notransl
 </table>
 <p><code class="docutils literal notranslate"><span class="pre">fft</span></code> requires an increasing uniform current grid with equal source widths no
 larger than the spacing. With <code class="docutils literal notranslate"><span class="pre">History=&quot;direct&quot;</span></code>, previous passages are
-explicitly calculated directly. No <code class="docutils literal notranslate"><span class="pre">auto</span></code> option or silent solver fallback is
+explicitly calculated directly using saved physical times and widths. This
+existing <code class="docutils literal notranslate"><span class="pre">fft</span></code> behavior is unchanged. <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> instead evaluates
+the retained history by FFT using the explicit approximation described below;
+its <code class="docutils literal notranslate"><span class="pre">History=&quot;direct&quot;</span></code> denotes snapshot storage, not direct summation.
+No <code class="docutils literal notranslate"><span class="pre">auto</span></code> option or silent solver fallback is
 provided. Modes retain unlimited decay history with memory proportional to mode
 count. Gaps between bunches use physical elapsed time.</p>
-<p>Causal passages must be ordered and nonoverlapping in physical time, including
+<p>Physical-time causal solvers require passages to be ordered and nonoverlapping
+in physical time, including
 uniform-bin support. Overlap across tracking turns is rejected: turn-batched
 tracking cannot infer future trajectories. A spatial <code class="docutils literal notranslate"><span class="pre">isolated</span></code> boundary
 declares that the complete source train is present in the current batch;
@@ -644,6 +650,60 @@ resolve the slice width after accumulated motion; prefer float64 for long
 coasting runs. An ordinary explicit Slicer keeps its original boundary
 clipping behavior unless periodic arrival slicing is enabled.</p>
 </section>
+<section id="quasistatic-full-ring-history">
+<h2>Quasistatic full-ring history<a class="headerlink" href="#quasistatic-full-ring-history" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">Solver=&quot;quasistatic_fft&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">History=&quot;direct&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code> and a finite positive <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns=H</span></code>.
+Do not set <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, <code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code>, <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Partition</span></code>, <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">workspace</span> <span class="pre">(MiB)</span></code> or periodic-boundary parameters.
+Both <code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">shape=&quot;point&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;uniform&quot;</span></code> are supported. The GUI selects
+direct history and defaults an unset H to 10 when this solver is selected.</p>
+<p>This solver requires one PASS bunch and an explicit full-circumference,
+uniform <code class="docutils literal notranslate"><span class="pre">Coordinate=&quot;arrival_phase&quot;</span></code> Slicer at the wake position, executed
+in the current tracking turn. The one PASS bunch may contain several physical
+RF bunches. A local bunch interval, multiple PASS bunches, changing slice
+counts or nonuniform snapshot grids are rejected. Nonempty grids require at
+least two slices. Empty bins are allowed and remain part of the full-ring grid.</p>
+<p>At each evaluation let N be the number of bins and let the current bunch
+reference velocity define</p>
+<div class="math notranslate nohighlight">
+\[T_n = \frac{C}{\beta_n c}, \qquad
+\Delta t_n = \frac{T_n}{N}, \qquad
+\tau^{\rm qs}_{n,i;m,j} = [(n-m)N+i-j]\Delta t_n .\]</div>
+<p>Here i and j increase in arrival-time order and m is a source turn. All
+retained source turns are laid out using the current spacing. Point sources
+have zero width; uniform sources use the current width
+<span class="math notranslate nohighlight">\(\Delta t_n\)</span> for the causal cell integral, including the current cell.
+The current and saved full-ring windows are checked against their own saved
+spacing and widths before evaluation. In particular, a Slicer’s observation
+window may follow integrated-clock boundaries and need not have duration
+<span class="math notranslate nohighlight">\(C/(\beta_n c)\)</span>. The solver deliberately remaps that window to
+<span class="math notranslate nohighlight">\(T_n\)</span> for this approximation.</p>
+<p>Stored source moments, emission velocities, physical times and widths are
+preserved. For response evaluation, both source and witness velocity factors
+use the current velocity, including the coupling of older sources. Thus this
+solver freezes the delay grid, integration widths and velocity coupling at
+their current values; it does not change the stored emission data. Missing
+turns contribute zero. With H previous turns, the complete snapshots n-H through n
+are retained, subject to causal ordering within the reconstructed grid.
+This is not a maximum-lag cutoff of <span class="math notranslate nohighlight">\(HC\)</span>: pairs in the oldest retained
+snapshot can have delays approaching <span class="math notranslate nohighlight">\((H+1)T_n\)</span>.</p>
+<p>This is a current-velocity approximation to physical-time history, useful
+when the revolution period changes little over the retained turns and the
+response is insensitive to the corresponding delay change. Compare with
+physical-time <code class="docutils literal notranslate"><span class="pre">direct</span></code> or converged <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> results when acceleration
+or narrow-band phase sensitivity matters. There is no universal accuracy
+bound for collective growth or loss. FFT evaluates a zero-padded linear
+convolution with one inverse-transform normalization; this does not import
+an extra normalization or a distance cutoff from another code.</p>
+<p>The complete retained source window is transformed on each call; old-source
+FFT work is not amortized as in a partitioned solver. The response spectrum
+can be reused while the current spacing, source shape and window length stay
+unchanged. For N bins and H previous
+turns the transform size grows with <span class="math notranslate nohighlight">\((H+1)N\)</span>. Runtime depends on grid,
+history and active components, so selecting this solver does not guarantee
+a fixed speedup.</p>
+</section>
 <section id="stationary-multibunch-and-long-history">
 <h2>Stationary multibunch and long history<a class="headerlink" href="#stationary-multibunch-and-long-history" title="Link to this heading"></a></h2>
 <p>Set <code class="docutils literal notranslate"><span class="pre">Solver=&quot;partitioned_fft&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code> and finite
@@ -785,8 +845,12 @@ preserve this time; regrouping transforms z and momenta into the destination
 reference. The wake adapter converts the latest user-supplied z intervals:
 centers are <span class="math notranslate nohighlight">\(T_b-z_{slice}/(\beta_b c)\)</span> and widths are
 <span class="math notranslate nohighlight">\(\Delta z/(\beta_b c)\)</span>. RF does not alter saved intervals or membership.
-Newly emitted sources retain their sampled physical times and widths forever;
-later reference changes do not reinterpret causal history. See <a class="reference internal" href="injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+Stored emitted snapshots retain their sampled physical times and widths;
+later reference changes do not alter those records. Physical-time solvers
+evaluate them without reinterpretation. The explicitly selected
+<code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> approximation instead reconstructs delays, widths and
+velocity coupling from the current reference, as described above.
+See <a class="reference internal" href="injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
 <p>The canonical frequency convention is</p>
 <div class="math notranslate nohighlight">
 \[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad
@@ -800,7 +864,8 @@ voltage means positive Lorentz force. PASS updates energy per nucleon by
 The transverse kick uses incoming particle <span class="math notranslate nohighlight">\(\beta_i\)</span>:
 <span class="math notranslate nohighlight">\(\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)\)</span>.</p>
 <p>Causal kernels use half of a finite jump at zero delay. A <code class="docutils literal notranslate"><span class="pre">uniform</span></code> source
-represents constant charge density over the slice’s full time width; its kernel
+represents constant charge density over the slice’s full time width (the
+reconstructed current width for <code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code>); its kernel
 is integrated analytically or through its primitive. <code class="docutils literal notranslate"><span class="pre">point</span></code> sources are at
 the slice centers. Slicing convergence and parameter scans are user-controlled;
 there is no automatic slice-error controller.</p>
@@ -813,9 +878,11 @@ there is no automatic slice-error controller.</p>
 A different reference speed is rejected, including changes during tracking.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Kind=&quot;factorized&quot;</span></code>, increasing <code class="docutils literal notranslate"><span class="pre">Betas</span></code> and matching real <code class="docutils literal notranslate"><span class="pre">Source</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Witness</span></code> tables: <span class="math notranslate nohighlight">\(W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)\)</span>.
-Linear interpolation is restricted to the supplied beta interval. Historical
-excitation uses the source speed at that passage; the current witness factor
-is applied when observing the stored field.</p></li>
+Linear interpolation is restricted to the supplied beta interval.
+Physical-time history uses the source speed at that passage and applies
+the current witness factor when observing the stored field.
+<code class="docutils literal notranslate"><span class="pre">quasistatic_fft</span></code> instead evaluates both factors at the current reference
+speed, including all retained source turns.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Kind=&quot;ideal&quot;</span></code> explicitly defines a velocity-independent point-response
 coupling. This is a model assumption, not an inferred transit-time correction
 for a physical cavity.</p></li>
