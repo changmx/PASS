@@ -193,8 +193,15 @@ class Injection(Command):
                     if work.is_load_dist:
                         self._load_dist(work, local, scratch, True)
                     else:
-                        transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform", "waterbag": "waterbag", "parabolic": "parabolic"}
-                        longitudinal = {"gaussian": "gaussian", "coasting": "coasting", "matchz": "matchZ", "matchdp": "matchDp"}
+                        transverse = {
+                            "kv": "kv",
+                            "gaussian": "gaussian",
+                            "uniform-real": "uniform_real",
+                            "uniform-phase": "uniform_phase",
+                            "waterbag": "waterbag",
+                            "parabolic": "parabolic",
+                        }
+                        longitudinal = {"gaussian": "gaussian", "coasting": "coasting", "matchz": "matched_z", "matchdp": "matched_dp"}
                         if work.dist_trans not in transverse or work.dist_longi not in longitudinal:
                             raise ValueError("Unsupported injection distribution")
                         getattr(self, "_generate_trans_" + transverse[work.dist_trans] + "_dist")(work, local, scratch, True)
@@ -475,9 +482,9 @@ class Injection(Command):
 
         logger.info(f"Generate successfully")
 
-    def _generate_trans_uniform_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+    def _generate_trans_uniform_real_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
 
-        logger.info(f"The initial transverse Uniform distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
+        logger.info(f"The initial transverse uniform-real distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
@@ -524,6 +531,34 @@ class Injection(Command):
         p.py[start_index:end_index] = p.xp.asarray(py_arr)
 
         logger.info(f"Generate successfully")
+
+    def _generate_trans_uniform_phase_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+        """Fill two independent phase-space ellipses using RMS geometric emittances."""
+        logger.info(f"The initial transverse uniform-phase distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
+
+        start_index = bunch_info.start_idx + inj_bunch.Np_injected
+        n_particles = inj_bunch.Np_inj_curTurn
+        sqrt_beta_x = np.sqrt(inj_bunch.betax)
+        sqrt_beta_y = np.sqrt(inj_bunch.betay)
+        p = beam.particles
+
+        for start in range(0, n_particles, 65536):
+            end = min(start + 65536, n_particles)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64, count=4 * (end - start)).reshape(-1, 4)
+            # Uniform area requires r proportional to sqrt(U); each plane has I <= 4 epsilon_rms.
+            radius_x = 2 * np.sqrt(inj_bunch.emitx * values[:, 0])
+            phase_x = 2 * const.pi * values[:, 1]
+            radius_y = 2 * np.sqrt(inj_bunch.emity * values[:, 2])
+            phase_y = 2 * const.pi * values[:, 3]
+            u_x, v_x = radius_x * np.cos(phase_x), radius_x * np.sin(phase_x)
+            u_y, v_y = radius_y * np.cos(phase_y), radius_y * np.sin(phase_y)
+            destination = slice(start_index + start, start_index + end)
+            p.x[destination] = p.xp.asarray(sqrt_beta_x * u_x)
+            p.px[destination] = p.xp.asarray((v_x - inj_bunch.alphax * u_x) / sqrt_beta_x)
+            p.y[destination] = p.xp.asarray(sqrt_beta_y * u_y)
+            p.py[destination] = p.xp.asarray((v_y - inj_bunch.alphay * u_y) / sqrt_beta_y)
+
+        logger.info("Generate successfully")
 
     def _generate_trans_waterbag_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
 
@@ -1129,8 +1164,8 @@ class InjectionBunchInfo:
         self.betay = kwargs["beta y (m)"]
         self.gammax = (1.0 + self.alphax**2) / self.betax
         self.gammay = (1.0 + self.alphay**2) / self.betay
-        self.emitx = kwargs["emittance x (m'rad)"]
-        self.emity = kwargs["emittance y (m'rad)"]
+        self.emitx = kwargs["rms geometric emittance x (m'rad)"]
+        self.emity = kwargs["rms geometric emittance y (m'rad)"]
         self.dx = kwargs["dx (m)"]
         self.dpx = kwargs["dpx"]
         self.sigmax = np.sqrt(self.betax * self.emitx)

@@ -112,7 +112,7 @@ ENUM_OPTIONS = {
     "Z range mode": ("auto", "explicit"),
     "Direction": ("x", "y"),
     "Mode": ("single_fm", "single_fm_am", "dual_fm", "dual_fm_am"),
-    "Transverse dist": ("kv", "gaussian", "uniform", "waterbag", "parabolic"),
+    "Transverse dist": ("kv", "gaussian", "uniform-real", "uniform-phase", "waterbag", "parabolic"),
     "Longitudinal dist": ("gaussian", "coasting", "matchz", "matchdp"),
     "Particle Precision": ("float32", "float64"),
     "Longitudinal transfer": ("off", "drift", "matrix"),
@@ -160,6 +160,9 @@ FIELD_HELP = {
     "Harmonic Number": "束团分组数；添加或删除 bunch 时由界面自动保持一致。",
     "Harmonic ID of this bunch": "该 bunch 的分组编号；保留用户的排列，所有槽需恰好覆盖 [0, Harmonic Number)。",
     "Random Seed": "分布生成随机种子。留空（null）时每次运行使用非确定性随机数。",
+    "RMS geometric emittance x (m'rad)": "水平 RMS 几何发射度，单位 m·rad；用于叠加色散和中心偏移前的本征分布。",
+    "RMS geometric emittance y (m'rad)": "垂直 RMS 几何发射度，单位 m·rad；用于叠加色散和中心偏移前的本征分布。",
+    "Transverse dist": "uniform-real：色散前实空间矩形均匀；uniform-phase：两个横向相空间椭圆分别独立均匀。所有类型均使用 RMS 几何发射度。",
     "Timing": "运行进度和 ETA 的输出方式。",
     "Device Id": "GPU 后端使用的设备编号列表。",
     "Insert Particle Coordinate": "每行一个粒子：x、px、y、py、z_rel、dp/p。行数就是手动插入粒子数，包含在宏粒子总数内。",
@@ -928,8 +931,8 @@ class ConfigPage(QWidget):
             template["S (m)"] = 0.0
             # The Gaussian rejection sampler requires a non-degenerate ellipse.
             # These are GUI starting values; the public physics schema is unchanged.
-            template["bunch0"]["Emittance x (m'rad)"] = 1e-6
-            template["bunch0"]["Emittance y (m'rad)"] = 1e-6
+            template["bunch0"]["RMS geometric emittance x (m'rad)"] = 1e-6
+            template["bunch0"]["RMS geometric emittance y (m'rad)"] = 1e-6
             return template
         if command == "Twiss":
             from PASS.para.schema.twiss import TwissItem
@@ -3268,8 +3271,8 @@ class ConfigPage(QWidget):
         definitions = (
             ("束团与注入", ("Kinetic Energy per Nucleon (eV/u)", "Number of Real Particles", "Number of Macro Particles", "Harmonic ID of this bunch",
                        "Reference arrival time (s)", "Total Injection Turns", "Injection Interval")),
-            ("横向分布", ("Transverse dist", "Alpha x", "Beta x (m)", "Emittance x (m'rad)", "Alpha y", "Beta y (m)", "Emittance y (m'rad)", "Dx (m)",
-                      "Dpx")),
+            ("横向分布", ("Transverse dist", "Alpha x", "Beta x (m)", "RMS geometric emittance x (m'rad)", "Alpha y", "Beta y (m)",
+                      "RMS geometric emittance y (m'rad)", "Dx (m)", "Dpx")),
             ("纵向分布", ("Longitudinal dist", "Sigma z (m)", "Sigma dp/p", "RF Voltage (V)", "RF Phase (rad)", "RF S Position Refer to Inj. Point (m)")),
             ("分布文件", ("Is Load Distribution from File", "Distribution File Path", "Distribution File Mode")),
             ("注入偏移", ("Momentum Offset dp", "Kinetic Energy Offset (eV)", "Offset x", "Offset y")),
@@ -3735,6 +3738,8 @@ class ConfigPage(QWidget):
             "Scan Grid": "扫描粒子",
             "Is Save Initial Distribution": "保存注入分布",
             "Output format": "输出格式",
+            "RMS geometric emittance x (m'rad)": "RMS 几何发射度 x (m·rad)",
+            "RMS geometric emittance y (m'rad)": "RMS 几何发射度 y (m·rad)",
             "Write interval (turns)": "每次写入圈数",
             "Dp aperture": "动量接受范围",
             "Device Id": "GPU 设备列表",

@@ -159,8 +159,14 @@ class BunchConfig(BaseModel):
     beta_y: float = Field(default=1.0, gt=0, alias="Beta y (m)")
 
     # --- emittance ---
-    emit_x: float = Field(default=0.0, ge=0, alias="Emittance x (m'rad)")
-    emit_y: float = Field(default=0.0, ge=0, alias="Emittance y (m'rad)")
+    emit_x: float = Field(default=0.0,
+                          ge=0,
+                          alias="RMS geometric emittance x (m'rad)",
+                          description="Horizontal RMS geometric emittance before dispersion and centroid offsets.")
+    emit_y: float = Field(default=0.0,
+                          ge=0,
+                          alias="RMS geometric emittance y (m'rad)",
+                          description="Vertical RMS geometric emittance before dispersion and centroid offsets.")
 
     # --- dispersion ---
     dx: float = Field(default=0.0, alias="Dx (m)")
@@ -171,10 +177,10 @@ class BunchConfig(BaseModel):
     dp: float = Field(default=0.001, gt=0, alias="Sigma dp/p")
 
     # --- distribution type ---
-    dist_trans: str = Field(
+    dist_trans: Literal["kv", "gaussian", "uniform-real", "uniform-phase", "waterbag", "parabolic"] = Field(
         default="gaussian",
         alias="Transverse dist",
-        description="kv / gaussian / uniform / waterbag / parabolic",
+        description="kv / gaussian / uniform-real / uniform-phase / waterbag / parabolic",
     )
     dist_longi: str = Field(
         default="gaussian",
@@ -235,6 +241,15 @@ class BunchConfig(BaseModel):
     scan_grid: ScanGridConfig | None = Field(default=None,
                                              alias="Scan Grid",
                                              description="Cartesian coordinates replacing first-batch rows after injection offsets")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_emittance_keys(cls, values):
+        if isinstance(values, dict):
+            for key in values:
+                if str(key).casefold() in {"emittance x (m'rad)", "emittance y (m'rad)"}:
+                    raise ValueError("Use RMS geometric emittance x/y (m'rad) for injection emittances")
+        return values
 
     @model_validator(mode="after")
     def _validate_insert_source(self):

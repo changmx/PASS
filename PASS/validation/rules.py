@@ -400,9 +400,9 @@ class Validator:
             if not isinstance(raw[key], dict):
                 continue
             self.require(raw[key], [
-                "Total Injection Turns", "Injection Interval", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Emittance x (m'rad)",
-                "Emittance y (m'rad)", "Dx (m)", "Dpx", "Sigma z (m)", "Sigma dp/p", "Transverse dist", "Longitudinal dist", "Offset x", "Offset y",
-                "Insert Particle Coordinate"
+                "Total Injection Turns", "Injection Interval", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "RMS geometric emittance x (m'rad)",
+                "RMS geometric emittance y (m'rad)", "Dx (m)", "Dpx", "Sigma z (m)", "Sigma dp/p", "Transverse dist", "Longitudinal dist", "Offset x",
+                "Offset y", "Insert Particle Coordinate"
             ], p)
             ids.append(b.get("Harmonic ID of this bunch", 0))
             self.numeric(b, "Kinetic Energy per Nucleon (eV/u)", p, positive=True)
@@ -450,11 +450,11 @@ class Validator:
             all_explicit = n > 0 and explicit_count == n
             if insert_file and not self.check_files:
                 all_explicit = True  # File-dependent completeness is checked at load time.
-            self.choice(b, "Transverse dist", {"gaussian", "kv", "uniform", "waterbag", "parabolic"}, p)
+            self.choice(b, "Transverse dist", {"gaussian", "kv", "uniform-real", "uniform-phase", "waterbag", "parabolic"}, p)
             self.choice(b, "Longitudinal dist", {"gaussian", "coasting", "matchz", "matchdp"}, p)
             if b.get("Transverse dist") == "gaussian" and not b.get("Is Load Distribution from File") and n and not all_explicit:
-                if any(b.get(f"Emittance {axis} (m'rad)", 0) <= 0 for axis in "xy"):
-                    self.add(p, "injection.gaussian", "Gaussian generation requires positive Emittance x/y (m'rad); Gaussian 发射度必须大于 0")
+                if any(b.get(f"RMS geometric emittance {axis} (m'rad)", 0) <= 0 for axis in "xy"):
+                    self.add(p, "injection.gaussian", "Gaussian generation requires positive RMS geometric emittance x/y (m'rad); Gaussian 发射度必须大于 0")
             ddp, dde = b.get("Momentum Offset dp", 0), b.get("Kinetic Energy Offset (eV)", 0)
             if is_finite_number(ddp) and is_finite_number(dde):
                 if ddp and dde:
