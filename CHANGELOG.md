@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.1] - 2026-10-09
+
+### Added
+
+- Transverse `uniform-phase` distribution with independently uniform phase-space ellipses in both planes.
+
+### Changed
+
+- Renamed the transverse `uniform` distribution to `uniform-real`; old inputs must use the new name.
+
+---
+
 ## [0.6.0] - 2026-10-08
 
 ### Added
