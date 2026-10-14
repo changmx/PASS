@@ -843,3 +843,14 @@ API 入口
 ------------
 
 ``PASS.para.api`` 提供 ``generate_input``、``build_sequence``、``generate_from_tfs`` 和 ``load_input``。``load_input(path)`` 返回 ``(MainConfig, raw_sequence_dict)``，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud/Intrabeam scattering 配置块；返回前会校验电子云和 IBS 配置及其引用。编辑现有完整文件时应单独保留这些配置块。
+
+``generate_from_tfs`` 为未指定 ``kinetic_energy`` 的束团自动填值时，MAD-X
+``ENERGY`` 和 ``MASS`` 分别表示完整粒子的总能量和静能，单位为 GeV。
+质量数取解析后的 ``MainConfig`` 中的
+``A = main_cfg.num_proton + main_cfg.num_neutron``，不由 ``beam_name`` 或电荷数决定。
+当 ``A > 0`` 时，导入动能为 ``(ENERGY - MASS) * 1e9 / A``，单位为 eV/u。
+电子和正电子的 ``A = 0``，采用 ``(ENERGY - MASS) * 1e9``，单位为每粒子 eV。
+显式提供的 ``kinetic_energy`` 按相应的 PASS 单位保留。
+
+此换算保留 TFS 动能，运行时仍采用 PASS 既有的粒子质量约定，详见 :doc:`injection`。
+如果 TFS 静质量与 PASS 使用的质量不同，所得参考粒子的 gamma 和 beta 不保证与 TFS 值相同。

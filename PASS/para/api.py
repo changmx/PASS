@@ -263,9 +263,12 @@ def generate_from_tfs(
         output_path: output JSON file path.
         main: dict of MainConfig fields (beam_name, num_turns, ...).
             'circumference' and 'gamma_t' are auto-filled from TFS
-            if not provided.
+            if not provided. 'num_proton' + 'num_neutron' defines the
+            mass number used to normalize the imported kinetic energy.
         bunches: list of dicts, each passed to BunchConfig(**dict).
-            'kinetic_energy' is auto-filled from TFS if not provided.
+            Missing 'kinetic_energy' is (ENERGY - MASS) * 1e9 / A in eV/u
+            for A > 0, or (ENERGY - MASS) * 1e9 in eV per particle for
+            electrons/positrons (A = 0). Explicit values are preserved.
         element_settings: optional dict with keys:
             quad_slices, bend_slices, sext_slices, oct_slices,
             bend_model, quad_model,
@@ -287,7 +290,6 @@ def generate_from_tfs(
     headers = _read_tfs_headers(twiss_file)
     circum = headers["circumference"]
     gamma_tr = headers["gamma_tr"]
-    ek_per_nucleon = (headers["energy"] - headers["mass"]) * 1e9  # GeV -> eV/u
 
     # GAMMATR=0 -> division by zero in eta; use large value
     if abs(gamma_tr) < 1e-10:
@@ -295,7 +297,6 @@ def generate_from_tfs(
 
     print(f"[PASS] TFS: C={circum:.4f}, gamma={headers['gamma']:.6f}, "
           f"gamma_tr={gamma_tr}, Q1={headers['q1']:.6f}, Q2={headers['q2']:.6f}")
-    print(f"[PASS] Ekin={ek_per_nucleon:.6e} eV/u")
 
     # --- Auto-fill main ---
     main = dict(main)  # copy
@@ -307,11 +308,20 @@ def generate_from_tfs(
     main.setdefault("num_electron", 1)
     main_cfg = MainConfig(**main)
 
+    # TFS energies are per particle; leptons retain per-particle normalization.
+    mass_number = main_cfg.num_proton + main_cfg.num_neutron
+    kinetic_energy = (headers["energy"] - headers["mass"]) * 1e9
+    energy_unit = "eV/particle"
+    if mass_number > 0:
+        kinetic_energy /= mass_number
+        energy_unit = "eV/u"
+    print(f"[PASS] TFS kinetic energy for auto-fill: {kinetic_energy:.6e} {energy_unit}")
+
     # --- Auto-fill bunches ---
     bunch_objs = []
     for bdict in bunches:
         bdict = dict(bdict)  # copy
-        bdict.setdefault("kinetic_energy", ek_per_nucleon)
+        bdict.setdefault("kinetic_energy", kinetic_energy)
         bunch_objs.append(BunchConfig(**bdict))
 
     # --- Read lattice elements ---

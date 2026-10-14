@@ -912,3 +912,17 @@ API entry points
 --------------------------------
 
 ``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud/Intrabeam scattering blocks. It validates electron-cloud and IBS configurations and references before returning. Preserve those blocks explicitly when editing a complete existing file.
+
+When ``generate_from_tfs`` fills an omitted bunch ``kinetic_energy``, MAD-X
+``ENERGY`` and ``MASS`` are the complete particle's total and rest energies in
+GeV. The mass number is ``A = main_cfg.num_proton + main_cfg.num_neutron`` after
+parsing ``MainConfig``; neither ``beam_name`` nor the charge count determines it.
+For ``A > 0``, the imported kinetic energy is
+``(ENERGY - MASS) * 1e9 / A`` in eV/u. Electrons and positrons have ``A = 0`` and
+use ``(ENERGY - MASS) * 1e9`` in eV per particle. An explicitly supplied
+``kinetic_energy`` is preserved in the corresponding PASS units.
+
+This conversion preserves the TFS kinetic energy and leaves PASS's runtime
+species-mass convention unchanged; see :doc:`injection`. If the TFS rest mass
+differs from the mass used by PASS, the resulting reference gamma and beta need
+not equal their TFS values.
