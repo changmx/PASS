@@ -527,11 +527,11 @@ BunchConfig (Bunch Parameters)
    * - ``rf_voltage``
      - ``RF Voltage (V)``
      - float
-     - RF voltage (used in matchz/matchdp modes)
+     - Signed physical RF voltage (used in matchz/matchdp modes)
    * - ``rf_phase``
      - ``RF Phase (rad)``
      - float
-     - RF phase
+     - Physical RF waveform phase at the matching reference event (matchz/matchdp); see :ref:`en-injection-matching-phase`
    * - ``harmonic_id``
      - ``Harmonic ID of this bunch``
      - int

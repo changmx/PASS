@@ -484,11 +484,11 @@ BunchConfig（束团参数）
    * - ``rf_voltage``
      - ``RF Voltage (V)``
      - float
-     - RF 电压（matchz/matchdp 模式使用）
+     - 有符号的物理 RF 电压（matchz/matchdp 模式使用）
    * - ``rf_phase``
      - ``RF Phase (rad)``
      - float
-     - RF 相位
+     - 匹配参考事件处的物理 RF 波形相位（matchz/matchdp），见 :ref:`zh-injection-matching-phase`
    * - ``harmonic_id``
      - ``Harmonic ID of this bunch``
      - int

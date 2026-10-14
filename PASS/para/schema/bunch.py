@@ -189,8 +189,10 @@ class BunchConfig(BaseModel):
     )
 
     # --- RF (for matchz/matchdp) ---
-    rf_voltage: float = Field(default=0.0, alias="RF Voltage (V)")
-    rf_phase: float = Field(default=0.0, alias="RF Phase (rad)")
+    rf_voltage: float = Field(default=0.0, alias="RF Voltage (V)", description="Signed physical RF voltage amplitude for matchz/matchdp")
+    rf_phase: float = Field(default=0.0,
+                            alias="RF Phase (rad)",
+                            description="Physical synchronous RF phase at the matching reference event for matchz/matchdp")
     harmonic_id: int = Field(default=0, ge=0, alias="Harmonic ID of this bunch")
     rf_s_position: float = Field(
         default=0.0,

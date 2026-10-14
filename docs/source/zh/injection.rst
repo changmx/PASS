@@ -170,13 +170,13 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
     - float
     - V
     - ``0.0``
-    - 射频电压 （ ``matchz`` 和 ``matchdp`` 分布需提供）
+    - 有符号的物理射频电压（ ``matchz`` 和 ``matchdp`` 分布需提供）
   * - ``rf_phase``
     - ``RF Phase (rad)``
     - float
     - rad
     - ``0.0``
-    - 射频相位 :math:`\phi_s` （ ``matchz`` 和 ``matchdp`` 分布需提供）
+    - 匹配参考事件处的物理波形相位 :math:`\phi_s`，见 :ref:`zh-injection-matching-phase`
   * - ``harmonic_id``
     - ``Harmonic ID of this bunch``
     - int
@@ -972,7 +972,45 @@ Twiss alpha 非零时，相应的归一化动量需包含剪切项 :math:`\alpha
     的粒子。
 
 
+匹配求根使用完整 RF 桶内连续分布的归一化中心矩，使其 RMS 满足输入目标。动量积分先用不完全伽马函数解析计算，再对按分布自然宽度缩放后的 z 自适应积分，并显式划分积分区间以捕捉窄峰。这提高了矩的计算精度，不改变分布密度、RF 势能或匹配目标。粒子采样随后另行施加截断，因此最终有限样本的 RMS 仍可能与该目标不同。
+
 RF 匹配采样还施加 bucket 哈密顿量接受范围的 0.9 比例限制。超过模型最大尺度的请求会调整为该最大值的 0.99 倍。这些条件与 z 截断共同作用，所得样本 RMS 不一定等于输入匹配目标。
+
+.. _zh-injection-matching-phase:
+
+匹配计算中的射频相位和电荷符号
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+对于 ``matchz`` 和 ``matchdp``，``RF Phase (rad)`` 表示参考粒子在匹配 RF
+位置到达时的物理射频波形相位。对于 :doc:`element/rfcavity` 中的波形，输入为
+:math:`\phi_s=\theta(t_s)=2\pi\int_0^{t_s}f(t)\,dt+\phi(t_s)`，包含时钟相位，
+并非仅指相位偏移参数。匹配输入显式指定该事件处的相位；Injection 不根据跟踪质心
+推断它，也不从名义分组坐标 ``z_center`` 添加相位。
+
+匹配仍使用现有的冻结、单谐波、小相对动量偏差模型。令
+:math:`\delta=(P-P_0)/P_0`、:math:`\eta=\gamma_t^{-2}-\gamma^{-2}`、
+:math:`\phi=\phi_s-2\pi h z_{\mathrm{rel}}/C`，模型方程为
+
+.. math::
+
+   \frac{d\phi}{dN}=2\pi h\eta\delta,\qquad
+   \frac{d\delta}{dN}=\frac{q_rV}{\beta^2 E_r}
+   \left(\sin\phi-\sin\phi_s\right),\qquad
+   Q_s^2=-\frac{h\eta q_rV\cos\phi_s}{2\pi\beta^2E_r}>0.
+
+其中 :math:`q` 是以元电荷为单位的有符号电荷数，:math:`V` 为输入的有符号电压，
+:math:`E` 为每粒子总能量（eV）。当 :math:`A=N_p+N_n>0` 时，使用
+:math:`q_r=q/A` 和 :math:`E_r=E/A`；电子和正电子（:math:`A=0`）使用
+:math:`q_r=q` 和 :math:`E_r=E`。因此稳定相位必须满足
+:math:`qV\eta\cos\phi_s<0`。例如 :math:`V>0` 且 :math:`\eta>0` 时，电子的
+稳定物理相位为 0，正电荷粒子的稳定物理相位为 :math:`\pi`。桶边界采用该稳定相位
+所在分支两侧相邻鞍点中较低的势垒。电荷符号修正不改变匹配分布模型，也不增加
+多谐波、爬坡、辐射或集体场匹配。
+
+旧版负电荷 Injection 输入若曾手动加 :math:`\pi` 来补偿无符号电荷计算，应去掉
+该补偿并填入物理相位。:doc:`GUI RF bucket 工具 <gui_tools>` 保留独立的有效相位
+约定：:math:`qV<0` 时，GUI 相位为物理相位加 :math:`\pi`，再对 :math:`2\pi`
+取模。GUI 输入约定不变。
 
 多束团纵向坐标
 ~~~~~~~~~~~~~~

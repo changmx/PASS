@@ -551,8 +551,10 @@ def check_longitudinal(check):
         if bunch.get("Longitudinal dist") in {"matchz", "matchdp"} and not bunch.get("Is Load Distribution from File") and bunch.get(
                 "Number of Macro Particles", 0) > 0:
             voltage, phase = bunch.get("RF Voltage (V)"), bunch.get("RF Phase (rad)")
-            if is_finite_number(voltage) and is_finite_number(phase) and -voltage * eta * math.cos(phase) <= 0:
-                check.add(path, "injection.rf_stability", "匹配分布要求 -V·eta·cos(phi_s) > 0；当前参数没有稳定 RF 桶或位于过渡能量")
+            if is_finite_number(voltage) and is_finite_number(phase):
+                cos_phase = math.cos(math.remainder(phase, 2 * math.pi))
+                if abs(cos_phase) <= 8 * math.ulp(1.0) or -charge * voltage * eta * cos_phase <= 0:
+                    check.add(path, "injection.rf_stability", "匹配分布要求 -q·V·eta·cos(phi_s) > 0；RF Phase 为物理相位，q 为带符号电荷数，当前参数没有稳定 RF 桶或位于过渡能量")
         beta_squared = 1 - 1 / gamma / gamma
         if beta_squared <= 0:
             check.add((*path, "Kinetic Energy per Nucleon (eV/u)"), "beam.beta", "动能太小，浮点精度下 beta 为 0，无法跟踪")

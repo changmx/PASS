@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 import re
 from pathlib import Path
 import random
@@ -13,7 +14,8 @@ from dataclasses import dataclass
 import numpy as np
 import tfs
 from scipy.optimize import brentq
-from scipy.integrate import dblquad
+from scipy.integrate import quad_vec
+from scipy.special import gammainc
 
 from PASS.commands.command import Command
 from PASS.core.config import Config
@@ -817,7 +819,7 @@ class Injection(Command):
         zmax = inj_bunch.compute_bucket_z_max()
         zmin = inj_bunch.compute_bucket_z_min()
         dp = inj_bunch.compute_bucket_dp_max()
-        Hmax = inj_bunch.compute_hamiltonian_from_phase(inj_bunch.compute_unstable_fixed_point_phase(), 0.0)
+        Hmax = inj_bunch._get_rf_bucket().hamiltonian
         H0 = 0.0
 
         z_arr = np.zeros(injection_count, dtype=np.float64)
@@ -895,7 +897,7 @@ class Injection(Command):
         zmax = inj_bunch.compute_bucket_z_max()
         zmin = inj_bunch.compute_bucket_z_min()
         dp = inj_bunch.compute_bucket_dp_max()
-        Hmax = inj_bunch.compute_hamiltonian_from_phase(inj_bunch.compute_unstable_fixed_point_phase(), 0.0)
+        Hmax = inj_bunch._get_rf_bucket().hamiltonian
         H0 = 0.0
 
         z_arr = np.zeros(injection_count, dtype=np.float64)
@@ -1324,69 +1326,89 @@ class InjectionBunchInfo:
     def compute_initial_slip_factor(self):
         return 1.0 / self.gamma_t / self.gamma_t - 1.0 / self.gamma / self.gamma
 
-    def compute_separatrix_dp_from_phase(self, phi: float):
-        E = self.Ek + self.m0
+    def _get_rf_bucket(self):
+        charge = np.sign(self.num_charge) * self.qm_ratio
         eta = self.compute_initial_slip_factor()
-        pi = const.pi
-        temp = -1 * self.qm_ratio * self.rf_voltage / pi / self.beta / self.beta / E / self.harmonic_num / eta * (
-            np.cos(phi) + np.cos(self.rf_phi) - (pi - phi - self.rf_phi) * np.sin(self.rf_phi))
-        if temp < 0:
-            temp = 0
-        return np.sqrt(temp)
+        parameters = (self.rf_phi, self.rf_voltage, charge, self.beta, self.Ek + self.m0, self.harmonic_num, eta, self.circum)
+        # Build lazily: file/manual distributions do not necessarily use RF matching.
+        if getattr(self, "_rf_bucket_parameters", None) != parameters:
+            self.compute_synchrotron_tune()
+            phase = math.remainder(self.rf_phi, 2 * const.pi)
+            sin_phase, cos_phase = math.sin(phase), math.cos(phase)
+            tolerance = 8 * np.finfo(float).eps
+            if abs(sin_phase) <= tolerance:
+                left, right = -const.pi, const.pi
+            else:
+                # Avoid phase subtraction as the stable and unstable points merge.
+                nearest = 2 * math.atan(cos_phase / sin_phase)
+                left, right = (nearest - 2 * const.pi, nearest) if nearest > 0 else (nearest, nearest + 2 * const.pi)
+
+            def potential(offset):
+                return np.sign(eta) * self.compute_hamiltonian_from_z(-self.rho * offset / self.harmonic_num, 0.0)
+
+            left_height, right_height = potential(left), potential(right)
+            saddle = left if left_height <= right_height else right
+            height = min(left_height, right_height)
+            if not np.isfinite(height) or height <= 0:
+                raise ValueError("Matched RF bucket has no numerically resolved positive barrier")
+            # Reflect the lower saddle to bracket the opposite turning point.
+            if left_height < right_height:
+                right = -left * brentq(lambda fraction: potential(-left * fraction) - height, 0.0, 1.0, xtol=tolerance, rtol=tolerance)
+            elif right_height < left_height:
+                left = -right * brentq(lambda fraction: potential(-right * fraction) - height, 0.0, 1.0, xtol=tolerance, rtol=tolerance)
+            if not left < 0 < right:
+                raise ValueError("Matched RF bucket boundaries do not enclose the synchronous phase")
+            self._rf_bucket = SimpleNamespace(phase_min_offset=left, phase_max_offset=right, saddle_offset=saddle, hamiltonian=np.sign(eta) * height)
+            self._rf_bucket_parameters = parameters
+        return self._rf_bucket
+
+    def compute_separatrix_dp_from_phase(self, phi: float):
+        return self.compute_separatrix_dp_from_z(self.compute_z_from_phase(phi))
 
     def compute_separatrix_dp_from_z(self, z: float):
-        phi = self.compute_phase_from_z(z)
-        return self.compute_separatrix_dp_from_phase(phi)
+        bucket = self._get_rf_bucket()
+        eta = self.compute_initial_slip_factor()
+        f0_now = self.beta * const.c / self.circum
+        offset = -self.harmonic_num * z / self.rho
+        inside = (offset >= bucket.phase_min_offset) & (offset <= bucket.phase_max_offset)
+        dp_squared = (bucket.hamiltonian - self.compute_hamiltonian_from_z(z, 0.0)) / (const.pi * self.harmonic_num * f0_now * eta)
+        return np.sqrt(np.where(inside, np.maximum(0.0, dp_squared), 0.0))
 
     def compute_unstable_fixed_point_phase(self):
-        return const.pi - self.rf_phi
+        return self.rf_phi + self._get_rf_bucket().saddle_offset
 
     def compute_bucket_dp_max(self):
-        return self.compute_separatrix_dp_from_phase(self.rf_phi)
+        return self.compute_separatrix_dp_from_z(0.0)
 
     def compute_bucket_phase_max(self):
-        pi = const.pi
-        if self.compute_initial_slip_factor() < 0:
-            return pi - self.rf_phi
-        else:
-            phi_syn = self.rf_phi
-
-            def f(x):
-                return np.cos(x) + x * np.sin(phi_syn) + np.cos(phi_syn) - (pi - phi_syn) * np.sin(phi_syn)
-
-            root = brentq(f, phi_syn, 2 * pi)
-            return root
+        return self.rf_phi + self._get_rf_bucket().phase_max_offset
 
     def compute_bucket_phase_min(self):
-        pi = const.pi
-        if self.compute_initial_slip_factor() > 0:
-            return pi - self.rf_phi
-        else:
-            phi_syn = self.rf_phi
-
-            def f(x):
-                return np.cos(x) + x * np.sin(phi_syn) + np.cos(phi_syn) - (pi - phi_syn) * np.sin(phi_syn)
-
-            root = brentq(f, -1 * pi, phi_syn)
-            return root
+        return self.rf_phi + self._get_rf_bucket().phase_min_offset
 
     def compute_bucket_z_max(self):
-        phi = self.compute_bucket_phase_min()
-        return self.compute_z_from_phase(phi)
+        return -self.rho * self._get_rf_bucket().phase_min_offset / self.harmonic_num
 
     def compute_bucket_z_min(self):
-        phi = self.compute_bucket_phase_max()
-        return self.compute_z_from_phase(phi)
+        return -self.rho * self._get_rf_bucket().phase_max_offset / self.harmonic_num
 
     def compute_synchrotron_tune(self):
         E = self.Ek + self.m0
         eta = self.compute_initial_slip_factor()
-        pi = const.pi
-        Qs = np.sqrt(-1 * self.qm_ratio * self.harmonic_num * self.rf_voltage * eta * np.cos(self.rf_phi) / 2 / pi / self.beta / self.beta / E)
+        charge = np.sign(self.num_charge) * self.qm_ratio
+        if not all(np.isfinite(value) for value in (self.rf_phi, self.rf_voltage, charge, self.beta, E, self.harmonic_num, eta)):
+            raise ValueError("Matched RF bucket requires finite parameters")
+        if self.beta <= 0 or E <= 0 or self.harmonic_num <= 0:
+            raise ValueError("Matched RF bucket requires positive beta, total energy and harmonic number")
+        cos_phase = math.cos(math.remainder(self.rf_phi, 2 * const.pi))
+        if abs(cos_phase) <= 8 * np.finfo(float).eps or -charge * self.rf_voltage * eta * cos_phase <= 0:
+            raise ValueError("Matched RF bucket requires -q*V*eta*cos(phi_s) > 0 at the physical RF phase")
+        Qs = np.sqrt(-charge * self.rf_voltage * self.harmonic_num * eta * cos_phase / (2 * const.pi * self.beta**2 * E))
+        if not np.isfinite(Qs) or Qs <= 0:
+            raise ValueError("Matched RF bucket requires a numerically resolved positive synchrotron tune")
         return Qs
 
     def compute_hamiltonian_scale_from_z(self, z: float):
-        E = self.Ek + self.m0
         eta = self.compute_initial_slip_factor()
         pi = const.pi
         Qs = self.compute_synchrotron_tune()
@@ -1396,106 +1418,76 @@ class InjectionBunchInfo:
         return H0
 
     def compute_hamiltonian_scale_from_dp(self, dp_c: float):
-        E = self.Ek + self.m0
         eta = self.compute_initial_slip_factor()
         pi = const.pi
-        Qs = self.compute_synchrotron_tune()
         f0_now = self.beta * const.c / self.circum
         # H0 = -h*2*pi*f0*eta*dp^2
         H0 = -1 * self.harmonic_num * 2 * pi * f0_now * eta * dp_c * dp_c
         return H0
 
     def compute_hamiltonian_from_phase(self, phi: float, deltap: float):
-        E = self.Ek + self.m0
-        eta = self.compute_initial_slip_factor()
-        pi = const.pi
-        f0_now = self.beta * const.c / self.circum
-        # H = 1/2*h*omega_0*eta*dp^2+omega_0*q*V/2/pi/beta^2/E*(cos(phi)-cos(phi_s)+(phi-phi_s)*sin(phi_s))
-        H = (1.0 / 2.0 * self.harmonic_num * 2.0 * pi * f0_now * eta * deltap *
-             deltap) + (2.0 * pi * f0_now * self.qm_ratio * self.rf_voltage / 2.0 / pi / self.beta / self.beta / E *
-                        (np.cos(phi) - np.cos(self.rf_phi) + (phi - self.rf_phi) * np.sin(self.rf_phi)))
-        return H
+        return self.compute_hamiltonian_from_z(self.compute_z_from_phase(phi), deltap)
 
     def compute_hamiltonian_from_z(self, z: float, deltap: float):
-        phi = self.compute_phase_from_z(z)
-        return self.compute_hamiltonian_from_phase(phi, deltap)
+        eta = self.compute_initial_slip_factor()
+        f0_now = self.beta * const.c / self.circum
+        charge = np.sign(self.num_charge) * self.qm_ratio
+        phase = math.remainder(self.rf_phi, 2 * const.pi)
+        sin_phase, cos_phase = math.sin(phase), math.cos(phase)
+        if abs(sin_phase) <= 8 * np.finfo(float).eps:
+            sin_phase = 0.0
+        offset = -self.harmonic_num * np.asarray(z) / self.rho
+        # Retain the cubic term near the stable point without cosine cancellation.
+        cubic = offset**3 * (1 / 6 - offset**2 / 120 + offset**4 / 5040)
+        offset_minus_sin = np.where(np.abs(offset) < 1e-2, cubic, offset - np.sin(offset))
+        shape = -2 * cos_phase * np.sin(offset / 2)**2 + sin_phase * offset_minus_sin
+        return f0_now * (const.pi * self.harmonic_num * eta * deltap**2 + charge * self.rf_voltage / (self.beta**2 * (self.Ek + self.m0)) * shape)
 
     def psi(self, z: float, dp: float, H0: float, Hmax: float):
-        # Use the generating function: 1-(exp(H/H0)-1)/(exp(Hmax/H0)-1).
-        return 1 - (np.exp(self.compute_hamiltonian_from_z(z, dp) / H0) - 1) / (np.exp(Hmax / H0) - 1)
+        # Evaluate the same lowered exponential without subtracting values near 1.
+        exponent = self.compute_hamiltonian_from_z(z, dp) / H0
+        boundary = Hmax / H0
+        difference = exponent - boundary
+        return np.exp(np.maximum(exponent, boundary)) * np.sign(difference) * (-np.expm1(-np.abs(difference))) / (-np.expm1(boundary))
 
     def compute_sigma_z(self, z_c: float):
-        zmax = self.compute_bucket_z_max()
-        zmin = self.compute_bucket_z_min()
-
-        # Get the separatrix of the buncket
-        def dp1(z):
-            return -self.compute_separatrix_dp_from_z(z)
-
-        def dp2(z):
-            return self.compute_separatrix_dp_from_z(z)
-
-        # Get the H0 and Hmax used in generating function.
-        H0 = self.compute_hamiltonian_scale_from_z(z_c)
-        Hmax = self.compute_hamiltonian_from_phase(self.compute_unstable_fixed_point_phase(), 0.0)
-
-        # Get the integral of generating function in the bucket.
-        def psi_q(dp, z):
-            return self.psi(z, dp, H0, Hmax)
-
-        Q, _ = dblquad(psi_q, zmin, zmax, dp1, dp2)
-
-        # Get the mean value of generating function in the bucket.
-        def psi_m(dp, z):
-            return z * self.psi(z, dp, H0, Hmax)
-
-        M, _ = dblquad(psi_m, zmin, zmax, dp1, dp2)
-        M /= Q
-
-        # Get the standard deviation of generating function in the bucket.
-        def psi_v(dp, z):
-            return (z - M) * (z - M) * self.psi(z, dp, H0, Hmax)
-
-        V, _ = dblquad(psi_v, zmin, zmax, dp1, dp2)
-        V /= Q
-        return np.sqrt(V)
+        return self._compute_matched_rms(self.compute_hamiltonian_scale_from_z(z_c))[0]
 
     def compute_sigma_dp(self, dp_c: float):
+        return self._compute_matched_rms(self.compute_hamiltonian_scale_from_dp(dp_c))[1]
+
+    def _compute_matched_rms(self, H0: float):
+        """Integrate the existing density exactly in dp, numerically in scaled z."""
+        Hmax = self._get_rf_bucket().hamiltonian
+        if not np.isfinite(H0) or H0 == 0 or Hmax / H0 >= 0:
+            raise ValueError("Matched distribution requires a finite positive scale")
+        eta = self.compute_initial_slip_factor()
+        f0_now = self.beta * const.c / self.circum
+        dp_scale = np.sqrt(abs(H0) / (2 * const.pi * self.harmonic_num * f0_now * abs(eta)))
         zmax = self.compute_bucket_z_max()
         zmin = self.compute_bucket_z_min()
+        z_scale = min(abs(eta) * self.rho * dp_scale / self.compute_synchrotron_tune(), max(abs(zmin), abs(zmax)))
+        barrier = -Hmax / H0
+        gamma_0, gamma_2 = gammainc(1.5, barrier), gammainc(2.5, barrier)
 
-        # Get the separatrix of the buncket
-        def dp1(z):
-            return -self.compute_separatrix_dp_from_z(z)
+        def moments(scaled_z):
+            potential = -self.compute_hamiltonian_from_z(scaled_z * z_scale, 0.0) / H0
+            remaining = max(0.0, barrier - potential)
+            # Integration by parts gives P(3/2, remaining) and P(5/2, remaining).
+            weight_0 = np.exp(-potential) * gammainc(1.5, remaining) / gamma_0
+            weight_2 = np.exp(-potential) * gammainc(2.5, remaining) / gamma_2
+            return np.array([weight_0, scaled_z * weight_0, scaled_z**2 * weight_0, weight_2])
 
-        def dp2(z):
-            return self.compute_separatrix_dp_from_z(z)
-
-        # Get the H0 and Hmax used in generating function.
-        H0 = self.compute_hamiltonian_scale_from_dp(dp_c)
-        Hmax = self.compute_hamiltonian_from_phase(self.compute_unstable_fixed_point_phase(), 0.0)
-
-        # Get the integral of generating function in the bucket.
-        def psi_q(dp, z):
-            return self.psi(z, dp, H0, Hmax)
-
-        Q, _ = dblquad(psi_q, zmin, zmax, dp1, dp2)
-
-        # Get the mean value of generating function in the bucket.
-        def psi_m(dp, z):
-            return dp * self.psi(z, dp, H0, Hmax)
-
-        M, _ = dblquad(psi_m, zmin, zmax, dp1, dp2)
-        M /= Q
-
-        # Get the standard deviation of generating function in the bucket.
-        def psi_v(dp, z):
-            return (dp - M) * (dp - M) * self.psi(z, dp, H0, Hmax)
-
-        V, _ = dblquad(psi_v, zmin, zmax, dp1, dp2)
-        V /= Q
-
-        return np.sqrt(V)
+        lower, upper = zmin / z_scale, zmax / z_scale
+        points = [point for point in (-16., -8., -4., -1., 0., 1., 4., 8., 16.) if lower < point < upper]
+        integrals, error = quad_vec(moments, lower, upper, points=points, epsabs=1e-11, epsrel=1e-10)
+        if not np.all(np.isfinite(integrals)) or integrals[0] <= 0 or error > 1e-8 * np.linalg.norm(integrals):
+            raise ValueError("Matched distribution moments did not converge")
+        mean_z, second_z, second_dp = integrals[1:] / integrals[0]
+        variance_z = second_z - mean_z**2
+        if variance_z <= 0 or second_dp <= 0:
+            raise ValueError("Matched distribution moments did not converge")
+        return z_scale * np.sqrt(variance_z), dp_scale * np.sqrt(gamma_2 / gamma_0 * second_dp)
 
 
 def _read_offset_fromfile(file_path: str, direction: str):
