@@ -108,7 +108,7 @@ ENUM_OPTIONS = {
     ),
     "Integrator": ("adaptive", "uniform", "yoshida4"),
     "Model": ("adaptive", "drift-kick-drift-exact", "mat-kick-mat"),
-    "Slice model": ("equal_length", "equal_particle", "equal_charge", "Equal particle"),
+    "Slice model": ("equal_length", "equal_particle"),
     "Z range mode": ("auto", "explicit"),
     "Direction": ("x", "y"),
     "Mode": ("single_fm", "single_fm_am", "dual_fm", "dual_fm_am"),

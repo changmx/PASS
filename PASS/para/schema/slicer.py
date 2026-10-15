@@ -21,7 +21,7 @@ class SlicerItem(BaseModel):
     slice_set: str = Field(alias="Slice set")
     purpose: Literal["general", "beam_beam"] = Field(default="general", alias="Purpose")
     configuration: str | None = Field(default=None, min_length=1, alias="Configuration")
-    slice_model: str = Field(default="equal_length", alias="Slice model")
+    slice_model: Literal["equal_length", "equal_particle"] = Field(default="equal_length", alias="Slice model")
     num_slices: int = Field(default=10, ge=1, alias="Number of slices")
     z_range_mode: str = Field(default="auto", alias="Z range mode")
     explicit: dict | None = Field(default=None, alias="Explicit")

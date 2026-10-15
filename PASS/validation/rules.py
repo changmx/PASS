@@ -679,7 +679,7 @@ class Validator:
                 self.numeric(v, key, p, positive=True)
 
     def slicer(self, v, p):
-        self.choice(v, "Slice model", {"equal_length", "equal_particle", "equal_charge"}, p)
+        self.choice(v, "Slice model", {"equal_length", "equal_particle"}, p)
         self.choice(v, "Z range mode", {"auto", "explicit"}, p)
         self.choice(v, "Coordinate", {"z_rel", "z_periodic", "arrival_phase", "collision_z"}, p)
         name = v.get("Slice set")

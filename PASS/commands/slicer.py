@@ -57,8 +57,8 @@ class SliceSet:
     """Configuration and latest result for one named bunch-local slicer.
 
     ``name`` is the user-defined lookup key used by collective effects.
-    ``model`` is ``equal_length`` or ``equal_particle`` (``equal_charge`` is
-    accepted as a future alias). ``num_slices`` is the number of longitudinal
+    ``model`` is ``equal_length`` or ``equal_particle``.
+    ``num_slices`` is the number of longitudinal
     bins; empty bins are allowed. ``z_range_mode`` chooses the interval:
     ``auto`` uses the actual minimum and maximum of the current live
     distribution and never excludes an observed outlier. ``explicit`` uses
@@ -112,10 +112,9 @@ class SliceSet:
     particle_order_version: int | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
-        self.model = _normalize_model(self.model)
-        if self.model not in {"equal_length", "equal_particle", "equal_charge"}:
+        if self.model not in {"equal_length", "equal_particle"}:
             raise ValueError(f"Unsupported slice model {self.model!r}; expected "
-                             "equal_length, equal_particle, or equal_charge")
+                             "equal_length or equal_particle")
         if int(self.num_slices) < 1:
             raise ValueError("Number of slices must be >= 1")
         self.num_slices = int(self.num_slices)
@@ -329,7 +328,7 @@ def _slice_one_bunch_cpu(p, bunch, slice_set: SliceSet, turn=None, location=None
     local_id = np.full(z.size, -1, dtype=np.int32)
     active_z = np.clip(z[alive], z_min, z_max)
     if active_z.size:
-        if slice_set.model in {"equal_particle", "equal_charge"}:
+        if slice_set.model == "equal_particle":
             # Rank assignment keeps populations balanced even when several
             # particles have identical z.  Sorting is temporary; no
             # ParticlePool array is reordered.
@@ -363,9 +362,23 @@ def _slice_one_bunch_cpu(p, bunch, slice_set: SliceSet, turn=None, location=None
         np.maximum.at(particle_max, local_id[alive], z[alive])
     particle_min[counts == 0] = np.nan
     particle_max[counts == 0] = np.nan
-    if active_z.size and slice_set.model in {"equal_particle", "equal_charge"}:
+    if active_z.size and slice_set.model == "equal_particle":
+        sorted_z = active_z[order]
         quantiles = np.linspace(0.0, 1.0, n_slices + 1)
-        edges = np.quantile(active_z, quantiles, method="linear")
+        positions = (active_z.size - 1) * quantiles
+        left = positions.astype(np.intp)
+        right = np.minimum(left + 1, active_z.size - 1)
+        fractions = positions - left
+        lower, upper = sorted_z[left], sorted_z[right]
+        difference = upper - lower
+        # Reuse the rank sort and preserve NumPy's linear interpolation rounding.
+        edges = lower + difference * fractions
+        np.subtract(upper, difference * (1.0 - fractions), out=edges, where=fractions >= 0.5)
+        # Each boundary must lie in the gap between its two rank groups.
+        cuts = (np.arange(1, n_slices, dtype=np.int64) * active_z.size + n_slices - 1) // n_slices
+        lower = sorted_z[cuts - 1]
+        upper = np.where(cuts < active_z.size, sorted_z[np.minimum(cuts, active_z.size - 1)], z_max)
+        edges[1:-1] = np.clip(edges[1:-1], lower, upper)
         edges[0], edges[-1] = z_min, z_max
     elif edges is None:
         edges = np.linspace(z_min, z_max, n_slices + 1, dtype=float)
@@ -1560,8 +1573,15 @@ extern "C" __global__ void slicer_edges_quantile(
     edges[i] = sorted_z[left] + frac * (sorted_z[right] - sorted_z[left]);
     if (i == 0)
         edges[i] = z_min;
-    if (i == num_slices)
+    else if (i == num_slices)
         edges[i] = z_max;
+    else {
+        // Match the gaps implied by the integer rank assignment.
+        int cut = (int)(((long long)i * (long long)n_active + num_slices - 1) / num_slices);
+        pass_real_t lower = sorted_z[cut - 1];
+        pass_real_t upper = cut < n_active ? sorted_z[cut] : z_max;
+        edges[i] = edges[i] < lower ? lower : (edges[i] > upper ? upper : edges[i]);
+    }
 }
 
 extern "C" __global__ void slicer_edges_uniform(
