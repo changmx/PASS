@@ -169,7 +169,9 @@ particle array and it does not change bunch membership.</p>
 <code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">sigma</span></code> fields are accepted.</p>
 <dl>
 <dt><code class="docutils literal notranslate"><span class="pre">auto</span></code></dt><dd><p>Uses the actual minimum and maximum of the current live distribution.  It
-is the widest data-driven range and never excludes an observed outlier.</p>
+is the widest data-driven range and never excludes an observed outlier.
+If every live particle has the same selected coordinate, the range retains
+its true zero span; no artificial width is added.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">explicit</span></code></dt><dd><p>Uses the fixed local interval supplied by <code class="docutils literal notranslate"><span class="pre">Explicit</span></code>:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"explicit"</span><span class="p">,</span>
@@ -186,8 +188,9 @@ largest-z interval and slice <code class="docutils literal notranslate"><span cl
 Uniform-bin indexing uses FP64 arithmetic and checks the neighboring saved edge
 after division, so a stored FP32 value just below a boundary keeps its correct
 owner. Classification and the output table use the same generated edge array
-on CPU, CUDA and the CUDA batch path. In increasing coordinate order, bins are
-left-closed and right-open, except that the final bin includes the maximum.
+on CPU, CUDA and the CUDA batch path. In increasing coordinate order,
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> bins are left-closed and right-open, except that the final bin
+includes the maximum.
 This does not change the precision of the particle arrays or local projections.</p>
 </section>
 <section id="interface-parameters">
@@ -244,7 +247,7 @@ the command for diagnostics.</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Slice</span> <span class="pre">model&quot;</span></code></p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;equal_length&quot;</span></code></p></td>
-<td><p>Particle-to-slice mapping model.  Supported values are
+<td><p>Particle-to-slice mapping model. The only accepted values are
 <code class="docutils literal notranslate"><span class="pre">&quot;equal_length&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;equal_particle&quot;</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinate</span></code></p></td>
@@ -380,17 +383,51 @@ TFS and CSV. See <a class="reference internal" href="monitor/table_output.html">
 </section>
 <section id="slice-models">
 <h2>Slice models<a class="headerlink" href="#slice-models" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">equal_particle</span></code> in place of the former <code class="docutils literal notranslate"><span class="pre">equal_charge</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Equal</span> <span class="pre">particle</span></code> names; those names are no longer accepted.</p>
 <p><code class="docutils literal notranslate"><span class="pre">equal_length</span></code> divides the resolved interval into <code class="docutils literal notranslate"><span class="pre">N</span></code> equal-width bins:</p>
 <div class="math notranslate nohighlight">
 \[i = N-1-\operatorname{clip}\left(\left\lfloor
     \frac{z-z_{min}}{\Delta z}\right\rfloor,0,N-1\right),
 \qquad \Delta z = \frac{z_{max}-z_{min}}{N}.\]</div>
+<p>For a nonzero range, <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> requires finite, strictly increasing
+FP64 edges. If rounding makes adjacent edges coincide, Slicer raises an error
+instead of changing the interval or number of slices. This requirement applies
+to both <code class="docutils literal notranslate"><span class="pre">auto</span></code> and <code class="docutils literal notranslate"><span class="pre">explicit</span></code> ranges; choose a representable interval or
+fewer slices when necessary.</p>
 <p><code class="docutils literal notranslate"><span class="pre">equal_particle</span></code> sorts only temporary <code class="docutils literal notranslate"><span class="pre">z</span></code> values and indices, assigns IDs
 by rank, and scatters those IDs back to the original particle order.  The
 particle pool itself is unchanged.  Rank assignment keeps populations nearly
-equal, including when several particles have identical coordinates.  Quantile
-boundaries are computed with NumPy for the diagnostic geometry in
-<code class="docutils literal notranslate"><span class="pre">slice_table</span></code>.</p>
+equal, including when several particles have identical coordinates. The saved
+boundaries enclose these rank-assigned members; they also determine the widths
+and centers consumed by SpaceCharge, WakeField and ECloud.</p>
+<p>For <span class="math notranslate nohighlight">\(n&gt;0\)</span> live particles sorted in increasing coordinate order as
+<span class="math notranslate nohighlight">\(s_0,\ldots,s_{n-1}\)</span>, an interior boundary <span class="math notranslate nohighlight">\(i=1,\ldots,N-1\)</span>
+separates the ranks at <span class="math notranslate nohighlight">\(k_i=\lceil in/N\rceil\)</span>. Starting from the linear
+quantile candidate <span class="math notranslate nohighlight">\(q_i\)</span> at fraction <span class="math notranslate nohighlight">\(i/N\)</span>, Slicer saves</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}e_i=\operatorname{clip}(q_i,L_i,U_i),\qquad
+[L_i,U_i]=
+\begin{cases}
+[s_{k_i-1},s_{k_i}],&amp;0&lt;k_i&lt;n,\\
+[s_{n-1},z_{max}],&amp;k_i=n.
+\end{cases}\end{split}\]</div>
+<p>The outer edges remain <span class="math notranslate nohighlight">\(e_0=z_{min}\)</span> and <span class="math notranslate nohighlight">\(e_N=z_{max}\)</span>. A candidate
+already in its allowed gap is unchanged. Rank IDs and counts are unchanged,
+including empty slices when <span class="math notranslate nohighlight">\(N&gt;n\)</span>. These intervals are closed envelopes:
+<code class="docutils literal notranslate"><span class="pre">slice_id</span></code> determines ownership at shared endpoints and repeated coordinates.
+Do not reclassify rank slices using the half-open coordinate-bin rule above.
+Repeated coordinates can still produce zero-width slices; their density and
+consumer requirements are described below.</p>
+<p>With an <code class="docutils literal notranslate"><span class="pre">explicit</span></code> range, this enclosure applies to the clipped coordinates
+used for slicing. Stored particle coordinates and actual member extrema are
+unchanged. ECloud still rejects actual members outside its slice bounds; clipping
+does not make such particles physically contained.</p>
+<p>When an <code class="docutils literal notranslate"><span class="pre">auto</span></code> range has zero span at coordinate <span class="math notranslate nohighlight">\(z_0\)</span>, every saved
+<code class="docutils literal notranslate"><span class="pre">z_min</span></code> and <code class="docutils literal notranslate"><span class="pre">z_max</span></code> equals <span class="math notranslate nohighlight">\(z_0\)</span>, and every <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> is zero.
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> assigns all live particles to slice <code class="docutils literal notranslate"><span class="pre">0</span></code> and leaves the other
+slices empty. <code class="docutils literal notranslate"><span class="pre">equal_particle</span></code> retains rank assignment. A bunch with no live
+particles keeps its empty result.</p>
 <p>If the number of live particles is smaller than <code class="docutils literal notranslate"><span class="pre">N</span></code>, only that many slices
 can be populated.  The remaining slices are retained with zero count and a
 warning is emitted.  <code class="docutils literal notranslate"><span class="pre">effective_num_slices</span></code> records
@@ -408,7 +445,7 @@ low-z (slice <code class="docutils literal notranslate"><span class="pre">0</spa
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">z_particle_min</span></code>, <code class="docutils literal notranslate"><span class="pre">z_particle_max</span></code></dt><dd><p>Actual minimum and maximum of the slice’s live macroparticle members in the
 selected coordinate at this Slicer execution. These values precede explicit
-range clipping and can therefore extend beyond the diagnostic boundaries.
+range clipping and can therefore extend beyond the saved slice boundaries.
 Empty slices have NaN extrema; zero-width live slices have equal extrema.
 Beam-beam PIC uses these member bounds for head/tail sampling. Equal-particle
 rank membership, rather than quantile geometry, determines these extrema.</p>
@@ -421,11 +458,21 @@ rank membership, rather than quantile geometry, determines these extrema.</p>
 not Coulombs; multiply by the signed particle charge and elementary charge
 when physical charge is required.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">lind_density</span></code></dt><dd><p>Linear real-particle density, <code class="docutils literal notranslate"><span class="pre">real_charge</span> <span class="pre">/</span> <span class="pre">delta_z</span></code>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">lind_density</span></code></dt><dd><p>Linear real-particle density, <code class="docutils literal notranslate"><span class="pre">real_charge</span> <span class="pre">/</span> <span class="pre">delta_z</span></code>. An occupied slice
+with zero width has undefined density, recorded as NaN; an empty slice has
+zero density.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">effective_num_slices</span></code></dt><dd><p>Number of bins that can be populated by the current live population.</p>
 </dd>
 </dl>
+<p>Zero-width slices remain usable for diagnostics and wake models that treat
+slices as point sources. Consumers that require finite density, such as
+SpaceCharge, reject occupied zero-width slices. For those consumers, use an
+<code class="docutils literal notranslate"><span class="pre">explicit</span></code> interval with a physically justified finite width and a model such
+as <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> that gives the occupied slices finite widths. An explicit
+range alone does not remove coincident interior edges in rank-based slicing.
+SpaceCharge retains its existing requirement that every saved slice have positive
+width, including empty slices.</p>
 <p>Results also record <code class="docutils literal notranslate"><span class="pre">valid_turn</span></code> and <code class="docutils literal notranslate"><span class="pre">valid_s</span></code>.  A subsequent global
 regrouping clears all particle-dependent fields and consumers must wait for a
 new <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> execution.</p>

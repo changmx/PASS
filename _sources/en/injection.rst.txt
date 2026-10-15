@@ -175,13 +175,13 @@ Longitudinal parameters
     - float
     - V
     - ``0.0``
-    - RF voltage (required for ``matchz`` and ``matchdp`` distributions)
+    - Signed physical RF voltage (required for ``matchz`` and ``matchdp`` distributions)
   * - ``rf_phase``
     - ``RF Phase (rad)``
     - float
     - rad
     - ``0.0``
-    - RF phase :math:`\phi_s` (required for ``matchz`` and ``matchdp`` distributions)
+    - Physical waveform phase :math:`\phi_s` at the matching reference event; see :ref:`en-injection-matching-phase`
   * - ``harmonic_id``
     - ``Harmonic ID of this bunch``
     - int
@@ -1020,7 +1020,50 @@ Currently, the PASS program supports generating the following longitudinal parti
     are retained.
 
 
+Matching solves for the normalized central moments of the continuous distribution over the full RF bucket to meet the requested RMS target. The momentum integral is evaluated analytically using incomplete gamma functions, followed by adaptive integration in z scaled by the distribution's natural width, with explicit interval splits to resolve narrow peaks. This improves moment accuracy without changing the distribution density, RF potential, or matching target. Particle sampling applies its truncation afterward, so the RMS of the final finite sample can still differ from that target.
+
 RF-matched sampling also enforces a 0.9 bucket-Hamiltonian acceptance bound. Requested scales above the model maximum are reduced to 0.99 of that maximum. Together with the z cut, these restrictions mean the measured sample RMS need not equal the requested matching target.
+
+.. _en-injection-matching-phase:
+
+RF phase and charge sign in matching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For ``matchz`` and ``matchdp``, ``RF Phase (rad)`` is the physical RF waveform
+phase at the reference arrival event at the matching RF location. For the waveform
+in :doc:`element/rfcavity`, this means
+:math:`\phi_s=\theta(t_s)=2\pi\int_0^{t_s}f(t)\,dt+\phi(t_s)`, including its clock
+phase, rather than the phase-offset parameter alone. The matching input describes
+this chosen event explicitly; Injection does not infer it from a tracked centroid
+or add a phase from the nominal grouping coordinate ``z_center``.
+
+The existing matching model is a frozen, single-harmonic, small-relative-momentum
+model. With :math:`\delta=(P-P_0)/P_0`, :math:`\eta=\gamma_t^{-2}-\gamma^{-2}`,
+and :math:`\phi=\phi_s-2\pi h z_{\mathrm{rel}}/C`, its equations are
+
+.. math::
+
+   \frac{d\phi}{dN}=2\pi h\eta\delta,\qquad
+   \frac{d\delta}{dN}=\frac{q_rV}{\beta^2 E_r}
+   \left(\sin\phi-\sin\phi_s\right),\qquad
+   Q_s^2=-\frac{h\eta q_rV\cos\phi_s}{2\pi\beta^2E_r}>0.
+
+Here :math:`q` is the signed charge number in units of the elementary charge,
+:math:`V` is the signed input voltage, and :math:`E` is total energy per particle
+in eV. For :math:`A=N_p+N_n>0`, use :math:`q_r=q/A` and :math:`E_r=E/A`;
+for electrons and positrons (:math:`A=0`), use :math:`q_r=q` and :math:`E_r=E`.
+The stable-phase condition is therefore :math:`qV\eta\cos\phi_s<0`.
+For example, when :math:`V>0` and :math:`\eta>0`, electrons are stable at physical
+phase 0 and positive charges at physical phase :math:`\pi`. The bucket uses the
+lower of the two adjacent saddle barriers on the branch containing this stable
+phase. Charge-sign handling does not change the matching distribution or add
+multi-harmonic, ramp, radiation, or collective-field matching.
+
+Older negative-charge Injection inputs that manually added :math:`\pi` to
+compensate for unsigned charge must remove that compensation and supply the
+physical phase. The :doc:`GUI RF-bucket tool <gui_tools>` keeps its separate
+effective-phase convention: when :math:`qV<0`, its phase is the physical phase
+plus :math:`\pi` modulo :math:`2\pi`. That GUI input convention is unchanged.
 
 Multi-bunch Longitudinal Coordinates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

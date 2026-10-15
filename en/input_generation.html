@@ -662,12 +662,12 @@ the automatic design-clock phase while retaining unwrapped particle times.</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>RF voltage (used in matchz/matchdp modes)</p></td>
+<td><p>Signed physical RF voltage (used in matchz/matchdp modes)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phase</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>RF phase</p></td>
+<td><p>Physical RF waveform phase at the matching reference event (matchz/matchdp); see <a class="reference internal" href="injection.html#en-injection-matching-phase"><span class="std std-ref">RF phase and charge sign in matching</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
@@ -1003,6 +1003,18 @@ writer or converter above for new inputs.</p>
 <section id="api-entry-points">
 <h2>API entry points<a class="headerlink" href="#api-entry-points" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> exports <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>, <code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">load_input</span></code>. <code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> returns <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud/Intrabeam scattering blocks. It validates electron-cloud and IBS configurations and references before returning. Preserve those blocks explicitly when editing a complete existing file.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> fills an omitted bunch <code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code>, MAD-X
+<code class="docutils literal notranslate"><span class="pre">ENERGY</span></code> and <code class="docutils literal notranslate"><span class="pre">MASS</span></code> are the complete particle’s total and rest energies in
+GeV. The mass number is <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">main_cfg.num_proton</span> <span class="pre">+</span> <span class="pre">main_cfg.num_neutron</span></code> after
+parsing <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code>; neither <code class="docutils literal notranslate"><span class="pre">beam_name</span></code> nor the charge count determines it.
+For <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, the imported kinetic energy is
+<code class="docutils literal notranslate"><span class="pre">(ENERGY</span> <span class="pre">-</span> <span class="pre">MASS)</span> <span class="pre">*</span> <span class="pre">1e9</span> <span class="pre">/</span> <span class="pre">A</span></code> in eV/u. Electrons and positrons have <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">0</span></code> and
+use <code class="docutils literal notranslate"><span class="pre">(ENERGY</span> <span class="pre">-</span> <span class="pre">MASS)</span> <span class="pre">*</span> <span class="pre">1e9</span></code> in eV per particle. An explicitly supplied
+<code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code> is preserved in the corresponding PASS units.</p>
+<p>This conversion preserves the TFS kinetic energy and leaves PASS’s runtime
+species-mass convention unchanged; see <a class="reference internal" href="injection.html"><span class="doc">Injection / Particle Generation</span></a>. If the TFS rest mass
+differs from the mass used by PASS, the resulting reference gamma and beta need
+not equal their TFS values.</p>
 </section>
 </section>
 

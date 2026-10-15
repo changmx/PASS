@@ -35,6 +35,8 @@ The range configuration is mode-specific.  No flat ``Z min``, ``Z max`` or
 ``auto``
     Uses the actual minimum and maximum of the current live distribution.  It
     is the widest data-driven range and never excludes an observed outlier.
+    If every live particle has the same selected coordinate, the range retains
+    its true zero span; no artificial width is added.
 ``explicit``
     Uses the fixed local interval supplied by ``Explicit``:
 
@@ -52,8 +54,9 @@ largest-z interval and slice ``N-1`` is the smallest-z interval.
 Uniform-bin indexing uses FP64 arithmetic and checks the neighboring saved edge
 after division, so a stored FP32 value just below a boundary keeps its correct
 owner. Classification and the output table use the same generated edge array
-on CPU, CUDA and the CUDA batch path. In increasing coordinate order, bins are
-left-closed and right-open, except that the final bin includes the maximum.
+on CPU, CUDA and the CUDA batch path. In increasing coordinate order,
+``equal_length`` bins are left-closed and right-open, except that the final bin
+includes the maximum.
 This does not change the precision of the particle arrays or local projections.
 
 Interface Parameters
@@ -101,7 +104,7 @@ Common command parameters
      - ``"Slice model"``
      - str
      - ``"equal_length"``
-     - Particle-to-slice mapping model.  Supported values are
+     - Particle-to-slice mapping model. The only accepted values are
        ``"equal_length"`` and ``"equal_particle"``.
    * - ``coordinate``
      - ``"Coordinate"``
@@ -217,6 +220,9 @@ TFS and CSV. See :doc:`monitor/table_output` for the HDF5 layout and reader.
 Slice models
 ------------
 
+Use ``equal_particle`` in place of the former ``equal_charge`` or
+``Equal particle`` names; those names are no longer accepted.
+
 ``equal_length`` divides the resolved interval into ``N`` equal-width bins:
 
 .. math::
@@ -225,12 +231,51 @@ Slice models
        \frac{z-z_{min}}{\Delta z}\right\rfloor,0,N-1\right),
    \qquad \Delta z = \frac{z_{max}-z_{min}}{N}.
 
+For a nonzero range, ``equal_length`` requires finite, strictly increasing
+FP64 edges. If rounding makes adjacent edges coincide, Slicer raises an error
+instead of changing the interval or number of slices. This requirement applies
+to both ``auto`` and ``explicit`` ranges; choose a representable interval or
+fewer slices when necessary.
+
 ``equal_particle`` sorts only temporary ``z`` values and indices, assigns IDs
 by rank, and scatters those IDs back to the original particle order.  The
 particle pool itself is unchanged.  Rank assignment keeps populations nearly
-equal, including when several particles have identical coordinates.  Quantile
-boundaries are computed with NumPy for the diagnostic geometry in
-``slice_table``.
+equal, including when several particles have identical coordinates. The saved
+boundaries enclose these rank-assigned members; they also determine the widths
+and centers consumed by SpaceCharge, WakeField and ECloud.
+
+For :math:`n>0` live particles sorted in increasing coordinate order as
+:math:`s_0,\ldots,s_{n-1}`, an interior boundary :math:`i=1,\ldots,N-1`
+separates the ranks at :math:`k_i=\lceil in/N\rceil`. Starting from the linear
+quantile candidate :math:`q_i` at fraction :math:`i/N`, Slicer saves
+
+.. math::
+
+   e_i=\operatorname{clip}(q_i,L_i,U_i),\qquad
+   [L_i,U_i]=
+   \begin{cases}
+   [s_{k_i-1},s_{k_i}],&0<k_i<n,\\
+   [s_{n-1},z_{max}],&k_i=n.
+   \end{cases}
+
+The outer edges remain :math:`e_0=z_{min}` and :math:`e_N=z_{max}`. A candidate
+already in its allowed gap is unchanged. Rank IDs and counts are unchanged,
+including empty slices when :math:`N>n`. These intervals are closed envelopes:
+``slice_id`` determines ownership at shared endpoints and repeated coordinates.
+Do not reclassify rank slices using the half-open coordinate-bin rule above.
+Repeated coordinates can still produce zero-width slices; their density and
+consumer requirements are described below.
+
+With an ``explicit`` range, this enclosure applies to the clipped coordinates
+used for slicing. Stored particle coordinates and actual member extrema are
+unchanged. ECloud still rejects actual members outside its slice bounds; clipping
+does not make such particles physically contained.
+
+When an ``auto`` range has zero span at coordinate :math:`z_0`, every saved
+``z_min`` and ``z_max`` equals :math:`z_0`, and every ``delta_z`` is zero.
+``equal_length`` assigns all live particles to slice ``0`` and leaves the other
+slices empty. ``equal_particle`` retains rank assignment. A bunch with no live
+particles keeps its empty result.
 
 If the number of live particles is smaller than ``N``, only that many slices
 can be populated.  The remaining slices are retained with zero count and a
@@ -251,7 +296,7 @@ array per slice:
 ``z_particle_min``, ``z_particle_max``
     Actual minimum and maximum of the slice's live macroparticle members in the
     selected coordinate at this Slicer execution. These values precede explicit
-    range clipping and can therefore extend beyond the diagnostic boundaries.
+    range clipping and can therefore extend beyond the saved slice boundaries.
     Empty slices have NaN extrema; zero-width live slices have equal extrema.
     Beam-beam PIC uses these member bounds for head/tail sampling. Equal-particle
     rank membership, rather than quantile geometry, determines these extrema.
@@ -264,9 +309,20 @@ array per slice:
     not Coulombs; multiply by the signed particle charge and elementary charge
     when physical charge is required.
 ``lind_density``
-    Linear real-particle density, ``real_charge / delta_z``.
+    Linear real-particle density, ``real_charge / delta_z``. An occupied slice
+    with zero width has undefined density, recorded as NaN; an empty slice has
+    zero density.
 ``effective_num_slices``
     Number of bins that can be populated by the current live population.
+
+Zero-width slices remain usable for diagnostics and wake models that treat
+slices as point sources. Consumers that require finite density, such as
+SpaceCharge, reject occupied zero-width slices. For those consumers, use an
+``explicit`` interval with a physically justified finite width and a model such
+as ``equal_length`` that gives the occupied slices finite widths. An explicit
+range alone does not remove coincident interior edges in rank-based slicing.
+SpaceCharge retains its existing requirement that every saved slice have positive
+width, including empty slices.
 
 Results also record ``valid_turn`` and ``valid_s``.  A subsequent global
 regrouping clears all particle-dependent fields and consumers must wait for a

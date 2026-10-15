@@ -97,6 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rf-phase-and-charge-sign-in-matching">RF phase and charge sign in matching</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dispersion-coupling">Dispersion coupling</a></li>
@@ -390,14 +391,14 @@ are physical waveform input and are not automatically recalibrated.</p>
 <td><p>float</p></td>
 <td><p>V</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
-<td><p>RF voltage (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
+<td><p>Signed physical RF voltage (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phase</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
-<td><p>RF phase <span class="math notranslate nohighlight">\(\phi_s\)</span> (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
+<td><p>Physical waveform phase <span class="math notranslate nohighlight">\(\phi_s\)</span> at the matching reference event; see <a class="reference internal" href="#en-injection-matching-phase"><span class="std std-ref">RF phase and charge sign in matching</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
@@ -1220,7 +1221,41 @@ p_u=\frac{r_u}{\sqrt{\beta_u}}
 </li>
 </ul>
 </div></blockquote>
+<p>Matching solves for the normalized central moments of the continuous distribution over the full RF bucket to meet the requested RMS target. The momentum integral is evaluated analytically using incomplete gamma functions, followed by adaptive integration in z scaled by the distribution’s natural width, with explicit interval splits to resolve narrow peaks. This improves moment accuracy without changing the distribution density, RF potential, or matching target. Particle sampling applies its truncation afterward, so the RMS of the final finite sample can still differ from that target.</p>
 <p>RF-matched sampling also enforces a 0.9 bucket-Hamiltonian acceptance bound. Requested scales above the model maximum are reduced to 0.99 of that maximum. Together with the z cut, these restrictions mean the measured sample RMS need not equal the requested matching target.</p>
+<section id="rf-phase-and-charge-sign-in-matching">
+<span id="en-injection-matching-phase"></span><h3>RF phase and charge sign in matching<a class="headerlink" href="#rf-phase-and-charge-sign-in-matching" title="Link to this heading"></a></h3>
+<p>For <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code>, <code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code> is the physical RF waveform
+phase at the reference arrival event at the matching RF location. For the waveform
+in <a class="reference internal" href="element/rfcavity.html"><span class="doc">RFCavity</span></a>, this means
+<span class="math notranslate nohighlight">\(\phi_s=\theta(t_s)=2\pi\int_0^{t_s}f(t)\,dt+\phi(t_s)\)</span>, including its clock
+phase, rather than the phase-offset parameter alone. The matching input describes
+this chosen event explicitly; Injection does not infer it from a tracked centroid
+or add a phase from the nominal grouping coordinate <code class="docutils literal notranslate"><span class="pre">z_center</span></code>.</p>
+<p>The existing matching model is a frozen, single-harmonic, small-relative-momentum
+model. With <span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>, <span class="math notranslate nohighlight">\(\eta=\gamma_t^{-2}-\gamma^{-2}\)</span>,
+and <span class="math notranslate nohighlight">\(\phi=\phi_s-2\pi h z_{\mathrm{rel}}/C\)</span>, its equations are</p>
+<div class="math notranslate nohighlight">
+\[\frac{d\phi}{dN}=2\pi h\eta\delta,\qquad
+\frac{d\delta}{dN}=\frac{q_rV}{\beta^2 E_r}
+\left(\sin\phi-\sin\phi_s\right),\qquad
+Q_s^2=-\frac{h\eta q_rV\cos\phi_s}{2\pi\beta^2E_r}&gt;0.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(q\)</span> is the signed charge number in units of the elementary charge,
+<span class="math notranslate nohighlight">\(V\)</span> is the signed input voltage, and <span class="math notranslate nohighlight">\(E\)</span> is total energy per particle
+in eV. For <span class="math notranslate nohighlight">\(A=N_p+N_n&gt;0\)</span>, use <span class="math notranslate nohighlight">\(q_r=q/A\)</span> and <span class="math notranslate nohighlight">\(E_r=E/A\)</span>;
+for electrons and positrons (<span class="math notranslate nohighlight">\(A=0\)</span>), use <span class="math notranslate nohighlight">\(q_r=q\)</span> and <span class="math notranslate nohighlight">\(E_r=E\)</span>.
+The stable-phase condition is therefore <span class="math notranslate nohighlight">\(qV\eta\cos\phi_s&lt;0\)</span>.
+For example, when <span class="math notranslate nohighlight">\(V&gt;0\)</span> and <span class="math notranslate nohighlight">\(\eta&gt;0\)</span>, electrons are stable at physical
+phase 0 and positive charges at physical phase <span class="math notranslate nohighlight">\(\pi\)</span>. The bucket uses the
+lower of the two adjacent saddle barriers on the branch containing this stable
+phase. Charge-sign handling does not change the matching distribution or add
+multi-harmonic, ramp, radiation, or collective-field matching.</p>
+<p>Older negative-charge Injection inputs that manually added <span class="math notranslate nohighlight">\(\pi\)</span> to
+compensate for unsigned charge must remove that compensation and supply the
+physical phase. The <a class="reference internal" href="gui_tools.html"><span class="doc">GUI RF-bucket tool</span></a> keeps its separate
+effective-phase convention: when <span class="math notranslate nohighlight">\(qV&lt;0\)</span>, its phase is the physical phase
+plus <span class="math notranslate nohighlight">\(\pi\)</span> modulo <span class="math notranslate nohighlight">\(2\pi\)</span>. That GUI input convention is unchanged.</p>
+</section>
 <section id="multi-bunch-longitudinal-coordinates">
 <h3>Multi-bunch Longitudinal Coordinates<a class="headerlink" href="#multi-bunch-longitudinal-coordinates" title="Link to this heading"></a></h3>
 <p>The source distribution uses <span class="math notranslate nohighlight">\(z_s=\beta_s c(T_s-t_i)\)</span>. The prescribed

@@ -619,12 +619,12 @@ RF 频率时，应使用分量的 <code class="docutils literal notranslate"><sp
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>RF 电压（matchz/matchdp 模式使用）</p></td>
+<td><p>有符号的物理 RF 电压（matchz/matchdp 模式使用）</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phase</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>RF 相位</p></td>
+<td><p>匹配参考事件处的物理 RF 波形相位（matchz/matchdp），见 <a class="reference internal" href="injection.html#zh-injection-matching-phase"><span class="std std-ref">匹配计算中的射频相位和电荷符号</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
@@ -934,6 +934,15 @@ RF 使用独立的 <code class="docutils literal notranslate"><span class="pre">
 <section id="api">
 <h2>API 入口<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> 提供 <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>、<code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>、<code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 和 <code class="docutils literal notranslate"><span class="pre">load_input</span></code>。<code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> 返回 <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud/Intrabeam scattering 配置块；返回前会校验电子云和 IBS 配置及其引用。编辑现有完整文件时应单独保留这些配置块。</p>
+<p><code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 为未指定 <code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code> 的束团自动填值时，MAD-X
+<code class="docutils literal notranslate"><span class="pre">ENERGY</span></code> 和 <code class="docutils literal notranslate"><span class="pre">MASS</span></code> 分别表示完整粒子的总能量和静能，单位为 GeV。
+质量数取解析后的 <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code> 中的
+<code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">main_cfg.num_proton</span> <span class="pre">+</span> <span class="pre">main_cfg.num_neutron</span></code>，不由 <code class="docutils literal notranslate"><span class="pre">beam_name</span></code> 或电荷数决定。
+当 <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> 时，导入动能为 <code class="docutils literal notranslate"><span class="pre">(ENERGY</span> <span class="pre">-</span> <span class="pre">MASS)</span> <span class="pre">*</span> <span class="pre">1e9</span> <span class="pre">/</span> <span class="pre">A</span></code>，单位为 eV/u。
+电子和正电子的 <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">=</span> <span class="pre">0</span></code>，采用 <code class="docutils literal notranslate"><span class="pre">(ENERGY</span> <span class="pre">-</span> <span class="pre">MASS)</span> <span class="pre">*</span> <span class="pre">1e9</span></code>，单位为每粒子 eV。
+显式提供的 <code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code> 按相应的 PASS 单位保留。</p>
+<p>此换算保留 TFS 动能，运行时仍采用 PASS 既有的粒子质量约定，详见 <a class="reference internal" href="injection.html"><span class="doc">注入与粒子生成（Injection）</span></a>。
+如果 TFS 静质量与 PASS 使用的质量不同，所得参考粒子的 gamma 和 beta 不保证与 TFS 值相同。</p>
 </section>
 </section>
 
