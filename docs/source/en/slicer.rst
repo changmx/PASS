@@ -35,6 +35,8 @@ The range configuration is mode-specific.  No flat ``Z min``, ``Z max`` or
 ``auto``
     Uses the actual minimum and maximum of the current live distribution.  It
     is the widest data-driven range and never excludes an observed outlier.
+    If every live particle has the same selected coordinate, the range retains
+    its true zero span; no artificial width is added.
 ``explicit``
     Uses the fixed local interval supplied by ``Explicit``:
 
@@ -225,12 +227,25 @@ Slice models
        \frac{z-z_{min}}{\Delta z}\right\rfloor,0,N-1\right),
    \qquad \Delta z = \frac{z_{max}-z_{min}}{N}.
 
+For a nonzero range, ``equal_length`` requires finite, strictly increasing
+FP64 edges. If rounding makes adjacent edges coincide, Slicer raises an error
+instead of changing the interval or number of slices. This requirement applies
+to both ``auto`` and ``explicit`` ranges; choose a representable interval or
+fewer slices when necessary.
+
 ``equal_particle`` sorts only temporary ``z`` values and indices, assigns IDs
 by rank, and scatters those IDs back to the original particle order.  The
 particle pool itself is unchanged.  Rank assignment keeps populations nearly
 equal, including when several particles have identical coordinates.  Quantile
 boundaries are computed with NumPy for the diagnostic geometry in
 ``slice_table``.
+
+When an ``auto`` range has zero span at coordinate :math:`z_0`, every saved
+``z_min`` and ``z_max`` equals :math:`z_0`, and every ``delta_z`` is zero.
+``equal_length`` assigns all live particles to slice ``0`` and leaves the other
+slices empty. ``equal_particle`` (including its ``equal_charge`` compatibility
+name) retains rank assignment. A bunch with no live particles keeps its empty
+result.
 
 If the number of live particles is smaller than ``N``, only that many slices
 can be populated.  The remaining slices are retained with zero count and a
@@ -264,9 +279,20 @@ array per slice:
     not Coulombs; multiply by the signed particle charge and elementary charge
     when physical charge is required.
 ``lind_density``
-    Linear real-particle density, ``real_charge / delta_z``.
+    Linear real-particle density, ``real_charge / delta_z``. An occupied slice
+    with zero width has undefined density, recorded as NaN; an empty slice has
+    zero density.
 ``effective_num_slices``
     Number of bins that can be populated by the current live population.
+
+Zero-width slices remain usable for diagnostics and wake models that treat
+slices as point sources. Consumers that require finite density, such as
+SpaceCharge, reject occupied zero-width slices. For those consumers, use an
+``explicit`` interval with a physically justified finite width and a model such
+as ``equal_length`` that gives the occupied slices finite widths. An explicit
+range alone does not remove coincident interior quantiles in rank-based slicing.
+SpaceCharge retains its existing requirement that every saved slice have positive
+width, including empty slices.
 
 Results also record ``valid_turn`` and ``valid_s``.  A subsequent global
 regrouping clears all particle-dependent fields and consumers must wait for a

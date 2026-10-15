@@ -417,7 +417,8 @@ class SpaceCharge(Command):
             raise ValueError("SliceSet.slice_id must contain integers")
         delta_z = np.asarray(table["delta_z"], dtype=float)
         if delta_z.ndim != 1 or delta_z.size == 0 or not np.all(np.isfinite(delta_z)) or np.any(delta_z <= 0):
-            raise ValueError("SliceSet.delta_z must contain finite positive widths")
+            raise ValueError("SliceSet.delta_z must contain finite positive widths; "
+                             "use equal_length slicing with an explicit finite interval for a zero-length bunch")
         n_slices = int(delta_z.size)
         if np.any(local_sid < -1) or np.any(local_sid >= n_slices):
             raise ValueError("SliceSet.slice_id must be -1 or a valid slice index")
@@ -687,7 +688,8 @@ class SpaceCharge(Command):
         checks.append(cp.any(valid))
         flags = cp.stack(checks).get()
         messages = [
-            "SliceSet.delta_z must contain finite positive widths",
+            "SliceSet.delta_z must contain finite positive widths; "
+            "use equal_length slicing with an explicit finite interval for a zero-length bunch",
             "SliceSet.slice_id must be -1 or a valid slice index",
             "SpaceCharge requires finite transverse coordinates for participating particles",
             "participating particles outside the PIC grid/aperture after the local loss check",
