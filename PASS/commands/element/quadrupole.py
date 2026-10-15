@@ -400,7 +400,8 @@ class Quadrupole(Command):
         valid = pz_sq > 0.0
         alive = tag > 0
         tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
-        pz_sq_safe = np.maximum(pz_sq, const.eps)
+        # Preserve every positive longitudinal momentum; only invalid rows need a safe divisor.
+        pz_sq_safe = np.where(valid, pz_sq, 1.0)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
 
