@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import os
 import csv
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -138,6 +139,7 @@ class StatMonitor(Command):
         self.s = kwargs["s (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self._output_name = quote(self.cmd_name, safe="._-")
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.write_interval_turns = kwargs.get("write interval (turns)", 100)
         if (isinstance(self.write_interval_turns, bool) or not isinstance(self.write_interval_turns, (int, np.integer))
@@ -318,10 +320,10 @@ class StatMonitor(Command):
             row_dict = _make_stat_row(stat, reference, n_alive, int(np.count_nonzero(tag)), sigma_time)
 
             output_dir = cfg.output_dir_stat
-            output_filename_csv = f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch_id}_Np_{bunch.Np}_s_{self.s:.4f}.csv"
-            output_filename_table = f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch_id}_Np_{bunch.Np}_s_{self.s:.4f}.tfs"
-            output_path_csv = os.path.join(output_dir, output_filename_csv)
-            output_path_table = os.path.join(output_dir, output_filename_table)
+            filename = (f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch_id}_Np_{bunch.Np}"
+                        f"_cmd_{self._output_name}_s_{self.s:.4f}")
+            output_path_csv = os.path.join(output_dir, filename + ".csv")
+            output_path_table = os.path.join(output_dir, filename + ".tfs")
 
             self._record_row(output_path_csv, output_path_table, row_dict)
             did_execute = True
@@ -371,7 +373,8 @@ class StatMonitor(Command):
             moments.fill(0.)
             calculate((blocks, ), (threads, ), arguments)
 
-            filename = f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch.bunch_id}_Np_{bunch.Np}_s_{self.s:.4f}"
+            filename = (f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch.bunch_id}_Np_{bunch.Np}"
+                        f"_cmd_{self._output_name}_s_{self.s:.4f}")
             csv_path = os.path.join(cfg.output_dir_stat, filename + ".csv")
             output_path = os.path.join(cfg.output_dir_stat, filename + ".tfs")
             self._gpu_pending.append((csv_path, output_path, self._reference_row(bunch, turn)))
