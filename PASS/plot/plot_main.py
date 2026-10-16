@@ -25,8 +25,10 @@ def plot_main(sim: Simulation):
 
     for dist_path in dist_all_path:
         logger.info(f"Plotting distribution: {dist_path}")
+        df = read_table(dist_path)
+        headers = df.headers
 
-        if "injection" not in dist_path:
+        if headers.get("Turn") != "Injection" or headers["Longi type"] in ("gaussian", "coasting"):
             plot_distribution(dist_path,
                               is_plot_hist=True,
                               bins=100,
@@ -34,49 +36,38 @@ def plot_main(sim: Simulation):
                               is_plot_twiss_ellipse=True,
                               plot_twiss_rms_levels=[4, 9, 16],
                               is_plot_bucket=False,
-                              save_dir=output_dir_plot)
+                              save_dir=output_dir_plot,
+                              data=df)
         else:
-            df = read_table(dist_path)
-            headers = df.headers
+            V0 = headers["RF voltage"]
+            phi_s_deg = headers["RF phase"] / np.pi * 180
+            h = headers["Harmonic num"]
+            R0 = headers["Rho"]
+            Ek = headers["Ek"]
+            m0 = headers["m0"]
+            A = headers["Proton num"] + headers["Neutron num"]
+            q = headers["Charge num"]
+            gamma_t = headers["Gamma T"]
 
-            if headers["Longi type"] in ("gaussian", "coasting"):
-                plot_distribution(dist_path,
-                                  is_plot_hist=True,
-                                  bins=100,
-                                  cmap="magma",
-                                  is_plot_twiss_ellipse=True,
-                                  plot_twiss_rms_levels=[4, 9, 16],
-                                  is_plot_bucket=False,
-                                  save_dir=output_dir_plot)
-            else:
-                V0 = headers["RF voltage"]
-                phi_s_deg = headers["RF phase"] / np.pi * 180
-                h = headers["Harmonic num"]
-                R0 = headers["Rho"]
-                Ek = headers["Ek"]
-                m0 = headers["m0"]
-                A = headers["Proton num"] + headers["Neutron num"]
-                q = headers["Charge num"]
-                gamma_t = headers["Gamma T"]
-
-                plot_distribution(dist_path,
-                                  is_plot_hist=True,
-                                  bins=100,
-                                  cmap="magma",
-                                  is_plot_twiss_ellipse=True,
-                                  plot_twiss_rms_levels=[4, 9, 16],
-                                  is_plot_bucket=True,
-                                  plot_bucket_V0=V0,
-                                  plot_bucket_phi_s_deg=phi_s_deg,
-                                  plot_bucket_h=h,
-                                  plot_bucket_R0=R0,
-                                  plot_bucket_Ek_per_nucleon=Ek,
-                                  plot_bucket_E0_per_nucleon=m0,
-                                  plot_bucket_A=A,
-                                  plot_bucket_q=q,
-                                  plot_bucket_gamma_t=gamma_t,
-                                  plot_bucket_num_orbits=4,
-                                  save_dir=output_dir_plot)
+            plot_distribution(dist_path,
+                              is_plot_hist=True,
+                              bins=100,
+                              cmap="magma",
+                              is_plot_twiss_ellipse=True,
+                              plot_twiss_rms_levels=[4, 9, 16],
+                              is_plot_bucket=True,
+                              plot_bucket_V0=V0,
+                              plot_bucket_phi_s_deg=phi_s_deg,
+                              plot_bucket_h=h,
+                              plot_bucket_R0=R0,
+                              plot_bucket_Ek_per_nucleon=Ek,
+                              plot_bucket_E0_per_nucleon=m0,
+                              plot_bucket_A=A,
+                              plot_bucket_q=q,
+                              plot_bucket_gamma_t=gamma_t,
+                              plot_bucket_num_orbits=4,
+                              save_dir=output_dir_plot,
+                              data=df)
 
 
 def list_files(target_dir: str, recursive: bool = False) -> list[str]:

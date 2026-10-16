@@ -31,9 +31,12 @@ def plot_distribution(tfs_file_path,
                       plot_bucket_q: int = 0,
                       plot_bucket_gamma_t: float = 0.0,
                       plot_bucket_num_orbits: int = 4,
-                      save_dir=None):
+                      save_dir=None,
+                      *,
+                      data: pd.DataFrame | None = None):
+    """Plot a distribution, reusing its table when already loaded."""
 
-    df = read_table(tfs_file_path)
+    df = read_table(tfs_file_path) if data is None else data
 
     file_dir = Path(tfs_file_path).resolve().parent
     file_name = Path(tfs_file_path).resolve().stem
