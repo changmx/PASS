@@ -175,10 +175,13 @@ class WakeComponentConfig(WakeParameters):
     @classmethod
     def model_discriminator(cls, value):
         if isinstance(value, dict):
-            # The engine recursively lowercases JSON keys before construction.
+            # Resolve the tag before Pydantic selects a model from the union.
+            kind_keys = [key for key in value if str(key).casefold() == "kind"]
+            if len(kind_keys) > 1:
+                raise ValueError(f"Duplicate wake parameter {kind_keys[-1]!r}")
             value = dict(value)
-            if "kind" in value and "Kind" not in value:
-                value["Kind"] = value.pop("kind")
+            if kind_keys:
+                value["Kind"] = value.pop(kind_keys[0])
         return value
 
     @model_validator(mode="after")

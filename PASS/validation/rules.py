@@ -8,7 +8,8 @@ from functools import lru_cache
 import math
 from pathlib import Path
 import re
-from typing import Annotated, get_args, get_origin
+from types import UnionType
+from typing import Annotated, Union, get_args, get_origin
 
 from pydantic import BaseModel, Field, StrictInt, TypeAdapter, ValidationError
 
@@ -108,8 +109,8 @@ def json_location(value, location):
     return tuple(result)
 
 
-def _electron_cloud_json_location(model, location):
-    """Restore JSON aliases after cloud normalization, preserving resource names."""
+def _schema_json_location(model, location):
+    """Restore JSON aliases after model normalization, preserving resource names."""
     annotation, result = model, []
     for part in location:
         if get_origin(annotation) is dict:
@@ -131,6 +132,74 @@ def _electron_cloud_json_location(model, location):
     return tuple(result)
 
 
+def _normalize_fields(value, annotation, source_paths, report, path=(), source_path=()):
+    """Copy schema keys to JSON aliases without changing names, values or defaults."""
+    source_paths[path] = source_path
+    if get_origin(annotation) is Annotated:
+        annotation = get_args(annotation)[0]
+    if get_origin(annotation) in (Union, UnionType):
+        options = [item for item in get_args(annotation) if item is not type(None)]
+        if len(options) == 1:
+            annotation = options[0]
+        elif isinstance(value, dict):
+            # Wake models select their schema by Kind; the value stays case-sensitive.
+            kind = next((item for key, item in value.items() if isinstance(key, str) and key.casefold() == "kind"), None)
+            annotation = next((model for model in options if isinstance(model, type) and issubclass(model, BaseModel) and "kind" in model.model_fields
+                               and kind in get_args(model.model_fields["kind"].annotation)), None)
+    if isinstance(value, list):
+        child = get_args(annotation)[0] if get_origin(annotation) is list else None
+        return [_normalize_fields(item, child, source_paths, report, (*path, i), (*source_path, i)) for i, item in enumerate(value)]
+    if not isinstance(value, dict):
+        return value
+
+    fields, names = {}, {}
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        fields = {field.alias or name: field.annotation for name, field in annotation.model_fields.items()}
+        names = {alias.casefold(): alias for alias in fields}
+        # Keep Python-name aliases only for schemas whose runtime already accepts them.
+        if hasattr(annotation, "_normalize_fields") or hasattr(annotation, "engine_keys"):
+            names.update({name.casefold(): field.alias or name for name, field in annotation.model_fields.items()})
+        if annotation is MainConfig:
+            fields.update({
+                "Sequence": None,
+                "Space charge": SpaceChargeConfig,
+                "Wake field": WakeFieldConfig,
+                "Beam beam": BeamBeamConfig,
+                "Electron cloud": ElectronCloudConfig,
+                "Intrabeam scattering": IBSConfig,
+            })
+            names.update({alias.casefold(): alias for alias in fields})
+        elif annotation is SlicerItem:
+            fields["Explicit"] = {"z min": float, "z max": float}
+    elif isinstance(annotation, dict):
+        fields = annotation
+        names = {alias.casefold(): alias for alias in fields}
+    mapped_child = get_args(annotation)[1] if get_origin(annotation) is dict else None
+    normalized = {}
+    for key, item in value.items():
+        alias = names.get(key.casefold(), key) if isinstance(key, str) else key
+        child = fields.get(alias, mapped_child)
+        if path == ("Sequence", ) and isinstance(item, dict):
+            kind = next((v for k, v in item.items() if isinstance(k, str) and k.casefold() == "command"), None)
+            child = next((model for name, model in MODELS.items() if isinstance(kind, str) and name.casefold() == kind.casefold()), None)
+        elif annotation is InjectionItem and isinstance(key, str) and re.fullmatch(r"bunch\d+", key.casefold()):
+            alias, child = key.lower(), BunchConfig
+        if alias in normalized:
+            report.add((*source_path, key), "json.duplicate", "多个字段名对应同一参数；不允许覆盖")
+            continue
+        normalized[alias] = _normalize_fields(item, child, source_paths, report, (*path, alias), (*source_path, key))
+    return normalized
+
+
+def _source_path(path, source_paths):
+    """Keep submitted key spelling, including the parent of a missing field."""
+    path = tuple(path)
+    for end in range(len(path), -1, -1):
+        if path[:end] in source_paths:
+            return source_paths[path[:end]] + path[end:]
+    return path
+
+
 class Validator:
 
     def __init__(self, data, base, report, check_files):
@@ -144,9 +213,10 @@ class Validator:
         self.bunch_models = []
         self.file_cache = {}
         self.magnet_ramp_cache = {}
+        self._source_paths = {}
 
     def add(self, path, code, message, warning=False):
-        self.report.add(path, code, message, "warning" if warning else "error")
+        self.report.add(_source_path(path, self._source_paths), code, message, "warning" if warning else "error")
 
     def require(self, raw, fields, path):
         for key in fields:
@@ -189,15 +259,15 @@ class Validator:
             except ValidationError as exc:
                 failed = True
                 for issue in exc.errors():
-                    self.add((*path, alias, *json_location(value, issue["loc"])), "field.type", issue["msg"])
+                    location = _schema_json_location(model, (alias, *issue["loc"]))
+                    self.add((*path, *json_location(raw, location)), "field.type", issue["msg"])
         if not failed and not excluded:
             try:
                 checked = model.model_validate(raw, strict=True)
                 return checked.model_dump(by_alias=True)
             except ValidationError as exc:
                 for issue in exc.errors():
-                    location = _electron_cloud_json_location(
-                        model, issue["loc"]) if model in {ElectronCloudItem, IBSItem, ElectronBeamConfig, ElectronCoolerItem} else issue["loc"]
+                    location = _schema_json_location(model, issue["loc"])
                     self.add((*path, *json_location(raw, location)), "field.constraint", issue["msg"])
         # Successful model validation already constructs its defaults. Only partial
         # results need these fallbacks; never cache mutable values across inputs.
@@ -314,7 +384,7 @@ class Validator:
             self.intrabeam_scattering_config = load_intrabeam_scattering(self.data, validate_sequence=False)
         except ValidationError as exc:
             for issue in exc.errors():
-                location = _electron_cloud_json_location(IBSConfig, issue["loc"])
+                location = _schema_json_location(IBSConfig, issue["loc"])
                 self.add(("Intrabeam scattering", *location), "ibs.configuration", issue["msg"])
         except (TypeError, ValueError) as exc:
             self.add(("Intrabeam scattering", ), "ibs.configuration", str(exc))
@@ -323,7 +393,7 @@ class Validator:
             self.electron_cloud_config = load_electron_cloud(self.data, validate_sequence=False)
         except ValidationError as exc:
             for issue in exc.errors():
-                location = _electron_cloud_json_location(ElectronCloudConfig, issue["loc"])
+                location = _schema_json_location(ElectronCloudConfig, issue["loc"])
                 self.add(("Electron cloud", *location), "electron_cloud.configuration", issue["msg"])
         except (TypeError, ValueError) as exc:
             self.add(("Electron cloud", ), "electron_cloud.configuration", str(exc))
@@ -712,6 +782,7 @@ class Validator:
 
     def run(self):
         self.scan(self.data)
+        self.data = _normalize_fields(self.data, MainConfig, self._source_paths, self.report)
         self.globals()
         sequence = self.data.get("Sequence")
         if not isinstance(sequence, dict):
@@ -778,6 +849,12 @@ def validate_files(paths, *, check_files=True):
 
 
 def check_shared_inputs(inputs, result):
+    normalized, source_paths = [], {}
+    for source, data in inputs:
+        locations = {}
+        normalized.append((source, _normalize_fields(data, MainConfig, locations, ValidationReport())))
+        source_paths[source] = locations
+    inputs = normalized
     try:
         enabled, configurations = load_beam_beam([data for _, data in inputs])
     except (ValueError, TypeError, KeyError) as exc:
@@ -788,7 +865,7 @@ def check_shared_inputs(inputs, result):
             for beam_id, (source, data) in enumerate(inputs):
                 for path, message, modules in find_slice_usage_conflicts(data, beam_id=beam_id, beam_beam_configurations=configurations):
                     if "BeamBeam" in modules:
-                        result.add(path, "slicer.module_sharing", message, source=str(source))
+                        result.add(_source_path(path, source_paths[source]), "slicer.module_sharing", message, source=str(source))
     if len(inputs) == 2:
         try:
             first, second = [MainConfig.model_validate(data, strict=True).model_dump(by_alias=True) for _, data in inputs]
@@ -796,7 +873,10 @@ def check_shared_inputs(inputs, result):
             return  # Each input's field errors are already present in the report.
         for field in ("Number of turns", "Backend (gpu/cpu)", "Particle Precision", "Device Id", "Number of GPU devices", "Timing", "Is plot figure"):
             if first[field] != second[field]:
-                result.add((field, ), "run.mismatch", f"两个输入的 {field} 必须一致；引擎共享同一运行设置", source=str(inputs[1][0]))
+                result.add(_source_path((field, ), source_paths[inputs[1][0]]),
+                           "run.mismatch",
+                           f"两个输入的 {field} 必须一致；引擎共享同一运行设置",
+                           source=str(inputs[1][0]))
 
 
 def validate_documents(documents):
