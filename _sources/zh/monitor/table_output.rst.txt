@@ -57,6 +57,11 @@
      - 无；默认 TFS
 
 HDF5 表格使用 ``.h5``，TFS 表格使用 ``.tfs``，文件名主体保持一致。
+:doc:`StatMonitor <statmonitor>` 的 CSV、HDF5 和 TFS 使用文件名主体
+``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}``。
+其中命令名称来自 Sequence 提供的规范化运行时名称，经一次百分号转义用于文件名，
+以隔离不同命令的历史；``Monitor`` 元数据保留未转义名称。依赖旧版完整文件名主体
+的读取程序需要适配 ``_cmd_``，已有输出文件保留原名称。
 SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。
 
 HDF5 结构与元数据

@@ -58,19 +58,29 @@ Interface Parameters
 Output Files
 ------------
 
-A pair of files is generated for each bunch at each monitor position:
+A pair of files is generated for each bunch and each monitor command:
 
-- **CSV** (appended in batches): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
-- **HDF5** (default, appended with CSV): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5``
-- **TFS** (instead of HDF5 when selected, generated at finalization): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
+- **CSV** (appended in batches): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv``
+- **HDF5** (default, appended with CSV): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
+- **TFS** (instead of HDF5 when selected, generated at finalization): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
 
 The output directory is ``output_dir_stat``.
+
+``encoded_command_name`` is the canonical runtime command name supplied by
+Sequence, percent-escaped once for use in a filename. Special characters are
+encoded, including ``/`` as ``%2F`` and a literal ``%`` as ``%25``. The HDF5/TFS
+``Monitor`` metadata retains the unescaped runtime name. Distinct command names
+therefore have separate histories even at the same position or when their
+positions round to the same four-decimal filename value. Existing output files
+keep their names; readers that require the previous exact filename stem need
+to account for the added ``_cmd_`` component.
 
 Example metadata (HDF5 attributes, or TFS headers in text mode):
 
 ::
 
    @ Name             PASS Statistic Data
+   @ Monitor          stat1
    @ Time             2026-07-14 00:11:03
 
 Output columns:

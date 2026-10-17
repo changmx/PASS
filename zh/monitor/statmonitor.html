@@ -205,15 +205,22 @@
 </section>
 <section id="id3">
 <h2>输出文件<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>每个束团每个监视器位置生成一对文件：</p>
+<p>每个束团、每条监视器命令生成一对文件：</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> （分批追加） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>HDF5</strong> （默认，与 CSV 同批追加）： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5</span></code></p></li>
-<li><p><strong>TFS</strong> （选择后代替 HDF5，结束时生成） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><strong>CSV</strong> （分批追加） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv</span></code></p></li>
+<li><p><strong>HDF5</strong> （默认，与 CSV 同批追加）： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
+<li><p><strong>TFS</strong> （选择后代替 HDF5，结束时生成） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>输出目录为 <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code> 。</p>
+<p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> 来自 Sequence 提供的规范化运行时命令名称，经过一次
+百分号转义以用于文件名。特殊字符会被编码，例如 <code class="docutils literal notranslate"><span class="pre">/</span></code> 为 <code class="docutils literal notranslate"><span class="pre">%2F</span></code>，名称中的
+字面百分号 <code class="docutils literal notranslate"><span class="pre">%</span></code> 为 <code class="docutils literal notranslate"><span class="pre">%25</span></code>。HDF5/TFS 的 <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留未转义的运行时
+名称。因此，名称不同的命令即使位于同一位置，或位置保留四位小数后相同，也各自
+保存独立历史。已有输出文件保留原文件名；依赖旧版完整文件名主体的读取程序需要
+适配新增的 <code class="docutils literal notranslate"><span class="pre">_cmd_</span></code> 部分。</p>
 <p>元数据示例（HDF5 属性，文本模式下为 TFS 文件头）：</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
+<span class="o">@</span> <span class="n">Monitor</span>          <span class="n">stat1</span>
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 </pre></div>
 </div>

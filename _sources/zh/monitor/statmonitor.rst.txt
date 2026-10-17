@@ -58,19 +58,27 @@
 输出文件
 --------
 
-每个束团每个监视器位置生成一对文件：
+每个束团、每条监视器命令生成一对文件：
 
-- **CSV** （分批追加） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
-- **HDF5** （默认，与 CSV 同批追加）： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5``
-- **TFS** （选择后代替 HDF5，结束时生成） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
+- **CSV** （分批追加） ： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv``
+- **HDF5** （默认，与 CSV 同批追加）： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
+- **TFS** （选择后代替 HDF5，结束时生成） ： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
 
 输出目录为 ``output_dir_stat`` 。
+
+``encoded_command_name`` 来自 Sequence 提供的规范化运行时命令名称，经过一次
+百分号转义以用于文件名。特殊字符会被编码，例如 ``/`` 为 ``%2F``，名称中的
+字面百分号 ``%`` 为 ``%25``。HDF5/TFS 的 ``Monitor`` 元数据保留未转义的运行时
+名称。因此，名称不同的命令即使位于同一位置，或位置保留四位小数后相同，也各自
+保存独立历史。已有输出文件保留原文件名；依赖旧版完整文件名主体的读取程序需要
+适配新增的 ``_cmd_`` 部分。
 
 元数据示例（HDF5 属性，文本模式下为 TFS 文件头）：
 
 ::
 
    @ Name             PASS Statistic Data
+   @ Monitor          stat1
    @ Time             2026-07-14 00:11:03
 
 输出列：

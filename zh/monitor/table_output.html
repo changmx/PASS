@@ -207,6 +207,11 @@
 </tbody>
 </table>
 <p>HDF5 表格使用 <code class="docutils literal notranslate"><span class="pre">.h5</span></code>，TFS 表格使用 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code>，文件名主体保持一致。
+<a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a> 的 CSV、HDF5 和 TFS 使用文件名主体
+<code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}</span></code>。
+其中命令名称来自 Sequence 提供的规范化运行时名称，经一次百分号转义用于文件名，
+以隔离不同命令的历史；<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留未转义名称。依赖旧版完整文件名主体
+的读取程序需要适配 <code class="docutils literal notranslate"><span class="pre">_cmd_</span></code>，已有输出文件保留原名称。
 SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。</p>
 </section>
 <section id="hdf5">

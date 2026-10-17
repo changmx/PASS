@@ -208,6 +208,12 @@ set <code class="docutils literal notranslate"><span class="pre">output_format</
 </tbody>
 </table>
 <p>HDF5 tables use <code class="docutils literal notranslate"><span class="pre">.h5</span></code>; TFS tables use <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> with the same filename stem.
+For <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a>, the CSV, HDF5 and TFS stem is
+<code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}</span></code>.
+The command-name component isolates histories by Sequence’s canonical runtime
+name, percent-escaped once for filenames; <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains that name
+without escaping. Readers using the previous exact stem must account for
+<code class="docutils literal notranslate"><span class="pre">_cmd_</span></code>; existing output files retain their names.
 SpaceCharge field output uses a multidimensional HDF5 layout
 and does not offer TFS export.</p>
 </section>

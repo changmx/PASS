@@ -205,15 +205,24 @@
 </section>
 <section id="output-files">
 <h2>Output Files<a class="headerlink" href="#output-files" title="Link to this heading"></a></h2>
-<p>A pair of files is generated for each bunch at each monitor position:</p>
+<p>A pair of files is generated for each bunch and each monitor command:</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> (appended in batches): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>HDF5</strong> (default, appended with CSV): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5</span></code></p></li>
-<li><p><strong>TFS</strong> (instead of HDF5 when selected, generated at finalization): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><strong>CSV</strong> (appended in batches): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv</span></code></p></li>
+<li><p><strong>HDF5</strong> (default, appended with CSV): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
+<li><p><strong>TFS</strong> (instead of HDF5 when selected, generated at finalization): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>The output directory is <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> is the canonical runtime command name supplied by
+Sequence, percent-escaped once for use in a filename. Special characters are
+encoded, including <code class="docutils literal notranslate"><span class="pre">/</span></code> as <code class="docutils literal notranslate"><span class="pre">%2F</span></code> and a literal <code class="docutils literal notranslate"><span class="pre">%</span></code> as <code class="docutils literal notranslate"><span class="pre">%25</span></code>. The HDF5/TFS
+<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains the unescaped runtime name. Distinct command names
+therefore have separate histories even at the same position or when their
+positions round to the same four-decimal filename value. Existing output files
+keep their names; readers that require the previous exact filename stem need
+to account for the added <code class="docutils literal notranslate"><span class="pre">_cmd_</span></code> component.</p>
 <p>Example metadata (HDF5 attributes, or TFS headers in text mode):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
+<span class="o">@</span> <span class="n">Monitor</span>          <span class="n">stat1</span>
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 </pre></div>
 </div>
