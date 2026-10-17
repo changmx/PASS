@@ -194,11 +194,16 @@ def build_sequence(
 
     Returns:
         A Sequence ready for generate_input().
-    """
-    seq = Sequence()
 
+    Raises:
+        ValueError: if no bunch is declared or items and names differ in length.
+    """
     if not bunches:
         raise ValueError("at least one bunch must be declared")
+    if len(items) != len(names):
+        raise ValueError(f"items and names must have the same length (got {len(items)} items and {len(names)} names)")
+
+    seq = Sequence()
 
     prepared_bunches = []
     for harmonic_id, bunch in enumerate(bunches):
