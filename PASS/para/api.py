@@ -280,6 +280,7 @@ def generate_from_tfs(
             quad_integrator, bend_integrator, sext_integrator, oct_integrator.
         monitors: optional list of dicts, each with 'type' key
             (e.g. "ParticleMonitor") plus the monitor's fields.
+            The input dictionaries are not modified.
         is_merge_drift: merge consecutive drift elements (default True).
         error_file: path to MADX error TFS file.
         is_field_error: attach field errors to matching elements.
@@ -412,7 +413,7 @@ def _apply_element_settings(
 
 
 def _build_monitors(monitors: list[dict]) -> list:
-    """Convert monitor dicts to schema objects."""
+    """Convert monitor dicts to schema objects without modifying caller data."""
     from PASS.para.schema.monitors import (
         StatMonitorItem,
         DistMonitorItem,
@@ -434,6 +435,7 @@ def _build_monitors(monitors: list[dict]) -> list:
 
     result = []
     for m in monitors:
+        m = dict(m)
         mtype = m.pop("type").lower()
         cls = _monitor_map.get(mtype)
         if cls is None:
