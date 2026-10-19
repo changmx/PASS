@@ -339,11 +339,12 @@ class SBend(Command):
         y_new = y - tan_angle * x * py / (pz * safe_rotation_denominator)
         z_new = z + beta0 * tan_angle * x * normalized_energy / (pz * safe_rotation_denominator)
 
-        active = (alive & valid).astype(mask.dtype, copy=False)
-        x[:] = x_new * active + x * (1.0 - active)
-        px[:] = px_new * active + px * (1.0 - active)
-        y[:] = y_new * active + y * (1.0 - active)
-        z[:] = z_new * active + z * (1.0 - active)
+        # Mask writes directly so lost rows retain their coordinates even when candidates contain NaN.
+        active = alive & valid
+        np.copyto(x, x_new, where=active)
+        np.copyto(px, px_new, where=active)
+        np.copyto(y, y_new, where=active)
+        np.copyto(z, z_new, where=active)
 
     # DipoleFringe (nonlinear fringe field)
     # Finite-gap fringe generating function
@@ -415,11 +416,11 @@ class SBend(Command):
         new_py = py - 4.0 * c3 * new_y**3 - k0w * np.tan(fi0) * new_y
         new_z = z + beta0 * (0.5 * kz * new_y**2 + c3 * new_y**4 * (inverse_abs_momentum_ratio**2) * negative_normalized_energy)
 
-        active = (alive & valid).astype(mask.dtype, copy=False)
-        x[:] = new_x * active + x * (1.0 - active)
-        y[:] = new_y * active + y * (1.0 - active)
-        py[:] = new_py * active + py * (1.0 - active)
-        z[:] = new_z * active + z * (1.0 - active)
+        active = alive & valid
+        np.copyto(x, new_x, where=active)
+        np.copyto(y, new_y, where=active)
+        np.copyto(py, new_py, where=active)
+        np.copyto(z, new_z, where=active)
 
     # Wedge (edge angle: geometric rotation + dipole focusing kick)
     # Wedge map in normalized momentum coordinates
@@ -480,11 +481,11 @@ class SBend(Command):
         # path_length: Eq. 1.201
         path_length = momentum_ratio * (theta + phase_advance) / b1_safe
 
-        active = (alive & valid).astype(mask.dtype, copy=False)
-        x[:] = new_x * active + x * (1.0 - active)
-        px[:] = new_px * active + px * (1.0 - active)
-        y[:] = (y + delta_y) * active + y * (1.0 - active)
-        z[:] = (z - path_length / beta_over_beta0) * active + z * (1.0 - active)
+        active = alive & valid
+        np.copyto(x, new_x, where=active)
+        np.copyto(px, new_px, where=active)
+        np.add(y, delta_y, out=y, where=active)
+        np.subtract(z, path_length / beta_over_beta0, out=z, where=active)
 
     def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask, ds, h, k0, chi, beta0, on_center=None):
         """Compose three drift-kick-drift steps with Yoshida coefficients."""
@@ -513,8 +514,8 @@ class SBend(Command):
         alive = tag > 0
         tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         # Preserve every positive longitudinal momentum; only invalid rows need a safe divisor.
-        pz_sq_safe = np.where(valid, pz_sq, 1.0)
-        pz = np.sqrt(pz_sq_safe)
+        pz_sq[~valid] = 1.0
+        pz = np.sqrt(pz_sq, out=pz_sq)
         inv_pz = 1.0 / pz
 
         # Rationalize 1 - beta0/beta * p/pz to retain high-energy time slip.
@@ -523,11 +524,17 @@ class SBend(Command):
         energy_ratio = np.sqrt(inv_gamma_sq + (1.0 - inv_gamma_sq) * momentum_ratio**2)
         slip = (dp * (2.0 + dp) * inv_gamma_sq - transverse_momentum_squared) / (pz * (pz + energy_ratio))
 
-        L_mask = L * (alive & valid)
-
-        x += L_mask * px * inv_pz
-        y += L_mask * py * inv_pz
-        z += L_mask * slip
+        active = alive & valid
+        # Keep contiguous arithmetic for finite drift factors; zero times NaN needs masked writes.
+        if np.isfinite(L) and np.all(valid) and np.all(np.isfinite(slip)):
+            L_mask = L * active
+            x += L_mask * px * inv_pz
+            y += L_mask * py * inv_pz
+            z += L_mask * slip
+        else:
+            np.copyto(x, x + np.float64(L) * px * inv_pz, where=active)
+            np.copyto(y, y + np.float64(L) * py * inv_pz, where=active)
+            np.copyto(z, z + np.float64(L) * slip, where=active)
 
     def _dipole_kick_cpu(self, L, x, px, y, py, z, dp, tag, mask, h, k0, chi, beta0):
         """Apply curvature, dipole and weak-focusing kicks.
@@ -537,17 +544,17 @@ class SBend(Command):
             return
 
         momentum_ratio = 1.0 + dp
-        L_mask = L * (tag > 0).astype(mask.dtype, copy=False)
+        active = tag > 0
 
         # px kick: Eq. 1.189
-        px += L_mask * (h * momentum_ratio - chi * k0 - chi * k0 * h * x)
+        np.add(px, np.float64(L) * (h * momentum_ratio - chi * k0 - chi * k0 * h * x), out=px, where=active)
 
         # Path-length correction uses beta0/particle_beta.
         gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
         reference_beta_gamma = beta0 * gamma0
         particle_beta = compute_particle_beta(momentum_ratio=momentum_ratio, reference_beta_gamma=reference_beta_gamma)
         beta0_over_beta = beta0 / particle_beta
-        z -= L_mask * beta0_over_beta * h * x
+        np.subtract(z, np.float64(L) * beta0_over_beta * h * x, out=z, where=active)
 
     def _polar_drift_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0, h):
         """Drift in curved coordinates, including the (1 + h*x) Jacobian.
@@ -589,12 +596,12 @@ class SBend(Command):
         beta0_over_beta_minus_one = beta_ratio_squared_change / (np.sqrt(1.0 + beta_ratio_squared_change) + 1.0)
         particle_path_length = momentum_ratio * pst
 
-        active = (alive & valid).astype(mask.dtype, copy=False)
-        z += ((L - particle_path_length) - particle_path_length * beta0_over_beta_minus_one) * active
+        active = alive & valid
+        np.add(z, (L - particle_path_length) - particle_path_length * beta0_over_beta_minus_one, out=z, where=active)
 
-        x[:] = new_x * active + x * (1.0 - active)
-        px[:] = new_px * active + px * (1.0 - active)
-        y[:] = new_y * active + y * (1.0 - active)
+        np.copyto(x, new_x, where=active)
+        np.copyto(px, new_px, where=active)
+        np.copyto(y, new_y, where=active)
 
     def _rkr_drift_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0, h, k0, chi):
         """Compose polar drifts and dipole kicks with Yoshida coefficients.
@@ -629,10 +636,10 @@ class SBend(Command):
         if abs(L) < const.eps:
             return
 
-        L_mask = L * (tag > 0).astype(mask.dtype, copy=False)
+        active = tag > 0
 
         # Weak focusing: dpx = -chi * k0 * h * x * L
-        px -= L_mask * chi * k0 * h * x
+        np.subtract(px, np.float64(L) * chi * k0 * h * x, out=px, where=active)
 
     def _rkr_step_cpu(self, x, px, y, py, z, dp, tag, mask, ds, h, k0, chi, beta0, on_center=None):
         """Single DKD step for rot-kick-rot model."""

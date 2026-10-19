@@ -224,8 +224,8 @@ class Kicker(Command):
         newly_lost = alive & ~valid
         tag[newly_lost] = -np.abs(tag[newly_lost])
         # Preserve every positive longitudinal momentum; only invalid rows need a safe divisor.
-        pz_sq_safe = np.where(valid, pz_sq, 1.0)
-        pz = np.sqrt(pz_sq_safe)
+        pz_sq[~valid] = 1.0
+        pz = np.sqrt(pz_sq, out=pz_sq)
         inv_pz = 1.0 / pz
 
         # Rationalize 1 - beta0/beta * p/pz to retain high-energy time slip.
@@ -234,14 +234,18 @@ class Kicker(Command):
         energy_ratio = np.sqrt(inv_gamma_sq + (1.0 - inv_gamma_sq) * momentum_ratio**2)
         slip = (dp * (2.0 + dp) * inv_gamma_sq - transverse_momentum_squared) / (pz * (pz + energy_ratio))
 
-        # Refresh the mask before applying this drift so particles that just
-        # became invalid do not receive a huge displacement from pz~0.
-        mask[:] = (tag > 0).astype(mask.dtype, copy=False)
-        L_mask = L * mask
-
-        x += L_mask * px * inv_pz
-        y += L_mask * py * inv_pz
-        z += L_mask * slip
+        active = alive & valid
+        mask[:] = active
+        # Keep contiguous arithmetic for finite drift factors; zero times NaN needs masked writes.
+        if np.isfinite(L) and np.all(valid) and np.all(np.isfinite(slip)):
+            L_mask = L * mask
+            x += L_mask * px * inv_pz
+            y += L_mask * py * inv_pz
+            z += L_mask * slip
+        else:
+            np.copyto(x, x + np.float64(L) * px * inv_pz, where=active)
+            np.copyto(y, y + np.float64(L) * py * inv_pz, where=active)
+            np.copyto(z, z + np.float64(L) * slip, where=active)
 
     def _dipole_kick_cpu(self, hkick_eff, vkick_eff, px, py, tag, mask):
         """Apply the integrated horizontal and vertical dipole kicks."""

@@ -313,12 +313,13 @@ class Solenoid(Command):
         # The mechanical transverse momentum is constant in magnitude in this map.
         add_to_z = L * (dp * (2.0 + dp) * inv_gamma_sq - transverse_momentum_squared) / (pz * (pz + energy_ratio))
 
-        active = (alive & valid).astype(mask.dtype, copy=False)
-        x[:] = new_x * active + x * (1.0 - active)
-        px[:] = new_px * active + px * (1.0 - active)
-        y[:] = new_y * active + y * (1.0 - active)
-        py[:] = new_py * active + py * (1.0 - active)
-        z += add_to_z * active
+        # Mask writes directly so lost rows retain their coordinates even when candidates contain NaN.
+        active = alive & valid
+        np.copyto(x, new_x, where=active)
+        np.copyto(px, new_px, where=active)
+        np.copyto(y, new_y, where=active)
+        np.copyto(py, new_py, where=active)
+        np.add(z, add_to_z, out=z, where=active)
 
     def _drift_exact_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0):
         """Advance live particles in a straight, field-free region."""
@@ -332,8 +333,8 @@ class Solenoid(Command):
         alive = tag > 0
         tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         # Preserve every positive longitudinal momentum; only invalid rows need a safe divisor.
-        pz_sq_safe = np.where(valid, pz_sq, 1.0)
-        pz = np.sqrt(pz_sq_safe)
+        pz_sq[~valid] = 1.0
+        pz = np.sqrt(pz_sq, out=pz_sq)
         inv_pz = 1.0 / pz
 
         # Rationalize 1 - beta0/beta * p/pz to retain high-energy time slip.
@@ -342,11 +343,17 @@ class Solenoid(Command):
         energy_ratio = np.sqrt(inv_gamma_sq + (1.0 - inv_gamma_sq) * momentum_ratio**2)
         slip = (dp * (2.0 + dp) * inv_gamma_sq - transverse_momentum_squared) / (pz * (pz + energy_ratio))
 
-        L_mask = L * (alive & valid)
-
-        x += L_mask * px * inv_pz
-        y += L_mask * py * inv_pz
-        z += L_mask * slip
+        active = alive & valid
+        # Keep contiguous arithmetic for finite drift factors; zero times NaN needs masked writes.
+        if np.isfinite(L) and np.all(valid) and np.all(np.isfinite(slip)):
+            L_mask = L * active
+            x += L_mask * px * inv_pz
+            y += L_mask * py * inv_pz
+            z += L_mask * slip
+        else:
+            np.copyto(x, x + np.float64(L) * px * inv_pz, where=active)
+            np.copyto(y, y + np.float64(L) * py * inv_pz, where=active)
+            np.copyto(z, z + np.float64(L) * slip, where=active)
 
     def _multipole_kick_cpu(self, knl_eff, ksl_eff, x, px, y, py, tag, mask, chi):
         """Apply the common integrated multipole polynomial."""
