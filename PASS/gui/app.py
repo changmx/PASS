@@ -19,7 +19,7 @@ from typing import Literal, get_args, get_origin
 from uuid import uuid4
 
 from PySide6.QtCore import QEvent, QItemSelectionModel, QSignalBlocker, QTimer, Qt, Signal, QSettings, QSize
-from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QPainter, QPalette, QTextFormat
+from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QKeySequence, QPainter, QPalette, QShortcut, QTextCursor, QTextDocument, QTextFormat
 from shiboken6 import isValid
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QTextEdit,
     QPushButton,
     QSplitter,
     QStackedWidget,
@@ -284,6 +285,185 @@ class LineNumberEditor(QPlainTextEdit):
             block_number += 1
 
 
+class SourceSearchBar(QWidget):
+    """Search the editor's current text without applying its pending draft."""
+
+    def __init__(self, editor: QPlainTextEdit, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.editor = editor
+        self._matches: list[QTextCursor] = []
+        self._current_index = -1
+        self._selecting = False
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(120)
+        self._refresh_timer.timeout.connect(self._refresh_matches)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        query_row = QHBoxLayout()
+        self.query = QLineEdit()
+        self.query.setPlaceholderText("查找源码中的文本")
+        self.query.setAccessibleName("查找源码")
+        self.query.setClearButtonEnabled(True)
+        self.query.textChanged.connect(lambda: self._refresh_matches(select_match=True))
+        query_row.addWidget(self.query, 1)
+        close_button = QPushButton("关闭")
+        close_button.setToolTip("关闭查找（Esc）")
+        close_button.clicked.connect(self.close_search)
+        query_row.addWidget(close_button)
+        layout.addLayout(query_row)
+        options = QHBoxLayout()
+        self.case_sensitive = QCheckBox("区分大小写")
+        self.case_sensitive.toggled.connect(lambda: self._refresh_matches(select_match=True))
+        options.addWidget(self.case_sensitive)
+        self.count_label = QLabel("0 / 0")
+        self.count_label.setToolTip("当前匹配 / 匹配总数；到达末尾后循环查找。")
+        options.addWidget(self.count_label)
+        options.addStretch()
+        self.previous_button = QPushButton("上一处")
+        self.previous_button.setToolTip("上一处（Shift+Enter / Shift+F3）")
+        self.previous_button.clicked.connect(lambda: self.find_next(backward=True))
+        options.addWidget(self.previous_button)
+        self.next_button = QPushButton("下一处")
+        self.next_button.setToolTip("下一处（Enter / F3）")
+        self.next_button.clicked.connect(self.find_next)
+        options.addWidget(self.next_button)
+        layout.addLayout(options)
+
+        self._shortcuts = []
+        for key, callback in ((QKeySequence.Find, self.show_search), ("F3", self.find_next), ("Shift+F3", lambda: self.find_next(backward=True))):
+            shortcut = QShortcut(QKeySequence(key), parent)
+            shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+            shortcut.activated.connect(callback)
+            self._shortcuts.append(shortcut)
+        self._close_shortcut = QShortcut(QKeySequence("Esc"), parent)
+        self._close_shortcut.setContext(Qt.WidgetWithChildrenShortcut)
+        self._close_shortcut.activated.connect(self.close_search)
+        self._close_shortcut.setEnabled(False)
+        self.query.installEventFilter(self)
+        self.editor.document().contentsChange.connect(self._source_changed)
+        self.editor.selectionChanged.connect(self._update_current_match)
+        self.editor.installEventFilter(self)
+        self.hide()
+        self._update_current_match()
+
+    def eventFilter(self, watched, event):
+        if watched is self.query and event.type() == QEvent.KeyPress and event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.modifiers() in (Qt.NoModifier, Qt.ShiftModifier):
+                self.find_next(backward=event.modifiers() == Qt.ShiftModifier)
+                return True
+        if watched is self.editor and event.type() == QEvent.PaletteChange and not self.isHidden():
+            self._highlight_matches()
+        return super().eventFilter(watched, event)
+
+    def show_search(self) -> None:
+        self._open_search(seed_selection=True)
+        self._refresh_matches(select_match=True)
+
+    def _open_search(self, *, seed_selection: bool) -> None:
+        selected = self.editor.textCursor().selectedText()
+        self.show()
+        self._close_shortcut.setEnabled(True)
+        if seed_selection and selected and not any(character in selected for character in ("\n", "\r", "\u2029", "\u2028")):
+            with QSignalBlocker(self.query):
+                self.query.setText(selected)
+        self.query.setFocus()
+        self.query.selectAll()
+
+    def close_search(self) -> None:
+        self._refresh_timer.stop()
+        self.hide()
+        self._close_shortcut.setEnabled(False)
+        self._matches = []
+        self._current_index = -1
+        self.editor.setExtraSelections([])
+        self.editor.setFocus()
+
+    def _source_changed(self, _position: int, removed: int, added: int) -> None:
+        # Syntax highlighting emits format-only changes too; ignore those.
+        if not (removed or added) or self.isHidden():
+            return
+        self._matches = []
+        self._current_index = -1
+        self.editor.setExtraSelections([])
+        self.count_label.setText("查找中…")
+        self._refresh_timer.start()
+
+    def _refresh_matches(self, *, select_match: bool = False) -> None:
+        self._refresh_timer.stop()
+        if self.isHidden():
+            return
+        self._matches = []
+        query = self.query.text()
+        if query:
+            flags = QTextDocument.FindCaseSensitively if self.case_sensitive.isChecked() else QTextDocument.FindFlags()
+            document = self.editor.document()
+            cursor = document.find(query, 0, flags)
+            while not cursor.isNull():
+                self._matches.append(cursor)
+                cursor = document.find(query, cursor.selectionEnd(), flags)
+        if select_match and self._matches:
+            position = self.editor.textCursor().selectionStart()
+            index = next((index for index, cursor in enumerate(self._matches) if cursor.selectionStart() >= position), 0)
+            self._select_match(index)
+        else:
+            self._update_current_match()
+
+    def find_next(self, backward: bool = False) -> None:
+        if self.isHidden():
+            self._open_search(seed_selection=not self.query.text())
+            self._refresh_matches()
+        if self._refresh_timer.isActive():
+            self._refresh_matches()
+        if not self._matches:
+            return
+        if self._current_index >= 0:
+            index = (self._current_index + (-1 if backward else 1)) % len(self._matches)
+        else:
+            position = self.editor.textCursor().position()
+            if backward:
+                index = next((index for index in range(len(self._matches) - 1, -1, -1) if self._matches[index].selectionEnd() <= position),
+                             len(self._matches) - 1)
+            else:
+                index = next((index for index, cursor in enumerate(self._matches) if cursor.selectionStart() >= position), 0)
+        self._select_match(index)
+
+    def _select_match(self, index: int) -> None:
+        self._selecting = True
+        self.editor.setTextCursor(self._matches[index])
+        self.editor.ensureCursorVisible()
+        self._selecting = False
+        self._update_current_match()
+
+    def _update_current_match(self) -> None:
+        if self._selecting:
+            return
+        selected = self.editor.textCursor()
+        self._current_index = next((index for index, cursor in enumerate(self._matches)
+                                    if cursor.selectionStart() == selected.selectionStart() and cursor.selectionEnd() == selected.selectionEnd()), -1)
+        self.count_label.setText(f"{self._current_index + 1} / {len(self._matches)}")
+        self.previous_button.setEnabled(bool(self._matches))
+        self.next_button.setEnabled(bool(self._matches))
+        self._highlight_matches()
+
+    def _highlight_matches(self) -> None:
+        selections = []
+        palette = self.editor.palette()
+        for index, cursor in enumerate(self._matches):
+            selection = QTextEdit.ExtraSelection()
+            selection.cursor = cursor
+            color = palette.color(QPalette.Highlight)
+            if index == self._current_index:
+                selection.format.setForeground(palette.color(QPalette.HighlightedText))
+            else:
+                color.setAlpha(75)
+            selection.format.setBackground(color)
+            selections.append(selection)
+        self.editor.setExtraSelections(selections)
+
+
 class ConfigPage(QWidget):
     file_changed = Signal(str)
     changed = Signal()
@@ -521,6 +701,12 @@ class ConfigPage(QWidget):
         overview_panel = QWidget()
         overview_layout = QVBoxLayout(overview_panel)
         overview_layout.setContentsMargins(0, 8, 0, 0)
+        self.sequence_draft_notice = QLabel("JSON 源码有尚未应用的修改；此处显示上次应用的执行序列。")
+        self.sequence_draft_notice.setObjectName("syncStatus")
+        self.sequence_draft_notice.setProperty("state", "warning")
+        self.sequence_draft_notice.setWordWrap(True)
+        self.sequence_draft_notice.hide()
+        overview_layout.addWidget(self.sequence_draft_notice)
         # This internal tree remains an index for schema navigation. The sequence
         # table is the single visible overview, avoiding duplicate command lists.
         self.tree = QTreeWidget(self)
@@ -581,7 +767,18 @@ class ConfigPage(QWidget):
         self.discard_json_button.clicked.connect(self.discard_json)
         source_actions.addWidget(self.discard_json_button)
         source_actions.addStretch()
+        self.source_search = SourceSearchBar(self.editor, source_panel)
+        self.source_search_button = button("查找")
+        self.source_search_button.setToolTip("查找当前源码，包括尚未应用的修改（Ctrl+F）。")
+        self.source_search_button.clicked.connect(self.source_search.show_search)
+        source_actions.addWidget(self.source_search_button)
         source_layout.addLayout(source_actions)
+        self.source_state_label = QLabel()
+        self.source_state_label.setObjectName("syncStatus")
+        self.source_state_label.setWordWrap(True)
+        self.source_state_label.setToolTip("应用源码后更新执行序列；应用状态与参数预检结果分别显示。")
+        source_layout.addWidget(self.source_state_label)
+        source_layout.addWidget(self.source_search)
         source_layout.addWidget(self.editor, 1)
         self.editor_tabs.addTab(source_panel, "JSON 源码")
         self.editor_tabs.currentChanged.connect(self._editor_tab_changed)
@@ -690,6 +887,9 @@ class ConfigPage(QWidget):
         splitter.setStretchFactor(2, 0)
         splitter.setSizes([190, 658, 312])
         root.addWidget(splitter, 1)
+        self.changed.connect(self._refresh_source_status)
+        self.file_changed.connect(lambda: self._refresh_source_status())
+        self._refresh_source_status()
         self._refresh_tree()
 
     def _set_property_expanded(self, expanded: bool) -> None:
@@ -821,7 +1021,7 @@ class ConfigPage(QWidget):
             return
         self._json_dirty = False
         self._sync_editor()
-        self._set_sync_status("源码与已应用参数一致", "ok")
+        self._set_sync_status("源码与已应用参数一致，尚未保存" if self._data_dirty else "源码与已应用参数一致", "warning" if self._data_dirty else "ok")
         self.changed.emit()
 
     def _editor_tab_changed(self, index: int) -> None:
@@ -894,7 +1094,7 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         self._clear_form()
         self.file_changed.emit(self.path)
-        self._set_sync_status("JSON 修改已确认", "ok")
+        self._set_sync_status("源码已应用，尚未保存", "warning")
         return True
 
     def _mark_json_dirty(self, _position: int, removed: int, added: int) -> None:
@@ -903,8 +1103,31 @@ class ConfigPage(QWidget):
         if self._editor_syncing or not (removed or added):
             return
         self._json_dirty = True
-        self._set_sync_status("JSON 有未确认修改", "warning")
+        self._set_sync_status("源码已修改，尚未应用", "warning")
         self.changed.emit()
+
+    def _refresh_source_status(self, *, document_saved: bool | None = None, document_dirty: bool = False) -> None:
+        if document_saved is None:
+            document_saved = bool(self.path)
+        self.sequence_draft_notice.setVisible(self._json_dirty)
+        state = "warning"
+        if self._json_dirty and self._form_dirty:
+            text = "源码与属性均有尚未应用的修改；请先放弃其中一份草稿。"
+        elif self._json_dirty:
+            text = "源码已修改，尚未应用；执行序列仍显示上次应用的内容。"
+        elif self._form_dirty:
+            text = "属性已修改，尚未应用；源码与已应用参数一致。"
+        elif self._data_dirty or document_dirty:
+            text = "已应用，尚未保存。"
+        elif document_saved:
+            text, state = "已保存。", "ok"
+        else:
+            text = "新建输入，尚未保存。"
+        self.source_state_label.setText(text)
+        if self.source_state_label.property("state") != state:
+            self.source_state_label.setProperty("state", state)
+            self.source_state_label.style().unpolish(self.source_state_label)
+            self.source_state_label.style().polish(self.source_state_label)
 
     def _set_sync_status(self, text: str, state: str = "") -> None:
         self.sync_status.setText(text)

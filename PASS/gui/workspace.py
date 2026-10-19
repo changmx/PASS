@@ -1019,6 +1019,7 @@ class DocumentWindowMixin:
             return
         project = self.project
         dirty = self._dirty()
+        self.config._refresh_source_status(document_saved=bool(project.path if project else self.config.path), document_dirty=dirty)
         label = (project.path.name if project.path else "未保存项目.passproj") if project else (
             Path(self.config.path).name if self.config.path else "beam.json")
         self.config.file_label.setText(label + (" ●" if dirty else ""))
