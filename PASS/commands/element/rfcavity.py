@@ -42,16 +42,34 @@ class RFWaveform:
     def __init__(self, raw, reference):
         parameters = _component_parameters(raw)
         if parameters.program_file:
-            import tfs
-            table = tfs.read(parameters.program_file)
-            table.columns = table.columns.str.lower()
+            from pathlib import Path
+
+            import pandas as pd
+            from tfs.reader import _read_metadata
+
+            path = Path(parameters.program_file)
+            metadata = _read_metadata(path)
+            if metadata.column_names is None or metadata.column_types is None:
+                raise ValueError('RF program requires column names and types')
+            columns = [name.lower() for name in metadata.column_names]
             required = {'time', 'voltage', 'phase'}
             if parameters.harmonic is None:
                 required.add('frequency')
-            if not required.issubset(table.columns):
+            if not required.issubset(columns):
                 raise ValueError(f'RF program requires columns {sorted(required)}')
-            if parameters.harmonic is not None and 'frequency' in table.columns:
+            if parameters.harmonic is not None and 'frequency' in columns:
                 raise ValueError('Harmonic RF file must not also define FREQUENCY')
+            # Preserve written float64 values; epoch integration amplifies a
+            # one-ulp frequency change from the default fast text parser.
+            table = pd.read_csv(path,
+                                sep=r'\s+',
+                                names=columns,
+                                usecols=list(required),
+                                dtype=np.float64,
+                                engine='c',
+                                skiprows=metadata.non_data_lines,
+                                float_precision='round_trip',
+                                na_values=['nil'])
             parameters = RFComponent(times=table.time.tolist(),
                                      voltage=table.voltage.tolist(),
                                      phase=table.phase.tolist(),

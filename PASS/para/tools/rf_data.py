@@ -33,6 +33,7 @@ def synchronous_rf_program(voltage, phase, harmonic, circumference, mass, kineti
     origin is the first cavity passage. Legacy time_origin values are accepted,
     but their constant carrier phase is absorbed into PHASE for runtime epoch
     zero. The prescribed passage phases and physical waveform are unchanged.
+    One common integer-cycle offset is removed without wrapping individual nodes.
     """
     voltage = np.asarray(voltage, dtype=float)
     phase = np.broadcast_to(np.asarray(phase, dtype=float), voltage.shape)
@@ -54,11 +55,17 @@ def synchronous_rf_program(voltage, phase, harmonic, circumference, mass, kineti
     legacy_origin = float(time_origin)
     if not np.isfinite(legacy_origin):
         raise ValueError('The original RF phase epoch must be finite')
-    # Rebasing adds -2*pi*integral(0, legacy_origin, f) to the old modulation.
-    # Form the algebraically equivalent zero-epoch result directly, avoiding
-    # cancellation between two potentially large constant phase offsets.
     carrier = LinearProgram(frequencies, times, origin=0.)
-    modulation = phase + 2 * np.pi * (harmonic * np.arange(len(times)) - carrier.integral(0., times))
+    if times[0] == 0.:
+        first_cycles = 0.
+    elif times[0] > 0. and len(times) > 1:
+        # Before the first node f is constant; reduce one scalar epoch product.
+        first_cycles = LinearProgram(frequencies[0]).phase_cycles(float(times[0]))
+    else:
+        first_cycles = carrier.phase_cycles(float(times[0]))
+    # Local integrals avoid the large common epoch. Remove only its integer
+    # cycles so the unwrapped phase differences and interpolation are preserved.
+    modulation = phase + 2 * np.pi * (harmonic * np.arange(len(times)) - carrier.integrals - first_cycles)
     return tfs.TfsDataFrame(dict(TIME=times, VOLTAGE=voltage, FREQUENCY=frequencies, PHASE=modulation),
                             headers={
                                 'PHASE_ORIGIN_S': 0.,
