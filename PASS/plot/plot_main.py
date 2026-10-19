@@ -45,7 +45,8 @@ def plot_main(sim: Simulation):
             R0 = headers["Rho"]
             Ek = headers["Ek"]
             m0 = headers["m0"]
-            A = headers["Proton num"] + headers["Neutron num"]
+            # Lepton energies are per particle; ion energies are per nucleon.
+            A = max(1, headers["Proton num"] + headers["Neutron num"])
             q = headers["Charge num"]
             gamma_t = headers["Gamma T"]
 

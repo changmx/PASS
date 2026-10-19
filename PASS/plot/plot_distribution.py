@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Patch
 
 from PASS.plot.plot_bucket import plot_bucket_on_ax
-from PASS.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
+from PASS.tool.calc_bucket import compute_bucket_data
 from PASS.utils.table_io import read_table
 
 
@@ -34,7 +34,11 @@ def plot_distribution(tfs_file_path,
                       save_dir=None,
                       *,
                       data: pd.DataFrame | None = None):
-    """Plot a distribution, reusing its table when already loaded."""
+    """Plot a distribution, reusing its table when already loaded.
+
+    Bucket energies are per nucleon for ions; use per-particle energies and
+    plot_bucket_A=1 for electrons or positrons. RF phase is in degrees.
+    """
 
     df = read_table(tfs_file_path) if data is None else data
 
@@ -299,7 +303,11 @@ def plot_longi_distribution(
     plot_bucket_num_orbits: int = 4,
     save_path=None,
 ):
+    """Plot z-delta and optionally the frozen single-harmonic RF bucket.
 
+    Bucket energies are per nucleon for ions; use per-particle energies and
+    plot_bucket_A=1 for electrons or positrons. RF phase is in degrees.
+    """
     # 2D histogram
     H, xedges, yedges = np.histogram2d(z, dp, bins=bins)
 
@@ -369,43 +377,16 @@ def plot_longi_distribution(
 
     # Bucket
     if is_plot_bucket:
-        ion_params = {
-            'V0': 100e3,
-            'phi_s_deg': 30.0,
-            'h': 1,
-            'R0': 40.0,
-            'Ek_per_nucleon': 45e6,
-            'E0_per_nucleon': 938.272e6,
-            'A': 1,
-            'q': 1,
-            'gamma_t': np.sqrt(1 / 0.0434),
-            'num_orbits': 4
-        }
-
-        w_data = calc_bucket_width(phi_s_deg=ion_params['phi_s_deg'],
-                                   Ek_per_nucleon=ion_params['Ek_per_nucleon'],
-                                   E0_per_nucleon=ion_params['E0_per_nucleon'],
-                                   A=ion_params['A'],
-                                   gamma_t=ion_params['gamma_t'])
-
-        h_data = calc_bucket_height(V0=ion_params['V0'],
-                                    phi_s_deg=ion_params['phi_s_deg'],
-                                    h=ion_params['h'],
-                                    Ek_per_nucleon=ion_params['Ek_per_nucleon'],
-                                    E0_per_nucleon=ion_params['E0_per_nucleon'],
-                                    A=ion_params['A'],
-                                    q=ion_params['q'],
-                                    gamma_t=ion_params['gamma_t'])
-
-        # 1. Compute physics data ONCE
-        bucket_data = compute_bucket_data(**ion_params)
-
-        # print(f"Bucket widt h: {w_data['width_deg']:.2f} deg ({w_data['width_rad']:.2f} rad)")
-        # print(f"Bucket height: max dp/p = {h_data['dp_p_max']:.5e}, max dE = {h_data['dE_max_MeV']:.2f} MeV\n")
-        # print(f"Calculated gamma: {bucket_data['gamma']:.4f}")
-        # print(f"Calculated beta : {bucket_data['beta']:.4f}")
-        # print(f"Calculated eta  : {bucket_data['eta']:.6f}")
-
+        bucket_data = compute_bucket_data(V0=plot_bucket_V0,
+                                          phi_s_deg=plot_bucket_phi_s_deg,
+                                          h=plot_bucket_h,
+                                          R0=plot_bucket_R0,
+                                          Ek_per_nucleon=plot_bucket_Ek_per_nucleon,
+                                          E0_per_nucleon=plot_bucket_E0_per_nucleon,
+                                          A=plot_bucket_A,
+                                          q=plot_bucket_q,
+                                          gamma_t=plot_bucket_gamma_t,
+                                          num_orbits=plot_bucket_num_orbits)
         plot_bucket_on_ax(ax_heat, bucket_data, x_axis='z', y_axis='dp', phi_unit="rad", is_plot_label=False, is_plot_grid=False)
 
     if is_plot_hist:
