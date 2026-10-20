@@ -346,7 +346,7 @@
 <h2>物理推导<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <section id="id5">
 <h3>纵向传输<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<p>纵向传输由 <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">transfer</span></code> 参数控制，支持三种模式：</p>
+<p>下述入口与出口色散变换之间的中心纵向映射由 <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">transfer</span></code> 参数控制，支持三种模式：</p>
 <p><strong>drift 模式</strong> ：使用跃迁 Lorentz 因子，纵向传输矩阵元为：</p>
 <div class="math notranslate nohighlight">
 \[m_{12,z} = -\left(\frac{1}{\gamma_t^2} - \frac{1}{\gamma^2}\right)(s - s_\mathrm{previous})\]</div>
@@ -361,11 +361,17 @@
 <div class="math notranslate nohighlight">
 \[m_{22,z} = \cos(\phi_z)\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(\phi_z\)</span> 为纵向相移， <span class="math notranslate nohighlight">\(\sigma_z\)</span> 为配置的 RMS 束长， <span class="math notranslate nohighlight">\(\sigma_\delta\)</span> 为配置的 RMS 相对动量分散。</p>
-<p><strong>off 模式</strong> ：纵向传输矩阵取单位矩阵。</p>
+<p><strong>off 模式</strong> ：中心纵向传输矩阵取单位矩阵。存在非零色散时，入口与出口的纵向伴随项仍可改变保存的 z。</p>
 </section>
 <section id="id6">
 <h3>色散处理<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
-<p>由于横向传输矩阵描述的是非色散部分的运动，需要在传输前后对色散进行去除与恢复：</p>
+<p>由于横向传输矩阵描述的是非色散部分的运动，需要在传输前后对色散进行去除与恢复。这些依赖能量的坐标变换还具有纵向伴随项。对于正则能量变量 <span class="math notranslate nohighlight">\(\eta=(E-E_\mathrm{ref})/(\beta_0P_0c)\)</span>，定义</p>
+<div class="math notranslate nohighlight">
+\[g(\delta)=\frac{d\delta}{d\eta}
+=\frac{\beta_0}{\beta_\mathrm{particle}}
+=\frac{\sqrt{a+(1-a)(1+\delta)^2}}{1+\delta},
+\qquad a=\frac{1}{\gamma_0^2}.\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\beta_0\)</span>、<span class="math notranslate nohighlight">\(\gamma_0\)</span> 对应当前束团参考粒子，且 <span class="math notranslate nohighlight">\(g(0)=1\)</span>。变换步骤如下：</p>
 <ol class="arabic simple">
 <li><p><strong>去除前一点色散</strong> ：</p></li>
 </ol>
@@ -373,17 +379,34 @@
 \[x_1 = x - D_{x,\mathrm{previous}} \cdot \delta\]</div>
 <div class="math notranslate nohighlight">
 \[px_1 = px - D_{px,\mathrm{previous}} \cdot \delta\]</div>
+<div class="math notranslate nohighlight">
+\[z_\beta = z + g(\delta)
+\left(D_{px,\mathrm{previous}}x-D_{x,\mathrm{previous}}px\right)\]</div>
 <ol class="arabic simple" start="2">
-<li><p><strong>线性传输</strong> ：</p></li>
+<li><p><strong>应用给定传输</strong> ：</p></li>
 </ol>
+<p>中心纵向映射作用于 <span class="math notranslate nohighlight">\((z_\beta,\delta)\)</span>：</p>
+<div class="math notranslate nohighlight">
+\[z_L=m_{11,z}z_\beta+m_{12,z}\delta,
+\qquad \delta_2=m_{21,z}z_\beta+m_{22,z}\delta.\]</div>
+<p>横向映射的色品相位仍使用入口动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span>：</p>
 <div class="math notranslate nohighlight">
 \[x_\mathrm{temp} = x_1 \cdot m_{11} + px_1 \cdot m_{12}\]</div>
+<div class="math notranslate nohighlight">
+\[px_\mathrm{temp} = x_1 \cdot m_{21} + px_1 \cdot m_{22}\]</div>
 <ol class="arabic simple" start="3">
 <li><p><strong>加新点色散</strong> ：</p></li>
 </ol>
 <div class="math notranslate nohighlight">
+\[z_2=z_L+g(\delta_2)
+\left(D_x px_\mathrm{temp}-D_{px}x_\mathrm{temp}\right)\]</div>
+<div class="math notranslate nohighlight">
 \[x_2 = x_\mathrm{temp} + D_x \cdot \delta_2\]</div>
+<div class="math notranslate nohighlight">
+\[px_2 = px_\mathrm{temp} + D_{px} \cdot \delta_2\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(D_x\)</span> 为当前点水平色散， <span class="math notranslate nohighlight">\(D_{x,\mathrm{previous}}\)</span> 为前一点水平色散， <span class="math notranslate nohighlight">\(\delta\)</span> 为粒子相对动量偏差。</p>
+<p>对于给定色散轨道上 betatron 振幅为零的粒子，两个纵向伴随项均为零，<code class="docutils literal notranslate"><span class="pre">drift</span></code> 中由 <span class="math notranslate nohighlight">\(\gamma_t\)</span> 给出的既有滑移保持不变。在 <code class="docutils literal notranslate"><span class="pre">matrix</span></code> 模式下，入口修正还可改变 <span class="math notranslate nohighlight">\(\delta_2\)</span>，进而改变出口恢复的横向色散。</p>
+<p>这些项补齐的是色散坐标变换，并不使整个六维映射严格辛：<code class="docutils literal notranslate"><span class="pre">DQx</span></code>/<code class="docutils literal notranslate"><span class="pre">DQy</span></code> 对应的作用量相关飞行时间项尚未包含；有限动量偏差下，<code class="docutils literal notranslate"><span class="pre">matrix</span></code> 仍在 <span class="math notranslate nohighlight">\((z_\beta,\delta)\)</span> 中使用线性映射，而未改为正则能量变量。</p>
 </section>
 <section id="id7">
 <h3>横向传输矩阵<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>

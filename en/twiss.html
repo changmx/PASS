@@ -346,7 +346,7 @@
 <h2>Physics Derivation<a class="headerlink" href="#physics-derivation" title="Link to this heading"></a></h2>
 <section id="longitudinal-transport">
 <h3>Longitudinal Transport<a class="headerlink" href="#longitudinal-transport" title="Link to this heading"></a></h3>
-<p>Longitudinal transport is controlled by the <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">transfer</span></code> parameter and supports three modes:</p>
+<p>The central longitudinal map, between the entrance and exit dispersion transformations below, is controlled by the <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">transfer</span></code> parameter and supports three modes:</p>
 <p><strong>drift mode</strong> : Uses the gamma transition parameter. The longitudinal transport matrix element is:</p>
 <div class="math notranslate nohighlight">
 \[m_{12,z} = -\left(\frac{1}{\gamma_t^2} - \frac{1}{\gamma^2}\right)(s - s_\mathrm{previous})\]</div>
@@ -361,11 +361,17 @@
 <div class="math notranslate nohighlight">
 \[m_{22,z} = \cos(\phi_z)\]</div>
 <p>where <span class="math notranslate nohighlight">\(\phi_z\)</span> is the longitudinal phase advance, <span class="math notranslate nohighlight">\(\sigma_z\)</span> is the bunch longitudinal size, and <span class="math notranslate nohighlight">\(\sigma_\delta\)</span> is the configured RMS relative momentum spread.</p>
-<p><strong>off mode</strong> : The longitudinal transport matrix is the identity matrix.</p>
+<p><strong>off mode</strong> : The central longitudinal transport matrix is the identity matrix. With nonzero dispersion, the entrance and exit companion terms can still change stored z.</p>
 </section>
 <section id="dispersion-handling">
 <h3>Dispersion Handling<a class="headerlink" href="#dispersion-handling" title="Link to this heading"></a></h3>
-<p>Since the transverse transport matrix describes only the non-dispersive part of the motion, dispersion must be removed before transport and restored after:</p>
+<p>Since the transverse transport matrix describes only the non-dispersive part of the motion, dispersion must be removed before transport and restored after. These energy-dependent coordinate transformations also have longitudinal companion terms. For the canonical energy <span class="math notranslate nohighlight">\(\eta=(E-E_\mathrm{ref})/(\beta_0P_0c)\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[g(\delta)=\frac{d\delta}{d\eta}
+=\frac{\beta_0}{\beta_\mathrm{particle}}
+=\frac{\sqrt{a+(1-a)(1+\delta)^2}}{1+\delta},
+\qquad a=\frac{1}{\gamma_0^2}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(\beta_0\)</span> and <span class="math notranslate nohighlight">\(\gamma_0\)</span> describe the current bunch reference particle; <span class="math notranslate nohighlight">\(g(0)=1\)</span>. The transformations are:</p>
 <ol class="arabic simple">
 <li><p><strong>Remove dispersion at the previous point</strong> :</p></li>
 </ol>
@@ -373,17 +379,34 @@
 \[x_1 = x - D_{x,\mathrm{previous}} \cdot \delta\]</div>
 <div class="math notranslate nohighlight">
 \[px_1 = px - D_{px,\mathrm{previous}} \cdot \delta\]</div>
+<div class="math notranslate nohighlight">
+\[z_\beta = z + g(\delta)
+\left(D_{px,\mathrm{previous}}x-D_{x,\mathrm{previous}}px\right)\]</div>
 <ol class="arabic simple" start="2">
-<li><p><strong>Linear transport</strong> :</p></li>
+<li><p><strong>Apply the prescribed transport</strong> :</p></li>
 </ol>
+<p>The central longitudinal map acts on <span class="math notranslate nohighlight">\((z_\beta,\delta)\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[z_L=m_{11,z}z_\beta+m_{12,z}\delta,
+\qquad \delta_2=m_{21,z}z_\beta+m_{22,z}\delta.\]</div>
+<p>The transverse map uses the entrance momentum deviation <span class="math notranslate nohighlight">\(\delta\)</span> for its chromatic phase:</p>
 <div class="math notranslate nohighlight">
 \[x_\mathrm{temp} = x_1 \cdot m_{11} + px_1 \cdot m_{12}\]</div>
+<div class="math notranslate nohighlight">
+\[px_\mathrm{temp} = x_1 \cdot m_{21} + px_1 \cdot m_{22}\]</div>
 <ol class="arabic simple" start="3">
 <li><p><strong>Add dispersion at the new point</strong> :</p></li>
 </ol>
 <div class="math notranslate nohighlight">
+\[z_2=z_L+g(\delta_2)
+\left(D_x px_\mathrm{temp}-D_{px}x_\mathrm{temp}\right)\]</div>
+<div class="math notranslate nohighlight">
 \[x_2 = x_\mathrm{temp} + D_x \cdot \delta_2\]</div>
+<div class="math notranslate nohighlight">
+\[px_2 = px_\mathrm{temp} + D_{px} \cdot \delta_2\]</div>
 <p>where <span class="math notranslate nohighlight">\(D_x\)</span> is the horizontal dispersion at the current point, <span class="math notranslate nohighlight">\(D_{x,\mathrm{previous}}\)</span> is the horizontal dispersion at the previous point, and <span class="math notranslate nohighlight">\(\delta\)</span> is the relative particle momentum deviation.</p>
+<p>For zero betatron amplitude on the prescribed dispersion orbit, both companion terms vanish; the existing <code class="docutils literal notranslate"><span class="pre">drift</span></code> slip set by <span class="math notranslate nohighlight">\(\gamma_t\)</span> is retained. In <code class="docutils literal notranslate"><span class="pre">matrix</span></code> mode, the entrance correction can also change <span class="math notranslate nohighlight">\(\delta_2\)</span> and hence the restored transverse dispersion.</p>
+<p>These terms complete the dispersion coordinate transformations, not the full six-dimensional symplectic map: the action-dependent flight-time term associated with <code class="docutils literal notranslate"><span class="pre">DQx</span></code>/<code class="docutils literal notranslate"><span class="pre">DQy</span></code> is not included, and <code class="docutils literal notranslate"><span class="pre">matrix</span></code> retains its linear map in <span class="math notranslate nohighlight">\((z_\beta,\delta)\)</span> rather than canonical energy at finite momentum deviation.</p>
 </section>
 <section id="transverse-transport-matrix">
 <h3>Transverse Transport Matrix<a class="headerlink" href="#transverse-transport-matrix" title="Link to this heading"></a></h3>

@@ -185,7 +185,7 @@ Twiss 参数输运（Twiss）
 纵向传输
 ~~~~~~~~
 
-纵向传输由 ``Longitudinal transfer`` 参数控制，支持三种模式：
+下述入口与出口色散变换之间的中心纵向映射由 ``Longitudinal transfer`` 参数控制，支持三种模式：
 
 **drift 模式** ：使用跃迁 Lorentz 因子，纵向传输矩阵元为：
 
@@ -215,12 +215,21 @@ Twiss 参数输运（Twiss）
 
 其中 :math:`\phi_z` 为纵向相移， :math:`\sigma_z` 为配置的 RMS 束长， :math:`\sigma_\delta` 为配置的 RMS 相对动量分散。
 
-**off 模式** ：纵向传输矩阵取单位矩阵。
+**off 模式** ：中心纵向传输矩阵取单位矩阵。存在非零色散时，入口与出口的纵向伴随项仍可改变保存的 z。
 
 色散处理
 ~~~~~~~~
 
-由于横向传输矩阵描述的是非色散部分的运动，需要在传输前后对色散进行去除与恢复：
+由于横向传输矩阵描述的是非色散部分的运动，需要在传输前后对色散进行去除与恢复。这些依赖能量的坐标变换还具有纵向伴随项。对于正则能量变量 :math:`\eta=(E-E_\mathrm{ref})/(\beta_0P_0c)`，定义
+
+.. math::
+
+   g(\delta)=\frac{d\delta}{d\eta}
+   =\frac{\beta_0}{\beta_\mathrm{particle}}
+   =\frac{\sqrt{a+(1-a)(1+\delta)^2}}{1+\delta},
+   \qquad a=\frac{1}{\gamma_0^2}.
+
+其中 :math:`\beta_0`、:math:`\gamma_0` 对应当前束团参考粒子，且 :math:`g(0)=1`。变换步骤如下：
 
 1. **去除前一点色散** ：
 
@@ -232,19 +241,50 @@ Twiss 参数输运（Twiss）
 
    px_1 = px - D_{px,\mathrm{previous}} \cdot \delta
 
-2. **线性传输** ：
+.. math::
+
+   z_\beta = z + g(\delta)
+   \left(D_{px,\mathrm{previous}}x-D_{x,\mathrm{previous}}px\right)
+
+2. **应用给定传输** ：
+
+中心纵向映射作用于 :math:`(z_\beta,\delta)`：
+
+.. math::
+
+   z_L=m_{11,z}z_\beta+m_{12,z}\delta,
+   \qquad \delta_2=m_{21,z}z_\beta+m_{22,z}\delta.
+
+横向映射的色品相位仍使用入口动量偏差 :math:`\delta`：
 
 .. math::
 
    x_\mathrm{temp} = x_1 \cdot m_{11} + px_1 \cdot m_{12}
 
+.. math::
+
+   px_\mathrm{temp} = x_1 \cdot m_{21} + px_1 \cdot m_{22}
+
 3. **加新点色散** ：
+
+.. math::
+
+   z_2=z_L+g(\delta_2)
+   \left(D_x px_\mathrm{temp}-D_{px}x_\mathrm{temp}\right)
 
 .. math::
 
    x_2 = x_\mathrm{temp} + D_x \cdot \delta_2
 
+.. math::
+
+   px_2 = px_\mathrm{temp} + D_{px} \cdot \delta_2
+
 其中 :math:`D_x` 为当前点水平色散， :math:`D_{x,\mathrm{previous}}` 为前一点水平色散， :math:`\delta` 为粒子相对动量偏差。
+
+对于给定色散轨道上 betatron 振幅为零的粒子，两个纵向伴随项均为零，``drift`` 中由 :math:`\gamma_t` 给出的既有滑移保持不变。在 ``matrix`` 模式下，入口修正还可改变 :math:`\delta_2`，进而改变出口恢复的横向色散。
+
+这些项补齐的是色散坐标变换，并不使整个六维映射严格辛：``DQx``/``DQy`` 对应的作用量相关飞行时间项尚未包含；有限动量偏差下，``matrix`` 仍在 :math:`(z_\beta,\delta)` 中使用线性映射，而未改为正则能量变量。
 
 横向传输矩阵
 ~~~~~~~~~~~~
