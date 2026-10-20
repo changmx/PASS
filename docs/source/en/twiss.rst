@@ -185,7 +185,7 @@ Physics Derivation
 Longitudinal Transport
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Longitudinal transport is controlled by the ``Longitudinal transfer`` parameter and supports three modes:
+The central longitudinal map, between the entrance and exit dispersion transformations below, is controlled by the ``Longitudinal transfer`` parameter and supports three modes:
 
 **drift mode** : Uses the gamma transition parameter. The longitudinal transport matrix element is:
 
@@ -215,12 +215,21 @@ where :math:`\gamma_t` is the transition gamma, :math:`\gamma` is the bunch refe
 
 where :math:`\phi_z` is the longitudinal phase advance, :math:`\sigma_z` is the bunch longitudinal size, and :math:`\sigma_\delta` is the configured RMS relative momentum spread.
 
-**off mode** : The longitudinal transport matrix is the identity matrix.
+**off mode** : The central longitudinal transport matrix is the identity matrix. With nonzero dispersion, the entrance and exit companion terms can still change stored z.
 
 Dispersion Handling
 ~~~~~~~~~~~~~~~~~~~
 
-Since the transverse transport matrix describes only the non-dispersive part of the motion, dispersion must be removed before transport and restored after:
+Since the transverse transport matrix describes only the non-dispersive part of the motion, dispersion must be removed before transport and restored after. These energy-dependent coordinate transformations also have longitudinal companion terms. For the canonical energy :math:`\eta=(E-E_\mathrm{ref})/(\beta_0P_0c)`, define
+
+.. math::
+
+   g(\delta)=\frac{d\delta}{d\eta}
+   =\frac{\beta_0}{\beta_\mathrm{particle}}
+   =\frac{\sqrt{a+(1-a)(1+\delta)^2}}{1+\delta},
+   \qquad a=\frac{1}{\gamma_0^2}.
+
+Here :math:`\beta_0` and :math:`\gamma_0` describe the current bunch reference particle; :math:`g(0)=1`. The transformations are:
 
 1. **Remove dispersion at the previous point** :
 
@@ -232,19 +241,50 @@ Since the transverse transport matrix describes only the non-dispersive part of 
 
    px_1 = px - D_{px,\mathrm{previous}} \cdot \delta
 
-2. **Linear transport** :
+.. math::
+
+   z_\beta = z + g(\delta)
+   \left(D_{px,\mathrm{previous}}x-D_{x,\mathrm{previous}}px\right)
+
+2. **Apply the prescribed transport** :
+
+The central longitudinal map acts on :math:`(z_\beta,\delta)`:
+
+.. math::
+
+   z_L=m_{11,z}z_\beta+m_{12,z}\delta,
+   \qquad \delta_2=m_{21,z}z_\beta+m_{22,z}\delta.
+
+The transverse map uses the entrance momentum deviation :math:`\delta` for its chromatic phase:
 
 .. math::
 
    x_\mathrm{temp} = x_1 \cdot m_{11} + px_1 \cdot m_{12}
 
+.. math::
+
+   px_\mathrm{temp} = x_1 \cdot m_{21} + px_1 \cdot m_{22}
+
 3. **Add dispersion at the new point** :
+
+.. math::
+
+   z_2=z_L+g(\delta_2)
+   \left(D_x px_\mathrm{temp}-D_{px}x_\mathrm{temp}\right)
 
 .. math::
 
    x_2 = x_\mathrm{temp} + D_x \cdot \delta_2
 
+.. math::
+
+   px_2 = px_\mathrm{temp} + D_{px} \cdot \delta_2
+
 where :math:`D_x` is the horizontal dispersion at the current point, :math:`D_{x,\mathrm{previous}}` is the horizontal dispersion at the previous point, and :math:`\delta` is the relative particle momentum deviation.
+
+For zero betatron amplitude on the prescribed dispersion orbit, both companion terms vanish; the existing ``drift`` slip set by :math:`\gamma_t` is retained. In ``matrix`` mode, the entrance correction can also change :math:`\delta_2` and hence the restored transverse dispersion.
+
+These terms complete the dispersion coordinate transformations, not the full six-dimensional symplectic map: the action-dependent flight-time term associated with ``DQx``/``DQy`` is not included, and ``matrix`` retains its linear map in :math:`(z_\beta,\delta)` rather than canonical energy at finite momentum deviation.
 
 Transverse Transport Matrix
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

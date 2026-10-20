@@ -99,7 +99,12 @@ class Twiss(Command):
         length = self.s - self.s_previous
         p = beam.particles
         real = p.real
-        kernel = _get_twiss_kernel(p.dtype.str)
+        has_in_dispersion = self.Dx_previous != 0.0 or self.Dpx_previous != 0.0
+        has_out_dispersion = self.Dx != 0.0 or self.Dpx != 0.0
+        has_dispersion = has_in_dispersion or has_out_dispersion
+        kernel = _get_twiss_kernel(p.dtype.str, has_dispersion)
+        if has_dispersion:
+            dispersion_flags = (np.int32(has_in_dispersion), np.int32(has_out_dispersion), np.int32(self.longitudinal_transfer == "matrix"))
         threads = 256
 
         dq_x = self.DQx * 2.0 * const.pi
@@ -134,13 +139,16 @@ class Twiss(Command):
                     m22_z = 1.0
 
                 blocks = (n + threads - 1) // threads
+                kernel_args = (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(start), np.int32(end), real(m11_z), real(m12_z), real(m21_z),
+                               real(m22_z), real(self.Dx_previous), real(self.Dpx_previous), real(self.Dx), real(self.Dpx), real(self.phi_x),
+                               real(self.phi_y), real(dq_x), real(dq_y), real(sbx), real(bx_ratio), real(bx_prev_ratio), real(sby), real(by_ratio),
+                               real(by_prev_ratio), real(self.alphax), real(self.alphax_previous), real(self.alphay), real(self.alphay_previous))
+                if has_dispersion:
+                    kernel_args = (real(1.0 / bunch.gamma**2), *dispersion_flags, *kernel_args)
                 kernel(
                     (blocks, ),
                     (threads, ),
-                    (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(start), np.int32(end), real(m11_z), real(m12_z), real(m21_z), real(m22_z),
-                     real(self.Dx_previous), real(self.Dpx_previous), real(self.Dx), real(self.Dpx), real(self.phi_x), real(self.phi_y), real(dq_x),
-                     real(dq_y), real(sbx), real(bx_ratio), real(bx_prev_ratio), real(sby), real(by_ratio), real(by_prev_ratio), real(
-                         self.alphax), real(self.alphax_previous), real(self.alphay), real(self.alphay_previous)),
+                    kernel_args,
                 )
 
             check_aperture_gpu(
@@ -157,11 +165,10 @@ class Twiss(Command):
 
 
 def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
-    """6D linear optics transfer using Twiss parameters.
+    """Optics transfer using Twiss parameters and dispersion coordinate changes.
 
-    Applies the longitudinal transfer (drift/matrix/identity), removes the
-    previous dispersion, rotates by the phase advance, and adds the new
-    dispersion.
+    Removes entrance dispersion including its longitudinal companion, applies
+    the prescribed longitudinal and transverse maps, and restores dispersion.
     """
     length = self.s - self.s_previous
     if abs(length) >= const.eps:
@@ -201,8 +208,21 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
 
     alive = tag > 0
 
-    z2 = z * m11_z + dp * m12_z
-    dp2 = z * m21_z + dp * m22_z
+    has_in_dispersion = self.Dx_previous != 0.0 or self.Dpx_previous != 0.0
+    has_out_dispersion = self.Dx != 0.0 or self.Dpx != 0.0
+    if has_in_dispersion or has_out_dispersion:
+        inv_gamma_sq = 1.0 / bunch.gamma**2
+    z1 = z
+    if has_in_dispersion:
+        momentum_ratio = 1.0 + dp
+        beta0_over_beta = (1.0 - inv_gamma_sq) * momentum_ratio * momentum_ratio + inv_gamma_sq
+        np.sqrt(beta0_over_beta, out=beta0_over_beta)
+        beta0_over_beta /= momentum_ratio
+        # Positive z means earlier arrival; delta's canonical derivative is beta0/beta.
+        z1 = z + beta0_over_beta * (self.Dpx_previous * x - self.Dx_previous * px)
+
+    z2 = z1 * m11_z + dp * m12_z
+    dp2 = z1 * m21_z + dp * m22_z
 
     x1 = x - self.Dx_previous * dp
     px1 = px - self.Dpx_previous * dp
@@ -238,8 +258,21 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
         + (self.alphay_previous - self.alphay) / sqrt_betay_betayprev * cy
     m22_y = sqrt_betayprev_de_betay * (cy - self.alphay * sy)
 
-    x2 = x1 * m11_x + px1 * m12_x + self.Dx * dp2
-    px2 = x1 * m21_x + px1 * m22_x + self.Dpx * dp2
+    if has_out_dispersion:
+        x2 = x1 * m11_x + px1 * m12_x
+        px2 = x1 * m21_x + px1 * m22_x
+        if not has_in_dispersion or self.longitudinal_transfer == "matrix":
+            momentum_ratio = 1.0 + dp2
+            beta0_over_beta = (1.0 - inv_gamma_sq) * momentum_ratio * momentum_ratio + inv_gamma_sq
+            np.sqrt(beta0_over_beta, out=beta0_over_beta)
+            beta0_over_beta /= momentum_ratio
+        # x2 and px2 still contain only betatron motion here.
+        z2 += beta0_over_beta * (self.Dx * px2 - self.Dpx * x2)
+        x2 += self.Dx * dp2
+        px2 += self.Dpx * dp2
+    else:
+        x2 = x1 * m11_x + px1 * m12_x + self.Dx * dp2
+        px2 = x1 * m21_x + px1 * m22_x + self.Dpx * dp2
 
     y2 = y1 * m11_y + py1 * m12_y
     py2 = y1 * m21_y + py1 * m22_y
@@ -266,6 +299,12 @@ using pass_real_t = double;
 
 TWISS_KERNEL_BODY = r'''
 extern "C" __global__ void transfer_twiss(
+#if PASS_HAS_DISPERSION
+    pass_real_t inv_gamma_sq,
+    int has_in_dispersion,
+    int has_out_dispersion,
+    int longitudinal_matrix,
+#endif
     pass_real_t* __restrict__ x,
     pass_real_t* __restrict__ px,
     pass_real_t* __restrict__ y,
@@ -306,6 +345,14 @@ extern "C" __global__ void transfer_twiss(
     pass_real_t yi = y[i], pyi = py[i];
     pass_real_t zi = z[i], dpi = dp[i];
 
+#if PASS_HAS_DISPERSION
+    pass_real_t beta0_over_beta = 1;
+    if (has_in_dispersion) {
+        pass_real_t momentum_ratio = 1 + dpi;
+        beta0_over_beta = sqrt(inv_gamma_sq + (1 - inv_gamma_sq) * momentum_ratio * momentum_ratio) / momentum_ratio;
+        zi += beta0_over_beta * (dpx_prev * xi - dx_prev * pxi);
+    }
+#endif
     pass_real_t z2 = zi * m11_z + dpi * m12_z;
     pass_real_t dp2 = zi * m21_z + dpi * m22_z;
     pass_real_t x1 = xi - dx_prev * dpi;
@@ -325,8 +372,22 @@ extern "C" __global__ void transfer_twiss(
     pass_real_t m21_y = (-(1 + alphay * alphay_prev) / sby * sy + (alphay_prev - alphay) / sby * cy);
     pass_real_t m22_y = by_prev_ratio * (cy - alphay * sy);
 
+#if PASS_HAS_DISPERSION
+    pass_real_t x2 = x1 * m11_x + px1 * m12_x;
+    pass_real_t px2 = x1 * m21_x + px1 * m22_x;
+    if (has_out_dispersion) {
+        if (!has_in_dispersion || longitudinal_matrix) {
+            pass_real_t momentum_ratio = 1 + dp2;
+            beta0_over_beta = sqrt(inv_gamma_sq + (1 - inv_gamma_sq) * momentum_ratio * momentum_ratio) / momentum_ratio;
+        }
+        z2 += beta0_over_beta * (dx * px2 - dpx * x2);
+    }
+    x[i] = x2 + dx * dp2;
+    px[i] = px2 + dpx * dp2;
+#else
     x[i] = x1 * m11_x + px1 * m12_x + dx * dp2;
     px[i] = x1 * m21_x + px1 * m22_x + dpx * dp2;
+#endif
     y[i] = yi * m11_y + pyi * m12_y;
     py[i] = yi * m21_y + pyi * m22_y;
     z[i] = z2;
@@ -338,7 +399,7 @@ TWISS_SOURCE = CUDA_REAL_PREAMBLE + TWISS_KERNEL_BODY
 
 
 @lru_cache(maxsize=None)
-def _get_twiss_kernel(dtype):
+def _get_twiss_kernel(dtype, has_dispersion):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
@@ -347,5 +408,5 @@ def _get_twiss_kernel(dtype):
     return cp.RawKernel(
         TWISS_SOURCE,
         "transfer_twiss",
-        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}"),
+        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}", f"-DPASS_HAS_DISPERSION={int(has_dispersion)}"),
     )
