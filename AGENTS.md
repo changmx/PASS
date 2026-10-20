@@ -92,8 +92,11 @@ API/schema compatibility > testing, documentation, and style.
   statistics; never assign the folded value back to `p.z`.
 - Preserve physical time and mechanical momenta across pure reference changes and
   regrouping. `PASS/core/bunch.py` owns reference transformations;
-  `PASS/core/beam.py` initializes the prescribed clock and serializes/restores beam
-  reference state. Restore it alongside matching particles, turn and wake state.
+  `PASS/core/beam.py` initializes the prescribed clock and bunch reference arrival
+  times from the configured inputs.
+- Each tracking run starts from the configured initial conditions at turn 0 with
+  newly initialized simulation and command state. Preserve this fresh-start
+  workflow; component state snapshots do not provide whole-simulation checkpoint/resume.
 - A zero-length RF kick keeps `bunch.t0` fixed, scales live z by `beta_new/beta_old`,
   updates energy using the signed physical voltage kick and renormalizes transverse
   momenta by `p0_old/p0_new`. Quadrupole strengths use normalized momentum; preserve
@@ -110,7 +113,7 @@ API/schema compatibility > testing, documentation, and style.
   Historical wake sources retain their emitted physical times and widths.
 - Coordinate conventions: [English](docs/source/en/injection.rst),
   [Chinese](docs/source/zh/injection.rst). Clock configuration is in input_generation;
-  slicing and state restoration are documented in slicer and monitor/index.
+  slicing and output reference information are documented in slicer and monitor/index.
 - Injection-level `harmonic_number` describes bunch grouping. RF harmonics need not
   equal or be integer multiples of it; do not reject RF harmonics on this basis.
 
