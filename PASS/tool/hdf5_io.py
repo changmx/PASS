@@ -140,6 +140,8 @@ def read_hdf5_tables(path, selection, *, preview_limit=None):
                             values = np.array([v.decode("utf-8") if isinstance(v, bytes) else v for v in values], dtype=object)
                         columns[key] = values
                 else:
+                    if name in columns:
+                        raise ValueError(f"Output column name collision: {name}")
                     columns[name] = _read(dataset, row_slice)
                     metadata["column_definitions"][name] = _attributes(dataset)
         elif selection.mode in {"matrix", "long"}:
