@@ -1,89 +1,41 @@
-import numpy as np
+def calc_beam_average_power(m_static, Ek, N, repetition_frequency, N_particle=1, N_charge=1, is_print=True, **kwargs):
+    """Print average kinetic beam power in kW and signed current in microamps.
 
-
-def calc_beam_average_power(
-        m_static,  # statistic mass of electron/proton/nucleon
-        Ek,  # kinetic energy of electron/proton/nucleon
-        N,  # particles per pulse
-        repetition_frequency,
-        N_particle=1,
-        N_charge=1,
-        is_print=True,
-        **kwargs):
+    Ek is the sole energy input: eV per nucleon for ions, or eV per particle
+    with N_particle=1 for electrons/protons. N_particle is the nucleon count
+    for ions, N_charge is the signed charge number, N is particles per pulse,
+    and repetition_frequency is in Hz. m_static is retained for call compatibility.
+    E_total, gamma and beta keywords raise TypeError; convert them to Ek first.
+    Printed energy uses MeV/u, with /u meaning per particle when N_particle=1.
+    is_print=False suppresses output; the function returns None in either case.
     """
-    对于电子/质子来说, N_particle=1, N_charge=1
-    对于离子来说, N_particle=离子中的核子数目, N_charge=离子中的电子数目
-    可选参数有: E_total、gamma、beta
-    """
-    c = 299792458
+    if any(name in kwargs for name in ("E_total", "gamma", "beta")):
+        raise TypeError("calc_beam_average_power uses Ek only; convert E_total, gamma or beta to Ek before calling")
     e = 1.602176634 * 1e-19
-
-    E_total = 0
-    gamma = 0
-    beta = 0
-
-    if "E_total" in kwargs:
-        E_total = kwargs["E_total"]
-        gamma = E_total / m_static
-        beta = np.sqrt(1 - 1 / gamma**2)
-    elif "gamma" in kwargs:
-        gamma = kwargs["gamma"]
-        E_total = gamma * m_static * N_particle
-        beta = np.sqrt(1 - 1 / gamma**2)
-    elif "beta" in kwargs:
-        beta = kwargs["beta"]
-        gamma = np.sqrt(1 / (1 - beta**2))
-        E_total = gamma * m_static * N_particle
-
-    T = 1
-    I_avg = N * N_charge * e * repetition_frequency / T
-
-    # P = W/T = N*Ek*e/T = N*Ek*(e/T), for proton e/T = I, for ion e/T is not equal to I but I/N_charge
-    # Ek * e means transfer erergy from eV to J
-    P = N * N_particle * Ek * e * repetition_frequency / T
+    I_avg = N * N_charge * e * repetition_frequency
+    # N_particle * Ek * e is the kinetic energy per complete particle in joules.
+    P = N * N_particle * Ek * e * repetition_frequency
 
     if is_print:
         print("Ek: {0:.6f} MeV/u, I_average: {1:.4f} uA, P: {2:.4f} kW".format(Ek / 1e6, I_avg * 1e6, P / 1e3))
 
 
-def calc_beam_peak_power(
-        m_static,  # statistic mass of electron/proton/nucleon
-        Ek,  # kinetic energy of electron/proton/nucleon
-        N,  # particles per pulse
-        T,
-        N_particle=1,
-        N_charge=1,
-        is_print=True,
-        **kwargs):
+def calc_beam_peak_power(m_static, Ek, N, T, N_particle=1, N_charge=1, is_print=True, **kwargs):
+    """Print pulse-averaged kinetic beam power in MW; peak for a flat pulse.
+
+    Ek is the sole energy input: eV per nucleon for ions, or eV per particle
+    with N_particle=1 for electrons/protons. N_particle is the nucleon count
+    for ions, N is particles per pulse, and T is the pulse duration in seconds.
+    m_static and N_charge are retained for call compatibility; neither enters
+    this kinetic-power calculation. E_total, gamma and beta keywords raise
+    TypeError; convert them to Ek first. Printed energy uses MeV/u, with /u
+    meaning per particle when N_particle=1. is_print=False suppresses output;
+    the function returns None in either case.
     """
-    对于电子/质子来说, N_particle=1, N_charge=1
-    对于离子来说, N_particle=离子中的核子数目, N_charge=离子中的电子数目
-    可选参数有: E_total、gamma、beta
-    """
-    c = 299792458
+    if any(name in kwargs for name in ("E_total", "gamma", "beta")):
+        raise TypeError("calc_beam_peak_power uses Ek only; convert E_total, gamma or beta to Ek before calling")
     e = 1.602176634 * 1e-19
-
-    E_total = 0
-    gamma = 0
-    beta = 0
-
-    if "E_total" in kwargs:
-        E_total = kwargs["E_total"]
-        gamma = E_total / m_static
-        beta = np.sqrt(1 - 1 / gamma**2)
-    elif "gamma" in kwargs:
-        gamma = kwargs["gamma"]
-        E_total = gamma * m_static * N_particle
-        beta = np.sqrt(1 - 1 / gamma**2)
-    elif "beta" in kwargs:
-        beta = kwargs["beta"]
-        gamma = np.sqrt(1 / (1 - beta**2))
-        E_total = gamma * m_static * N_particle
-
-    # I_peak = N * N_charge * e / T
-
-    # P = W/T = N*Ek*e/T = N*Ek*(e/T), for proton e/T = I, for ion e/T is not equal to I but I/N_charge
-    # Ek * e means transfer erergy from eV to J
+    # N_particle * Ek * e is the kinetic energy per complete particle in joules.
     P = N * N_particle * Ek * e / T
 
     if is_print:
