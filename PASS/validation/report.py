@@ -63,6 +63,16 @@ class ValidationReport:
         return summary + "\n" + "\n".join(f"[{d.severity} / {d.code}] {d}" for d in self.diagnostics)
 
 
+def _json_key_identity(path, key):
+    """Preserve named configuration identities; fixed fields ignore case."""
+    named_configs = tuple(str(part).casefold() for part in path) in {
+        ("beam beam", "configurations"),
+        ("electron cloud", "configurations"),
+        ("intrabeam scattering", "configurations"),
+    }
+    return key if named_configs else key.casefold()
+
+
 class _Pairs(list):
     """Keep duplicate object members until their full path is known."""
 
@@ -81,9 +91,7 @@ def parse_json(content: str | bytes, report=None):
         if isinstance(value, _Pairs):
             result, seen = {}, set()
             for key, child in value:
-                named_configs = tuple(str(part).casefold() for part in path) in {("beam beam", "configurations"),
-                                                                                 ("electron cloud", "configurations")}
-                identity = key if named_configs else key.casefold()
+                identity = _json_key_identity(path, key)
                 if identity in seen:
                     report.add((*path, key), "json.duplicate", "重复的 JSON 键（包括大小写冲突）；引擎会覆盖其中一个值")
                 seen.add(identity)

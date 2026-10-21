@@ -26,7 +26,7 @@ from PASS.para.schema.electron_cloud import ElectronCloudConfig, ElectronCloudIt
 from PASS.para.schema.ibs import IBSConfig, IBSItem, IBSOpticsConfig, load_intrabeam_scattering
 from PASS.para.schema.twiss import TwissItem
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
-from .report import ValidationReport, parse_json
+from .report import ValidationReport, _json_key_identity, parse_json
 
 
 class SortBunchModel(BaseModel):
@@ -297,9 +297,7 @@ class Validator:
                 if not isinstance(key, str):
                     self.add(path, "json.key", "JSON 键必须是字符串")
                     continue
-                named_physics_configs = tuple(str(part).casefold() for part in path) in {("beam beam", "configurations"),
-                                                                                         ("electron cloud", "configurations")}
-                identity = key if named_physics_configs else key.casefold()
+                identity = _json_key_identity(path, key)
                 if identity in seen:
                     self.add((*path, key), "json.duplicate", "键名存在大小写冲突；引擎会覆盖其中一个值")
                 seen.add(identity)
