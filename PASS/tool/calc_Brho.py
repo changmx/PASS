@@ -2,8 +2,13 @@ import numpy as np
 
 
 def calc_magnetic_rigidity(m_static, N_particle=1, N_charge=1, is_print=False, **kwargs):
-    """
-    输入参数静止质量为必须, 可选参数有: E_total、gamma、beta
+    """Return signed magnetic rigidity in T*m from E_total, gamma, or beta.
+
+    For ions, m_static is rest mass per nucleon in eV/c^2, E_total is total
+    energy per nucleon (including rest energy) in eV/u, and N_particle is the
+    nucleon count. Use N_particle=1 and per-particle quantities for leptons.
+    N_charge is the signed charge number. Printed energy is in GeV/u; /u
+    denotes per nucleon for ions and per particle when N_particle=1.
     """
     c = 299792458
     e = 1.602176634 * 1e-19
@@ -18,19 +23,19 @@ def calc_magnetic_rigidity(m_static, N_particle=1, N_charge=1, is_print=False, *
         beta = np.sqrt(1 - 1 / gamma**2)
     elif "gamma" in kwargs:
         gamma = kwargs["gamma"]
-        E_total = gamma * m_static * N_particle
+        E_total = gamma * m_static
         beta = np.sqrt(1 - 1 / gamma**2)
     elif "beta" in kwargs:
         beta = kwargs["beta"]
         gamma = np.sqrt(1 / (1 - beta**2))
-        E_total = gamma * m_static * N_particle
+        E_total = gamma * m_static
 
     p_eV = (gamma * m_static * N_particle * beta)  # The units of p_eV and m are eV/c and eV/c^2
     p_kg_ms = (gamma * (m_static * e / c / c) * N_particle * beta * c)  # The unit of p_kg_ms is kg*m/s.
     Brho = p_kg_ms / (e * N_charge)
 
     if is_print:
-        print("Brho: {0:.6f}, E total (GeV): {1:.6f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:.6e}".
+        print("Brho: {0:.6f}, E total (GeV/u): {1:.6f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:.6e}".
               format(
                   Brho,
                   E_total / 1e9,
