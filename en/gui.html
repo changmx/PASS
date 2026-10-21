@@ -606,12 +606,20 @@ particle tables with <code class="docutils literal notranslate"><span class="pre
 Missing samples interrupt lines. Large previews reduce displayed points without
 changing the data. Each loaded file retains its axes and filter settings.
 The summary reports total, selected, and finite rows. <strong>Close current data</strong>
-unloads the current file; file loading can be cancelled.</p>
+unloads the current file; file loading can be cancelled.
+HDF5 table loading checks cancellation between data blocks. Loaded arrays remain
+an independent snapshot: later changes to the source file do not silently change
+the displayed or exported data. Reload the file to use a newer snapshot.</p>
 <p>Phase-space presets select x–px, y–py, z–dp, x–y, or arrival-time–dp when their
 columns are present. Axes use supplied units and reference metadata; units are
 not inferred for plain CSV. <strong>Density and projections</strong> bins all finite X/Y pairs
 into 8–256 bins and displays counts and marginal projections. Counts represent
-macro-particle rows, without charge weighting.</p>
+macro-particle rows, without charge weighting.
+Large density calculations run in the background. Changing the selection again
+discards an older calculation; the preview and image export become available for
+the latest selection when its calculation finishes. Every finite pair still
+contributes to the histogram, including saved electron-number weights in the
+electron-cloud source view.</p>
 <p>Select a baseline to overlay data or compute A−B or (A−B)/B. X values and row
 order must be identical and finite, with compatible units, coordinates, and
 reference conventions; particle IDs must also match when provided. There is
@@ -721,7 +729,7 @@ The <strong>BPM handling</strong> (BPM 处理) checkbox
 <strong>Insert PASS monitor at BPM positions</strong> (在 BPM 位置插入 PASS monitor) is
 initially off. Enable it, select <strong>Monitor type</strong> (Monitor 类型), and fill in
 <strong>Monitor parameters</strong> (Monitor 参数) to add a <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code>,
-<code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>, <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> or <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> at every BPM.
+<code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>, <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> or <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> at selected BPMs.
 The parameter controls follow the ordinary monitor editor. In element import:</p>
 <table class="docutils align-default" id="id2">
 <caption><span class="caption-text">BPM length and recording</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
@@ -732,8 +740,8 @@ The parameter controls follow the ordinary monitor editor. In element import:</p
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Length</p></th>
-<th class="head"><p>Checkbox off</p></th>
-<th class="head"><p>Checkbox on</p></th>
+<th class="head"><p>Recording off or BPM unselected</p></th>
+<th class="head"><p>Recording on and BPM selected</p></th>
 </tr>
 </thead>
 <tbody>
@@ -750,6 +758,26 @@ The parameter controls follow the ordinary monitor editor. In element import:</p
 <p>TFS <code class="docutils literal notranslate"><span class="pre">S</span></code> denotes the BPM exit, so <code class="docutils literal notranslate"><span class="pre">S-L/2</span></code> is its center. Recording does not
 add an extra marker. With recording off, finite BPM drifts may merge with
 adjacent drifts; with recording on, merging preserves the center monitor.</p>
+<p>By default, recording covers all BPMs. Enable <strong>Select matching BPMs only</strong>
+(只选择匹配的 BPM) to limit it. <strong>BPM names</strong> (BPM 名称) accepts exact original
+MAD-X names separated by commas or newlines. <strong>BPM regex</strong> (BPM 正则) accepts
+one regular expression per line, preserving commas inside expressions.
+Matching is case-insensitive and uses the union of both fields; regular
+expressions use search matching. With the filter enabled and both fields
+empty, no BPM is selected. Unmatched BPMs retain the default conversion.
+Invalid regular expressions stop the preview with an error.</p>
+<p><strong>Strict geometry checks</strong> (严格检查几何一致性) is initially off. Enable it to
+reject inconsistent local positions, transport intervals or circumference.
+For element tracking, accumulated lengths must agree with each element’s
+exit. Twiss mode checks transport intervals without requiring sampled-row
+lengths to sum to the circumference. Drift merging always requires contiguous
+physical intervals, even with strict checks off.</p>
+<p>When the source contains BPMs, the preview also opens a scrollable BPM
+conversion table. It shows the original name and occurrence number, MAD-X
+type, length, original exit <code class="docutils literal notranslate"><span class="pre">S</span></code>, whether a monitor was inserted, measurement
+position, conversion result, and final items after merging. Each final item
+includes its name, command, <code class="docutils literal notranslate"><span class="pre">S</span></code>, length and merge status. This keeps repeated
+names distinct and makes BPMs absorbed into longer drifts visible.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> requires <strong>Max tag</strong>. Set <strong>Save turns</strong> for
 <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> and <strong>Turn ranges</strong> for <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> using the range
 table; empty ranges produce no distribution output or phase-advance analysis,
@@ -760,7 +788,8 @@ configure any needed offsets explicitly for the generated tracking model.</p>
 <p>The two Twiss import modes retain their Twiss transport and add or split
 transport points at these monitor positions, including exact center points in
 uniform interpolation. Changing the BPM settings invalidates the import
-preview. See <a class="reference internal" href="input_generation.html#en-madx-bpm"><span class="std std-ref">MAD-X BPM markers and monitors</span></a> for the Python API and monitor options.</p>
+preview. Selection and strict-check settings are preserved in the import
+draft/recipe. See <a class="reference internal" href="input_generation.html#en-madx-bpm"><span class="std std-ref">MAD-X BPM markers and monitors</span></a> for the Python API and monitor options.</p>
 </section>
 <section id="one-turn-transfer">
 <h3>One-turn transfer<a class="headerlink" href="#one-turn-transfer" title="Link to this heading"></a></h3>

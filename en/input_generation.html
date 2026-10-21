@@ -918,6 +918,66 @@ or JSON aliases. Position, command type and ordering are supplied by the
 importer, so do not include <code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code> or <code class="docutils literal notranslate"><span class="pre">order</span></code> (or their aliases).
 The MAD-X horizontal/vertical BPM keyword does not restrict the selected
 PASS monitor’s recorded coordinates.</p>
+<p>To monitor only part of the lattice, pass <code class="docutils literal notranslate"><span class="pre">bpm_names</span></code> (exact names) and/or
+<code class="docutils literal notranslate"><span class="pre">bpm_patterns</span></code> (regular expressions). Both match the original MAD-X <code class="docutils literal notranslate"><span class="pre">NAME</span></code>
+case-insensitively, before generated name suffixes or drift merging. Regular
+expressions use search matching; use <code class="docutils literal notranslate"><span class="pre">^</span></code> and <code class="docutils literal notranslate"><span class="pre">$</span></code> to anchor a whole name.
+The two lists are combined by union. With both arguments <code class="docutils literal notranslate"><span class="pre">None</span></code> all BPMs are
+selected; an explicitly empty selection, such as <code class="docutils literal notranslate"><span class="pre">bpm_names=[]</span></code> with no
+patterns, selects none. No matches is valid and inserts no monitors.
+Selectors must be lists of strings; a bare string, non-string entry or invalid
+regular expression raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Duplicate source names select every
+occurrence. The monitor template and selector lists are not modified.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bpm_options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"bpm_monitor"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"StatMonitor"</span><span class="p">},</span>
+    <span class="s2">"bpm_names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"BPM.01"</span><span class="p">,</span> <span class="s2">"BPM.07"</span><span class="p">],</span>
+    <span class="s2">"bpm_patterns"</span><span class="p">:</span> <span class="p">[</span><span class="sa">r</span><span class="s2">"^BPM\.ARC[12]\."</span><span class="p">],</span>
+<span class="p">}</span>
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
+    <span class="s2">"lattice.tfs"</span><span class="p">,</span> <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">strict_geometry</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">bpm_options</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Unselected BPMs follow the default rule: a finite-length drift or a zero-length
+marker. Twiss imports do not add a center point for an unselected finite BPM.
+Without <code class="docutils literal notranslate"><span class="pre">bpm_monitor</span></code>, selectors do not enable recording. The same selector
+arguments are accepted by all three readers and <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code>.</p>
+<p>All four entry points also accept <code class="docutils literal notranslate"><span class="pre">strict_geometry=False</span></code>. Enabling it checks
+finite, ordered source positions and valid lengths, the imported transport
+intervals, and the final circumference. Element mode additionally checks that
+each entrance/exit agrees with the accumulated physical lengths, so equal
+total lengths alone cannot hide local gaps or overlaps. Twiss mode checks its
+transport intervals instead of requiring sampled-row <code class="docutils literal notranslate"><span class="pre">L</span></code> values to sum to
+the circumference. Actual <code class="docutils literal notranslate"><span class="pre">S</span></code> values must lie in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">C]</span></code> and remain
+nondecreasing without a tolerance allowance. Length/cumulative-length and
+ring-coverage comparisons, including computed entrances <code class="docutils literal notranslate"><span class="pre">S-L</span></code>, use an absolute
+tolerance of <code class="docutils literal notranslate"><span class="pre">1e-6</span> <span class="pre">m</span></code>. In Twiss mode, point commands must share the runtime
+position-sorting key with a transport endpoint; being within <code class="docutils literal notranslate"><span class="pre">1e-6</span> <span class="pre">m</span></code> alone
+does not suffice. A failed strict check raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> describing the
+inconsistency; numeric comparisons include the expected and actual values,
+their difference and tolerance. The default
+retains permissive import behavior for compatibility. In either mode, adjacent
+drifts can merge only when their physical intervals are contiguous; a monitor
+or marker still prevents merging across its position.</p>
+<p>To inspect the conversion after merging, use the original TFS file and the
+returned items/names with the same BPM options:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.bpm</span><span class="w"> </span><span class="kn">import</span> <span class="n">describe_madx_bpms</span>
+
+<span class="n">bpm_report</span> <span class="o">=</span> <span class="n">describe_madx_bpms</span><span class="p">(</span>
+    <span class="s2">"lattice.tfs"</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">element_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">bpm_options</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The report contains one dictionary per original BPM occurrence, including
+<code class="docutils literal notranslate"><span class="pre">source_name</span></code>, <code class="docutils literal notranslate"><span class="pre">occurrence</span></code>, <code class="docutils literal notranslate"><span class="pre">keyword</span></code>, <code class="docutils literal notranslate"><span class="pre">length</span></code>, <code class="docutils literal notranslate"><span class="pre">source_s</span></code>,
+<code class="docutils literal notranslate"><span class="pre">selected</span></code>, <code class="docutils literal notranslate"><span class="pre">measurement_s</span></code>, <code class="docutils literal notranslate"><span class="pre">conversion</span></code> and <code class="docutils literal notranslate"><span class="pre">outputs</span></code>. Occurrence
+numbers start at 1 and count all rows with that exact original name, including
+non-BPM rows. <code class="docutils literal notranslate"><span class="pre">selected</span></code> means a monitor was enabled and the BPM matched.
+<code class="docutils literal notranslate"><span class="pre">measurement_s</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code> when no monitor is inserted. Each output lists
+its final <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code>, <code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">length</span></code> and <code class="docutils literal notranslate"><span class="pre">merged</span></code> flag, so a BPM
+that became part of a larger drift can still be identified. Use
+<code class="docutils literal notranslate"><span class="pre">element_mode=False</span></code> for either Twiss reader. Source identities used by the
+report do not add fields to generated tracking JSON.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> requires <code class="docutils literal notranslate"><span class="pre">max_tag</span></code>. Set <code class="docutils literal notranslate"><span class="pre">DistMonitor.save_turns</span></code> to
 select saved turns; its empty default saves no distributions. Set
 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor.turn_ranges</span></code> to enable analysis. For that monitor,

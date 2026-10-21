@@ -187,6 +187,8 @@ GUI workflow
 Reading and calculation run in a background worker. Display previews may be
 bounded, but calculation uses the selected full-resolution arrays. Cancellation
 waits for the current numerical operation to finish and discards its result.
+During FMA, cancellation is checked before and after each object's frequency
+estimate in each plane and window, without waiting for all objects to finish.
 Ordinary file opening does not change the tracking configuration.
 
 NPZ export retains result arrays, selected input arrays, coordinates and
