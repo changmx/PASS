@@ -286,6 +286,8 @@ def check_relations(check):
             except (ValueError, OverflowError) as exc:
                 check.add(root, "sc.coverage_numeric", f"覆盖参数导致数值溢出或无效区间：{exc}")
     check_longitudinal(check)
+    from .files import check_injection_offset_coverage
+    check_injection_offset_coverage(check)
 
 
 def check_slow_extraction(check, ordered):

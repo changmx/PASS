@@ -272,15 +272,66 @@ def check_table(check, value, path, kind, active, minimum_rows, maximum_rows=Non
             return
         if kind.startswith("offset_"):
             time = arrays[required[0]]
-            if np.any(time < 0) or np.any(np.diff(time) <= 0):
-                check.add(path, "offset.time", "偏移时间/圈数必须非负且严格递增，不能重复", not active)
-            if str(required[0]).lower().startswith("turn") and np.any(time != np.floor(time)):
-                check.add(path, "offset.turn", "偏移文件 turn 列必须为整数", not active)
-            if time[0] > 0:
-                check.add(path, "offset.coverage", "偏移表从 0 之后开始；最初阶段将使用第一行", True)
+            if np.any(time[1:] <= time[:-1]):
+                check.add(path, "offset.time", "偏移时间/圈数必须严格递增，不能重复", not active)
+                return
+            time_kind = "turn" if str(required[0]).lower().startswith("turn") else "time"
+            if time_kind == "turn" and np.any((time < 0) | (time != np.floor(time))):
+                check.add(path, "offset.turn", "偏移文件 turn 列必须为非负整数", not active)
+                return
+            check.file_cache[(file, "offset")] = (time_kind, float(time[0]), float(time[-1]))
         return len(frame)
     except (OSError, ValueError, OverflowError) as exc:
         check.add(path, "file.read", str(exc), not active)
+
+
+def check_injection_offset_coverage(check):
+    """Check actual nonempty injection events after all commands are validated."""
+    if not check.check_files or check.report.errors:
+        return
+    reference = None
+    for path, bunch in check.bunch_models:
+        n_particles = bunch["Number of Macro Particles"]
+        if not n_particles:
+            continue
+        stop, interval = bunch["Total Injection Turns"], bunch["Injection Interval"]
+        n_batches = (stop + interval - 1) // interval
+        # Runtime assigns the remainder to the first batch. If N < batches,
+        # every later batch is empty, even when the run reaches its turn.
+        last_turn = interval * min(n_batches - 1, (check.turn_count - 1) // interval) if n_particles >= n_batches else 0
+        for axis in "xy":
+            offset = bunch.get(f"Offset {axis}", {})
+            if not offset.get("Is Offset") or not offset.get("Is Load From File"):
+                continue
+            file = Path(offset["File Path"]).expanduser()
+            if not file.is_absolute():
+                file = check.base / file
+            bounds = check.file_cache.get((file.resolve(), "offset"))
+            if bounds is None:
+                continue
+            time_kind, lower, upper = bounds
+            first, last = 0, last_turn
+            if time_kind == "time":
+                from PASS.utils.reference_clock import build_reference_program
+                try:
+                    if reference is None:
+                        reference = build_reference_program(check.data, check.base)
+                    harmonic = check.commands[path[1]][1]["Harmonic Number"]
+                    phase = bunch["Harmonic ID of this bunch"] / harmonic
+                    first = reference.inverse_integral(-phase)
+                    last = reference.inverse_integral(float(last_turn) - phase)
+                    supplied = bunch.get("Reference arrival time (s)")
+                    if supplied is not None:
+                        shift = supplied - first
+                        first += shift
+                        last += shift
+                except (TypeError, ValueError, KeyError, OSError, OverflowError) as exc:
+                    check.add(("Sequence", ), "clock.design", f"无法计算自动设计参考时钟：{exc}")
+                    return
+            if first < lower or last > upper:
+                unit = "turn" if time_kind == "turn" else "s"
+                check.add((*path, f"Offset {axis}", "File Path"), "offset.coverage",
+                          f"偏移表 [{lower:.17g}, {upper:.17g}] {unit} 未覆盖本次非空注入事件 [{first:.17g}, {last:.17g}] {unit}；域外查询会报错")
 
 
 def check_rf_files(check, values, path):
