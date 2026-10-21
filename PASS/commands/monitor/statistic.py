@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 import os
 import csv
-from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -19,7 +18,7 @@ from PASS.core.state import SimulationState
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-from PASS.utils.table_io import append_table, normalize_output_format, table_path, write_table
+from PASS.utils.table_io import _encode_command_name, append_table, normalize_output_format, table_path, write_table
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +138,7 @@ class StatMonitor(Command):
         self.s = kwargs["s (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
-        self._output_name = quote(self.cmd_name, safe="._-")
+        self._output_name = _encode_command_name(self.cmd_name)
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.write_interval_turns = kwargs.get("write interval (turns)", 100)
         if (isinstance(self.write_interval_turns, bool) or not isinstance(self.write_interval_turns, (int, np.integer))

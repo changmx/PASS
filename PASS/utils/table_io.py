@@ -3,11 +3,17 @@
 from collections.abc import Mapping
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 import h5py
 import numpy as np
 import pandas as pd
 import tfs
+
+
+def _encode_command_name(name: str) -> str:
+    """Preserve command identity while escaping filename/path characters."""
+    return quote(name, safe="._-")
 
 
 def normalize_output_format(value="hdf5-gzip1") -> str:

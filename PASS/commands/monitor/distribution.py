@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 
 import numpy as np
@@ -15,7 +14,7 @@ from PASS.core.config import Config
 from PASS.core.particle import convert_array
 from PASS.core.simulation import Simulation
 from PASS.utils.helper import get_current_time
-from PASS.utils.table_io import normalize_output_format, table_path, write_table
+from PASS.utils.table_io import _encode_command_name, normalize_output_format, table_path, write_table
 from PASS.utils.logger import set_normal_logging, set_simple_logging
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,7 @@ class DistMonitor(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
+        self._output_name = _encode_command_name(self.cmd_name)
         self.include_injection_metadata = kwargs.get("include injection metadata", False)
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
 
@@ -182,11 +182,9 @@ class DistMonitor(Command):
             "Circumference": float(bunch.circum),
         }
 
-        safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.cmd_name).strip("_")
-        safe_name = safe_name or "distmonitor"
         filename = (f"{self.output_hms}_dist_beam{self.beam_id}"
                     f"_bunch{int(bunch.bunch_id)}_Np_{int(bunch.Np)}"
-                    f"_s_{self.s:.4f}_{safe_name}_turn_{turn}.tfs")
+                    f"_s_{self.s:.4f}_{self._output_name}_turn_{turn}.tfs")
         filepath = table_path(self.output_dir / filename, self.output_format)
         write_table(filepath, columns, headers, colwidth=25, headerswidth=25, output_format=self.output_format)
         logger.info(f"DistMonitor '{self.cmd_name}': saved {filepath}")
