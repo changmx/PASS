@@ -1,6 +1,91 @@
 """Plot sampled dynamic-aperture results without assuming a connected stable region."""
 
+from collections import OrderedDict
+import hashlib
+
 import numpy as np
+
+
+def _dynamic_aperture_signatures(result, *, include_particles):
+    """Check GUI cache inputs once per redraw, including in-place array edits."""
+    digest = hashlib.sha256()
+
+    def update(name):
+        values = np.asarray(result[name])
+        digest.update(repr((name, values.dtype.str, values.shape)).encode("utf-8"))
+        if values.dtype.hasobject:
+            digest.update(repr(values.tolist()).encode("utf-8"))
+        else:
+            digest.update(np.ascontiguousarray(values).reshape(-1).view(np.uint8))
+
+    for name in ("initial_coordinates", "initial_valid", "status"):
+        update(name)
+    cache_signature = digest.digest()
+    update("dp_values")
+    if include_particles:
+        for name in ("lost_turn", "particle_id"):
+            update(name)
+    return cache_signature, digest.digest()
+
+
+class _DynamicAperturePlotCache:
+    """Page-owned display data for one validated version of an analysis result."""
+
+    def __init__(self, result, max_bytes=32 * 1024 * 1024):
+        self.result = result
+        initial = np.asarray(result["initial_coordinates"])
+        indices = np.flatnonzero(result["initial_valid"])
+        self.indices = indices[np.argsort(initial[indices, 5], kind="stable")]
+        self.sorted_dp = initial[self.indices, 5]
+        self.max_bytes = max_bytes
+        self._entries = OrderedDict()
+        self._cached_bytes = 0
+
+    def _get(self, key):
+        cached = self._entries.get(key)
+        if cached is not None:
+            self._entries.move_to_end(key)
+            return cached[0]
+        return None
+
+    def _store(self, key, value):
+
+        def nbytes(item):
+            if isinstance(item, np.ndarray):
+                return item.nbytes
+            if isinstance(item, (list, tuple)):
+                return sum(nbytes(part) for part in item)
+            return len(item) if isinstance(item, str) else 0
+
+        size = nbytes(value)
+        if size > self.max_bytes:
+            return
+        previous = self._entries.pop(key, None)
+        if previous is not None:
+            self._cached_bytes -= previous[1]
+        while self._entries and (self._cached_bytes + size > self.max_bytes or len(self._entries) >= 128):
+            _, (_, removed_size) = self._entries.popitem(last=False)
+            self._cached_bytes -= removed_size
+        self._entries[key] = value, size
+        self._cached_bytes += size
+
+    def _get_boundary(self, dp):
+        return self._get(("boundary", dp))
+
+    def _store_boundary(self, dp, value):
+        self._store(("boundary", dp), value)
+
+    def _get_group(self, dp):
+        group = self._get(("group", dp))
+        if group is None:
+            start = np.searchsorted(self.sorted_dp, dp, side="left")
+            end = np.searchsorted(self.sorted_dp, dp, side="right")
+            selection = self.indices[start:end]
+            initial = np.asarray(self.result["initial_coordinates"])
+            group = (initial[selection, 0] * 1e3, initial[selection, 2] * 1e3, np.asarray(self.result["status"])[selection],
+                     initial[selection][:, [1, 3, 4]], selection)
+            self._store(("group", dp), group)
+        return group
 
 
 def _dp_labels(values):
@@ -12,20 +97,20 @@ def _dp_labels(values):
     return labels
 
 
-def _draw_boundary(ax, x, y, status, fixed_coordinates, *, color="#273449", linestyle="--", label="Sampled aperture boundary", overlay=False):
-    """Draw only transitions supported by fully classified Cartesian cells."""
+def _prepare_boundary(x, y, status, fixed_coordinates):
+    """Classify complete scan cells without discarding holes or islands."""
     if not np.all(fixed_coordinates == fixed_coordinates[:1]):
-        return False, "Boundary unavailable: px, py and z must be fixed within the dp group"
+        return None, "Boundary unavailable: px, py and z must be fixed within the dp group"
     unique_x, x_index = np.unique(x, return_inverse=True)
     unique_y, y_index = np.unique(y, return_inverse=True)
     cells = y_index * len(unique_x) + x_index
     complete = len(cells) == len(unique_x) * len(unique_y) and len(np.unique(cells)) == len(cells)
     if not complete or len(unique_x) < 2 or len(unique_y) < 2:
-        return False, "Boundary unavailable: requires a complete, unique x-y grid"
+        return None, "Boundary unavailable: requires a complete, unique x-y grid"
     if not np.any(status == "survived"):
-        return False, "No sampled surviving region; no aperture boundary can be drawn"
+        return None, "No sampled surviving region; no aperture boundary can be drawn"
     if not np.any(status == "lost"):
-        return False, "No sampled loss boundary; scan extent is not the DA boundary"
+        return None, "No sampled loss boundary; scan extent is not the DA boundary"
 
     stable = np.full((len(unique_y), len(unique_x)), np.nan)
     stable[y_index[status == "lost"], x_index[status == "lost"]] = 0.0
@@ -34,16 +119,53 @@ def _draw_boundary(ax, x, y, status, fixed_coordinates, *, color="#273449", line
     classified = np.logical_and.reduce([np.isfinite(corner) for corner in corners])
     mixed = (np.minimum.reduce(corners) < 0.5) & (np.maximum.reduce(corners) > 0.5)
     if not np.any(classified & mixed):
-        return False, "Boundary unavailable: no fully classified cell brackets survival and loss"
+        return None, "Boundary unavailable: no fully classified cell brackets survival and loss"
+    notes = []
+    if np.any(stable[[0, -1], :] == 1.0) or np.any(stable[:, [0, -1]] == 1.0):
+        notes.append("Survivors reach the scan edge; the unscanned region is not classified.")
+    if np.any(~np.isfinite(stable)):
+        notes.append("Unknown states are masked; boundaries may have gaps.")
+    return (unique_x, unique_y, stable), "\n".join(notes)
 
-    contour = ax.contour(unique_x,
-                         unique_y,
-                         np.ma.masked_invalid(stable),
-                         levels=[0.5],
-                         colors=[color],
-                         linewidths=1.4,
-                         linestyles=linestyle,
-                         corner_mask=False)
+
+def _draw_boundary(ax,
+                   x,
+                   y,
+                   status,
+                   fixed_coordinates,
+                   *,
+                   color="#273449",
+                   linestyle="--",
+                   label="Sampled aperture boundary",
+                   overlay=False,
+                   _cache=None,
+                   _dp=None):
+    """Draw exact cached contour paths or classify the complete input scan."""
+    cached = _cache._get_boundary(_dp) if _cache is not None else None
+    if cached is None:
+        grid, note = _prepare_boundary(x, y, status, fixed_coordinates)
+        if grid is None:
+            if _cache is not None:
+                _cache._store_boundary(_dp, (None, None, note))
+            return False, note
+        unique_x, unique_y, stable = grid
+        contour = ax.contour(unique_x,
+                             unique_y,
+                             np.ma.masked_invalid(stable),
+                             levels=[0.5],
+                             colors=[color],
+                             linewidths=1.4,
+                             linestyles=linestyle,
+                             corner_mask=False)
+        if _cache is not None:
+            _cache._store_boundary(_dp, (contour.allsegs, contour.allkinds, note))
+    else:
+        segments, kinds, note = cached
+        if segments is None:
+            return False, note
+        from matplotlib.contour import ContourSet
+
+        contour = ContourSet(ax, [0.5], segments, kinds, colors=[color], linewidths=1.4, linestyles=linestyle)
     contour._pass_da_boundary = True
     contour._pass_da_overlay = overlay
     # Contour sticky bounds otherwise clip particles on the scan edge.
@@ -53,15 +175,10 @@ def _draw_boundary(ax, x, y, status, fixed_coordinates, *, color="#273449", line
     line, = ax.plot([], [], color=color, linestyle=linestyle, linewidth=1.4, label=label)
     line._pass_da_boundary = True
     line._pass_da_overlay = overlay
-    notes = []
-    if np.any(stable[[0, -1], :] == 1.0) or np.any(stable[:, [0, -1]] == 1.0):
-        notes.append("Survivors reach the scan edge; the unscanned region is not classified.")
-    if np.any(~np.isfinite(stable)):
-        notes.append("Unknown states are masked; boundaries may have gaps.")
-    return True, "\n".join(notes)
+    return True, note
 
 
-def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=True):
+def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=True, _cache=None):
     """Plot initial x-y points for one exact initial dp group; return the Axes.
 
     ``mode`` is ``status`` or ``loss_turn``. Positions are displayed in mm and
@@ -86,12 +203,19 @@ def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=T
         raise ValueError("dp must equal an available initial dp group")
     if ax is None:
         _, ax = plt.subplots(figsize=(7, 6), constrained_layout=True)
-    initial = np.asarray(result["initial_coordinates"])
-    selection = np.asarray(result["initial_valid"]) & (initial[:, 5] == dp)
-    x = initial[selection, 0] * 1e3
-    y = initial[selection, 2] * 1e3
-    status = np.asarray(result["status"])[selection]
-    loss = np.asarray(result["lost_turn"])[selection]
+    if _cache is None:
+        initial = np.asarray(result["initial_coordinates"])
+        selection = np.asarray(result["initial_valid"]) & (initial[:, 5] == dp)
+        x = initial[selection, 0] * 1e3
+        y = initial[selection, 2] * 1e3
+        status = np.asarray(result["status"])[selection]
+        loss = np.asarray(result["lost_turn"])[selection]
+        fixed_coordinates = initial[selection][:, [1, 3, 4]] if boundary else None
+        particle_ids = np.asarray(result["particle_id"])[selection]
+    else:
+        x, y, status, fixed_coordinates, selection = _cache._get_group(dp)
+        loss = np.asarray(result["lost_turn"])[selection]
+        particle_ids = np.asarray(result["particle_id"])[selection]
     styles = {
         "survived": ("#208654", "o", "Survived"),
         "lost": ("#d4533c", "x", "Lost"),
@@ -106,18 +230,18 @@ def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=T
             label = "Lost (turn unavailable)"
         if np.any(chosen):
             artist = ax.scatter(x[chosen], y[chosen], c=color, marker=marker, s=18, linewidths=0.8, label=label, rasterized=len(x) > 10000)
-            artist._pass_particle_ids = np.asarray(result["particle_id"])[selection][chosen]
+            artist._pass_particle_ids = particle_ids[chosen]
     if mode == "loss_turn":
         chosen = (status == "lost") & (loss >= 0)
         if np.any(chosen):
             artist = ax.scatter(x[chosen], y[chosen], c=loss[chosen], cmap="viridis", s=20, linewidths=0, rasterized=len(x) > 10000)
-            artist._pass_particle_ids = np.asarray(result["particle_id"])[selection][chosen]
+            artist._pass_particle_ids = particle_ids[chosen]
             colorbar = ax.figure.colorbar(artist, ax=ax, label="Loss turn (simulation index)")
             colorbar.locator = MaxNLocator(integer=True)
             colorbar.update_ticks()
     note = ""
     if boundary:
-        drawn, note = _draw_boundary(ax, x, y, status, initial[selection][:, [1, 3, 4]])
+        drawn, note = _draw_boundary(ax, x, y, status, fixed_coordinates, _cache=_cache, _dp=dp)
         if drawn:
             note = "Dashed: sampled survival/loss transitions; accuracy is limited by grid spacing." + ("\n" + note if note else "")
     metadata = result.get("metadata", {})
@@ -140,7 +264,7 @@ def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=T
     return ax
 
 
-def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
+def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None, _cache=None):
     """Overlay boundaries of selected exact initial-dp groups; return the Axes.
 
     ``dp_values=None`` selects every group; otherwise pass a nonempty sequence
@@ -167,12 +291,8 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
         raise ValueError("dp_values must equal available initial dp groups")
     if ax is None:
         _, ax = plt.subplots(figsize=(7, 6), constrained_layout=True)
-    initial = np.asarray(result["initial_coordinates"])
-    initial_valid = np.asarray(result["initial_valid"])
-    status = np.asarray(result["status"])
-    indices = np.flatnonzero(initial_valid)
-    indices = indices[np.argsort(initial[indices, 5], kind="stable")]
-    sorted_dp = initial[indices, 5]
+    if _cache is None:
+        _cache = _DynamicAperturePlotCache(result)
     labels = _dp_labels(values)
     colors = plt.get_cmap("tab10" if len(values) <= 10 else "turbo")
     linestyles = ("-", "--", "-.", ":")
@@ -182,23 +302,21 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
         index = int(np.flatnonzero(values == dp)[0])
         color = colors(index) if len(values) <= 10 else colors(0.1 + 0.8 * index / (len(values) - 1))
         linestyle = linestyles[index % len(linestyles)]
-        start = np.searchsorted(sorted_dp, dp, side="left")
-        end = np.searchsorted(sorted_dp, dp, side="right")
-        selection = indices[start:end]
-        x = initial[selection, 0] * 1e3
-        y = initial[selection, 2] * 1e3
+        x, y, status, fixed_coordinates, _ = _cache._get_group(dp)
         # Keep every selected scan extent visible, even if no contour is supported.
         ax.update_datalim(np.column_stack((x, y)))
         label = f"dp0 = {labels[index]}"
         drawn, note = _draw_boundary(ax,
                                      x,
                                      y,
-                                     status[selection],
-                                     initial[selection][:, [1, 3, 4]],
+                                     status,
+                                     fixed_coordinates,
                                      color=color,
                                      linestyle=linestyle,
                                      label=label,
-                                     overlay=True)
+                                     overlay=True,
+                                     _cache=_cache,
+                                     _dp=dp)
         if not drawn:
             line, = ax.plot([], [], color=color, linestyle="none", marker="x", label=label + " (no boundary)")
             line._pass_da_boundary = True

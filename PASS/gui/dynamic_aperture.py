@@ -35,6 +35,11 @@ class DynamicAperturePage(QWidget):
         self.result = None
         self._result_settings = None
         self._pending_settings = None
+        self._plot_cache = None
+        self._plot_cache_signature = None
+        self._plot_axis = None
+        self._plot_subplotspec = None
+        self._plot_key = None
         self._root = QVBoxLayout(self)
         self._root.setContentsMargins(16, 12, 16, 12)
 
@@ -222,18 +227,22 @@ class DynamicAperturePage(QWidget):
 
     def _finish(self, worker, kind):
         self._worker = None
+        value, error = worker.result, worker.error
+        interrupted = worker.isInterruptionRequested()
+        # Exception tracebacks otherwise keep the worker and large analysis arrays alive.
+        worker.operation = worker.result = worker.error = None
         worker.deleteLater()
         if self._closing:
             self.shutdown_finished.emit()
             return
         self.analysis_controls.setEnabled(True)
         self.cancel_button.setEnabled(False)
-        if isinstance(worker.error, InterruptedError) or (worker.isInterruptionRequested() and not (kind == "export" and worker.result is not None)):
+        if isinstance(error, InterruptedError) or (interrupted and not (kind == "export" and value is not None)):
             self.status.setText("操作已取消。")
-        elif worker.error is not None:
-            self.status.setText(str(worker.error))
+        elif error is not None:
+            self.status.setText(str(error))
         elif kind == "analysis":
-            self.result = worker.result
+            self.result = value
             metadata = self.result["metadata"]
             requested = metadata.get("requested_turn_input")
             effective = metadata["requested_turn"]
@@ -256,7 +265,7 @@ class DynamicAperturePage(QWidget):
                 self.status.setText("结果已读取，但无法绘图：" + str(exc))
             self.analysis_finished.emit(self.result)
         else:
-            self.status.setText("已导出：" + str(worker.result))
+            self.status.setText("已导出：" + str(value))
 
     def _set_dp_groups(self):
         self.dp.blockSignals(True)
@@ -294,33 +303,65 @@ class DynamicAperturePage(QWidget):
         self.draw_result()
 
     def draw_result(self, *_args):
-        if self.result is None:
+        if self.result is None or self._closing:
             return
-        self.figure.clear()
+        from PASS.plot.plot_dynamic_aperture import (_DynamicAperturePlotCache, _dynamic_aperture_signatures, plot_dynamic_aperture,
+                                                     plot_dynamic_aperture_boundaries)
+
+        selected = tuple(
+            self.dp_groups.item(index).data(Qt.UserRole) for index in range(self.dp_groups.count())
+            if self.dp_groups.item(index).checkState() == Qt.Checked)
+        overlay = self.plot_mode.currentData() == "overlay"
+        cache_signature, display_signature = _dynamic_aperture_signatures(self.result, include_particles=not overlay)
+        metadata = self.result.get("metadata", {})
+        key = (overlay, self.dp.currentData(), self.mode.currentData(), self.boundary.isChecked(), selected, display_signature,
+               str(metadata.get("requested_turn", "?")), str(metadata.get("Monitor", "monitor")))
+        current = self._plot_cache is not None and self._plot_cache.result is self.result and self._plot_cache_signature == cache_signature
+        if current and key == self._plot_key:
+            return
+        if not current:
+            self._plot_cache = _DynamicAperturePlotCache(self.result)
+            self._plot_cache_signature = cache_signature
+        self._plot_key = None
+        # Reused axes must not restore limits belonging to the previous plot.
+        self.canvas.toolbar.update()
+        if self._plot_axis is None:
+            self._plot_axis = self.figure.add_subplot()
+            self._plot_subplotspec = self._plot_axis.get_subplotspec()
+        else:
+            for artist in tuple(self._plot_axis.collections):
+                colorbar = getattr(artist, "colorbar", None)
+                if colorbar is not None:
+                    colorbar.remove()
+            for axes in tuple(self.figure.axes):
+                if axes is not self._plot_axis:
+                    axes.remove()
+            self._plot_axis.clear()
+            self._plot_axis.set_subplotspec(self._plot_subplotspec)
+        ax = self._plot_axis
         if self.dp.currentIndex() < 0:
-            ax = self.figure.add_subplot()
             ax.set_axis_off()
             ax.text(0.5, 0.5, "No valid initial coordinates are available for plotting.", transform=ax.transAxes, ha="center", va="center", wrap=True)
             self.dp_selection_note.setText("没有有效的注入初始坐标，无法绘制孔径；仍可导出分析数据检查粒子状态。")
             self._style()
+            self._plot_key = key
             return
-        from PASS.plot.plot_dynamic_aperture import plot_dynamic_aperture, plot_dynamic_aperture_boundaries
-
-        ax = self.figure.add_subplot()
-        if self.plot_mode.currentData() == "overlay":
-            selected = [
-                self.dp_groups.item(index).data(Qt.UserRole) for index in range(self.dp_groups.count())
-                if self.dp_groups.item(index).checkState() == Qt.Checked
-            ]
+        if overlay:
             self.dp_selection_note.setText("按注入时的 dp 分组；勾选需要叠加的边界。" if selected else "请至少勾选一个初始 dp，也可点击“全选”。")
             if selected:
-                plot_dynamic_aperture_boundaries(self.result, dp_values=selected, ax=ax)
+                plot_dynamic_aperture_boundaries(self.result, dp_values=selected, ax=ax, _cache=self._plot_cache)
             else:
                 ax.set_axis_off()
                 ax.text(0.5, 0.5, "Select at least one initial dp.", transform=ax.transAxes, ha="center", va="center")
         else:
-            plot_dynamic_aperture(self.result, dp=self.dp.currentData(), mode=self.mode.currentData(), boundary=self.boundary.isChecked(), ax=ax)
+            plot_dynamic_aperture(self.result,
+                                  dp=self.dp.currentData(),
+                                  mode=self.mode.currentData(),
+                                  boundary=self.boundary.isChecked(),
+                                  ax=ax,
+                                  _cache=self._plot_cache)
         self._style()
+        self._plot_key = key
 
     def _confirm_export(self, paths):
         if self.busy or self._closing:

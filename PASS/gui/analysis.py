@@ -57,7 +57,7 @@ def _compute(snapshot, check):
     if snapshot["task"] == "fma":
         loaded_y = load_signal(snapshot["path"], snapshot["selection_y"], **snapshot["load_options"])
         check()
-        result = compute_frequency_map(loaded_x, loaded_y, snapshot["kwargs"])
+        result = compute_frequency_map(loaded_x, loaded_y, snapshot["kwargs"], check=check)
     else:
         result = compute_spectrum(loaded_x, snapshot["method"], snapshot["kwargs"])
     check()
@@ -377,6 +377,8 @@ class AnalysisPage(QWidget):
         if worker is None:
             return
         value, error = worker.result, worker.error
+        # Exception tracebacks otherwise keep the worker and large analysis arrays alive.
+        worker.operation = worker.result = worker.error = None
         worker.deleteLater()
         if self._closing:
             self._child_shutdown_finished()

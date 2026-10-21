@@ -495,12 +495,20 @@ Missing samples interrupt lines. Large previews reduce displayed points without
 changing the data. Each loaded file retains its axes and filter settings.
 The summary reports total, selected, and finite rows. **Close current data**
 unloads the current file; file loading can be cancelled.
+HDF5 table loading checks cancellation between data blocks. Loaded arrays remain
+an independent snapshot: later changes to the source file do not silently change
+the displayed or exported data. Reload the file to use a newer snapshot.
 
 Phase-space presets select x–px, y–py, z–dp, x–y, or arrival-time–dp when their
 columns are present. Axes use supplied units and reference metadata; units are
 not inferred for plain CSV. **Density and projections** bins all finite X/Y pairs
 into 8–256 bins and displays counts and marginal projections. Counts represent
 macro-particle rows, without charge weighting.
+Large density calculations run in the background. Changing the selection again
+discards an older calculation; the preview and image export become available for
+the latest selection when its calculation finishes. Every finite pair still
+contributes to the histogram, including saved electron-number weights in the
+electron-cloud source view.
 
 Select a baseline to overlay data or compute A−B or (A−B)/B. X values and row
 order must be identical and finite, with compatible units, coordinates, and

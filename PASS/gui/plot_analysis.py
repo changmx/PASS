@@ -137,11 +137,26 @@ def read_plot_result(path, *, cancelled=lambda: False, progress=lambda message: 
                         raise ValueError(f"SC {name} 必须按 (slice, y, x) 保存，当前形状为 {stream[name].shape}。")
                     fields[name] = np.asarray(stream[name])
                 return FieldResult(x, y, slices, widths, fields, dict(stream.attrs))
-    result = read_result(path, arrays=True)
+    result = read_result(path, arrays=True, cancelled=cancelled)
     if cancelled():
         raise InterruptedError("读取已取消")
     progress(f"完成 {path.name}")
     return result
+
+
+def _exact_array_equal(left, right):
+    """Keep integer identity when mixed dtypes would otherwise promote to float."""
+    left, right = np.asarray(left), np.asarray(right)
+    if left.shape != right.shape:
+        return False
+    common = np.result_type(left.dtype, right.dtype)
+    if common.kind not in "fc" or not (left.dtype.kind in "iu" or right.dtype.kind in "iu"):
+        return np.array_equal(left, right)
+    # Python compares integers and floats exactly; bound temporary object storage.
+    for start in range(0, left.size, 65536):
+        if not np.array_equal(left.flat[start:start + 65536].astype(object), right.flat[start:start + 65536].astype(object)):
+            return False
+    return True
 
 
 def compare_columns(current, baseline, x_name, y_name, mode, status="all", batch=None):
@@ -156,7 +171,7 @@ def compare_columns(current, baseline, x_name, y_name, mode, status="all", batch
     a = current.select_columns((x_name, y_name), status, batch)
     b = baseline.select_columns((bx, by), status, batch)
     x, y, reference = a[x_name], a[y_name], b[by]
-    if x.shape != b[bx].shape or not np.isfinite(x).all() or not np.array_equal(x, b[bx]):
+    if not np.isfinite(x).all() or not _exact_array_equal(x, b[bx]):
         raise ValueError("比较需要 X 值和行顺序严格一致且有限；不会自动排序或插值。")
     for key in ("ZCoordinate", "CoordinateDefinition"):
         if key in current.metadata or key in baseline.metadata:
@@ -167,7 +182,7 @@ def compare_columns(current, baseline, x_name, y_name, mode, status="all", batch
         if "particle_id" not in current_names or "particle_id" not in names:
             raise ValueError("粒子逐行比较需要两份数据均提供 particle_id。")
         key_a, key_b = current_names["particle_id"], names["particle_id"]
-        if not np.array_equal(current.select_columns((key_a, ), status, batch)[key_a], baseline.select_columns((key_b, ), status, batch)[key_b]):
+        if not _exact_array_equal(current.select_columns((key_a, ), status, batch)[key_a], baseline.select_columns((key_b, ), status, batch)[key_b]):
             raise ValueError("两份数据的 particle_id 顺序不一致，不能逐行比较。")
     if {x_name.casefold(), y_name.casefold()} & {"px", "py", "dp"}:
         for key in ("ReferenceMomentum", "ReferenceBeta"):
@@ -178,7 +193,7 @@ def compare_columns(current, baseline, x_name, y_name, mode, status="all", batch
                 if key not in current_names or key not in names:
                     raise ValueError("归一化动量比较缺少配套逐行参考量。")
                 key_a, key_b = current_names[key], names[key]
-                if not np.array_equal(
+                if not _exact_array_equal(
                         current.select_columns((key_a, ), status, batch)[key_a],
                         baseline.select_columns((key_b, ), status, batch)[key_b]):
                     raise ValueError("归一化动量比较的逐行参考量不一致。")
@@ -524,11 +539,105 @@ def export_selection_image(selection, path, *, context=None, isolated=False):
         os.replace(temporary, path)
 
 
-def create_figure(kind, payload, *, size=(10, 6), dpi=100):
+def _prepare_density(payload, check):
+    check()
+    prepared = dict(payload)
+    prepared["_histogram"] = density_histogram(payload["x"], payload["y"], payload.get("bins", 80), payload.get("weights"))
+    check()
+    return prepared
+
+
+def _field_aperture_spec(metadata, enabled):
+    """Copy only the active contour inputs, including nested polygon vertices."""
+    kind = metadata.get("aperture_type")
+    if not enabled or kind in (None, "off", "default"):
+        return None
+    values = metadata.get("aperture_value", "[]")
+    parameters = json.loads(values) if isinstance(values, (str, bytes)) else values
+    return kind, np.asarray(parameters).tolist()
+
+
+def _update_figure(state, kind, payload):
+    """Reuse matching meshes and axes, returning false when geometry changes."""
+    from matplotlib.colors import Normalize
+
+    if state.get("kind") != kind:
+        return False
+    if kind == "density":
+        if "weights" in payload and not len(payload["weights"]):
+            return False
+        prepared = payload.get("_histogram")
+        if prepared is None:
+            return False
+        values, x_edges, y_edges = prepared
+        if not np.array_equal(x_edges, state["x_edges"]) or not np.array_equal(y_edges, state["y_edges"]):
+            return False
+        state["top_line"].set_data(values.sum(axis=0), x_edges)
+        state["right_line"].set_data(values.sum(axis=1), y_edges)
+        for name in ("top", "right"):
+            state[name].relim()
+            state[name].autoscale(enable=True, axis="y" if name == "top" else "x")
+        state["axis"].set(xlabel=payload["x_label"], ylabel=payload["y_label"])
+        state["top"].set(ylabel="Electrons" if "weights" in payload else "Count", title=payload.get("title", ""))
+        state["right"].set_xlabel("Electrons" if "weights" in payload else "Count")
+        label = payload.get("weight_label", "Macro-particle rows / bin")
+        cmap = "viridis"
+        state["axis"].set_xlim(x_edges[0], x_edges[-1])
+        state["axis"].set_ylim(y_edges[0], y_edges[-1])
+    elif kind in {"field", "electron_cloud_field"}:
+        result, name = payload["result"], payload["field"]
+        x, y = (result.x, result.y) if kind == "field" else (result.grid["x"], result.grid["y"])
+        if not np.array_equal(x, state["x_coordinates"]) or not np.array_equal(y, state["y_coordinates"]):
+            return False
+        if kind == "field":
+            if state["result"] is not result:
+                return False
+            if state["aperture"] != payload.get("aperture", True):
+                return False
+            if state["aperture_spec"] != _field_aperture_spec(result.metadata, payload.get("aperture", True)):
+                return False
+            index = payload["index"]
+            values, unit = result.plane(name, index, payload["average"])
+            state["axis"].set_title(f"slice_id={result.slice_ids[index]}, Δz={result.delta_z[index]:.6g} m")
+            cmap = "RdBu_r" if "E" in name else "viridis"
+        else:
+            previous = state["result"]
+            # Export specifications wrap just one field but share the snapshot grid.
+            if previous.grid is not result.grid or previous.metadata is not result.metadata:
+                return False
+            values, unit = result.fields[name], result.unit("fields", name)
+            cmap = "RdBu_r" if name in {"ex", "ey"} else "viridis"
+            source_time = result.metadata.get("source_metadata", {}).get("time")
+            title = f"turn={result.metadata.get('turn', '?')}" + (f", time={source_time:.9g} s" if source_time is not None else "")
+            state["axis"].set(xlabel=f"x [{result.unit('grid', 'x')}]", ylabel=f"y [{result.unit('grid', 'y')}]", title=title)
+            state["result"] = result
+        state["axis"].set_xlim(x[0], x[-1])
+        state["axis"].set_ylim(y[0], y[-1])
+        label = f"{name} [{unit}]"
+    else:
+        return False
+    # A fresh normalization preserves the original full-data color scale.
+    values = np.ma.masked_invalid(values)
+    norm = Normalize()
+    norm.autoscale(values)
+    state["image"].set_array(values)
+    state["image"].set_cmap(cmap)
+    state["image"].set_norm(norm)
+    state["colorbar"].set_label(label)
+    return True
+
+
+def create_figure(kind, payload, *, size=(10, 6), dpi=100, figure=None, _state=None):
     """Build standalone scientific figures lazily; data always has full resolution."""
     from matplotlib.figure import Figure
 
-    figure = Figure(figsize=size, dpi=dpi, layout="constrained")
+    if figure is None:
+        figure = Figure(figsize=size, dpi=dpi, layout="constrained")
+    else:
+        figure.clear()
+        figure.set_layout_engine("constrained")
+    if _state is not None:
+        _state.clear()
     if kind == "density":
         if "weights" in payload and not len(payload["weights"]):
             axis = figure.add_subplot(111)
@@ -537,23 +646,36 @@ def create_figure(kind, payload, *, size=(10, 6), dpi=100):
             axis.set_xticks([])
             axis.set_yticks([])
             return figure
-        values, x_edges, y_edges = density_histogram(payload["x"], payload["y"], payload.get("bins", 80), payload.get("weights"))
+        prepared = payload.get("_histogram")
+        values, x_edges, y_edges = prepared if prepared is not None else density_histogram(payload["x"], payload["y"], payload.get("bins", 80),
+                                                                                           payload.get("weights"))
         grid = figure.add_gridspec(4, 4)
         axis = figure.add_subplot(grid[1:, :3])
         top = figure.add_subplot(grid[0, :3], sharex=axis)
         right = figure.add_subplot(grid[1:, 3], sharey=axis)
         image = axis.pcolormesh(x_edges, y_edges, values, shading="flat", cmap="viridis")
-        top.stairs(values.sum(axis=0), x_edges)
-        right.stairs(values.sum(axis=1), y_edges, orientation="horizontal")
+        top_line = top.stairs(values.sum(axis=0), x_edges)
+        right_line = right.stairs(values.sum(axis=1), y_edges, orientation="horizontal")
         top.set_ylabel("Electrons" if "weights" in payload else "Count")
         right.set_xlabel("Electrons" if "weights" in payload else "Count")
         top.tick_params(labelbottom=False)
         right.tick_params(labelleft=False)
-        figure.colorbar(image, ax=[axis, top, right], label=payload.get("weight_label", "Macro-particle rows / bin"), shrink=0.7)
+        colorbar = figure.colorbar(image, ax=[axis, top, right], label=payload.get("weight_label", "Macro-particle rows / bin"), shrink=0.7)
         axis.set_xlabel(payload["x_label"])
         axis.set_ylabel(payload["y_label"])
         if payload.get("title"):
             top.set_title(payload["title"])
+        if _state is not None:
+            _state.update(kind=kind,
+                          image=image,
+                          colorbar=colorbar,
+                          axis=axis,
+                          top=top,
+                          right=right,
+                          top_line=top_line,
+                          right_line=right_line,
+                          x_edges=x_edges,
+                          y_edges=y_edges)
     elif kind == "electron_cloud_field":
         figure.set_layout_engine("compressed")
         result, name = payload["result"], payload["field"]
@@ -563,35 +685,52 @@ def create_figure(kind, payload, *, size=(10, 6), dpi=100):
                                 np.ma.masked_invalid(result.fields[name]),
                                 shading="nearest",
                                 cmap="RdBu_r" if name in {"ex", "ey"} else "viridis")
-        figure.colorbar(image, ax=axis, label=f"{name} [{result.unit('fields', name)}]")
+        colorbar = figure.colorbar(image, ax=axis, label=f"{name} [{result.unit('fields', name)}]")
         source_time = result.metadata.get("source_metadata", {}).get("time")
         title = f"turn={result.metadata.get('turn', '?')}" + (f", time={source_time:.9g} s" if source_time is not None else "")
         axis.set(xlabel=f"x [{result.unit('grid', 'x')}]", ylabel=f"y [{result.unit('grid', 'y')}]", title=title)
         axis.set_aspect("equal", adjustable="box")
         axis.set_xlim(result.grid["x"][0], result.grid["x"][-1])
         axis.set_ylim(result.grid["y"][0], result.grid["y"][-1])
+        if _state is not None:
+            _state.update(kind=kind,
+                          result=result,
+                          image=image,
+                          colorbar=colorbar,
+                          axis=axis,
+                          x_coordinates=np.array(result.grid["x"], copy=True),
+                          y_coordinates=np.array(result.grid["y"], copy=True))
     elif kind == "field":
         figure.set_layout_engine("compressed")
         result, name, index, average = payload["result"], payload["field"], payload["index"], payload["average"]
         values, unit = result.plane(name, index, average)
         axis = figure.add_subplot(111)
         image = axis.pcolormesh(result.x, result.y, np.ma.masked_invalid(values), shading="nearest", cmap="RdBu_r" if "E" in name else "viridis")
-        figure.colorbar(image, ax=axis, label=f"{name} [{unit}]")
+        colorbar = figure.colorbar(image, ax=axis, label=f"{name} [{unit}]")
         axis.set(xlabel="x [m]", ylabel="y [m]", title=f"slice_id={result.slice_ids[index]}, Δz={result.delta_z[index]:.6g} m")
         axis.set_aspect("equal", adjustable="box")
         axis.set_xlim(result.x[0], result.x[-1])
         axis.set_ylim(result.y[0], result.y[-1])
-        if payload.get("aperture", True) and result.metadata.get("aperture_type") not in (None, "off", "default"):
+        aperture_spec = _field_aperture_spec(result.metadata, payload.get("aperture", True))
+        if aperture_spec is not None:
             from PASS.utils.aperture import build_aperture
 
-            values = result.metadata.get("aperture_value", "[]")
-            parameters = json.loads(values) if isinstance(values, (str, bytes)) else values
-            aperture = build_aperture({"Type": result.metadata["aperture_type"], "Value": parameters})
+            aperture = build_aperture({"Type": aperture_spec[0], "Value": aperture_spec[1]})
             x = np.linspace(result.x[0], result.x[-1], max(256, len(result.x)))
             y = np.linspace(result.y[0], result.y[-1], max(256, len(result.y)))
             mask = aperture.mask(x[None, :], y[:, None])
             if mask.any() and not mask.all():
                 axis.contour(x, y, mask.astype(float), levels=[0.5], colors="black", linewidths=1)
+        if _state is not None:
+            _state.update(kind=kind,
+                          result=result,
+                          aperture=payload.get("aperture", True),
+                          aperture_spec=aperture_spec,
+                          image=image,
+                          colorbar=colorbar,
+                          axis=axis,
+                          x_coordinates=np.array(result.x, copy=True),
+                          y_coordinates=np.array(result.y, copy=True))
     else:
         axis = figure.add_subplot(111)
         for label, x, y, mode in payload["series"]:

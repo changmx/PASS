@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from PASS.utils.constants import const
-from PASS.utils.table_io import read_table
+from PASS.utils.table_io import _read_hdf5_columns
 
 
 @dataclass
@@ -24,7 +24,13 @@ class ResultTable:
         return {name: np.asarray(self.columns[name])[self._row_mask] for name in keys if name in self.columns}
 
 
-def read_result(path, *, arrays=False):
+def read_result(path, *, arrays=False, cancelled=lambda: False):
+
+    def check():
+        if cancelled():
+            raise InterruptedError("读取已取消")
+
+    check()
     path = Path(path)
     metadata = {}
     if path.suffix.lower() in {".h5", ".hdf5"}:
@@ -33,11 +39,10 @@ def read_result(path, *, arrays=False):
             if any(isinstance(value, h5py.Dataset) and value.ndim > 1 for value in stream.values()):
                 raise ValueError("该 HDF5 包含多维场数组；请使用专门的切片场分析，不能将网格轴当作粒子列配对。")
             definitions = {name: dict(value.attrs) for name, value in stream.items() if isinstance(value, h5py.Dataset) and value.attrs}
-        frame = read_table(path)
-        metadata = dict(frame.headers)
+            columns, metadata = _read_hdf5_columns(stream, check=check)
         if definitions:
             metadata["column_definitions"] = definitions
-        columns = {key: frame[key].to_numpy() for key in frame if frame[key].dtype.kind in "biuf"}
+        columns = {key: value for key, value in columns.items() if value.dtype.kind in "biuf"}
         if not columns:
             raise ValueError("该 HDF5 没有一维粒子数据列；切片场等多维数组需要专门的场图。")
     else:
@@ -86,6 +91,7 @@ def read_result(path, *, arrays=False):
             columns["arrival_time_s"] = arrived
     if not arrays:
         columns = {key: value.tolist() for key, value in columns.items()}
+    check()
     return ResultTable(columns, metadata)
 
 

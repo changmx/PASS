@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import numpy as np
-from PySide6.QtCore import QPointF, QRectF, QThread, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, QThread, QTimer, Qt, Signal
 from PySide6.QtGui import QImage, QPainter, QPainterPath, QPalette, QPen, QPolygonF
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QLabel, QMessageBox, QProgressBar, QPushButton, QSpinBox, QStackedWidget, QVBoxLayout, QWidget
 
@@ -53,8 +53,9 @@ class PlotCanvas(QWidget):
         self._x_values = np.empty(0)
         self._values = np.empty(0)
         self._valid = np.empty(0, dtype=bool)
-        self._missing_prefix = np.zeros(1, dtype=np.int64)
-        self._monotonic = False
+        self._n_valid = 0
+        self._missing_prefix = None
+        self._monotonic = None
         self._x_limits = self._y_limits = None
         self._geometry_key = None
         self._geometry = None
@@ -81,8 +82,9 @@ class PlotCanvas(QWidget):
         if self._x_values.ndim != 1 or self._values.ndim != 1 or len(self._x_values) != len(self._values):
             raise ValueError("X / Y 数据必须是一维且长度一致。")
         self._valid = np.isfinite(self._x_values) & np.isfinite(self._values)
-        self._missing_prefix = np.concatenate(([0], np.cumsum(~self._valid)))
-        self._monotonic = bool(np.isfinite(self._x_values).all() and np.all(self._x_values[1:] >= self._x_values[:-1]))
+        self._n_valid = int(np.count_nonzero(self._valid))
+        self._missing_prefix = None
+        self._monotonic = None
         self.mode = mode
         self.x_label, self.y_label = x_label, y_label
         self.empty_message = empty_message or "当前 X / Y 列没有可绘制的有限值"
@@ -91,9 +93,13 @@ class PlotCanvas(QWidget):
         self.fit_view()
 
     def fit_view(self) -> None:
-        if self._valid.any():
-            x = self._x_values[self._valid]
-            y = self._values[self._valid]
+        if self._n_valid:
+            # Complete finite series need no filtered copies just to find bounds.
+            if self._n_valid == len(self._valid):
+                x, y = self._x_values, self._values
+            else:
+                x = self._x_values[self._valid]
+                y = self._values[self._valid]
             self._x_limits = (float(x.min()), float(x.max()))
             self._y_limits = (float(y.min()), float(y.max()))
         else:
@@ -155,11 +161,20 @@ class PlotCanvas(QWidget):
             self.displayed_points = int(visible.sum())
             geometry = QImage(pixels.data, width, height, pixels.strides[0], QImage.Format_RGBA8888).copy()
         else:
+            # Scatter views need neither line ordering nor an O(N) gap index.
+            if self._monotonic is None:
+                self._monotonic = bool(np.isfinite(self._x_values).all() and np.all(self._x_values[1:] >= self._x_values[:-1]))
+            if self._missing_prefix is None and self._n_valid < len(self._valid):
+                self._missing_prefix = np.empty(len(self._valid) + 1, dtype=np.int64)
+                self._missing_prefix[0] = 0
+                np.cumsum(~self._valid, out=self._missing_prefix[1:])
             indices = _line_indices(self._x_values, self._values, self._valid, width, (x_low, x_high), self._monotonic)
             x = (self._x_values[indices] - x_low) / (x_high - x_low) * width
             y = (y_high - self._values[indices]) / (y_high - y_low) * height
-            breaks = np.ones(len(indices), dtype=bool)
-            if len(indices) > 1:
+            breaks = np.zeros(len(indices), dtype=bool)
+            if len(indices):
+                breaks[0] = True
+            if len(indices) > 1 and self._missing_prefix is not None:
                 breaks[1:] = self._missing_prefix[indices[1:]] != self._missing_prefix[indices[:-1] + 1]
             path = QPainterPath()
             singletons = QPolygonF()
@@ -211,7 +226,7 @@ class PlotCanvas(QWidget):
         painter.drawText(area.right() - 65, self.height() - 24, f"{x_high:.5g}")
         painter.drawText(area.left(), 19, self.y_label)
         painter.drawText(area.left(), self.height() - 6, self.x_label)
-        if self.mode == "line" and self.displayed_points < int(self._valid.sum()):
+        if self.mode == "line" and self.displayed_points < self._n_valid:
             painter.drawText(area.adjusted(0, 3, -3, 0), Qt.AlignRight | Qt.AlignTop, "按视图保留极值显示 · 原始数据完整保留")
 
 
@@ -243,6 +258,27 @@ class _ResultReader(QThread):
             self.failed.emit(self.token, str(exc))
 
 
+class _DensityWorker(QThread):
+    """Compute full-data histograms without constructing any Matplotlib objects."""
+
+    def __init__(self, token, payload, parent):
+        super().__init__(parent)
+        self.token, self.payload = token, payload
+        self.result = self.error = None
+
+    def _check(self):
+        if self.isInterruptionRequested():
+            raise InterruptedError("密度计算已取消")
+
+    def run(self):
+        from PASS.gui.plot_analysis import _prepare_density
+
+        try:
+            self.result = _prepare_density(self.payload, self._check)
+        except Exception as exc:
+            self.error = exc
+
+
 class PlotPage(QWidget):
     shutdown_finished = Signal()
     load_finished = Signal()
@@ -261,7 +297,15 @@ class PlotPage(QWidget):
         self._closing = False
         self._analysis_canvas = None
         self._analysis_toolbar = None
+        self._figure_state = {}
         self._figure_spec = None
+        self._preview_token = 0
+        self._preview_worker = None
+        self._pending_preview = None
+        self._preview_timer = QTimer(self)
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(60)
+        self._preview_timer.timeout.connect(self._start_preview)
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 18, 18, 18)
         header = QHBoxLayout()
@@ -500,6 +544,7 @@ class PlotPage(QWidget):
     def shutdown(self):
         self._closing = True
         self.cancel_load()
+        self._cancel_preview()
         if self._export_dialog is not None:
             self._export_dialog.cancel()
         return not self.busy
@@ -507,9 +552,12 @@ class PlotPage(QWidget):
     @property
     def busy(self):
         # The dialog remains owned until its nested event loop has returned.
-        return self._reader is not None or self._export_dialog is not None
+        return (self._reader is not None or self._export_dialog is not None or self._preview_worker is not None or self._pending_preview is not None)
 
     def _wait_reader(self):
+        self._cancel_preview()
+        if self._preview_worker is not None:
+            self._preview_worker.wait()
         if self._reader is not None:
             self._reader.requestInterruption()
             self._reader.wait()
@@ -621,12 +669,13 @@ class PlotPage(QWidget):
         from PASS.gui.plot_analysis import FieldResult, column_label, compare_columns
 
         result = self.result_files.get(self._active_path)
+        self._cancel_preview()
         self._figure_spec = None
-        self._clear_analysis()
         self.view_hint.setText("滚轮缩放，适配视图恢复完整范围")
         self.export_data_button.setEnabled(result is not None)
         self.export_image_button.setEnabled(result is not None)
         if result is None:
+            self._clear_analysis()
             self.plot_stack.setCurrentWidget(self.canvas)
             self.canvas.set_series([], [], empty_message="加载结果文件后选择 X / Y 数值列")
             self.info.setText("未加载数据")
@@ -674,6 +723,7 @@ class PlotPage(QWidget):
                     }
                     self._show_figure("series", payload)
                 else:
+                    self._clear_analysis()
                     self.plot_stack.setCurrentWidget(self.canvas)
                     self.canvas.set_series(x, y, mode="line", empty_message=message, x_label=x_label, y_label=y_label)
                     self._figure_spec = "series", {"series": [(comparison, x, y, "line")], "x_label": x_label, "y_label": y_label}
@@ -681,10 +731,12 @@ class PlotPage(QWidget):
                 self._show_figure("density", {"x": x, "y": y, "bins": self.density_bins.value(), "x_label": x_label, "y_label": y_label})
                 explanation = "密度及边缘投影统计全部有限 X/Y 配对；计数为宏粒子行数，未按电荷加权。"
             else:
+                self._clear_analysis()
                 self.plot_stack.setCurrentWidget(self.canvas)
                 self.canvas.set_series(x, y, mode=mode, empty_message=message, x_label=x_label, y_label=y_label)
                 self._figure_spec = "series", {"series": [(Path(self._active_path).name, x, y, mode)], "x_label": x_label, "y_label": y_label}
         except (ValueError, KeyError, TypeError) as exc:
+            self._clear_analysis()
             self.plot_stack.setCurrentWidget(self.canvas)
             self.canvas.set_series([], [], empty_message=str(exc))
             self.info.setText(str(exc))
@@ -719,21 +771,92 @@ class PlotPage(QWidget):
         self._select_series()
 
     def _show_figure(self, kind, payload):
-        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
-        from PASS.gui.plot_analysis import create_figure
+        from PASS.gui.plot_analysis import _prepare_density
 
-        figure = create_figure(kind, payload)
-        self._clear_analysis()
-        self._analysis_canvas = FigureCanvasQTAgg(figure)
-        self._analysis_toolbar = NavigationToolbar2QT(self._analysis_canvas, self.analysis_view)
-        self.analysis_layout.addWidget(self._analysis_toolbar)
-        self.analysis_layout.addWidget(self._analysis_canvas)
+        if self._closing:
+            return
+        if kind == "density" and "_histogram" not in payload:
+            if len(payload["x"]) > 100000:
+                self._cancel_preview()
+                # Array views keep this exact selection alive until the worker finishes.
+                frozen = dict(payload)
+                for key in ("x", "y", "weights"):
+                    if key in frozen:
+                        frozen[key] = np.asarray(frozen[key]).view()
+                        frozen[key].flags.writeable = False
+                self._pending_preview = self._preview_token, frozen
+                self._preview_timer.start(60)
+                self._figure_spec = None
+                self.export_image_button.setEnabled(False)
+                self.plot_stack.setCurrentWidget(self.canvas)
+                self.canvas.set_series([], [], empty_message="正在计算完整数据的密度与投影…")
+                return
+            payload = _prepare_density(payload, lambda: None)
+        self._render_figure(kind, payload)
+
+    def _cancel_preview(self):
+        self._preview_token += 1
+        self._pending_preview = None
+        self._preview_timer.stop()
+        if self._preview_worker is not None:
+            self._preview_worker.requestInterruption()
+
+    def _start_preview(self):
+        if self._closing or self._preview_worker is not None or self._pending_preview is None:
+            return
+        token, payload = self._pending_preview
+        self._pending_preview = None
+        worker = self._preview_worker = _DensityWorker(token, payload, self)
+        worker.finished.connect(self._preview_finished)
+        worker.start()
+
+    def _preview_finished(self):
+        worker, self._preview_worker = self._preview_worker, None
+        if worker is None:
+            return
+        if not self._closing and worker.token == self._preview_token:
+            try:
+                if worker.error is not None:
+                    raise worker.error
+                self._render_figure("density", worker.result)
+            except Exception as exc:
+                self._clear_analysis()
+                self._figure_spec = None
+                self.export_image_button.setEnabled(False)
+                self.canvas.set_series([], [], empty_message=str(exc))
+                self.plot_stack.setCurrentWidget(self.canvas)
+                self.info.setText(str(exc))
+        # Failed or cancelled jobs must release traceback-held arrays immediately.
+        worker.payload = worker.result = worker.error = None
+        worker.deleteLater()
+        if self._closing:
+            if not self.busy:
+                self.shutdown_finished.emit()
+        elif self._pending_preview is not None and not self._preview_timer.isActive():
+            self._preview_timer.start(0)
+
+    def _render_figure(self, kind, payload):
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
+        from PASS.gui.plot_analysis import _update_figure, create_figure
+
+        if self._analysis_canvas is None:
+            figure = create_figure(kind, payload, _state=self._figure_state)
+            self._analysis_canvas = FigureCanvasQTAgg(figure)
+            self._analysis_toolbar = NavigationToolbar2QT(self._analysis_canvas, self.analysis_view)
+            self.analysis_layout.addWidget(self._analysis_toolbar)
+            self.analysis_layout.addWidget(self._analysis_canvas)
+        elif not _update_figure(self._figure_state, kind, payload):
+            create_figure(kind, payload, figure=self._analysis_canvas.figure, _state=self._figure_state)
+        self._analysis_toolbar.update()
+        self.canvas.set_series([], [])
         self.plot_stack.setCurrentWidget(self.analysis_view)
         self.view_hint.setText("图形工具栏：平移 / 框选缩放 / 恢复")
         self._analysis_canvas.draw_idle()
         self._figure_spec = kind, payload
+        self.export_image_button.setEnabled(True)
 
     def _clear_analysis(self):
+        self._figure_state.clear()
         for widget in (self._analysis_toolbar, self._analysis_canvas):
             if widget is not None:
                 self.analysis_layout.removeWidget(widget)
@@ -767,6 +890,7 @@ class PlotPage(QWidget):
                 f"potential_gauge={attrs.get('potential_gauge', '?')}\n"
                 "原始积分量：ρ [C/m²]、φ [V·m]、∫E dz [V]；除以 Δz 后分别为 C/m³、V、V/m。孔径轮廓由保存的参数重建。")
         except (ValueError, KeyError, TypeError) as exc:
+            self._clear_analysis()
             self.plot_stack.setCurrentWidget(self.canvas)
             self.canvas.set_series([], [], empty_message=str(exc))
             self.info.setText(str(exc))
@@ -831,6 +955,7 @@ class PlotPage(QWidget):
                     detail += f" · 宏电子 {len(result.source['weight']):,} · 代表电子数 {result.source['weight'].sum():.9g}"
             self.info.setText(f"{self._active_path}\n{detail}\n{explanation}")
         except (ValueError, KeyError, TypeError) as exc:
+            self._clear_analysis()
             self.plot_stack.setCurrentWidget(self.canvas)
             self.canvas.set_series([], [], empty_message=str(exc))
             self.info.setText(str(exc))
@@ -889,7 +1014,7 @@ class PlotPage(QWidget):
         from PASS.gui.plot_analysis import export_selection_data, export_selection_image
 
         if self.busy or self._closing:
-            self.load_status.setText("请等待当前读取或导出任务结束。")
+            self.load_status.setText("请等待当前读取、绘图计算或导出任务结束。")
             return False
         if kind == "image" and self._figure_spec is None:
             self.load_status.setText("当前没有可导出的有效图像。")

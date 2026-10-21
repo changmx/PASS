@@ -3217,6 +3217,7 @@ class ConfigPage(QWidget):
             field.addItems(TIMING_MODE_OPTIONS)
             field.setCurrentText(str(value))
             field.setToolTip("进度记录模式：关闭、每 turn、每 command 或同步 command。")
+            self._track_field(field)
             return field
         return self._make_field(key, value)
 
@@ -4553,7 +4554,7 @@ class ConfigPage(QWidget):
             return
         previous = self.property_matches.currentText()
         needle = self.property_search.text().strip().casefold()
-        self._property_matches = []
+        matches = []
         seen = set()
         for path, field in self._property_fields().items():
             for nested_path, nested in named_fields(field, path):
@@ -4563,7 +4564,13 @@ class ConfigPage(QWidget):
                 label = " / ".join(nested_path)
                 if needle and needle not in (label + " " + nested.toolTip()).casefold():
                     continue
-                self._property_matches.append((nested_path, nested))
+                matches.append((nested_path, nested))
+        # Value edits keep the same fields; retain the combo model and selection.
+        # Still inspect visibility and paths for mode changes and dynamic lists.
+        if matches and matches == self._property_matches:
+            self._update_property_default_action()
+            return
+        self._property_matches = matches
         blocker = QSignalBlocker(self.property_matches)
         self.property_matches.clear()
         self.property_matches.addItems([" / ".join(path) for path, _ in self._property_matches])
@@ -4982,14 +4989,15 @@ class ConfigPage(QWidget):
             self.data.clear()
             self.data.update(previous_data)
             self._selected_path = previous_path
-            if previous_path and previous_path[1]:
+            if previous_path and previous_path[1] and self._selected_mapping is not self.data:
                 self._selected_mapping = self.data.get(previous_path[1])
             else:
+                # Scalar root fields and Timing edit the complete document.
                 self._selected_mapping = self.data
             QMessageBox.warning(self, "字段无效", str(exc))
             return
         self._form_dirty = False
-        self._sync_editor()
+        self._sync_editor(defer=True)
         self._refresh_tree()
         if self._selected_path == ("__root__", "Space charge"):
             self._populate_space_charge_configuration(active_space_charge_name)

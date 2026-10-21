@@ -133,6 +133,35 @@ def append_table(path, frame, headers, *, chunk_rows, output_format="hdf5-gzip1"
             stream[name][start:end] = values
 
 
+def _read_hdf5_columns(stream, *, check=lambda: None):
+    """Read an independent snapshot without a second table-sized pandas buffer."""
+    if stream.attrs.get("Name") == "PASS Particle Monitor" and stream.attrs.get("Layout") != "table":
+        if stream.attrs.get("Layout") != "single_file" or stream.attrs.get("FormatVersion") != 2:
+            raise ValueError("ParticleMonitor requires the current single-file format version 2")
+    names = json.loads(stream.attrs["_pass_table_columns"]) if "_pass_table_columns" in stream.attrs else list(stream.keys())
+    columns = {}
+    for name in names:
+        check()
+        dataset = stream[name]
+        if not isinstance(dataset, h5py.Dataset) or dataset.ndim != 1:
+            raise ValueError("HDF5 table columns must be one-dimensional; use read_particle_trajectories for PM or a field reader for SpaceCharge")
+        values = np.empty(dataset.shape, dtype=dataset.dtype)
+        block_rows = max(1, 8 * 1024 * 1024 // max(1, dataset.dtype.itemsize))
+        for start in range(0, len(values), block_rows):
+            check()
+            end = min(start + block_rows, len(values))
+            dataset.read_direct(values, np.s_[start:end], np.s_[start:end])
+        columns[name] = values
+    if not columns or len({len(values) for values in columns.values()}) != 1:
+        raise ValueError("HDF5 file must contain nonempty column definitions of equal length")
+    headers = {}
+    for key, value in stream.attrs.items():
+        if not key.startswith("_pass_table_"):
+            headers[key] = value.decode("utf-8") if isinstance(value, bytes) else value.item() if isinstance(value, np.generic) else value
+    check()
+    return columns, headers
+
+
 def read_table(path):
     """Read a numeric table as a TfsDataFrame."""
     path = Path(path)
@@ -145,21 +174,5 @@ def read_table(path):
                 return tfs.TfsDataFrame(pd.DataFrame(columns), headers=headers)
         return tfs.read(path)
     with h5py.File(path, "r") as stream:
-        if stream.attrs.get("Name") == "PASS Particle Monitor" and stream.attrs.get("Layout") != "table":
-            if stream.attrs.get("Layout") != "single_file" or stream.attrs.get("FormatVersion") != 2:
-                raise ValueError("ParticleMonitor requires the current single-file format version 2")
-        names = json.loads(stream.attrs["_pass_table_columns"]) if "_pass_table_columns" in stream.attrs else list(stream.keys())
-        columns = {}
-        for name in names:
-            dataset = stream[name]
-            if not isinstance(dataset, h5py.Dataset) or dataset.ndim != 1:
-                raise ValueError(
-                    "HDF5 table columns must be one-dimensional; use read_particle_trajectories for PM or a field reader for SpaceCharge")
-            columns[name] = dataset[:]
-        if not columns or len({len(values) for values in columns.values()}) != 1:
-            raise ValueError("HDF5 file must contain nonempty column definitions of equal length")
-        headers = {}
-        for key, value in stream.attrs.items():
-            if not key.startswith("_pass_table_"):
-                headers[key] = value.decode("utf-8") if isinstance(value, bytes) else value.item() if isinstance(value, np.generic) else value
+        columns, headers = _read_hdf5_columns(stream)
     return tfs.TfsDataFrame(pd.DataFrame(columns), headers=headers)

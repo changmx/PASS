@@ -49,7 +49,7 @@ class FmaControls(QWidget):
         return method, kwargs
 
 
-def compute_frequency_map(loaded_x, loaded_y, kwargs):
+def compute_frequency_map(loaded_x, loaded_y, kwargs, *, check=None):
     from PASS.analysis import compute_fma
 
     if loaded_x["signal"].shape != loaded_y["signal"].shape:
@@ -60,7 +60,7 @@ def compute_frequency_map(loaded_x, loaded_y, kwargs):
         first, second = loaded_x.get(key), loaded_y.get(key)
         if (first is None) != (second is None) or (first is not None and not np.array_equal(first, second)):
             raise ValueError(f"FMA 的 X/Y {label}不一致。")
-    return compute_fma(loaded_x["signal"], loaded_y["signal"], sample_spacing=loaded_x["sample_spacing"], **kwargs)
+    return compute_fma(loaded_x["signal"], loaded_y["signal"], sample_spacing=loaded_x["sample_spacing"], _check=check, **kwargs)
 
 
 def fma_rows(payload):

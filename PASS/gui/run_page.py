@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import difflib
 import hashlib
 from importlib.metadata import PackageNotFoundError, version
+from itertools import islice
 import json
 from pathlib import Path
 import platform
@@ -34,6 +35,12 @@ from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 
 def _utc_now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def _has_log_separators(text):
+    # A final CR belongs to CRLF; embedded separators need Qt's full normalization.
+    text = text.removesuffix("\r")
+    return any(separator in text for separator in ("\r", "\u2028", "\u2029"))
 
 
 class PreparationCancelled(Exception):
@@ -344,7 +351,15 @@ class RunPage(QWidget):
         self._log_path = None
         self._log_lines = deque(maxlen=20000)
         self._log_partial = ""
-        self._displayed_log = ""
+        self._log_line_count = 0
+        self._log_complex_lines = 0
+        # Source sequence numbers make prefix trimming independent of filtering.
+        self._displayed_log_rows = deque()
+        self._displayed_log_count = 0
+        self._displayed_log_level = None
+        self._displayed_log_partial = None
+        self._displayed_log_last_cr = False
+        self._displayed_log_complex = False
         self._last_log_level = 20
         self._updating_log = False
         self._history_settings = QSettings("PASS", "Editor")
@@ -642,7 +657,13 @@ class RunPage(QWidget):
         self.process.started.connect(self._process_started)
         self._log_lines.clear()
         self._log_partial = ""
-        self._displayed_log = ""
+        self._log_line_count = self._log_complex_lines = 0
+        self._displayed_log_rows.clear()
+        self._displayed_log_count = 0
+        self._displayed_log_level = None
+        self._displayed_log_partial = None
+        self._displayed_log_last_cr = False
+        self._displayed_log_complex = False
         self._last_log_level = 20
         self._updating_log = True
         self.log.clear()
@@ -699,7 +720,7 @@ class RunPage(QWidget):
             return
         if self._log_path is not None:
             try:
-                with self._log_path.open("a", encoding="utf-8") as stream:
+                with self._log_path.open("a", encoding="utf-8", newline="") as stream:
                     stream.write(output)
             except OSError:
                 pass
@@ -709,7 +730,11 @@ class RunPage(QWidget):
             match = re.search(r"\b(DEBUG|INFO|WARNING|ERROR|CRITICAL)\b", line)
             if match:
                 self._last_log_level = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}[match.group(1)]
+            if len(self._log_lines) == self._log_lines.maxlen:
+                self._log_complex_lines -= _has_log_separators(self._log_lines[0][1])
             self._log_lines.append((self._last_log_level, line))
+            self._log_complex_lines += _has_log_separators(line)
+            self._log_line_count += 1
         if not self.log_timer.isActive():
             self.log_timer.start()
         self._progress_tail = (self._progress_tail + output)[-4096:]
@@ -726,31 +751,89 @@ class RunPage(QWidget):
             return
         self.log_timer.stop()
         minimum = self.log_level.currentData() or 0
-        lines = [line for level, line in self._log_lines if level >= minimum]
-        if self._log_partial and self._last_log_level >= minimum:
-            lines.append(self._log_partial)
+        source_partial = self._log_partial if self._log_partial and self._last_log_level >= minimum else None
+        partial = source_partial if source_partial is not None else "" if self._displayed_log_last_cr else None
+        complex_lines = bool(self._log_complex_lines or source_partial and (_has_log_separators(source_partial) or source_partial.endswith("\r")))
+        rebuild = minimum != self._displayed_log_level or complex_lines or self._displayed_log_complex
+        if not rebuild and self._displayed_log_count == self._log_line_count and partial == self._displayed_log_partial:
+            return
         scrollbar = self.log.verticalScrollBar()
         old_value = scrollbar.value()
         cursor = self.log.textCursor()
         position, anchor = cursor.position(), cursor.anchor()
+        visible_block = self.log.firstVisibleBlock()
+        visible_position, visible_line = visible_block.position(), visible_block.firstLineNumber()
+        removed_characters = 0
         self._updating_log = True
-        text = "\n".join(lines)
-        if text.startswith(self._displayed_log):
+        first_sequence = self._log_line_count - len(self._log_lines)
+        if rebuild:
+            rows = [(first_sequence + index, line) for index, (level, line) in enumerate(self._log_lines) if level >= minimum]
+            self.log.setPlainText("\n".join([line for _sequence, line in rows] + ([source_partial] if source_partial is not None else [])))
+            self._displayed_log_rows = deque(sequence for sequence, _line in rows)
+            self._displayed_log_last_cr = bool(rows and rows[-1][1].endswith("\r"))
+            partial = source_partial if source_partial is not None else "" if self._displayed_log_last_cr else None
+        elif (self._displayed_log_count == self._log_line_count and self._displayed_log_partial is not None and partial is not None
+              and partial.startswith(self._displayed_log_partial)):
+            # Growing an unfinished line does not change its level or row identity.
             insertion = QTextCursor(self.log.document())
             insertion.movePosition(QTextCursor.End)
-            insertion.insertText(text[len(self._displayed_log):])
+            insertion.insertText(partial[len(self._displayed_log_partial):])
         else:
-            self.log.setPlainText(text)
-        self._displayed_log = text
+            # Remove the previous unfinished line before committing its final level.
+            insertion = QTextCursor(self.log.document())
+            if self._displayed_log_partial is not None:
+                start = self.log.document().lastBlock().position() - bool(self._displayed_log_rows)
+                insertion.setPosition(start)
+                insertion.movePosition(QTextCursor.End, QTextCursor.KeepAnchor)
+                insertion.removeSelectedText()
+            expired = 0
+            while self._displayed_log_rows and self._displayed_log_rows[0] < first_sequence:
+                self._displayed_log_rows.popleft()
+                expired += 1
+            if expired:
+                insertion.setPosition(0)
+                end = self.log.document().findBlockByNumber(expired)
+                removed_characters = end.position() if end.isValid() else self.log.document().characterCount() - 1
+                insertion.setPosition(removed_characters, QTextCursor.KeepAnchor)
+                insertion.removeSelectedText()
+            count = min(self._log_line_count - self._displayed_log_count, len(self._log_lines))
+            pending = list(islice(reversed(self._log_lines), count))
+            rows = [(self._log_line_count - count + index, line) for index, (level, line) in enumerate(reversed(pending)) if level >= minimum]
+            if rows:
+                self._displayed_log_last_cr = rows[-1][1].endswith("\r")
+            elif not self._displayed_log_rows:
+                self._displayed_log_last_cr = False
+            partial = source_partial if source_partial is not None else "" if self._displayed_log_last_cr else None
+            # CRLF has one separator; a final CR leaves the same blank tail as Qt.
+            lines = [line.removesuffix("\r") for _sequence, line in rows] + ([partial] if partial is not None else [])
+            if lines:
+                text = ("\n" if self._displayed_log_rows else "") + "\n".join(lines)
+                insertion.movePosition(QTextCursor.End)
+                old_size = self.log.document().characterCount()
+                insertion.insertText(text)
+                # Qt may trim another first block when the unfinished line fills the cap.
+                inserted_size = len(text.encode("utf-16-le")) // 2
+                removed_characters += old_size + inserted_size - self.log.document().characterCount()
+                self._displayed_log_rows.extend(sequence for sequence, _line in rows)
+        while len(self._displayed_log_rows) + (partial is not None) > self.log.maximumBlockCount():
+            self._displayed_log_rows.popleft()
+        self._displayed_log_count = self._log_line_count
+        self._displayed_log_level = minimum
+        self._displayed_log_partial = partial
+        self._displayed_log_complex = complex_lines
+        cursor = self.log.textCursor()
+        maximum = self.log.document().characterCount() - 1
+        cursor.setPosition(max(0, min(anchor - removed_characters, maximum)))
+        cursor.setPosition(max(0, min(position - removed_characters, maximum)), QTextCursor.KeepAnchor)
+        self.log.setTextCursor(cursor)
         if self.follow_log.isChecked():
             scrollbar.setValue(scrollbar.maximum())
         else:
-            cursor = self.log.textCursor()
-            maximum = self.log.document().characterCount() - 1
-            cursor.setPosition(min(anchor, maximum))
-            cursor.setPosition(min(position, maximum), QTextCursor.KeepAnchor)
-            self.log.setTextCursor(cursor)
-            scrollbar.setValue(old_value)
+            if rebuild:
+                scrollbar.setValue(old_value)
+            else:
+                visible_block = self.log.document().findBlock(max(0, min(visible_position - removed_characters, maximum)))
+                scrollbar.setValue(old_value + visible_block.firstLineNumber() - visible_line)
         self._updating_log = False
 
     def _log_scrolled(self, value):
@@ -781,7 +864,7 @@ class RunPage(QWidget):
                     if Path(path).resolve() != self._log_path.resolve():
                         shutil.copyfile(self._log_path, path)
                 else:
-                    Path(path).write_text("".join(line + "\n" for _level, line in self._log_lines) + self._log_partial, encoding="utf-8")
+                    Path(path).write_text("".join(line + "\n" for _level, line in self._log_lines) + self._log_partial, encoding="utf-8", newline="")
             except OSError as exc:
                 QMessageBox.warning(self, "日志导出失败", str(exc))
 

@@ -13,7 +13,8 @@ def compute_fma(x,
                 frequency_range_x=None,
                 frequency_range_y=None,
                 remove_mean=True,
-                frequency_estimator=None):
+                frequency_estimator=None,
+                _check=None):
     """Compare transverse frequencies in two equal, disjoint turn intervals.
 
     This function is independently copyable and requires only NumPy. Input
@@ -49,6 +50,10 @@ def compute_fma(x,
     estimates are flagged; estimator exceptions propagate. ``method`` still
     sets the interval's minimum length. The caller owns custom frequency and
     phase conventions.
+
+    The optional internal ``_check()`` callback runs between object estimates
+    for cooperative cancellation. It may raise to stop work; it does not
+    change estimator arguments, result values or metadata.
     """
     import numpy as np
 
@@ -241,6 +246,10 @@ def compute_fma(x,
         raise ValueError("method must be fft or refined_fft")
     if frequency_estimator is not None and not callable(frequency_estimator):
         raise ValueError("frequency_estimator must be callable or None")
+    if _check is not None:
+        if not callable(_check):
+            raise ValueError("_check must be callable or None")
+        _check()
     if isinstance(sample_spacing, (bool, np.bool_)) or not np.isscalar(sample_spacing):
         raise ValueError("sample_spacing must be a finite positive number")
     try:
@@ -324,6 +333,8 @@ def compute_fma(x,
     # Validate the configured default estimator even when every input row is lost.
     if frequency_estimator is None:
         _estimate(np.zeros(interval_size, dtype=x_values.dtype), frequency_range_x)
+        if _check is not None:
+            _check()
         _estimate(np.zeros(interval_size, dtype=y_values.dtype), frequency_range_y)
     leading_shape = x_values.shape[:-1]
     rows = int(np.prod(leading_shape)) if leading_shape else 1
@@ -337,11 +348,15 @@ def compute_fma(x,
             output_index = 2 * interval_index + plane_index
             label = labels[output_index]
             for row_index in range(rows):
+                if _check is not None:
+                    _check()
                 samples = plane[row_index, start:end]
                 if not np.all(np.isfinite(samples)):
                     messages[row_index].append("nonfinite_" + label)
                     continue
                 estimate = _estimate(samples, frequency_range)
+                if _check is not None:
+                    _check()
                 if isinstance(estimate, dict):
                     if "peak_frequency" not in estimate:
                         raise ValueError("frequency_estimator dictionary must contain peak_frequency")
@@ -366,6 +381,8 @@ def compute_fma(x,
                 if not good or quality != "ok":
                     reason = quality if quality != "ok" else "invalid_estimate"
                     messages[row_index].append(label + ":" + reason)
+    if _check is not None:
+        _check()
     valid = np.all(accepted, axis=0).reshape(leading_shape)
     qx_first, qy_first, qx_second, qy_second = (values.reshape(leading_shape) for values in frequencies)
     delta_qx = np.where(valid, qx_second - qx_first, np.nan)
