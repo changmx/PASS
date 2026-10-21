@@ -116,6 +116,7 @@ class EmittanceInput(QWidget):
         layout.addStretch()
         self._known_key = "geometric"
         self._correlation_key = "correlation"
+        self._twiss_key = "alpha"
         self.update_modes()
         for name in self.numeric_fields:
             getattr(self, name).valueChanged.connect(owner.schedule)
@@ -202,10 +203,33 @@ class EmittanceInput(QWidget):
         self.owner.recalculate()
 
     def change_twiss_mode(self):
-        with QSignalBlocker(self.alpha_sign):
-            self.alpha_sign.setCurrentIndex(1 if self.alpha.value() < 0 else 0)
+        # Finish the old mode before using its derived value as a new input.
+        try:
+            alpha = self._update_twiss(self._twiss_key)
+        except CALCULATION_ERRORS:
+            # Keep invalid independent inputs editable instead of replacing them with stale results.
+            with QSignalBlocker(self.twiss_mode):
+                self.twiss_mode.setCurrentIndex(self.twiss_mode.findData(self._twiss_key))
+        else:
+            self._twiss_key = self.twiss_mode.currentData()
+            if alpha != 0:
+                with QSignalBlocker(self.alpha_sign):
+                    self.alpha_sign.setCurrentIndex(1 if alpha < 0 else 0)
         self.update_modes()
         self.owner.recalculate()
+
+    def _update_twiss(self, mode):
+        inverse = mode == "gamma"
+        alpha, gamma = twiss_from(
+            self.beta.value(),
+            **({
+                "gamma": self.gamma.value(),
+                "alpha_sign": self.alpha_sign.currentData()
+            } if inverse else {
+                "alpha": self.alpha.value()
+            }))
+        self.set_number("alpha" if inverse else "gamma", alpha if inverse else gamma)
+        return alpha
 
     def settings(self):
         values = {name: getattr(self, name).value() for name in self.numeric_fields}
@@ -230,6 +254,7 @@ class EmittanceInput(QWidget):
                     widget.setText(value + " 副本" if value.strip() else value)
         self._known_key = self.known.currentData()
         self._correlation_key = self.correlation_mode.currentData()
+        self._twiss_key = self.twiss_mode.currentData()
         self.update_modes()
 
     def calculate(self, reference, *, known=None):
@@ -247,16 +272,7 @@ class EmittanceInput(QWidget):
                                    dispersion_prime=dp,
                                    sigma_delta=spread)
         else:
-            inverse = self.twiss_mode.currentData() == "gamma"
-            alpha, gamma = twiss_from(
-                self.beta.value(),
-                **({
-                    "gamma": self.gamma.value(),
-                    "alpha_sign": self.alpha_sign.currentData()
-                } if inverse else {
-                    "alpha": self.alpha.value()
-                }))
-            self.set_number("alpha" if inverse else "gamma", alpha if inverse else gamma)
+            alpha = self._update_twiss(self.twiss_mode.currentData())
             r = emittance_from(reference, key, self.value.value() * (1e-3 if key == "sigma" else 1e-6), self.beta.value(), alpha, d, dp, spread)
         center = np.array([[finite_number(self.center_x.value(), "中心 x₀")], [finite_number(self.center_xp.value(), "中心 x′₀")]]) * 1e-3
         curves = tuple(r.ellipse(n, projected=projected) + center for projected in (False, True))
