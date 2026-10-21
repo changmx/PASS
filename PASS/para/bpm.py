@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import math
+import re
 
 import tfs
 
@@ -11,6 +12,31 @@ from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, Phas
 
 def _is_bpm(keyword) -> bool:
     return str(keyword).casefold() in ("monitor", "hmonitor", "vmonitor")
+
+
+def _select_bpm_rows(table, bpm_monitor=None, bpm_names=None, bpm_patterns=None):
+    """Select original row positions; omitted selectors mean all BPMs."""
+    for label, values in (("bpm_names", bpm_names), ("bpm_patterns", bpm_patterns)):
+        if values is not None and (not isinstance(values, list) or any(not isinstance(value, str) or not value.strip() for value in values)):
+            raise ValueError(f"{label} must be None or a list of nonempty strings")
+    names = {name.casefold() for name in bpm_names or []}
+    patterns = []
+    for pattern in bpm_patterns or []:
+        try:
+            patterns.append(re.compile(pattern, re.IGNORECASE))
+        except re.error as exc:
+            raise ValueError(f"Invalid bpm_patterns expression {pattern!r}: {exc}") from exc
+    select_all = bpm_names is None and bpm_patterns is None
+    selected_rows = set()
+    if bpm_monitor is None:
+        return selected_rows
+    for index, (_, row) in enumerate(table.iterrows()):
+        if not _is_bpm(row.get("KEYWORD", "")):
+            continue
+        name = str(row["NAME"])
+        if select_all or name.casefold() in names or any(pattern.search(name) for pattern in patterns):
+            selected_rows.add(index)
+    return selected_rows
 
 
 def _unique_names(names: list[str]) -> list[str]:
@@ -98,12 +124,12 @@ def _bpm_center_row(row):
     return result
 
 
-def _split_bpm_twiss_table(table):
+def _split_bpm_twiss_table(table, selected_rows=None):
     """Add the exact drift midpoint of finite BPMs without changing source exits."""
     rows = []
     source_names = set(table["NAME"])
     for index, (_, row) in enumerate(table.iterrows()):
-        if _is_bpm(row.get("KEYWORD", "")) and float(row.get("L", 0.0)) > 0:
+        if (selected_rows is None or index in selected_rows) and _is_bpm(row.get("KEYWORD", "")) and float(row.get("L", 0.0)) > 0:
             center = _bpm_center_row(row)
             if rows and float(rows[-1]["S"]) > center["S"]:
                 raise ValueError(f"BPM {row['NAME']}: its center precedes the previous TFS row; export BPM entrance/exit optics")
@@ -117,24 +143,28 @@ def _split_bpm_twiss_table(table):
     return tfs.TfsDataFrame(rows, columns=table.columns, headers=table.headers.copy()).reset_index(drop=True)
 
 
-def _create_bpm_items(table, bpm_monitor=None, *, include_drifts=False):
+def _create_bpm_items(table, bpm_monitor=None, *, include_drifts=False, bpm_names=None, bpm_patterns=None):
     """Convert BPMs to passive bodies or diagnostics at the body center."""
     cls, kwargs = _parse_bpm_monitor(bpm_monitor)
+    selected_rows = _select_bpm_rows(table, bpm_monitor, bpm_names, bpm_patterns)
     items, names = [], []
     reference_beta = None
-    for _, row in table.iterrows():
+    for index, (_, row) in enumerate(table.iterrows()):
         if not _is_bpm(row.get("KEYWORD", "")):
             continue
         length, s = float(row.get("L", 0.0)), float(row["S"])
         if not math.isfinite(length) or length < 0:
             raise ValueError(f"BPM {row['NAME']}: length must be finite and nonnegative")
-        if cls is None:
+        first_item = len(items)
+        if index not in selected_rows:
             if length == 0:
                 items.append(MarkerItem(s=s))
                 names.append(f"{row['NAME']}_s{s:.3f}")
             elif include_drifts:
                 items.append(DriftItem(s=s, length=length))
                 names.append(f"{row['NAME']}_s{s:.3f}")
+            for item in items[first_item:]:
+                item._madx_bpm_sources = (index, )
             continue
         sample = _bpm_center_row(row) if cls is PhaseAdvanceMonitorItem else row
         center = s - length / 2
@@ -163,4 +193,56 @@ def _create_bpm_items(table, bpm_monitor=None, *, include_drifts=False):
         if include_drifts and length > 0:
             items.append(DriftItem(s=s, length=length / 2))
             names.append(f"{row['NAME']}_s{s:.3f}_drift_out")
+        for item in items[first_item:]:
+            item._madx_bpm_sources = (index, )
     return items, names
+
+
+def describe_madx_bpms(twiss_file, items, names, *, bpm_monitor=None, bpm_names=None, bpm_patterns=None, element_mode=True):
+    """Describe each source BPM using final imported command names and geometry.
+
+    Call with the same monitor options used for import. Private source identifiers
+    survive drift merging but are deliberately absent from serialized commands.
+    """
+    if len(items) != len(names):
+        raise ValueError("Imported items and names must have equal lengths")
+    table = tfs.read(twiss_file)
+    cls, _ = _parse_bpm_monitor(bpm_monitor)
+    selected_rows = _select_bpm_rows(table, bpm_monitor, bpm_names, bpm_patterns)
+    occurrences, result = {}, []
+    for index, (_, row) in enumerate(table.iterrows()):
+        source_name = str(row["NAME"])
+        occurrences[source_name] = occurrences.get(source_name, 0) + 1
+        if not _is_bpm(row.get("KEYWORD", "")):
+            continue
+        length, source_s = float(row.get("L", 0.0)), float(row["S"])
+        selected = index in selected_rows
+        outputs = []
+        for item, name in zip(items, names):
+            command = item.command
+            output_length = float(item.s - item.s_previous) if command == "Twiss" else float(getattr(item, "length", 0.0))
+            associated = index in getattr(item, "_madx_bpm_sources", ())
+            if not element_mode and command == "Twiss" and length > 0:
+                associated = min(float(item.s), source_s) > max(float(item.s_previous), source_s - length)
+            if associated:
+                merged = getattr(item, "_madx_merged_count", 1) > 1
+                outputs.append({"name": name, "command": command, "s": float(item.s), "length": output_length, "merged": bool(merged)})
+        outputs.sort(key=lambda output: (output["s"], 0 if output["length"] > 0 else 1))
+        body = "Drift" if element_mode else "Twiss"
+        if selected:
+            monitor = cls.model_fields["command"].default
+            conversion = f"{body} → {monitor} → {body}" if length > 0 else monitor
+        else:
+            conversion = body if length > 0 else "Marker"
+        result.append({
+            "source_name": source_name,
+            "occurrence": occurrences[source_name],
+            "keyword": str(row["KEYWORD"]).upper(),
+            "length": length,
+            "source_s": source_s,
+            "selected": selected,
+            "measurement_s": source_s - length / 2 if selected else None,
+            "conversion": conversion,
+            "outputs": outputs,
+        })
+    return result

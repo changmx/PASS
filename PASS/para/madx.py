@@ -11,17 +11,178 @@ Element naming convention:
     Merged drifts: "drift1_drift2_s0.075"
 """
 
+import bisect
+import math
 import re
 import warnings
 
 import numpy as np
 import tfs
 
-from PASS.para.bpm import _create_bpm_items, _is_bpm, _split_bpm_twiss_table, _unique_names
+from PASS.para.bpm import _create_bpm_items, _is_bpm, _select_bpm_rows, _split_bpm_twiss_table, _unique_names
 from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem, SolenoidItem
+from PASS.utils.command_order import command_position_key
+from PASS.utils.constants import const
 
 # Helpers
+
+
+def _geometry_tolerance(atol: float) -> float:
+    """Use an absolute metre tolerance without a circumference-relative allowance."""
+    atol = float(atol)
+    if not math.isfinite(atol) or atol < 0:
+        raise ValueError("Geometry tolerance must be finite and nonnegative")
+    return atol
+
+
+def _finite_geometry_value(value, label: str) -> float:
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label}: expected a finite value in metres, actual={value!r}") from exc
+    if not math.isfinite(value):
+        raise ValueError(f"{label}: expected a finite value in metres, actual={value!r}")
+    return value
+
+
+def _require_equal(actual: float, expected: float, label: str, atol: float) -> None:
+    delta = actual - expected
+    if abs(delta) > atol:
+        raise ValueError(f"{label}: expected={expected:.17g} m, actual={actual:.17g} m, delta={delta:.6e} m, tolerance={atol:.6e} m")
+
+
+def _require_at_least(actual: float, lower: float, label: str, atol: float) -> None:
+    if actual < lower - atol:
+        raise ValueError(f"{label}: expected>={lower:.17g} m, actual={actual:.17g} m, delta={actual - lower:.6e} m, tolerance={atol:.6e} m")
+
+
+def _require_ring_bounds(position: float, circumference: float, label: str, atol: float) -> None:
+    _require_at_least(position, 0.0, label, atol)
+    if position > circumference + atol:
+        raise ValueError(f"{label}: expected<={circumference:.17g} m, actual={position:.17g} m, "
+                         f"delta={position - circumference:.6e} m, tolerance={atol:.6e} m")
+
+
+def _validated_circumference(value, label: str) -> float:
+    circumference = _finite_geometry_value(value, label)
+    if circumference <= 0:
+        raise ValueError(f"{label}: expected>0 m, actual={circumference:.17g} m")
+    return circumference
+
+
+def _drifts_are_contiguous(current_end: float, next_start: float, atol: float = 1e-6) -> bool:
+    """Keep gaps, overlaps and nonfinite coordinates out of merged drift bodies."""
+    atol = _geometry_tolerance(atol)
+    return math.isfinite(current_end) and math.isfinite(next_start) and abs(current_end - next_start) <= atol
+
+
+def _validate_madx_geometry(table, *, element_mode: bool, atol: float = 1e-6) -> None:
+    """Validate full element geometry or sampled Twiss coverage of one ring.
+
+    MAD-X ``S`` is an element exit. Element tracking therefore needs every body
+    represented, while sampled Twiss transport only needs ordered ring coverage.
+    """
+    atol = _geometry_tolerance(atol)
+    if "LENGTH" not in table.headers:
+        raise ValueError("MAD-X geometry: missing LENGTH header for the ring circumference")
+    circumference = _validated_circumference(table.headers["LENGTH"], "MAD-X geometry LENGTH header")
+    for column in ("S", "L") if element_mode else ("S", ):
+        if column not in table.columns:
+            raise ValueError(f"MAD-X geometry: missing {column} column")
+    if table.empty:
+        raise ValueError("MAD-X geometry: the source table has no rows")
+
+    previous_s = 0.0
+    length_sum, compensation = 0.0, 0.0
+    for index, (_, row) in enumerate(table.iterrows()):
+        label = f"MAD-X geometry row {index + 1} ({str(row.get('NAME', '<unnamed>'))!r})"
+        s = _finite_geometry_value(row["S"], f"{label} S")
+        _require_ring_bounds(s, circumference, f"{label} S", 0.0)
+        _require_at_least(s, previous_s, f"{label} S must be nondecreasing", 0.0)
+        if index == 0 and not element_mode:
+            _require_equal(s, 0.0, f"{label} first Twiss S must start the ring", atol)
+        if "L" in table.columns:
+            length = _finite_geometry_value(row["L"], f"{label} L")
+            _require_at_least(length, 0.0, f"{label} L", 0.0)
+            _require_ring_bounds(s - length, circumference, f"{label} body entrance S-L", atol)
+            if element_mode:
+                # Compensated summation avoids accumulating drift-length roundoff.
+                corrected_length = length - compensation
+                next_sum = length_sum + corrected_length
+                compensation = (next_sum - length_sum) - corrected_length
+                length_sum = next_sum
+                _require_equal(s, length_sum, f"{label} exit S must match cumulative L", atol)
+        previous_s = s
+
+    _require_equal(previous_s, circumference, f"{label} final S must match LENGTH", atol)
+    if element_mode:
+        _require_equal(length_sum, circumference, "MAD-X geometry total L must match LENGTH", atol)
+
+
+def _validate_imported_geometry(items: list, names: list[str], circumference: float, *, element_mode: bool, atol: float = 1e-6) -> None:
+    """Check converted bodies or a Twiss interval chain plus its point commands."""
+    atol = _geometry_tolerance(atol)
+    circumference = _validated_circumference(circumference, "Imported geometry circumference")
+    if len(items) != len(names):
+        raise ValueError(f"Imported geometry: item/name counts differ ({len(items)} items, {len(names)} names)")
+    if not items:
+        raise ValueError("Imported geometry: no transport items cover the ring")
+
+    previous_s = 0.0
+    length_sum, compensation = 0.0, 0.0
+    transport_ends, point_nodes = [0.0], []
+    n_transports = 0
+    last_transport_label = "Imported geometry"
+    for index, (item, name) in enumerate(zip(items, names)):
+        label = f"Imported geometry item {index + 1} ({str(name)!r}, {item.command})"
+        s = _finite_geometry_value(item.s, f"{label} S")
+        _require_ring_bounds(s, circumference, f"{label} S", 0.0)
+        length = _finite_geometry_value(getattr(item, "length", 0.0), f"{label} length")
+        _require_at_least(length, 0.0, f"{label} length", 0.0)
+        if element_mode:
+            if item.command == "Twiss":
+                raise ValueError(f"{label}: Twiss transport cannot be used in element geometry")
+            _require_at_least(s, previous_s, f"{label} S must be nondecreasing", 0.0)
+            corrected_length = length - compensation
+            next_sum = length_sum + corrected_length
+            compensation = (next_sum - length_sum) - corrected_length
+            length_sum = next_sum
+            _require_equal(s, length_sum, f"{label} exit S must match cumulative length", atol)
+            previous_s = s
+            last_transport_label = label
+        elif item.command == "Twiss":
+            start = _finite_geometry_value(item.s_previous, f"{label} S previous")
+            _require_ring_bounds(start, circumference, f"{label} S previous", 0.0)
+            _require_at_least(s, start, f"{label} transport interval must be forward", 0.0)
+            _require_at_least(s, previous_s, f"{label} S must be nondecreasing", 0.0)
+            _require_equal(start, previous_s, f"{label} transport entrance must match previous exit", atol)
+            previous_s = s
+            last_transport_label = label
+            transport_ends.append(s)
+            n_transports += 1
+        else:
+            _require_equal(length, 0.0, f"{label} point command must have zero length in Twiss mode", 0.0)
+            point_nodes.append((s, label))
+
+    if not element_mode and n_transports == 0:
+        raise ValueError("Imported geometry: no Twiss transport intervals cover the ring")
+    _require_equal(previous_s, circumference, f"{last_transport_label} final transport exit must match circumference", atol)
+    if element_mode:
+        _require_equal(length_sum, circumference, "Imported geometry total length must match circumference", atol)
+    else:
+        # Diagnostics and thin kicks must execute at a split transport boundary.
+        transport_ends.sort()
+        endpoint_keys = {command_position_key({"s": endpoint}) for endpoint in transport_ends}
+        for s, label in point_nodes:
+            if command_position_key({"s": s}) in endpoint_keys:
+                continue
+            index = bisect.bisect_left(transport_ends, s)
+            candidates = transport_ends[max(0, index - 1):index + 1]
+            closest = min(candidates, key=lambda endpoint: abs(endpoint - s))
+            raise ValueError(f"{label} point S must share a runtime position key with a Twiss transport endpoint: "
+                             f"expected={closest:.17g} m, actual={s:.17g} m, delta={s - closest:.6e} m, "
+                             f"runtime position tolerance={const.eps:.6e} m")
 
 
 def _get_madx_reference_beta(headers: dict) -> float:
@@ -166,10 +327,12 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
         drift_indices = [i]
         drift_len = current.length
         s_val = current.s
+        start = s_val - drift_len
 
         j = i + 1
         while j < len(items):
-            if mergeable(items[j]):
+            if (mergeable(items[j]) and _drifts_are_contiguous(s_val, items[j].s - items[j].length)
+                    and _drifts_are_contiguous(start, items[j].s - (drift_len + items[j].length))):
                 drift_indices.append(j)
                 drift_len += items[j].length
                 s_val = items[j].s
@@ -182,6 +345,8 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
             result_names.append(names[i])
         else:
             merged = DriftItem(s=s_val, length=drift_len)
+            merged._madx_bpm_sources = tuple(dict.fromkeys(source for k in drift_indices for source in getattr(items[k], "_madx_bpm_sources", ())))
+            merged._madx_merged_count = sum(getattr(items[k], "_madx_merged_count", 1) for k in drift_indices)
             merged_name = "_".join(names[k] for k in drift_indices)
             result_items.append(merged)
             result_names.append(merged_name)
@@ -212,7 +377,7 @@ def merge_drift_twiss_points(items: list[TwissItem], names: list[str], keywords:
             i += 1
             continue
         j = i + 1
-        while j < len(items) and str(keywords[j]).casefold() == "drift":
+        while j < len(items) and str(keywords[j]).casefold() == "drift" and _drifts_are_contiguous(items[j - 1].s, items[j].s_previous):
             j += 1
         last = items[j - 1]
         if j - i > 1:
@@ -230,6 +395,7 @@ def merge_drift_twiss_points(items: list[TwissItem], names: list[str], keywords:
                     "dx_previous": first.dx_previous,
                     "dpx_previous": first.dpx_previous,
                 })
+            last._madx_merged_count = sum(getattr(item, "_madx_merged_count", 1) for item in items[i:j])
             result_names.append("_".join(names[i:j]))
         else:
             result_names.append(names[i])
@@ -246,6 +412,9 @@ def read_madx_elements(
     is_field_error: bool = False,
     is_alignment_error: bool = False,
     bpm_monitor: dict | None = None,
+    strict_geometry: bool = False,
+    bpm_names: list[str] | None = None,
+    bpm_patterns: list[str] | None = None,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (element_items, element_names, circumference).
 
@@ -266,14 +435,21 @@ def read_madx_elements(
         bpm_monitor: optional monitor template, e.g. {"type": "StatMonitor"}.
             None converts finite BPMs to drifts and zero-length BPMs to markers.
             Otherwise a monitor replaces the marker or splits the drift in half.
+        strict_geometry: reject inconsistent source and converted geometry (1e-6 m length tolerance).
+        bpm_names: exact original names, case-insensitive. None with no patterns selects all.
+        bpm_patterns: case-insensitive regex searches, combined with bpm_names by union.
+            Explicit empty selectors select none. Unselected BPMs remain passive.
 
     Returns:
         (items, names, circumference) where items is a list of Element
         schema objects and names is a list of corresponding string names.
     """
     twiss_table = tfs.read(twiss_file)
-    bpm_items, bpm_names = _create_bpm_items(twiss_table, bpm_monitor, include_drifts=True)
-    bpm_nodes = iter(zip(bpm_items, bpm_names))
+    if strict_geometry:
+        _validate_madx_geometry(twiss_table, element_mode=True)
+    selected_rows = _select_bpm_rows(twiss_table, bpm_monitor, bpm_names, bpm_patterns)
+    bpm_items, bpm_item_names = _create_bpm_items(twiss_table, bpm_monitor, include_drifts=True, bpm_names=bpm_names, bpm_patterns=bpm_patterns)
+    bpm_nodes = iter(zip(bpm_items, bpm_item_names))
     num_elem = twiss_table.shape[0]
     circumference = twiss_table.headers["LENGTH"]
     print(f"[Read MADX Elements] {num_elem} elements, C={circumference}")
@@ -368,7 +544,7 @@ def read_madx_elements(
                 vkick=vkick,
             )
         elif _is_bpm(et):
-            n_nodes = 3 if l > 0 and bpm_monitor is not None else 1
+            n_nodes = 3 if l > 0 and i in selected_rows else 1
             for node_index in range(n_nodes):
                 item, name = next(bpm_nodes)
                 item._match_key = match_key if node_index == 0 else None
@@ -419,6 +595,9 @@ def read_madx_elements(
 
     names = _unique_names(names)
 
+    if strict_geometry:
+        _validate_imported_geometry(items, names, circumference, element_mode=True)
+
     # Circumference check
     length_count = sum(getattr(item, "length", 0.0) for item in items)
     diff = length_count - circumference
@@ -446,6 +625,9 @@ def read_madx_twiss(
     is_merge_drift: bool = False,
     is_alignment_error: bool = False,
     bpm_monitor: dict | None = None,
+    strict_geometry: bool = False,
+    bpm_names: list[str] | None = None,
+    bpm_patterns: list[str] | None = None,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
 
@@ -466,8 +648,12 @@ def read_madx_twiss(
         is_alignment_error: unsupported here; use read_madx_elements.
         insert_patterns: regex patterns to match element names for thin-lens insertion.
         longitudinal_transfer: "off" / "drift" / "matrix".
-        bpm_monitor: optional PASS monitor template at every BPM center S-L/2.
+        bpm_monitor: optional PASS monitor template at selected BPM centers S-L/2.
             None retains only zero-length BPM Markers. Transport remains Twiss.
+        strict_geometry: validate source ring coverage and converted transport (1e-6 m length tolerance).
+        bpm_names: exact original names, case-insensitive; both selectors None selects all.
+        bpm_patterns: case-insensitive regex searches, unioned with bpm_names.
+            Explicit empty selectors select none. Unselected BPMs remain passive.
 
     Returns:
         (items, names, circumference) where items is a list of TwissItem
@@ -477,8 +663,11 @@ def read_madx_twiss(
     if is_alignment_error:
         raise ValueError("Alignment errors require read_madx_elements; Twiss transfer import cannot move physical magnetic fields")
     source_table = tfs.read(twiss_file)
-    bpm_items, bpm_names = _create_bpm_items(source_table, bpm_monitor)
-    twiss_table = _split_bpm_twiss_table(source_table) if bpm_monitor is not None else source_table
+    if strict_geometry:
+        _validate_madx_geometry(source_table, element_mode=False)
+    selected_rows = _select_bpm_rows(source_table, bpm_monitor, bpm_names, bpm_patterns)
+    bpm_items, bpm_item_names = _create_bpm_items(source_table, bpm_monitor, bpm_names=bpm_names, bpm_patterns=bpm_patterns)
+    twiss_table = _split_bpm_twiss_table(source_table, selected_rows) if selected_rows else source_table
     headers = twiss_table.headers
     reference_beta = _get_madx_reference_beta(headers)
     num_elem = twiss_table.shape[0]
@@ -630,8 +819,11 @@ def read_madx_twiss(
         print(f"[Read MADX Twiss] {len(error_items)} field error multipoles added")
 
     items.extend(bpm_items)
-    names.extend(bpm_names)
+    names.extend(bpm_item_names)
     names = _unique_names(names)
+
+    if strict_geometry:
+        _validate_imported_geometry(items, names, circumference, element_mode=False)
 
     # --- Circumference check ---
     length_count = 0.0
@@ -727,6 +919,9 @@ def read_madx_twiss_interpolated(
     interp_kind: str = "phase_hermite",
     is_alignment_error: bool = False,
     bpm_monitor: dict | None = None,
+    strict_geometry: bool = False,
+    bpm_names: list[str] | None = None,
+    bpm_patterns: list[str] | None = None,
 ) -> tuple[list, list[str], float]:
     """Resample a full ring using phase-constrained quintic Hermite optics.
 
@@ -740,6 +935,10 @@ def read_madx_twiss_interpolated(
     Alignment errors require physical element maps; use read_madx_elements.
     Zero-length BPMs retain Markers by default. ``bpm_monitor`` replaces them
     with diagnostics, adding exact center endpoints S-L/2 for finite BPMs.
+    ``bpm_names`` (exact) and ``bpm_patterns`` (regex search) select original
+    names case-insensitively by union; both None selects all, empty lists none.
+    ``strict_geometry`` validates source and output geometry, with a 1e-6 m
+    length tolerance and no allowance for reversed position ordering.
     """
     if is_alignment_error:
         raise ValueError("Alignment errors require read_madx_elements; interpolated Twiss import cannot move physical magnetic fields")
@@ -755,7 +954,10 @@ def read_madx_twiss_interpolated(
                                insert_patterns,
                                longitudinal_transfer,
                                interp_kind,
-                               bpm_monitor=bpm_monitor)
+                               bpm_monitor=bpm_monitor,
+                               strict_geometry=strict_geometry,
+                               bpm_names=bpm_names,
+                               bpm_patterns=bpm_patterns)
 
 
 # Error reader

@@ -798,6 +798,73 @@ importer, so do not include ``s``, ``command`` or ``order`` (or their aliases).
 The MAD-X horizontal/vertical BPM keyword does not restrict the selected
 PASS monitor's recorded coordinates.
 
+To monitor only part of the lattice, pass ``bpm_names`` (exact names) and/or
+``bpm_patterns`` (regular expressions). Both match the original MAD-X ``NAME``
+case-insensitively, before generated name suffixes or drift merging. Regular
+expressions use search matching; use ``^`` and ``$`` to anchor a whole name.
+The two lists are combined by union. With both arguments ``None`` all BPMs are
+selected; an explicitly empty selection, such as ``bpm_names=[]`` with no
+patterns, selects none. No matches is valid and inserts no monitors.
+Selectors must be lists of strings; a bare string, non-string entry or invalid
+regular expression raises ``ValueError``. Duplicate source names select every
+occurrence. The monitor template and selector lists are not modified.
+
+.. code-block:: python
+
+   bpm_options = {
+       "bpm_monitor": {"type": "StatMonitor"},
+       "bpm_names": ["BPM.01", "BPM.07"],
+       "bpm_patterns": [r"^BPM\.ARC[12]\."],
+   }
+   items, names, circum = read_madx_elements(
+       "lattice.tfs", is_merge_drift=True, strict_geometry=True, **bpm_options,
+   )
+
+Unselected BPMs follow the default rule: a finite-length drift or a zero-length
+marker. Twiss imports do not add a center point for an unselected finite BPM.
+Without ``bpm_monitor``, selectors do not enable recording. The same selector
+arguments are accepted by all three readers and ``generate_from_tfs``.
+
+All four entry points also accept ``strict_geometry=False``. Enabling it checks
+finite, ordered source positions and valid lengths, the imported transport
+intervals, and the final circumference. Element mode additionally checks that
+each entrance/exit agrees with the accumulated physical lengths, so equal
+total lengths alone cannot hide local gaps or overlaps. Twiss mode checks its
+transport intervals instead of requiring sampled-row ``L`` values to sum to
+the circumference. Actual ``S`` values must lie in ``[0, C]`` and remain
+nondecreasing without a tolerance allowance. Length/cumulative-length and
+ring-coverage comparisons, including computed entrances ``S-L``, use an absolute
+tolerance of ``1e-6 m``. In Twiss mode, point commands must share the runtime
+position-sorting key with a transport endpoint; being within ``1e-6 m`` alone
+does not suffice. A failed strict check raises ``ValueError`` describing the
+inconsistency; numeric comparisons include the expected and actual values,
+their difference and tolerance. The default
+retains permissive import behavior for compatibility. In either mode, adjacent
+drifts can merge only when their physical intervals are contiguous; a monitor
+or marker still prevents merging across its position.
+
+To inspect the conversion after merging, use the original TFS file and the
+returned items/names with the same BPM options:
+
+.. code-block:: python
+
+   from PASS.para.bpm import describe_madx_bpms
+
+   bpm_report = describe_madx_bpms(
+       "lattice.tfs", items, names, element_mode=True, **bpm_options,
+   )
+
+The report contains one dictionary per original BPM occurrence, including
+``source_name``, ``occurrence``, ``keyword``, ``length``, ``source_s``,
+``selected``, ``measurement_s``, ``conversion`` and ``outputs``. Occurrence
+numbers start at 1 and count all rows with that exact original name, including
+non-BPM rows. ``selected`` means a monitor was enabled and the BPM matched.
+``measurement_s`` is ``None`` when no monitor is inserted. Each output lists
+its final ``name``, ``command``, ``s``, ``length`` and ``merged`` flag, so a BPM
+that became part of a larger drift can still be identified. Use
+``element_mode=False`` for either Twiss reader. Source identities used by the
+report do not add fields to generated tracking JSON.
+
 ``ParticleMonitor`` requires ``max_tag``. Set ``DistMonitor.save_turns`` to
 select saved turns; its empty default saves no distributions. Set
 ``PhaseAdvanceMonitor.turn_ranges`` to enable analysis. For that monitor,

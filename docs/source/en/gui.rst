@@ -625,7 +625,7 @@ The **BPM handling** (BPM 处理) checkbox
 **Insert PASS monitor at BPM positions** (在 BPM 位置插入 PASS monitor) is
 initially off. Enable it, select **Monitor type** (Monitor 类型), and fill in
 **Monitor parameters** (Monitor 参数) to add a ``StatMonitor``,
-``ParticleMonitor``, ``DistMonitor`` or ``PhaseAdvanceMonitor`` at every BPM.
+``ParticleMonitor``, ``DistMonitor`` or ``PhaseAdvanceMonitor`` at selected BPMs.
 The parameter controls follow the ordinary monitor editor. In element import:
 
 .. list-table:: BPM length and recording
@@ -633,8 +633,8 @@ The parameter controls follow the ordinary monitor editor. In element import:
    :widths: 15 35 50
 
    * - Length
-     - Checkbox off
-     - Checkbox on
+     - Recording off or BPM unselected
+     - Recording on and BPM selected
    * - ``L = 0``
      - ``Marker``
      - Selected monitor at ``S``
@@ -645,6 +645,29 @@ The parameter controls follow the ordinary monitor editor. In element import:
 TFS ``S`` denotes the BPM exit, so ``S-L/2`` is its center. Recording does not
 add an extra marker. With recording off, finite BPM drifts may merge with
 adjacent drifts; with recording on, merging preserves the center monitor.
+
+By default, recording covers all BPMs. Enable **Select matching BPMs only**
+(只选择匹配的 BPM) to limit it. **BPM names** (BPM 名称) accepts exact original
+MAD-X names separated by commas or newlines. **BPM regex** (BPM 正则) accepts
+one regular expression per line, preserving commas inside expressions.
+Matching is case-insensitive and uses the union of both fields; regular
+expressions use search matching. With the filter enabled and both fields
+empty, no BPM is selected. Unmatched BPMs retain the default conversion.
+Invalid regular expressions stop the preview with an error.
+
+**Strict geometry checks** (严格检查几何一致性) is initially off. Enable it to
+reject inconsistent local positions, transport intervals or circumference.
+For element tracking, accumulated lengths must agree with each element's
+exit. Twiss mode checks transport intervals without requiring sampled-row
+lengths to sum to the circumference. Drift merging always requires contiguous
+physical intervals, even with strict checks off.
+
+When the source contains BPMs, the preview also opens a scrollable BPM
+conversion table. It shows the original name and occurrence number, MAD-X
+type, length, original exit ``S``, whether a monitor was inserted, measurement
+position, conversion result, and final items after merging. Each final item
+includes its name, command, ``S``, length and merge status. This keeps repeated
+names distinct and makes BPMs absorbed into longer drifts visible.
 
 ``ParticleMonitor`` requires **Max tag**. Set **Save turns** for
 ``DistMonitor`` and **Turn ranges** for ``PhaseAdvanceMonitor`` using the range
@@ -657,7 +680,8 @@ configure any needed offsets explicitly for the generated tracking model.
 The two Twiss import modes retain their Twiss transport and add or split
 transport points at these monitor positions, including exact center points in
 uniform interpolation. Changing the BPM settings invalidates the import
-preview. See :ref:`en-madx-bpm` for the Python API and monitor options.
+preview. Selection and strict-check settings are preserved in the import
+draft/recipe. See :ref:`en-madx-bpm` for the Python API and monitor options.
 
 One-turn transfer
 ~~~~~~~~~~~~~~~~~

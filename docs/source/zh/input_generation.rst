@@ -737,6 +737,61 @@ MAD-X BPM 标记与监视器
 位置、命令类型和排序由导入器决定，不应在模板内填写 ``s``、``command``、``order``
 或其别名。MAD-X 的水平/垂直 BPM 关键字不限制所选 PASS 监视器记录的坐标。
 
+如需只记录部分 BPM，可传入 ``bpm_names`` （精确名称）和/或 ``bpm_patterns``
+（正则表达式）。两者均在生成名称后缀和漂移合并之前，对原始 MAD-X ``NAME``
+进行不区分大小写的匹配。正则表达式采用搜索匹配；如需匹配整个名称，应使用
+``^`` 和 ``$``。两个列表取并集。两项都为 ``None`` 时选择全部 BPM；显式空选择，
+例如 ``bpm_names=[]`` 且未指定正则表达式时，不选择任何 BPM。没有匹配项是有效配置，
+不会插入监视器。选择器必须为字符串列表；直接传入字符串、包含非字符串项或使用无效
+正则表达式会抛出 ``ValueError``。源名称重复时会选择其全部出现位置。导入不会修改
+监视器模板或选择器列表。
+
+.. code-block:: python
+
+   bpm_options = {
+       "bpm_monitor": {"type": "StatMonitor"},
+       "bpm_names": ["BPM.01", "BPM.07"],
+       "bpm_patterns": [r"^BPM\.ARC[12]\."],
+   }
+   items, names, circum = read_madx_elements(
+       "lattice.tfs", is_merge_drift=True, strict_geometry=True, **bpm_options,
+   )
+
+未选中的 BPM 按默认规则转换为有限长度漂移或零长度 Marker。Twiss 导入不会为未选中的
+有限长度 BPM 增加中心传输点。未设置 ``bpm_monitor`` 时，选择器不会启用记录。
+三个读取函数和 ``generate_from_tfs`` 均接受这两个选择器参数。
+
+这四个入口也接受 ``strict_geometry=False``。启用后检查源位置有限且有序、长度有效、
+导入后的传输区间以及最终周长。逐元件模式还检查每个入口和出口是否与累计物理长度一致，
+避免局部缺口或重叠被相同的总长度掩盖。Twiss 模式检查其传输区间，不要求采样行的 ``L``
+之和等于周长。实际 ``S`` 必须位于 ``[0, C]`` 内并保持非递减，这两项不采用容差放宽。
+长度、累计长度及环覆盖范围的比较，包括计算得到的入口 ``S-L``，采用 ``1e-6 m``
+的绝对容差。Twiss 模式中的点命令必须与某个传输端点具有相同的运行时位置排序键；
+仅相距不超过 ``1e-6 m`` 并不足够。严格检查失败时抛出 ``ValueError``，说明不一致之处；
+数值比较还会给出预期值、实际值、差值与容差。默认保留宽松导入行为以兼容现有用法。
+无论是否启用严格检查，漂移合并都要求物理区间连续；监视器或 Marker 仍会阻止跨越其
+所在位置的合并。
+
+如需检查合并后的转换结果，可将原始 TFS 文件、返回的项目及名称，以及相同的 BPM 选项
+传给以下函数：
+
+.. code-block:: python
+
+   from PASS.para.bpm import describe_madx_bpms
+
+   bpm_report = describe_madx_bpms(
+       "lattice.tfs", items, names, element_mode=True, **bpm_options,
+   )
+
+报告为每个原始 BPM 出现位置提供一个字典，包含 ``source_name``、``occurrence``、
+``keyword``、``length``、``source_s``、``selected``、``measurement_s``、
+``conversion`` 和 ``outputs``。出现序号从 1 开始，按完全相同的原始名称统计全部源行，
+包括非 BPM 行。``selected`` 表示已启用监视器且该 BPM 匹配。
+没有插入监视器时 ``measurement_s`` 为 ``None``。
+每个输出项列出合并后的 ``name``、``command``、``s``、``length`` 和 ``merged`` 标志，
+因此即使 BPM 已并入更长的漂移，也能追溯其最终项目。两个 Twiss 读取函数的结果应设置
+``element_mode=False``。报告使用的源身份信息不会向生成的跟踪 JSON 添加字段。
+
 ``ParticleMonitor`` 必须指定 ``max_tag``。``DistMonitor`` 需要通过 ``save_turns``
 选择保存圈数，默认空列表不保存分布。``PhaseAdvanceMonitor`` 需要设置
 ``turn_ranges`` 才启用分析；未指定的 beta/alpha 从每个 BPM 的

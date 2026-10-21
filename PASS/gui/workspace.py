@@ -1007,6 +1007,8 @@ class DocumentWindowMixin:
             field = fields.get(key)
             if isinstance(field, QLineEdit):
                 field.setText(str(value))
+            elif isinstance(field, QPlainTextEdit):
+                field.setPlainText(str(value))
             elif isinstance(field, QComboBox):
                 field.setCurrentText(str(value))
             elif isinstance(field, QCheckBox):

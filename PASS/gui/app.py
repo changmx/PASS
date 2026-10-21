@@ -1606,6 +1606,11 @@ class ConfigPage(QWidget):
         merge.setToolTip("是否将导入结果中的连续 Drift 合并为一个项目。")
         self._madx_fields["merge_drift"] = merge
         self.form_layout.addRow(self._field_label("是否合并连续 Drift", ""), merge)
+        strict_geometry = QCheckBox("严格检查几何一致性")
+        strict_geometry.setObjectName("booleanField")
+        strict_geometry.setToolTip("检查原始区间、导入后的累计长度、出口 S 和环周长；不一致时停止导入。默认关闭，以保留已有导入流程。")
+        self._madx_fields["strict_geometry"] = strict_geometry
+        self.form_layout.addRow("几何检查", strict_geometry)
         if source_kind == "twiss":
             sampling = PropertyComboBox()
             sampling.setObjectName("choiceField")
@@ -1675,6 +1680,23 @@ class ConfigPage(QWidget):
         enabled.setToolTip("MONITOR、HMONITOR、VMONITOR 默认按长度导入为 Marker 或 Drift；勾选后在零长度 BPM 的 S 或非零长度 BPM 的中心 S-L/2 插入 monitor。")
         self._madx_fields["insert_bpm"] = enabled
         self.form_layout.addRow("BPM 处理", enabled)
+        filtered = QCheckBox("只选择匹配的 BPM")
+        filtered.setObjectName("booleanField")
+        filtered.setToolTip("名称或正则任一匹配即可；按原始 MAD-X NAME 匹配，不区分大小写。勾选后两项都为空表示不选择任何 BPM。")
+        self._madx_fields["bpm_filter_enabled"] = filtered
+        self.form_layout.addRow("BPM 筛选", filtered)
+        for key, label, placeholder, tooltip in (
+            ("bpm_names", "BPM 名称", "BPM.1, BPM.2", "完整原始名称，以逗号或换行分隔；不区分大小写。"),
+            ("bpm_patterns", "BPM 正则", r"^BPM[0-9]{1,3}$", "每行一个正则表达式，保留表达式内部的逗号；不区分大小写。"),
+        ):
+            field = QPlainTextEdit()
+            field.setObjectName("valueField")
+            field.setPlaceholderText(placeholder)
+            field.setToolTip(tooltip)
+            field.setMaximumHeight(70)
+            self._madx_fields[key] = field
+            self.form_layout.addRow(label, field)
+            field.textChanged.connect(self._madx_bpm_changed)
         kind = PropertyComboBox()
         kind.setObjectName("choiceField")
         models = (StatMonitorItem, ParticleMonitorItem, DistMonitorItem, PhaseAdvanceMonitorItem)
@@ -1692,6 +1714,7 @@ class ConfigPage(QWidget):
         self._madx_fields["bpm_hint"] = hint
         self.form_layout.addRow(hint)
         enabled.toggled.connect(self._madx_bpm_changed)
+        filtered.toggled.connect(self._madx_bpm_changed)
         kind.currentTextChanged.connect(self._madx_bpm_changed)
         self._madx_bpm_changed()
 
@@ -1718,7 +1741,11 @@ class ConfigPage(QWidget):
     def _madx_bpm_changed(self) -> None:
         fields = self._madx_fields
         enabled = fields["insert_bpm"].isChecked()
+        filtered = fields["bpm_filter_enabled"].isChecked()
         command = fields["bpm_type"].currentText()
+        self.form_layout.setRowVisible(fields["bpm_filter_enabled"], enabled)
+        for key in ("bpm_names", "bpm_patterns"):
+            self.form_layout.setRowVisible(fields[key], enabled and filtered)
         self.form_layout.setRowVisible(fields["bpm_type"], enabled)
         for key, field in fields.items():
             if key.startswith("bpm_settings_"):
@@ -1726,7 +1753,10 @@ class ConfigPage(QWidget):
         hint = "默认将零长度 BPM 导入为 Marker、非零长度 BPM 导入为 Drift。"
         if enabled:
             transport = "Twiss 模式在中心拆分传输" if fields.get("source_kind") == "twiss" else "两侧各保留半长漂移"
-            hint = f"零长度 BPM 替换为 {command}（S）；非零长度 BPM 在中心 S-L/2 插入 {command}，{transport}。参数对所有 BPM 生效。"
+            scope = "仅匹配的 BPM" if filtered else "所有 BPM"
+            hint = f"零长度 BPM 替换为 {command}（S）；非零长度 BPM 在中心 S-L/2 插入 {command}，{transport}。参数对{scope}生效。"
+            if filtered:
+                hint += " 名称与正则任一匹配即可；两项均为空时不插入 monitor。未选中的 BPM 保持默认 Marker/Drift 规则。"
             if command == "PhaseAdvanceMonitor":
                 hint += " 光学参数由各 BPM 的 TFS 数据计算，闭轨偏移默认为 0，可手动设置；请设置 Turn ranges，空表不分析。"
             elif command == "DistMonitor":
@@ -1739,6 +1769,15 @@ class ConfigPage(QWidget):
             return None
         command = self._madx_fields["bpm_type"].currentText()
         return {"type": command, **self._madx_fields[f"bpm_settings_{command}"].get_value()}
+
+    def _madx_bpm_selection(self) -> dict:
+        fields = self._madx_fields
+        if not fields["insert_bpm"].isChecked() or not fields["bpm_filter_enabled"].isChecked():
+            return {"bpm_names": None, "bpm_patterns": None}
+        return {
+            "bpm_names": [value.strip() for value in re.split(r"[,\r\n]+", fields["bpm_names"].toPlainText()) if value.strip()],
+            "bpm_patterns": [value.strip() for value in fields["bpm_patterns"].toPlainText().splitlines() if value.strip()],
+        }
 
     def _madx_sampling_changed(self) -> None:
         interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
@@ -1821,6 +1860,7 @@ class ConfigPage(QWidget):
             file_signature("Twiss TFS 文件"),
             file_signature("误差 TFS 文件"),
             value("merge_drift"),
+            value("strict_geometry", False),
             value("field_errors"),
             value("alignment_errors", False),
             value("longitudinal_transfer"),
@@ -1858,6 +1898,8 @@ class ConfigPage(QWidget):
             element_mode = self._madx_fields.get("source_kind") != "twiss"
             merge_drift = self._madx_fields["merge_drift"].currentText() == "是"
             bpm_monitor = self._madx_bpm_options()
+            selection = self._madx_bpm_selection()
+            strict_geometry = self._madx_fields["strict_geometry"].isChecked()
             if element_mode:
                 items, names, circumference = read_madx_elements(
                     source,
@@ -1866,6 +1908,8 @@ class ConfigPage(QWidget):
                     is_field_error=self._madx_fields["field_errors"].isChecked(),
                     is_alignment_error=self._madx_fields["alignment_errors"].isChecked(),
                     bpm_monitor=bpm_monitor,
+                    strict_geometry=strict_geometry,
+                    **selection,
                 )
             else:
                 patterns = [part.strip() for part in self._madx_fields["patterns"].text().split(",") if part.strip()]
@@ -1891,6 +1935,8 @@ class ConfigPage(QWidget):
                     insert_patterns=patterns or None,
                     longitudinal_transfer=self._madx_fields["longitudinal_transfer"].currentText(),
                     bpm_monitor=bpm_monitor,
+                    strict_geometry=strict_geometry,
+                    **selection,
                     **options,
                 )
                 if interpolation:
@@ -1971,6 +2017,68 @@ class ConfigPage(QWidget):
     def _format_command_counts(counts: Counter[str]) -> str:
         return "\n".join(f"{command}：{count}" for command, count in sorted(counts.items())) or "（无项目）"
 
+    def _madx_bpm_report(self, source: str, items: list, names: list[str]) -> list[dict] | None:
+        try:
+            from PASS.para.bpm import describe_madx_bpms
+
+            return describe_madx_bpms(source,
+                                      items,
+                                      names,
+                                      bpm_monitor=self._madx_bpm_options(),
+                                      element_mode=self._madx_fields.get("source_kind") != "twiss",
+                                      **self._madx_bpm_selection())
+        except Exception:
+            # Supplemental reporting must not reject an otherwise accepted import.
+            return None
+
+    def _show_madx_bpm_report(self, rows: list[dict]) -> None:
+        previous = getattr(self, "_madx_bpm_preview_dialog", None)
+        if previous is not None and isValid(previous):
+            previous.close()
+        dialog = QDialog(self)
+        dialog.setAttribute(Qt.WA_DeleteOnClose)
+        dialog.setWindowTitle("MAD-X 逐个 BPM 转换预览")
+        dialog.resize(1320, 520)
+        layout = QVBoxLayout(dialog)
+        hint = QLabel("本次预览：原始 S 是出口位置；有限长度 BPM 的测量位置为 S−L/2。最终项目显示漂移合并后的名称、位置和长度。")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+        table = QTableWidget(len(rows), 9, dialog)
+        table.setObjectName("madxBpmPreviewTable")
+        table.setHorizontalHeaderLabels(["原始名称", "出现序号", "MAD-X 类型", "L (m)", "原始 S (m)", "插入 monitor", "测量位置 (m)", "转换结果", "最终项目（合并后）"])
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setWordWrap(False)
+        for row_index, row in enumerate(rows):
+            outputs = []
+            for output in row["outputs"]:
+                merged = "，已合并" if output["merged"] else ""
+                outputs.append(f"{output['name']} [{output['command']}] S={output['s']:.12g} m，L={output['length']:.12g} m{merged}")
+            values = (
+                row["source_name"],
+                str(row["occurrence"]),
+                row["keyword"],
+                f"{row['length']:.12g}",
+                f"{row['source_s']:.12g}",
+                "是" if row["selected"] else "否",
+                "—" if row["measurement_s"] is None else f"{row['measurement_s']:.12g}",
+                row["conversion"],
+                "\n".join(outputs) or "（无独立项目）",
+            )
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setToolTip(str(value))
+                table.setItem(row_index, column, item)
+        table.resizeColumnsToContents()
+        table.resizeRowsToContents()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        layout.addWidget(table)
+        close = button("关闭")
+        close.clicked.connect(dialog.close)
+        layout.addWidget(close)
+        self._madx_bpm_preview_dialog = dialog
+        dialog.show()
+
     def preview_madx_import(self) -> None:
         """Read MAD-X output and show a non-mutating import summary."""
         signature = self._madx_import_signature()
@@ -1990,6 +2098,12 @@ class ConfigPage(QWidget):
                             "\n" if interpolation else f"合并连续 Drift：{'是' if merge else '否'}\n")
         bpm_summary = (f"{self._madx_fields['bpm_type'].currentText()}（零长度位置 S，非零长度中心 S-L/2）"
                        if self._madx_fields["insert_bpm"].isChecked() else "零长度 Marker，非零长度 Drift")
+        if self._madx_fields["insert_bpm"].isChecked() and self._madx_fields["bpm_filter_enabled"].isChecked():
+            bpm_summary += "；仅名称或正则匹配的 BPM，未选中者保留默认规则"
+        bpm_rows = self._madx_bpm_report(source, items, names)
+        bpm_detail = ("BPM 明细：无法读取补充明细。" if bpm_rows is None else
+                      f"BPM 明细：{len(bpm_rows)} 个 BPM，插入 monitor {sum(bool(row['selected']) for row in bpm_rows)} 个；关闭摘要后显示逐个转换表。"
+                      if bpm_rows else "BPM 明细：来源文件中无 BPM。")
         preview_names = ", ".join(str(name) for name in names[:8])
         if len(names) > 8:
             preview_names += f" 等 {len(names)} 项"
@@ -2006,12 +2120,16 @@ class ConfigPage(QWidget):
                 f"最终导入项目：{len(items)}\n"
                 f"环周长：{circumference:.6g} m\n"
                 f"{sampling_summary}"
+                f"严格检查几何一致性：{'是' if self._madx_fields['strict_geometry'].isChecked() else '否'}\n"
                 f"BPM 处理：{bpm_summary}\n"
+                f"{bpm_detail}\n"
                 f"\n{source_heading}\n{source_summary}\n"
                 f"\n最终 PASS command：\n{command_summary}\n"
                 f"\n项目示例：{preview_names or '（无项目）'}\n\n"
                 "预览不会修改当前配置；点击“导入到 Sequence”后才会写入。")
         QMessageBox.information(self, "MAD-X 导入预览", text)
+        if bpm_rows:
+            self._show_madx_bpm_report(bpm_rows)
 
     def import_madx_twiss(self) -> None:
         if not self._guard_json_draft():
@@ -2050,6 +2168,8 @@ class ConfigPage(QWidget):
                 parameters[key] = value
             elif isinstance(field, QComboBox):
                 parameters[key] = field.currentText()
+            elif isinstance(field, QPlainTextEdit):
+                parameters[key] = field.toPlainText()
             elif isinstance(field, QCheckBox):
                 parameters[key] = field.isChecked()
             elif isinstance(field, str):

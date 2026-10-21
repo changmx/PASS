@@ -128,12 +128,15 @@ def resample_madx_twiss(twiss_file,
                         insert_patterns,
                         longitudinal_transfer,
                         interp_kind,
-                        bpm_monitor=None):
+                        bpm_monitor=None,
+                        strict_geometry=False,
+                        bpm_names=None,
+                        bpm_patterns=None):
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
     from PASS.utils.command_order import command_position_key, sort_commands
-    from PASS.para.bpm import _create_bpm_items, _split_bpm_twiss_table, _unique_names
-    from PASS.para.madx import _get_madx_reference_beta, _insert_elements, _make_match_key, read_madx_errors
+    from PASS.para.bpm import _create_bpm_items, _select_bpm_rows, _split_bpm_twiss_table, _unique_names
+    from PASS.para.madx import _get_madx_reference_beta, _insert_elements, _make_match_key, _validate_imported_geometry, _validate_madx_geometry, read_madx_errors
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem
 
@@ -144,8 +147,11 @@ def resample_madx_twiss(twiss_file,
     if longitudinal_transfer not in ("off", "drift", "matrix"):
         raise ValueError("Invalid longitudinal_transfer; use off, drift or matrix.")
     table = tfs.read(twiss_file)
+    if strict_geometry:
+        _validate_madx_geometry(table, element_mode=False)
+    selected_rows = _select_bpm_rows(table, bpm_monitor, bpm_names, bpm_patterns)
     reference_beta = _get_madx_reference_beta(table.headers)
-    optics = RingTwissInterpolator(_split_bpm_twiss_table(table) if bpm_monitor is not None else table)
+    optics = RingTwissInterpolator(_split_bpm_twiss_table(table, selected_rows) if selected_rows else table)
     circumference = optics.circumference
     dqx = float(reference_beta * table.headers["DQ1"] if dqx == "from_file" else dqx)
     dqy = float(reference_beta * table.headers["DQ2"] if dqy == "from_file" else dqy)
@@ -172,9 +178,9 @@ def resample_madx_twiss(twiss_file,
             extras.append(MultipoleItem(s=positions[key], length=0., knl=errors["knl"], ksl=errors["ksl"]))
             extra_names.append(f"{key}_error")
 
-    bpm_items, bpm_names = _create_bpm_items(table, bpm_monitor)
+    bpm_items, bpm_item_names = _create_bpm_items(table, bpm_monitor, bpm_names=bpm_names, bpm_patterns=bpm_patterns)
     extras.extend(bpm_items)
-    extra_names.extend(bpm_names)
+    extra_names.extend(bpm_item_names)
 
     base = np.linspace(0., circumference, num_interp_slice)
     required = np.unique(np.r_[optics.discontinuities, [item.s for item in extras]])
@@ -231,6 +237,8 @@ def resample_madx_twiss(twiss_file,
             items[index] = items[index].model_copy(update={"order": first + offset})
     ordered = sort_commands(zip(items, names), key=lambda pair: pair[0])
     items, names = map(list, zip(*ordered))
+    if strict_geometry:
+        _validate_imported_geometry(items, names, circumference, element_mode=False)
     print(f"[Read MADX Twiss] {num_interp_slice} base points, {len(positions)-num_interp_slice} extra positions, "
           f"{len(items)} commands; phase-constrained quintic Hermite; C={circumference}")
     return items, names, circumference
