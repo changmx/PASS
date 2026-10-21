@@ -30,6 +30,7 @@ from typing import Callable
 
 import numpy as np
 import tfs
+from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 
 # Step 1: Read external data
@@ -129,6 +130,46 @@ def load_raw_data(
 # Step 2: Time ↔ Turn conversion
 
 
+def _convert_callable_axis(axis: np.ndarray, revolution_freq: Callable, *, to_time: bool) -> np.ndarray:
+    """Integrate the absolute clock from zero in either direction."""
+    if axis.size == 0:
+        return np.empty_like(axis)
+
+    def frequency_at(turn):
+        frequency = float(revolution_freq(turn))
+        if not np.isfinite(frequency) or frequency <= 0:
+            raise ValueError("Revolution frequency must be finite and positive")
+        return frequency
+
+    frequency_scale = frequency_at(0.0)
+    # Scale seconds to nominal turns so the integration tolerances are unit-independent.
+    coordinates = axis.ravel() if to_time else axis.ravel() * frequency_scale
+    if not np.all(np.isfinite(coordinates)):
+        raise ValueError("Scaled time values must be finite")
+
+    def derivative(coordinate, value):
+        frequency = frequency_at(coordinate if to_time else coordinate + value[0])
+        # Integrate only the correction to the constant clock, preserving exact constant-frequency rounding.
+        return [(frequency_scale - frequency) / frequency if to_time else (frequency - frequency_scale) / frequency_scale]
+
+    converted = coordinates.copy()
+    for direction in (1, -1):
+        mask = direction * coordinates > 0
+        if not np.any(mask):
+            continue
+        targets, indices = np.unique(coordinates[mask], return_inverse=True)
+        evaluations = targets if direction > 0 else targets[::-1]
+        solution = solve_ivp(derivative, (0.0, evaluations[-1]), [0.0], method="DOP853", t_eval=evaluations, rtol=1e-12, atol=1e-12)
+        if not solution.success or not np.all(np.isfinite(solution.y)):
+            raise ValueError(f"Time/turn integration failed: {solution.message}")
+        values = solution.y[0] if direction > 0 else solution.y[0, ::-1]
+        converted[mask] += values[indices]
+
+    if to_time:
+        converted /= frequency_scale
+    return converted.reshape(axis.shape)
+
+
 def time_to_turn(
     time_arr: np.ndarray,
     revolution_freq: float | Callable,
@@ -136,31 +177,26 @@ def time_to_turn(
 ) -> np.ndarray:
     """Convert time axis → turn axis.
 
-    turn = time * f_rev  (rounded to nearest integer)
+    Time zero corresponds to turn zero. For a constant frequency, turn =
+    time * f_rev. For a callable, integrate dn/dt = f_rev(n) from n(0) = 0.
+    Round the resulting continuous turn coordinate to the nearest integer.
 
     Args:
         time_arr: array of time values in seconds.
         revolution_freq: revolution frequency in Hz. Can be a constant
-                         or a callable(turn) -> Hz for variable frequency.
+                         or a callable(continuous_turn) -> Hz for variable
+                         frequency, finite and positive over the clock interval.
         num_turns: if given, clip turn values to [1, num_turns].
 
     Returns:
         Integer array of turn numbers.
     """
     time_arr = np.asarray(time_arr, dtype=float)
+    if not np.all(np.isfinite(time_arr)):
+        raise ValueError("Time values must be finite")
 
     if callable(revolution_freq):
-        # Variable frequency: integrate dt = 1/f_rev(turn) cumulatively
-        turn_arr = np.zeros(len(time_arr), dtype=float)
-        t_accum = 0.0
-        turn_accum = 0.0
-        turn_arr[0] = 0.0
-        for i in range(1, len(time_arr)):
-            dt = time_arr[i] - time_arr[i - 1]
-            f_avg = revolution_freq(turn_accum)
-            turn_accum += dt * f_avg
-            turn_arr[i] = turn_accum
-        turn_arr = np.round(turn_arr).astype(int)
+        turn_arr = np.round(_convert_callable_axis(time_arr, revolution_freq, to_time=False)).astype(int)
     else:
         turn_arr = np.round(time_arr * revolution_freq).astype(int)
 
@@ -176,26 +212,24 @@ def turn_to_time(
 ) -> np.ndarray:
     """Convert turn axis → time axis.
 
-    time = turn / f_rev
+    Turn zero corresponds to time zero. For a constant frequency, time =
+    turn / f_rev. For a callable, integrate dt/dn = 1/f_rev(n) from t(0) = 0;
+    the input samples do not define the integration steps or the clock origin.
 
     Args:
         turn_arr: array of turn numbers.
-        revolution_freq: Hz (constant or callable(turn) -> Hz).
+        revolution_freq: Hz (constant or callable(continuous_turn) -> Hz),
+                         finite and positive over the clock interval.
 
     Returns:
         Float array of time values in seconds.
     """
     turn_arr = np.asarray(turn_arr, dtype=float)
+    if not np.all(np.isfinite(turn_arr)):
+        raise ValueError("Turn values must be finite")
 
     if callable(revolution_freq):
-        time_arr = np.zeros_like(turn_arr)
-        t_accum = 0.0
-        time_arr[0] = 0.0
-        for i in range(1, len(turn_arr)):
-            f = revolution_freq(turn_arr[i])
-            t_accum += 1.0 / f
-            time_arr[i] = t_accum
-        return time_arr
+        return _convert_callable_axis(turn_arr, revolution_freq, to_time=True)
     else:
         return turn_arr / revolution_freq
 
@@ -333,7 +367,8 @@ def convert_external_to_tfs(
         input_path: path to the external data file.
         output_path: path for the output .tfs file.
         data_cols: explicit data column names. If None, auto-detect.
-        revolution_freq: Hz (for time↔turn conversion). Constant or callable.
+        revolution_freq: Hz (for time↔turn conversion). Constant or
+                         callable(continuous_turn), with time zero at turn zero.
         num_turns: target number of turns. If None, use max(turn).
         method: interpolation method (linear/cubic/nearest).
         turn_col: expected turn column name.
