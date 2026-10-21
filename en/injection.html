@@ -879,10 +879,14 @@ still creates new particles with distinct identities.</p></li>
 distributions for each batch. Generated and loaded particles both receive the
 configured horizontal dispersion and <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">x</span></code> / <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">y</span></code>. The offsets
 apply only at injection. A file-based offset is linearly interpolated at the
-injection turn or incoming reference passage time, according to its <code class="docutils literal notranslate"><span class="pre">turn</span></code> or
-<code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">(s)</span></code> column. The position and momentum columns are <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">px</span> <span class="pre">(rad)</span></code>
-or <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">(rad)</span></code>. Nodes must increase strictly, values must be finite,
-and the table must cover every requested injection event.</p>
+injection turn or physical incoming reference passage time, according to its
+<code class="docutils literal notranslate"><span class="pre">turn</span></code> or <code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">(s)</span></code> column. The latter includes the offset from an explicit
+<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">arrival</span> <span class="pre">time</span> <span class="pre">(s)</span></code>. Turn nodes must be nonnegative integers; time
+nodes in seconds may be negative. Nodes must increase strictly and all values
+must be finite. The position and momentum columns are <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">px</span> <span class="pre">(rad)</span></code>
+or <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">(rad)</span></code>. Preflight checks that each enabled table covers the
+events at which particles are actually injected during this run. Queries outside
+the table domain raise an error; endpoint values are not held beyond that domain.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">File</span></code> and <code class="docutils literal notranslate"><span class="pre">Scan</span> <span class="pre">Grid</span></code> are
 mutually exclusive ways to replace the first rows of the first batch after these
 offsets, before conversion to the circulating reference. The batch must contain

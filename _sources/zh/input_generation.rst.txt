@@ -626,7 +626,8 @@ DQx/DQy 默认 ``"from_file"``，Mu z 默认零；纵向相位仅在
 输出相位保留源值，不按舍入后的头信息重新缩放。分段色品按源相位差的比例分配，
 保持用户指定的 DQx/DQy 总和。
 
-原始行不作为额外点保留。匹配的薄元件、场误差和重复 S 处的光学跳变增加必要拆分位置。
+原始行不作为额外点保留。零长度 BPM 标记、显式选择的 BPM 监视器、匹配的薄元件、
+场误差和重复 S 处的光学跳变增加必要拆分位置。
 场误差名称在重采样前与原始表匹配。光学跳变通过零长度 Twiss 传输连接入端和出端状态。
 同一位置的附加薄元件或场误差在 Twiss 之后执行，与 command 优先级一致。
 若显式插入源光学已包含的设计聚焦，会再次叠加该作用；插入误差不会自动保持受扰机器
@@ -670,6 +671,81 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
        num_points=100,
        longitudinal_transfer="off",
    )
+
+.. _zh-madx-bpm:
+
+MAD-X BPM 标记与监视器
+~~~~~~~~~~~~~~~~~~~~~~
+
+``read_madx_elements``、``read_madx_twiss``、``read_madx_twiss_interpolated`` 和
+``generate_from_tfs`` 均识别 ``MONITOR``、``HMONITOR``、``VMONITOR``。
+其 ``bpm_monitor`` 参数默认为 ``None``。逐元件跟踪采用以下规则，
+其中 TFS ``S`` 为元件出口位置，``L`` 为元件长度：
+
+.. list-table:: BPM 导入行为
+   :header-rows: 1
+   :widths: 15 25 40 20
+
+   * - BPM 长度
+     - ``bpm_monitor``
+     - 导入的元件序列
+     - 监视器位置
+   * - ``L = 0``
+     - ``None`` （默认）
+     - ``Marker``
+     - 不记录数据
+   * - ``L > 0``
+     - ``None`` （默认）
+     - 长度为 ``L`` 的一个 ``Drift``
+     - 不记录数据
+   * - ``L = 0``
+     - 显式指定监视器模板
+     - 仅所选监视器
+     - ``S``
+   * - ``L > 0``
+     - 显式指定监视器模板
+     - ``Drift(L/2)`` → 监视器 → ``Drift(L/2)``
+     - ``S - L/2`` （BPM 中心）
+
+非零长度 BPM 因此保留完整飞行距离，不额外添加 Marker。
+默认的有限长度 BPM 漂移可与相邻漂移合并；启用记录后，合并仍保留监视器所在的中心边界。
+两个 Twiss 读取函数使用 Twiss 传输，不额外叠加物理漂移；在准确的监视器位置
+插入或拆分传输点，插值网格也保留有限长度 BPM 的中心位置。
+零长度 BPM 仅在未启用记录时保留 Marker。
+不含 ``L`` 列的旧 Twiss 表将 BPM 视为零长度点；如需在有限长度 BPM 中心放置监视器，
+应导出 ``L`` 列。
+
+如需在全部导入的 BPM 处记录数据，传入含 ``type`` 和相应监视器 schema 字段的
+配置模板。同一组设置应用于每个 BPM：
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_elements
+
+   items, names, circum = read_madx_elements(
+       twiss_file="lattice.tfs",
+       bpm_monitor={
+           "type": "StatMonitor",
+           "output_format": "hdf5",
+           "write_interval_turns": 16,
+       },
+   )
+
+同一 ``bpm_monitor`` 字典也适用于两个 Twiss 读取函数及 ``generate_from_tfs``。
+类型可选 ``StatMonitor``、``ParticleMonitor``、``DistMonitor``、
+``PhaseAdvanceMonitor``；字段可使用 Python 名称或 JSON 别名。
+位置、命令类型和排序由导入器决定，不应在模板内填写 ``s``、``command``、``order``
+或其别名。MAD-X 的水平/垂直 BPM 关键字不限制所选 PASS 监视器记录的坐标。
+
+``ParticleMonitor`` 必须指定 ``max_tag``。``DistMonitor`` 需要通过 ``save_turns``
+选择保存圈数，默认空列表不保存分布。``PhaseAdvanceMonitor`` 需要设置
+``turn_ranges`` 才启用分析；未指定的 beta/alpha 从每个 BPM 的
+``BETX``、``BETY``、``ALFX``、``ALFY`` 读取。对于有限长度 BPM，源出口光学与色散
+沿半个漂移长度反向传输，得到监视器中心处的值。闭轨偏置默认保持零，只有显式配置
+才改变；源 ``X``、``PX``、``Y``、``PY`` 不会自动作为监视器偏置导入，
+因为生成的跟踪模型不一定复现源闭轨。导入的 ``DX``、``DPX`` 乘以 :math:`\beta_0`，
+换算到 PASS 的相对动量偏差约定。显式给出的光学参数覆盖这些逐 BPM 默认值；
+显式色散参数应已采用 PASS 单位。各监视器的参数和输出见 :doc:`monitor/index`。
 
 混合模式
 ~~~~~~~~

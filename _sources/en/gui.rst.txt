@@ -606,7 +606,9 @@ span are preserved to floating-point precision, with a tolerance when checking
 rounded TFS header tunes.
 
 Thin elements and field errors retain their original positions, splitting the
-Twiss transport there. Distinct optical states at repeated S are preserved as
+Twiss transport there. Zero-length BPM markers and selected monitors also
+retain their exact positions; finite BPM monitors are placed at the center.
+Distinct optical states at repeated S are preserved as
 incoming/outgoing states with a zero-length Twiss map for the optical jump.
 Consequently the final positions need not all be equally spaced. At a common
 position, Twiss maps execute before additional kicks/errors. The source optics
@@ -614,6 +616,48 @@ already include its design linear focusing: explicitly inserted kicks are
 additional effects, not a subtraction or replacement of that focusing. Added
 linear errors can therefore change the tracked tune even though the resampled
 base optics preserve the source tune.
+
+MAD-X BPM import
+~~~~~~~~~~~~~~~~
+
+MAD-X ``MONITOR``, ``HMONITOR`` and ``VMONITOR`` use the same BPM import options.
+The **BPM handling** (BPM 处理) checkbox
+**Insert PASS monitor at BPM positions** (在 BPM 位置插入 PASS monitor) is
+initially off. Enable it, select **Monitor type** (Monitor 类型), and fill in
+**Monitor parameters** (Monitor 参数) to add a ``StatMonitor``,
+``ParticleMonitor``, ``DistMonitor`` or ``PhaseAdvanceMonitor`` at every BPM.
+The parameter controls follow the ordinary monitor editor. In element import:
+
+.. list-table:: BPM length and recording
+   :header-rows: 1
+   :widths: 15 35 50
+
+   * - Length
+     - Checkbox off
+     - Checkbox on
+   * - ``L = 0``
+     - ``Marker``
+     - Selected monitor at ``S``
+   * - ``L > 0``
+     - One ``Drift`` of length ``L``
+     - Half drift → monitor at ``S-L/2`` → half drift
+
+TFS ``S`` denotes the BPM exit, so ``S-L/2`` is its center. Recording does not
+add an extra marker. With recording off, finite BPM drifts may merge with
+adjacent drifts; with recording on, merging preserves the center monitor.
+
+``ParticleMonitor`` requires **Max tag**. Set **Save turns** for
+``DistMonitor`` and **Turn ranges** for ``PhaseAdvanceMonitor`` using the range
+table; empty ranges produce no distribution output or phase-advance analysis,
+respectively. Phase-advance optics are taken from each source BPM row and,
+for finite BPMs, propagated backward through a half drift to the monitor center,
+with dispersion converted to PASS units. Closed-orbit offsets default to zero;
+configure any needed offsets explicitly for the generated tracking model.
+
+The two Twiss import modes retain their Twiss transport and add or split
+transport points at these monitor positions, including exact center points in
+uniform interpolation. Changing the BPM settings invalidates the import
+preview. See :ref:`en-madx-bpm` for the Python API and monitor options.
 
 One-turn transfer
 ~~~~~~~~~~~~~~~~~

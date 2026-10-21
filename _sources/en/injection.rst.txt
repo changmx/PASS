@@ -611,10 +611,14 @@ Otherwise, Injection generates the selected transverse and longitudinal
 distributions for each batch. Generated and loaded particles both receive the
 configured horizontal dispersion and ``Offset x`` / ``Offset y``. The offsets
 apply only at injection. A file-based offset is linearly interpolated at the
-injection turn or incoming reference passage time, according to its ``turn`` or
-``time (s)`` column. The position and momentum columns are ``x (m)`` / ``px (rad)``
-or ``y (m)`` / ``py (rad)``. Nodes must increase strictly, values must be finite,
-and the table must cover every requested injection event.
+injection turn or physical incoming reference passage time, according to its
+``turn`` or ``time (s)`` column. The latter includes the offset from an explicit
+``Reference arrival time (s)``. Turn nodes must be nonnegative integers; time
+nodes in seconds may be negative. Nodes must increase strictly and all values
+must be finite. The position and momentum columns are ``x (m)`` / ``px (rad)``
+or ``y (m)`` / ``py (rad)``. Preflight checks that each enabled table covers the
+events at which particles are actually injected during this run. Queries outside
+the table domain raise an error; endpoint values are not held beyond that domain.
 
 ``Insert Particle Coordinate``, ``Insert Particle File`` and ``Scan Grid`` are
 mutually exclusive ways to replace the first rows of the first batch after these

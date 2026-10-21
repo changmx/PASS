@@ -74,6 +74,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#id10">结果文件</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x">MAD-X 采样方式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm">MAD-X BPM 导入</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id11">单圈传输</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id12">平滑近似</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id13">手动传输点与后续编辑</a></li>
@@ -555,10 +556,53 @@ CSV 与元数据文件应配套保留。</p>
 导出更密集的源数据。仅增加 N 不能恢复源文件中缺失的信息。
 源值和总相位差保持到浮点精度；核对 TFS 头中的工作点时允许文件输出舍入误差。</p>
 <p>薄元件和场误差保留原始位置，并在此处拆分 Twiss 传输。
+零长度 BPM 标记和显式选择的监视器也保留准确位置；有限长度 BPM 的监视器位于中心。
 同一 S 的不同光学状态保留为入端、出端状态，通过零长度 Twiss 传输表达光学跳变。
 因此最终位置不一定全部等间距。同一位置先执行 Twiss，再执行附加薄元件或场误差。
 源光学已包含设计线性聚焦，显式插入的薄元件是附加作用，不会从源光学中扣除或替换
 设计聚焦。因此，附加线性误差仍可能改变跟踪工作点，而重采样的基础光学保持源工作点。</p>
+</section>
+<section id="mad-x-bpm">
+<h3>MAD-X BPM 导入<a class="headerlink" href="#mad-x-bpm" title="Link to this heading"></a></h3>
+<p>MAD-X 的 <code class="docutils literal notranslate"><span class="pre">MONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">HMONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">VMONITOR</span></code> 使用相同的 BPM 导入选项。
+<strong>BPM 处理</strong> 中的 <strong>在 BPM 位置插入 PASS monitor</strong> 默认不勾选。
+勾选后选择 <strong>Monitor 类型</strong> 并填写 <strong>Monitor 参数</strong>，即可在每个 BPM 处添加
+<code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 或 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code>。
+参数控件与普通监视器编辑器一致。逐元件导入采用以下规则：</p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">BPM 长度与记录开关</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 35.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>长度</p></th>
+<th class="head"><p>未勾选</p></th>
+<th class="head"><p>已勾选</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Marker</span></code></p></td>
+<td><p>在 <code class="docutils literal notranslate"><span class="pre">S</span></code> 处放置所选监视器</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">&gt;</span> <span class="pre">0</span></code></p></td>
+<td><p>长度为 <code class="docutils literal notranslate"><span class="pre">L</span></code> 的一个 <code class="docutils literal notranslate"><span class="pre">Drift</span></code></p></td>
+<td><p>半段漂移 → <code class="docutils literal notranslate"><span class="pre">S-L/2</span></code> 处的监视器 → 半段漂移</p></td>
+</tr>
+</tbody>
+</table>
+<p>TFS <code class="docutils literal notranslate"><span class="pre">S</span></code> 表示 BPM 出口，因此 <code class="docutils literal notranslate"><span class="pre">S-L/2</span></code> 为其中心。启用记录不额外添加 Marker。
+不记录时，有限长度 BPM 漂移可与相邻漂移合并；启用记录后，合并仍保留中心监视器。</p>
+<p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> 必须填写 <strong>Max tag</strong>。用圈数范围表设置 <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 的
+<strong>Save turns</strong> 和 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> 的 <strong>Turn ranges</strong>；空范围分别表示
+不保存分布和不进行相位推进分析。相位推进监视器的光学参数从各 BPM 源行
+读取；有限长度 BPM 的光学参数沿半段漂移反向传输到监视器中心，色散转换到 PASS 单位。
+闭轨偏置默认为零，如需扣除偏置，应根据生成的跟踪模型显式设置。</p>
+<p>两个 Twiss 导入模式保留 Twiss 传输，并在上述监视器位置插入或拆分传输点，
+等间距插值也保留准确的中心位置。修改 BPM 设置会使导入预览失效。
+Python API 和监视器选项见 <a class="reference internal" href="input_generation.html#zh-madx-bpm"><span class="std std-ref">MAD-X BPM 标记与监视器</span></a>。</p>
 </section>
 <section id="id11">
 <h3>单圈传输<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>

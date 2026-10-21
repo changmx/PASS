@@ -678,8 +678,8 @@ rounding (relative tolerance :math:`2\times10^{-8}`, absolute tolerance
 being rescaled to rounded headers. Segment chromaticities are distributed in
 proportion to the source phase span, preserving the requested DQx/DQy sums.
 
-Original rows are not retained as additional output points. Matched thin
-elements, field errors and repeated-S optical jumps add required split
+Original rows are not retained as additional output points. Zero-length BPM
+markers, selected BPM monitors, matched thin elements, field errors and repeated-S optical jumps add required split
 positions. Error names are matched against the original table before
 resampling. At optical jumps, a zero-length Twiss map joins the incoming and
 outgoing states. Additional kicks/errors execute after the Twiss maps at that
@@ -728,6 +728,90 @@ No MADX file required; uses analytical formulas to generate twiss points with co
        num_points=100,
        longitudinal_transfer="off",
    )
+
+.. _en-madx-bpm:
+
+MAD-X BPM markers and monitors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``read_madx_elements``, ``read_madx_twiss``, ``read_madx_twiss_interpolated`` and
+``generate_from_tfs`` recognize ``MONITOR``, ``HMONITOR`` and ``VMONITOR``.
+Their ``bpm_monitor`` argument defaults to ``None``. Element tracking uses the
+following rules, where TFS ``S`` is the element exit and ``L`` its length:
+
+.. list-table:: BPM import behavior
+   :header-rows: 1
+   :widths: 15 25 40 20
+
+   * - BPM length
+     - ``bpm_monitor``
+     - Imported element sequence
+     - Monitor position
+   * - ``L = 0``
+     - ``None`` (default)
+     - ``Marker``
+     - No recording
+   * - ``L > 0``
+     - ``None`` (default)
+     - One ``Drift`` of length ``L``
+     - No recording
+   * - ``L = 0``
+     - Selected monitor template
+     - Selected monitor only
+     - ``S``
+   * - ``L > 0``
+     - Selected monitor template
+     - ``Drift(L/2)`` → monitor → ``Drift(L/2)``
+     - ``S - L/2`` (BPM center)
+
+Thus a finite BPM preserves its full flight distance without an extra marker.
+Default finite-length BPM drifts may merge with adjacent drifts. With recording
+enabled, merging preserves the center boundary occupied by the monitor.
+The two Twiss readers retain Twiss transport instead of adding physical drifts;
+they insert or split a transport point at the exact monitor position, including
+the center of a finite BPM in the interpolated grid. Zero-length BPMs retain
+a marker only when recording is disabled.
+Legacy Twiss tables without an ``L`` column treat BPMs as points; export ``L``
+to place monitors at finite-length BPM centers.
+
+To record data at every imported BPM, supply a monitor template with ``type``
+and that monitor's schema fields. The same settings are applied at every BPM:
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_elements
+
+   items, names, circum = read_madx_elements(
+       twiss_file="lattice.tfs",
+       bpm_monitor={
+           "type": "StatMonitor",
+           "output_format": "hdf5",
+           "write_interval_turns": 16,
+       },
+   )
+
+The same ``bpm_monitor`` dictionary works with either Twiss reader and
+``generate_from_tfs``. Choose ``StatMonitor``, ``ParticleMonitor``,
+``DistMonitor`` or ``PhaseAdvanceMonitor``; fields may use their Python names
+or JSON aliases. Position, command type and ordering are supplied by the
+importer, so do not include ``s``, ``command`` or ``order`` (or their aliases).
+The MAD-X horizontal/vertical BPM keyword does not restrict the selected
+PASS monitor's recorded coordinates.
+
+``ParticleMonitor`` requires ``max_tag``. Set ``DistMonitor.save_turns`` to
+select saved turns; its empty default saves no distributions. Set
+``PhaseAdvanceMonitor.turn_ranges`` to enable analysis. For that monitor,
+omitted beta/alpha fields come from each BPM's ``BETX``, ``BETY``, ``ALFX`` and
+``ALFY``. For a finite BPM, source exit optics and dispersion are propagated
+backward through half its drift length to obtain the monitor-center values.
+Closed-orbit offsets remain zero unless explicitly configured;
+source ``X``, ``PX``, ``Y`` and ``PY`` are not imported as monitor offsets,
+because the generated tracking model may not reproduce that closed orbit.
+Imported ``DX`` and ``DPX`` are multiplied by
+:math:`\beta_0` to use PASS's momentum-deviation convention. Explicit optical
+settings override these per-BPM defaults; explicit dispersion
+already uses PASS units. See :doc:`monitor/index` for each monitor's parameters
+and output.
 
 Mixed Mode
 ~~~~~~~~~~

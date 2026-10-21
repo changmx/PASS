@@ -75,6 +75,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm">MAD-X BPM 标记与监视器</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id8">混合模式</a></li>
 </ul>
 </li>
@@ -745,7 +746,8 @@ p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
 <span class="math notranslate nohighlight">\(2\times10^{-8}\)</span>，绝对容差 <span class="math notranslate nohighlight">\(2\times10^{-9}\)</span>。
 输出相位保留源值，不按舍入后的头信息重新缩放。分段色品按源相位差的比例分配，
 保持用户指定的 DQx/DQy 总和。</p>
-<p>原始行不作为额外点保留。匹配的薄元件、场误差和重复 S 处的光学跳变增加必要拆分位置。
+<p>原始行不作为额外点保留。零长度 BPM 标记、显式选择的 BPM 监视器、匹配的薄元件、
+场误差和重复 S 处的光学跳变增加必要拆分位置。
 场误差名称在重采样前与原始表匹配。光学跳变通过零长度 Twiss 传输连接入端和出端状态。
 同一位置的附加薄元件或场误差在 Twiss 之后执行，与 command 优先级一致。
 若显式插入源光学已包含的设计聚焦，会再次叠加该作用；插入误差不会自动保持受扰机器
@@ -784,6 +786,86 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 <span class="p">)</span>
 </pre></div>
 </div>
+</section>
+<section id="mad-x-bpm">
+<span id="zh-madx-bpm"></span><h3>MAD-X BPM 标记与监视器<a class="headerlink" href="#mad-x-bpm" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">read_madx_elements</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 均识别 <code class="docutils literal notranslate"><span class="pre">MONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">HMONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">VMONITOR</span></code>。
+其 <code class="docutils literal notranslate"><span class="pre">bpm_monitor</span></code> 参数默认为 <code class="docutils literal notranslate"><span class="pre">None</span></code>。逐元件跟踪采用以下规则，
+其中 TFS <code class="docutils literal notranslate"><span class="pre">S</span></code> 为元件出口位置，<code class="docutils literal notranslate"><span class="pre">L</span></code> 为元件长度：</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">BPM 导入行为</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>BPM 长度</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">bpm_monitor</span></code></p></th>
+<th class="head"><p>导入的元件序列</p></th>
+<th class="head"><p>监视器位置</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> （默认）</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Marker</span></code></p></td>
+<td><p>不记录数据</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">&gt;</span> <span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> （默认）</p></td>
+<td><p>长度为 <code class="docutils literal notranslate"><span class="pre">L</span></code> 的一个 <code class="docutils literal notranslate"><span class="pre">Drift</span></code></p></td>
+<td><p>不记录数据</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">0</span></code></p></td>
+<td><p>显式指定监视器模板</p></td>
+<td><p>仅所选监视器</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">&gt;</span> <span class="pre">0</span></code></p></td>
+<td><p>显式指定监视器模板</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Drift(L/2)</span></code> → 监视器 → <code class="docutils literal notranslate"><span class="pre">Drift(L/2)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">L/2</span></code> （BPM 中心）</p></td>
+</tr>
+</tbody>
+</table>
+<p>非零长度 BPM 因此保留完整飞行距离，不额外添加 Marker。
+默认的有限长度 BPM 漂移可与相邻漂移合并；启用记录后，合并仍保留监视器所在的中心边界。
+两个 Twiss 读取函数使用 Twiss 传输，不额外叠加物理漂移；在准确的监视器位置
+插入或拆分传输点，插值网格也保留有限长度 BPM 的中心位置。
+零长度 BPM 仅在未启用记录时保留 Marker。
+不含 <code class="docutils literal notranslate"><span class="pre">L</span></code> 列的旧 Twiss 表将 BPM 视为零长度点；如需在有限长度 BPM 中心放置监视器，
+应导出 <code class="docutils literal notranslate"><span class="pre">L</span></code> 列。</p>
+<p>如需在全部导入的 BPM 处记录数据，传入含 <code class="docutils literal notranslate"><span class="pre">type</span></code> 和相应监视器 schema 字段的
+配置模板。同一组设置应用于每个 BPM：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
+    <span class="n">bpm_monitor</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"StatMonitor"</span><span class="p">,</span>
+        <span class="s2">"output_format"</span><span class="p">:</span> <span class="s2">"hdf5"</span><span class="p">,</span>
+        <span class="s2">"write_interval_turns"</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>同一 <code class="docutils literal notranslate"><span class="pre">bpm_monitor</span></code> 字典也适用于两个 Twiss 读取函数及 <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code>。
+类型可选 <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code>、
+<code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code>；字段可使用 Python 名称或 JSON 别名。
+位置、命令类型和排序由导入器决定，不应在模板内填写 <code class="docutils literal notranslate"><span class="pre">s</span></code>、<code class="docutils literal notranslate"><span class="pre">command</span></code>、<code class="docutils literal notranslate"><span class="pre">order</span></code>
+或其别名。MAD-X 的水平/垂直 BPM 关键字不限制所选 PASS 监视器记录的坐标。</p>
+<p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> 必须指定 <code class="docutils literal notranslate"><span class="pre">max_tag</span></code>。<code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 需要通过 <code class="docutils literal notranslate"><span class="pre">save_turns</span></code>
+选择保存圈数，默认空列表不保存分布。<code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> 需要设置
+<code class="docutils literal notranslate"><span class="pre">turn_ranges</span></code> 才启用分析；未指定的 beta/alpha 从每个 BPM 的
+<code class="docutils literal notranslate"><span class="pre">BETX</span></code>、<code class="docutils literal notranslate"><span class="pre">BETY</span></code>、<code class="docutils literal notranslate"><span class="pre">ALFX</span></code>、<code class="docutils literal notranslate"><span class="pre">ALFY</span></code> 读取。对于有限长度 BPM，源出口光学与色散
+沿半个漂移长度反向传输，得到监视器中心处的值。闭轨偏置默认保持零，只有显式配置
+才改变；源 <code class="docutils literal notranslate"><span class="pre">X</span></code>、<code class="docutils literal notranslate"><span class="pre">PX</span></code>、<code class="docutils literal notranslate"><span class="pre">Y</span></code>、<code class="docutils literal notranslate"><span class="pre">PY</span></code> 不会自动作为监视器偏置导入，
+因为生成的跟踪模型不一定复现源闭轨。导入的 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DPX</span></code> 乘以 <span class="math notranslate nohighlight">\(\beta_0\)</span>，
+换算到 PASS 的相对动量偏差约定。显式给出的光学参数覆盖这些逐 BPM 默认值；
+显式色散参数应已采用 PASS 单位。各监视器的参数和输出见 <a class="reference internal" href="monitor/index.html"><span class="doc">监视器与输出</span></a>。</p>
 </section>
 <section id="id8">
 <h3>混合模式<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
