@@ -253,6 +253,7 @@ def generate_from_tfs(
     is_field_error: bool = False,
     random_seed: int | None = None,
     is_alignment_error: bool = False,
+    bpm_monitor: dict | None = None,
 ) -> str:
     """Generate a PASS input JSON from a MADX twiss TFS file.
 
@@ -286,6 +287,10 @@ def generate_from_tfs(
         is_field_error: attach field errors to matching elements.
         random_seed: optional Injection particle-distribution random seed.
         is_alignment_error: attach DX/DY/DPSI from the same error TFS file.
+        bpm_monitor: optional monitor template (type plus monitor fields) applied
+            to all MAD-X MONITOR/HMONITOR/VMONITOR centers. None makes finite
+            BPMs drifts and zero-length BPMs markers; a template replaces the
+            marker or inserts a monitor between equal half-length drifts.
 
     Returns:
         The output file path.
@@ -337,6 +342,7 @@ def generate_from_tfs(
         is_merge_drift=is_merge_drift,
         is_field_error=is_field_error,
         is_alignment_error=is_alignment_error,
+        bpm_monitor=bpm_monitor,
     )
 
     # --- Apply element settings ---

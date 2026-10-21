@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 import tfs
 
+from PASS.para.bpm import _create_bpm_items, _is_bpm, _split_bpm_twiss_table, _unique_names
 from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem, SolenoidItem
 
@@ -244,6 +245,7 @@ def read_madx_elements(
     is_merge_drift: bool = False,
     is_field_error: bool = False,
     is_alignment_error: bool = False,
+    bpm_monitor: dict | None = None,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (element_items, element_names, circumference).
 
@@ -261,12 +263,17 @@ def read_madx_elements(
         is_merge_drift: merge consecutive drift elements.
         is_field_error: attach field errors to matching elements.
         is_alignment_error: attach DX/DY/DPSI to magnetic elements; aperture stays fixed.
+        bpm_monitor: optional monitor template, e.g. {"type": "StatMonitor"}.
+            None converts finite BPMs to drifts and zero-length BPMs to markers.
+            Otherwise a monitor replaces the marker or splits the drift in half.
 
     Returns:
         (items, names, circumference) where items is a list of Element
         schema objects and names is a list of corresponding string names.
     """
     twiss_table = tfs.read(twiss_file)
+    bpm_items, bpm_names = _create_bpm_items(twiss_table, bpm_monitor, include_drifts=True)
+    bpm_nodes = iter(zip(bpm_items, bpm_names))
     num_elem = twiss_table.shape[0]
     circumference = twiss_table.headers["LENGTH"]
     print(f"[Read MADX Elements] {num_elem} elements, C={circumference}")
@@ -360,8 +367,14 @@ def read_madx_elements(
                 hkick=hkick,
                 vkick=vkick,
             )
-        elif et == "monitor":
-            item = DriftItem(s=s, length=l)
+        elif _is_bpm(et):
+            n_nodes = 3 if l > 0 and bpm_monitor is not None else 1
+            for node_index in range(n_nodes):
+                item, name = next(bpm_nodes)
+                item._match_key = match_key if node_index == 0 else None
+                items.append(item)
+                names.append(name)
+            continue
         else:
             print(f"[Read MADX Elements] Warning: unsupported {et} '{name}' -> drift")
             item = DriftItem(s=s, length=l)
@@ -379,7 +392,7 @@ def read_madx_elements(
                                       element_names=twiss_table["NAME"],
                                       is_field_error=is_field_error,
                                       is_alignment_error=is_alignment_error)
-        key_to_item = {item._match_key: item for item in items}
+        key_to_item = {item._match_key: item for item in items if item._match_key is not None}
         field_count, alignment_count = 0, 0
         for key, errs in error_dict.items():
             if key not in key_to_item:
@@ -404,8 +417,10 @@ def read_madx_elements(
     if is_merge_drift:
         items, names = merge_drift_elements(items, names)
 
+    names = _unique_names(names)
+
     # Circumference check
-    length_count = sum(item.length for item in items)
+    length_count = sum(getattr(item, "length", 0.0) for item in items)
     diff = length_count - circumference
     if abs(diff) < 1e-6:
         print(f"[Read MADX Elements] Circumference check passed: {length_count:.6f} m")
@@ -430,6 +445,7 @@ def read_madx_twiss(
     longitudinal_transfer: str = "off",
     is_merge_drift: bool = False,
     is_alignment_error: bool = False,
+    bpm_monitor: dict | None = None,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
 
@@ -450,6 +466,8 @@ def read_madx_twiss(
         is_alignment_error: unsupported here; use read_madx_elements.
         insert_patterns: regex patterns to match element names for thin-lens insertion.
         longitudinal_transfer: "off" / "drift" / "matrix".
+        bpm_monitor: optional PASS monitor template at every BPM center S-L/2.
+            None retains only zero-length BPM Markers. Transport remains Twiss.
 
     Returns:
         (items, names, circumference) where items is a list of TwissItem
@@ -458,7 +476,9 @@ def read_madx_twiss(
     """
     if is_alignment_error:
         raise ValueError("Alignment errors require read_madx_elements; Twiss transfer import cannot move physical magnetic fields")
-    twiss_table = tfs.read(twiss_file)
+    source_table = tfs.read(twiss_file)
+    bpm_items, bpm_names = _create_bpm_items(source_table, bpm_monitor)
+    twiss_table = _split_bpm_twiss_table(source_table) if bpm_monitor is not None else source_table
     headers = twiss_table.headers
     reference_beta = _get_madx_reference_beta(headers)
     num_elem = twiss_table.shape[0]
@@ -569,7 +589,7 @@ def read_madx_twiss(
     if is_field_error:
         if not error_file:
             raise ValueError("Field-error import requires an error TFS file")
-        error_dict = read_madx_errors(error_file, element_names=twiss_table["NAME"])
+        error_dict = read_madx_errors(error_file, element_names=source_table["NAME"])
         # A localized error must retain its transport endpoint through merging.
         keywords = ["field_error" if item._match_key in error_dict else keyword for item, keyword in zip(items, keywords)]
 
@@ -578,7 +598,7 @@ def read_madx_twiss(
 
     # --- Insert thin-lens elements ---
     if insert_patterns:
-        insert_items, insert_names = _insert_elements(twiss_table, insert_patterns)
+        insert_items, insert_names = _insert_elements(source_table, insert_patterns)
         items.extend(insert_items)
         names.extend(insert_names)
         print(f"[Read MADX Twiss] {len(insert_items)} thin-lens elements inserted")
@@ -588,7 +608,7 @@ def read_madx_twiss(
         error_items = []
         error_names = []
         source_positions, occurrences = {}, {}
-        for _, row in twiss_table.iterrows():
+        for _, row in source_table.iterrows():
             raw_name = str(row["NAME"])
             occurrences[raw_name] = occurrences.get(raw_name, 0) + 1
             source_positions[_make_match_key(raw_name, occurrences[raw_name])] = float(row["S"])
@@ -608,6 +628,10 @@ def read_madx_twiss(
         items.extend(error_items)
         names.extend(error_names)
         print(f"[Read MADX Twiss] {len(error_items)} field error multipoles added")
+
+    items.extend(bpm_items)
+    names.extend(bpm_names)
+    names = _unique_names(names)
 
     # --- Circumference check ---
     length_count = 0.0
@@ -702,6 +726,7 @@ def read_madx_twiss_interpolated(
     longitudinal_transfer: str = "off",
     interp_kind: str = "phase_hermite",
     is_alignment_error: bool = False,
+    bpm_monitor: dict | None = None,
 ) -> tuple[list, list[str], float]:
     """Resample a full ring using phase-constrained quintic Hermite optics.
 
@@ -713,13 +738,24 @@ def read_madx_twiss_interpolated(
     are converted from MAD-X PT derivatives to PASS momentum derivatives.
     Explicit DQx/DQy values already use the PASS convention and are unchanged.
     Alignment errors require physical element maps; use read_madx_elements.
+    Zero-length BPMs retain Markers by default. ``bpm_monitor`` replaces them
+    with diagnostics, adding exact center endpoints S-L/2 for finite BPMs.
     """
     if is_alignment_error:
         raise ValueError("Alignment errors require read_madx_elements; interpolated Twiss import cannot move physical magnetic fields")
     from PASS.para.twiss_interpolation import resample_madx_twiss
 
-    return resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer,
-                               interp_kind)
+    return resample_madx_twiss(twiss_file,
+                               num_interp_slice,
+                               error_file,
+                               muz,
+                               dqx,
+                               dqy,
+                               is_field_error,
+                               insert_patterns,
+                               longitudinal_transfer,
+                               interp_kind,
+                               bpm_monitor=bpm_monitor)
 
 
 # Error reader

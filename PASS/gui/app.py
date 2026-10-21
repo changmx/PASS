@@ -1636,6 +1636,7 @@ class ConfigPage(QWidget):
             self._madx_fields["alignment_errors"] = alignment
             self.form_layout.addRow("", alignment)
 
+        self._add_madx_bpm_fields()
         transfer = PropertyComboBox()
         transfer.setObjectName("choiceField")
         transfer.addItems(ENUM_OPTIONS["Longitudinal transfer"])
@@ -1665,6 +1666,79 @@ class ConfigPage(QWidget):
         for field in self._madx_fields.values():
             if isinstance(field, QWidget):
                 self._track_field(field)
+
+    def _add_madx_bpm_fields(self) -> None:
+        from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
+
+        enabled = QCheckBox("在 BPM 位置插入 PASS monitor")
+        enabled.setObjectName("booleanField")
+        enabled.setToolTip("MONITOR、HMONITOR、VMONITOR 默认按长度导入为 Marker 或 Drift；勾选后在零长度 BPM 的 S 或非零长度 BPM 的中心 S-L/2 插入 monitor。")
+        self._madx_fields["insert_bpm"] = enabled
+        self.form_layout.addRow("BPM 处理", enabled)
+        kind = PropertyComboBox()
+        kind.setObjectName("choiceField")
+        models = (StatMonitorItem, ParticleMonitorItem, DistMonitorItem, PhaseAdvanceMonitorItem)
+        kind.addItems(model.model_fields["command"].default for model in models)
+        self._madx_fields["bpm_type"] = kind
+        self.form_layout.addRow("Monitor 类型", kind)
+        for model in models:
+            command = model.model_fields["command"].default
+            editor = self._make_madx_bpm_editor(model)
+            self._madx_fields[f"bpm_settings_{command}"] = editor
+            self.form_layout.addRow("Monitor 参数", editor)
+            editor.changed.connect(self._madx_bpm_changed)
+        hint = QLabel()
+        hint.setWordWrap(True)
+        self._madx_fields["bpm_hint"] = hint
+        self.form_layout.addRow(hint)
+        enabled.toggled.connect(self._madx_bpm_changed)
+        kind.currentTextChanged.connect(self._madx_bpm_changed)
+        self._madx_bpm_changed()
+
+    def _make_madx_bpm_editor(self, model) -> ObjectEditor:
+        # Position and optics belong to each source BPM, not to the shared template.
+        source_fields = {"s", "order", "command", "beta_x", "beta_y", "alpha_x", "alpha_y", "dx", "dpx"}
+        specs = {field.alias or name: field for name, field in model.model_fields.items() if name not in source_fields}
+        draft = model_draft(model)
+        values = {key: draft[key] for key in specs}
+
+        def factory(key, value):
+            if key in {"Save turns", "Turn ranges"}:
+                field = TurnsEditor(value, int(self.data.get("Number of turns", 100)), analysis=key == "Turn ranges")
+            else:
+                field = make_editor(specs[key].annotation, value, key, self.base_dir)
+            field.setToolTip(self._field_help(key, value))
+            return field
+
+        editor = ObjectEditor(values, factory, self._read_field_value)
+        for field in editor.fields.values():
+            field.changed.connect(editor.changed)
+        return editor
+
+    def _madx_bpm_changed(self) -> None:
+        fields = self._madx_fields
+        enabled = fields["insert_bpm"].isChecked()
+        command = fields["bpm_type"].currentText()
+        self.form_layout.setRowVisible(fields["bpm_type"], enabled)
+        for key, field in fields.items():
+            if key.startswith("bpm_settings_"):
+                self.form_layout.setRowVisible(field, enabled and key == f"bpm_settings_{command}")
+        hint = "默认将零长度 BPM 导入为 Marker、非零长度 BPM 导入为 Drift。"
+        if enabled:
+            transport = "Twiss 模式在中心拆分传输" if fields.get("source_kind") == "twiss" else "两侧各保留半长漂移"
+            hint = f"零长度 BPM 替换为 {command}（S）；非零长度 BPM 在中心 S-L/2 插入 {command}，{transport}。参数对所有 BPM 生效。"
+            if command == "PhaseAdvanceMonitor":
+                hint += " 光学参数由各 BPM 的 TFS 数据计算，闭轨偏移默认为 0，可手动设置；请设置 Turn ranges，空表不分析。"
+            elif command == "DistMonitor":
+                hint += " 请设置 Save turns，空表不保存分布。"
+        fields["bpm_hint"].setText(hint)
+        self._madx_preview = self._madx_preview_signature = None
+
+    def _madx_bpm_options(self) -> dict | None:
+        if not self._madx_fields["insert_bpm"].isChecked():
+            return None
+        command = self._madx_fields["bpm_type"].currentText()
+        return {"type": command, **self._madx_fields[f"bpm_settings_{command}"].get_value()}
 
     def _madx_sampling_changed(self) -> None:
         interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
@@ -1756,6 +1830,8 @@ class ConfigPage(QWidget):
             value("patterns"),
             value("sampling"),
             value("num_segments"),
+            tuple((key, json.dumps(capture_field(field), sort_keys=True, ensure_ascii=False)) for key, field in fields.items()
+                  if key == "insert_bpm" or key.startswith("bpm_") and key != "bpm_hint"),
         )
 
     def _read_madx_import(self) -> tuple[list, list[str], float] | None:
@@ -1781,6 +1857,7 @@ class ConfigPage(QWidget):
 
             element_mode = self._madx_fields.get("source_kind") != "twiss"
             merge_drift = self._madx_fields["merge_drift"].currentText() == "是"
+            bpm_monitor = self._madx_bpm_options()
             if element_mode:
                 items, names, circumference = read_madx_elements(
                     source,
@@ -1788,6 +1865,7 @@ class ConfigPage(QWidget):
                     is_merge_drift=merge_drift,
                     is_field_error=self._madx_fields["field_errors"].isChecked(),
                     is_alignment_error=self._madx_fields["alignment_errors"].isChecked(),
+                    bpm_monitor=bpm_monitor,
                 )
             else:
                 patterns = [part.strip() for part in self._madx_fields["patterns"].text().split(",") if part.strip()]
@@ -1812,6 +1890,7 @@ class ConfigPage(QWidget):
                     is_field_error=self._madx_fields["field_errors"].isChecked(),
                     insert_patterns=patterns or None,
                     longitudinal_transfer=self._madx_fields["longitudinal_transfer"].currentText(),
+                    bpm_monitor=bpm_monitor,
                     **options,
                 )
                 if interpolation:
@@ -1856,8 +1935,10 @@ class ConfigPage(QWidget):
             "hkicker": "水平校正铁",
             "vkicker": "垂直校正铁",
             "kicker": "Kicker",
-            "tkicker": "时间 Kicker",
+            "tkicker": "横向 Kicker",
             "monitor": "监测器",
+            "hmonitor": "水平 BPM",
+            "vmonitor": "垂直 BPM",
             "marker": "Marker",
             "solenoid": "螺线管",
             "rfcavity": "RF 腔",
@@ -1907,6 +1988,8 @@ class ConfigPage(QWidget):
         interpolation = isinstance(sampling, QComboBox) and sampling.currentText() == "等间距插值"
         sampling_summary = ("采样方式：等间距插值（替换原始 Twiss 点）\n" + self._madx_fields["grid_summary"].text() +
                             "\n" if interpolation else f"合并连续 Drift：{'是' if merge else '否'}\n")
+        bpm_summary = (f"{self._madx_fields['bpm_type'].currentText()}（零长度位置 S，非零长度中心 S-L/2）"
+                       if self._madx_fields["insert_bpm"].isChecked() else "零长度 Marker，非零长度 Drift")
         preview_names = ", ".join(str(name) for name in names[:8])
         if len(names) > 8:
             preview_names += f" 等 {len(names)} 项"
@@ -1923,6 +2006,7 @@ class ConfigPage(QWidget):
                 f"最终导入项目：{len(items)}\n"
                 f"环周长：{circumference:.6g} m\n"
                 f"{sampling_summary}"
+                f"BPM 处理：{bpm_summary}\n"
                 f"\n{source_heading}\n{source_summary}\n"
                 f"\n最终 PASS command：\n{command_summary}\n"
                 f"\n项目示例：{preview_names or '（无项目）'}\n\n"
@@ -1970,6 +2054,7 @@ class ConfigPage(QWidget):
                 parameters[key] = field.isChecked()
             elif isinstance(field, str):
                 parameters[key] = field
+        parameters["bpm_monitor"] = self._madx_bpm_options()
         self.recipes.append({
             "id": uuid4().hex,
             "kind": "madx",

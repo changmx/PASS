@@ -118,10 +118,21 @@ class RingTwissInterpolator:
         return result
 
 
-def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer, interp_kind):
+def resample_madx_twiss(twiss_file,
+                        num_interp_slice,
+                        error_file,
+                        muz,
+                        dqx,
+                        dqy,
+                        is_field_error,
+                        insert_patterns,
+                        longitudinal_transfer,
+                        interp_kind,
+                        bpm_monitor=None):
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
     from PASS.utils.command_order import command_position_key, sort_commands
+    from PASS.para.bpm import _create_bpm_items, _split_bpm_twiss_table, _unique_names
     from PASS.para.madx import _get_madx_reference_beta, _insert_elements, _make_match_key, read_madx_errors
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem
@@ -134,7 +145,7 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
         raise ValueError("Invalid longitudinal_transfer; use off, drift or matrix.")
     table = tfs.read(twiss_file)
     reference_beta = _get_madx_reference_beta(table.headers)
-    optics = RingTwissInterpolator(table)
+    optics = RingTwissInterpolator(_split_bpm_twiss_table(table) if bpm_monitor is not None else table)
     circumference = optics.circumference
     dqx = float(reference_beta * table.headers["DQ1"] if dqx == "from_file" else dqx)
     dqy = float(reference_beta * table.headers["DQ2"] if dqy == "from_file" else dqy)
@@ -160,6 +171,10 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
                 raise ValueError(f"Field-error element {key!r} is missing from the source TFS.")
             extras.append(MultipoleItem(s=positions[key], length=0., knl=errors["knl"], ksl=errors["ksl"]))
             extra_names.append(f"{key}_error")
+
+    bpm_items, bpm_names = _create_bpm_items(table, bpm_monitor)
+    extras.extend(bpm_items)
+    extra_names.extend(bpm_names)
 
     base = np.linspace(0., circumference, num_interp_slice)
     required = np.unique(np.r_[optics.discontinuities, [item.s for item in extras]])
@@ -200,13 +215,7 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
         previous_s, previous = s, outgoing
     items.extend(extras)
     names.extend(extra_names)
-    used = set()
-    for i, name in enumerate(names):
-        candidate, suffix = name, 2
-        while candidate in used:
-            candidate, suffix = f"{name}_{suffix}", suffix + 1
-        names[i] = candidate
-        used.add(candidate)
+    names = _unique_names(names)
     explicit_positions = {}
     for item in items:
         if getattr(item, "order", None) is not None:
