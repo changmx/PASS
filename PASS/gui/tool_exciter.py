@@ -71,6 +71,7 @@ class ExciterPage(PhysicsToolPage):
         self.frequency_mode = QComboBox()
         self.frequency_mode.addItem("Tune → 频率（默认）", "tune")
         self.frequency_mode.addItem("直接输入频率", "frequency")
+        self._frequency_key = self.frequency_mode.currentData()
         ff.addRow("输入方式", self.frequency_mode)
         for key, label, value, scale in (("excite_tune", "中心激励 tune", .47, 1), ("sweep_tune", "扫频 tune 全宽", .02, 1),
                                          ("central_frequency", "中心频率 fc (kHz)", 600, 1000), ("sweep_width", "扫频全宽 Δf (kHz)", 20, 1000),
@@ -185,16 +186,25 @@ class ExciterPage(PhysicsToolPage):
             self.conversion_dialog.hide()
 
     def change_frequency_mode(self):
-        if self.result is not None:
-            values = {
-                "excite_tune": self.result.central_frequency / self.result.frequency_0,
-                "sweep_tune": self.result.sweep_width / self.result.frequency_0,
-                "central_frequency": self.result.central_frequency,
-                "sweep_width": self.result.sweep_width
-            }
-            for key, value in values.items():
-                with QSignalBlocker(self.inputs[key]):
-                    self.inputs[key].setValue(value / self.scales[key])
+        key = self.frequency_mode.currentData()
+        # Finish the old input mode before converting edits pending in the timer.
+        with QSignalBlocker(self.frequency_mode):
+            self.frequency_mode.setCurrentIndex(self.frequency_mode.findData(self._frequency_key))
+        self.recalculate()
+        if self.result is None:
+            return
+        values = {
+            "excite_tune": self.result.central_frequency / self.result.frequency_0,
+            "sweep_tune": self.result.sweep_width / self.result.frequency_0,
+            "central_frequency": self.result.central_frequency,
+            "sweep_width": self.result.sweep_width
+        }
+        for name, value in values.items():
+            with QSignalBlocker(self.inputs[name]):
+                self.inputs[name].setValue(value / self.scales[name])
+        with QSignalBlocker(self.frequency_mode):
+            self.frequency_mode.setCurrentIndex(self.frequency_mode.findData(key))
+        self._frequency_key = key
         self.change_mode()
 
     def change_mode(self):

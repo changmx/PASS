@@ -36,6 +36,7 @@ class MagnetSection(QWidget):
             self.known.addItem(label, key)
         default = {"dipole": "field", "quadrupole": "k1", "sextupole": "kn", "octupole": "kn", "solenoid": "ks"}[kind]
         self.known.setCurrentIndex(self.known.findData(default))
+        self._known_key = default
         form.addRow("已知量", self.known)
         self.value = owner.bind(create_number_input(1 if kind == "dipole" else 5, -1e100))
         self.value_label = QLabel(self.known.currentText())
@@ -71,33 +72,45 @@ class MagnetSection(QWidget):
 
     def change_known(self):
         key = self.known.currentData()
-        if self.result is not None:
-            value = getattr(self.result, key)
-            if value is not None:
-                with QSignalBlocker(self.value):
-                    self.value.setValue(value / self.input_scale())
+        try:
+            # Convert the current old-mode inputs, including edits waiting for the timer.
+            result = self._calculate_result(self.owner._read_rigidity(), self._known_key)
+            value = getattr(result, key)
+            if value is None:
+                raise ValueError(f"{self.known.currentText()} 没有有限值，无法切换。")
+            value = finite_number(value / self.input_scale(key), "换算后的已知量")
+            if not self.value.minimum() <= value <= self.value.maximum():
+                raise ValueError("换算后的已知量超出输入范围，无法切换。")
+        except (ValueError, OverflowError, ZeroDivisionError) as exc:
+            with QSignalBlocker(self.known):
+                self.known.setCurrentIndex(self.known.findData(self._known_key))
+            self.value_label.setText(self.known.currentText())
+            self.owner.recalculate()
+            self.owner.error.setText(str(exc))
+            return
+        self._known_key = key
+        with QSignalBlocker(self.value):
+            self.value.setValue(value)
         self.value_label.setText(self.known.currentText())
         self.owner.recalculate()
 
-    def input_scale(self):
-        key = self.known.currentData()
+    def input_scale(self, known=None):
+        key = known or self.known.currentData()
         if key == "angle":
             return math.pi / 180
         return 1e-4 if key == "pole_field" or (self.kind == "solenoid" and key == "field") else 1
 
+    def _calculate_result(self, brho, known):
+        fn = {"dipole": dipole_from, "quadrupole": quadrupole_from, "solenoid": solenoid_from}.get(self.kind)
+        value = self.value.value() * self.input_scale(known)
+        if fn is None:
+            return multipole_from(2 if self.kind == "sextupole" else 3, brho, self.length.value(), known, value, self.radius.value() * 1e-3)
+        return fn(brho, self.length.value(), known, value, **({"radius": self.radius.value() * 1e-3} if self.kind == "quadrupole" else {}))
+
     def calculate(self, brho):
         self.result = None
         self.results.clear()
-        fn = {"dipole": dipole_from, "quadrupole": quadrupole_from, "solenoid": solenoid_from}.get(self.kind)
-        value = self.value.value() * self.input_scale()
-        if fn is None:
-            result = multipole_from(2 if self.kind == "sextupole" else 3, brho, self.length.value(), self.known.currentData(), value,
-                                    self.radius.value() * 1e-3)
-        else:
-            result = fn(brho, self.length.value(), self.known.currentData(), value,
-                        **({
-                            "radius": self.radius.value() * 1e-3
-                        } if self.kind == "quadrupole" else {}))
+        result = self._calculate_result(brho, self.known.currentData())
         data = dict(result.__dict__)
         if self.kind == "dipole":
             data["angle_deg"] = math.degrees(result.angle)
@@ -146,6 +159,10 @@ class MagnetPage(PhysicsToolPage):
         self.layout.insertWidget(self.layout.count() - 1, content, 1)
         self.recalculate()
 
+    def _read_rigidity(self):
+        brho = self.direct_rigidity.value() if self.rigidity_mode.currentData() == "direct" else signed_rigidity(self.reference.current())
+        return finite_number(brho, "带符号磁刚度", nonzero=True)
+
     def recalculate(self):
         self.timer.stop()
         direct = self.rigidity_mode.currentData() == "direct"
@@ -154,8 +171,7 @@ class MagnetPage(PhysicsToolPage):
         self.rigidity_result.setVisible(not direct)
         section = self.sections[self.tabs.currentIndex()]
         try:
-            brho = self.direct_rigidity.value() if direct else signed_rigidity(self.reference.current())
-            finite_number(brho, "带符号磁刚度", nonzero=True)
+            brho = self._read_rigidity()
             self.rigidity_result.setText(format_number(brho))
             self.set_valid(section.calculate(brho))
         except (ValueError, OverflowError, ZeroDivisionError) as exc:
