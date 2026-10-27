@@ -581,6 +581,40 @@ defaults to the global value; insertion synchronizes the global circumference
 to the displayed generator value. Existing commands are preserved. Leaving an
 edited generator asks whether to discard its uninserted draft.
 
+MAD-X source and reference beam
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Both element import and Twiss-point import offer **Data source** (数据来源):
+**Existing Twiss/TFS** (已有 Twiss/TFS) keeps the TFS workflow, while
+**MAD-X sequence** loads a ``.seq`` or ``.madx`` source using ``cpymad``,
+which is installed automatically as a required PASS dependency.
+
+For sequence input, select **Sequence file** (Sequence 文件) and enter the
+**Lattice name** (格架名称), initially ``ring``. MAD-X ``LINE`` and ``SEQUENCE``
+definitions are supported. **Beam source** (束流来源) selects either
+**BEAM in file** (文件中的 BEAM) or **PASS beam configuration** (PASS 束流配置).
+The file option requires an explicit beam declaration. With PASS configuration,
+choose **PASS reference bunch** (PASS 参考束团), displayed as an Injection name
+and ``bunchN``. No first-bunch default is inferred. This selection supplies one
+reference beam for MAD-X; it does not overwrite the PASS beam configuration.
+
+**Optics calculation** (光学计算) offers **MAD-X TWISS** or **PTC TWISS** when
+importing Twiss points or inserting a ``PhaseAdvanceMonitor``. Ordinary physical
+element import does not require an optics calculation. PTC is needed for
+models using its quadrupole fringe optics. PTC output is converted to the
+supported uncoupled Twiss-map conventions; unsupported closed orbit, vertical
+dispersion or coupling stops the import. Physical-element conversion also
+stops on unsupported fringe parameters instead of dropping them.
+
+Use **Preview import** before **Import into Sequence**. The preview includes
+the lattice name, MAD-X version, reference-beam choice and any source warnings.
+Preview and import reuse the same loaded result. Changes to the source,
+lattice name, beam selection or requested optics invalidate the relevant
+cache. After editing a file referenced by the source script, use
+**Reload sequence** (重新加载 sequence) to force a fresh load and preview.
+The existing sampling, BPM and geometry options still apply. The Python
+workflow and PTC derivative conversion are documented in :ref:`en-madx-sequence`.
+
 MAD-X sampling
 ~~~~~~~~~~~~~~
 

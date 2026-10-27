@@ -204,9 +204,11 @@ def describe_madx_bpms(twiss_file, items, names, *, bpm_monitor=None, bpm_names=
     Call with the same monitor options used for import. Private source identifiers
     survive drift merging but are deliberately absent from serialized commands.
     """
+    from PASS.para.madx import read_madx_table
+
     if len(items) != len(names):
         raise ValueError("Imported items and names must have equal lengths")
-    table = tfs.read(twiss_file)
+    table = read_madx_table(twiss_file)
     cls, _ = _parse_bpm_monitor(bpm_monitor)
     selected_rows = _select_bpm_rows(table, bpm_monitor, bpm_names, bpm_patterns)
     occurrences, result = {}, []

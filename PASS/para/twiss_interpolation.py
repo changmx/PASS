@@ -137,6 +137,7 @@ def resample_madx_twiss(twiss_file,
     from PASS.utils.command_order import command_position_key, sort_commands
     from PASS.para.bpm import _create_bpm_items, _select_bpm_rows, _split_bpm_twiss_table, _unique_names
     from PASS.para.madx import _get_madx_reference_beta, _insert_elements, _make_match_key, _validate_imported_geometry, _validate_madx_geometry, read_madx_errors
+    from PASS.para.madx import read_madx_table
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem
 
@@ -146,7 +147,7 @@ def resample_madx_twiss(twiss_file,
         raise ValueError("Use interp_kind='phase_hermite'; independent per-column interpolation is no longer supported.")
     if longitudinal_transfer not in ("off", "drift", "matrix"):
         raise ValueError("Invalid longitudinal_transfer; use off, drift or matrix.")
-    table = tfs.read(twiss_file)
+    table = read_madx_table(twiss_file)
     if strict_geometry:
         _validate_madx_geometry(table, element_mode=False)
     selected_rows = _select_bpm_rows(table, bpm_monitor, bpm_names, bpm_patterns)

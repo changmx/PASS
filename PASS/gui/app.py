@@ -495,6 +495,9 @@ class ConfigPage(QWidget):
         self._madx_fields: dict[str, QWidget] = {}
         self._madx_preview: tuple[list, list[str], float] | None = None
         self._madx_preview_signature: tuple | None = None
+        self._madx_sequence_result = None
+        self._madx_sequence_signature: tuple | None = None
+        self._madx_source_table = None
         self._optics_mode: str | None = None
         self._optics_fields: dict[str, QWidget] = {}
         self._optics_preview: dict | None = None
@@ -1576,29 +1579,75 @@ class ConfigPage(QWidget):
         self.configure_madx_import(source_kind="twiss")
 
     def configure_madx_import(self, source_kind: str = "file") -> None:
-        """Show import settings for the MAD-X Twiss/TFS readers in PASS."""
+        """Choose a TFS table or evaluate a MAD-X sequence before importing."""
         if not self._confirm_form_navigation():
             return
         self._clear_form()
         if source_kind == "elements":
             self.form_title.setText("从 MAD-X 文件导入元件")
-            self.form_hint.setText("读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件；可选择合并连续 Drift。")
+            self.form_hint.setText("从 TFS 或 MAD-X sequence 导入物理元件；可选择合并连续 Drift。")
         elif source_kind == "twiss":
             self.form_title.setText("从 MAD-X 文件导入 Twiss 点")
-            self.form_hint.setText("选择 MAD-X 导出的 Twiss/TFS 文件，转换为 Twiss 传输 command。")
+            self.form_hint.setText("读取 TFS 或计算 MAD-X sequence 的光学，转换为 Twiss 传输 command。")
         else:
-            self.form_title.setText("导入 MAD-X Twiss (TFS)")
-            self.form_hint.setText("PASS 读取 MAD-X 导出的 Twiss/TFS 表，不直接解析 .madx 源脚本。")
+            self.form_title.setText("导入 MAD-X 元件")
+            self.form_hint.setText("从已有 TFS 或通过 cpymad 加载 sequence，导入 PASS 元件。")
         self._madx_fields = {}
         self._madx_preview = None
         self._madx_preview_signature = None
         self._madx_fields["source_kind"] = source_kind
+        source = PropertyComboBox()
+        source.setObjectName("choiceField")
+        source.addItem("已有 Twiss/TFS", "tfs")
+        source.addItem("MAD-X sequence", "sequence")
+        self._madx_fields["source_format"] = source
+        self.form_layout.addRow("数据来源", source)
         self._add_madx_path_field(
             "Twiss TFS 文件",
             "选择 Twiss/TFS 文件",
             required=True,
             directory=False,
         )
+        self._add_madx_path_field("Sequence 文件", "选择 MAD-X sequence 或入口脚本", required=True)
+        sequence_name = QLineEdit("ring")
+        sequence_name.setObjectName("valueField")
+        sequence_name.setToolTip("加载文件后使用的 MAD-X sequence 名称。")
+        self._madx_fields["sequence_name"] = sequence_name
+        self.form_layout.addRow("格架名称", sequence_name)
+        beam_source = PropertyComboBox()
+        beam_source.setObjectName("choiceField")
+        beam_source.addItem("文件中的 BEAM", "file")
+        beam_source.addItem("PASS 束流配置", "pass")
+        beam_source.setToolTip("文件来源要求所选格架已有 BEAM；PASS 来源使用所选参考束团的能量和全局粒子种类。")
+        self._madx_fields["beam_source"] = beam_source
+        self.form_layout.addRow("束流来源", beam_source)
+        reference_bunch = PropertyComboBox()
+        reference_bunch.setObjectName("choiceField")
+        reference_bunch.addItem("请选择参考束团", "")
+        source_sequence = self.data.get("Sequence", {})
+        for injection_name, item in (source_sequence.items() if isinstance(source_sequence, dict) else ()):
+            if isinstance(item, dict) and str(item.get("Command", "")).casefold() == "injection":
+                for key in self._injection_keys(item):
+                    reference_bunch.addItem(f"{injection_name} / {key}", json.dumps([injection_name, key], ensure_ascii=False))
+        reference_bunch.setToolTip("每次 MAD-X 光学计算采用一个参考束团；不同能量的束团不会自动共用同一份参考光学。")
+        self._madx_fields["reference_bunch"] = reference_bunch
+        self.form_layout.addRow("PASS 参考束团", reference_bunch)
+        optics_method = PropertyComboBox()
+        optics_method.setObjectName("choiceField")
+        optics_method.addItem("MAD-X TWISS", "twiss")
+        optics_method.addItem("PTC TWISS", "ptc")
+        optics_method.setToolTip("Twiss 点或 PhaseAdvanceMonitor 需要光学计算；普通元件导入只读取物理元件。")
+        self._madx_fields["optics_method"] = optics_method
+        self.form_layout.addRow("光学计算", optics_method)
+        source_hint = QLabel()
+        source_hint.setWordWrap(True)
+        self._madx_fields["source_hint"] = source_hint
+        self.form_layout.addRow(source_hint)
+        reload_source = button("重新加载 sequence")
+        reload_source.setToolTip("清除本次加载缓存；修改了脚本引用的其他文件后，使用此按钮重新加载。")
+        reload_source.clicked.connect(self._reload_madx_sequence)
+        self._madx_fields["reload_source"] = reload_source
+        self.form_layout.addRow("来源缓存", reload_source)
         self._add_madx_path_field("误差 TFS 文件", "可选的 MAD-X error TFS 文件")
 
         merge = PropertyComboBox()
@@ -1661,18 +1710,58 @@ class ConfigPage(QWidget):
             field.setToolTip(tooltip)
             self._madx_fields[key] = field
             self.form_layout.addRow(self._field_label(text, ""), field)
-        update_circumference = QCheckBox("用 TFS 环周长更新全局配置")
+        update_circumference = QCheckBox("用来源环周长更新全局配置")
         update_circumference.setObjectName("booleanField")
         update_circumference.setChecked(True)
-        update_circumference.setToolTip("导入后将 TFS 的 LENGTH 写入 Circumference (m)。")
+        update_circumference.setToolTip("导入后将格架的 LENGTH 写入 Circumference (m)。")
         self._madx_fields["update_circumference"] = update_circumference
         self.form_layout.addRow(self._field_label("全局配置", ""), update_circumference)
         self.madx_import_button.setVisible(True)
         self.madx_preview_button.setVisible(True)
         self.form_apply.setEnabled(False)
+        source.currentIndexChanged.connect(self._madx_source_changed)
+        beam_source.currentIndexChanged.connect(self._madx_source_changed)
+        self._madx_source_changed()
         for field in self._madx_fields.values():
             if isinstance(field, QWidget):
                 self._track_field(field)
+
+    def _madx_source_changed(self) -> None:
+        fields = self._madx_fields
+        sequence = fields["source_format"].currentData() == "sequence"
+        self.form_layout.setRowVisible(fields["Twiss TFS 文件"].parentWidget(), not sequence)
+        self.form_layout.setRowVisible(fields["Sequence 文件"].parentWidget(), sequence)
+        for key in ("sequence_name", "beam_source"):
+            self.form_layout.setRowVisible(fields[key], sequence)
+        self.form_layout.setRowVisible(fields["reference_bunch"], sequence and fields["beam_source"].currentData() == "pass")
+        needs_optics = fields.get("source_kind") == "twiss" or (fields["insert_bpm"].isChecked()
+                                                                and fields["bpm_type"].currentText() == "PhaseAdvanceMonitor")
+        self.form_layout.setRowVisible(fields["optics_method"], sequence and needs_optics)
+        self.form_layout.setRowVisible(fields["source_hint"], sequence)
+        self.form_layout.setRowVisible(fields["reload_source"], sequence)
+        fields["source_hint"].setText("cpymad 加载所选脚本及其相对引用；预览与导入复用同一次加载结果。光学计算不会修改 PASS 的束流配置。")
+        self._madx_preview = self._madx_preview_signature = None
+
+    def _reload_madx_sequence(self) -> None:
+        self._madx_sequence_result = self._madx_sequence_signature = None
+        self._madx_preview = self._madx_preview_signature = None
+        self._madx_source_table = None
+        self.preview_madx_import()
+
+    def _madx_pass_beam(self) -> tuple[dict, dict]:
+        from PASS.para.schema.main import MainConfig
+
+        selected = self._madx_fields["reference_bunch"].currentData()
+        if not selected:
+            raise ValueError("使用 PASS 束流配置时，请明确选择一个参考束团。")
+        injection_name, key = json.loads(selected)
+        injection = self.data.get("Sequence", {}).get(injection_name, {})
+        bunch = injection.get(key)
+        if not isinstance(bunch, dict) or str(injection.get("Command", "")).casefold() != "injection":
+            raise ValueError("所选参考束团已不存在，请重新打开导入设置并选择参考束团。")
+        keys = {name for name in MainConfig.model_fields}
+        keys.update(field.alias for field in MainConfig.model_fields.values() if field.alias)
+        return deepcopy({key: value for key, value in self.data.items() if key in keys}), deepcopy(bunch)
 
     def _add_madx_bpm_fields(self) -> None:
         from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
@@ -1764,6 +1853,8 @@ class ConfigPage(QWidget):
             elif command == "DistMonitor":
                 hint += " 请设置 Save turns，空表不保存分布。"
         fields["bpm_hint"].setText(hint)
+        if "source_format" in fields:
+            self._madx_source_changed()
         self._madx_preview = self._madx_preview_signature = None
 
     def _madx_bpm_options(self) -> dict | None:
@@ -1795,7 +1886,8 @@ class ConfigPage(QWidget):
         path = QLineEdit()
         path.setObjectName("valueField")
         path.setPlaceholderText("必填" if required else "可选")
-        path.setToolTip("请选择 MAD-X 导出的 Twiss/TFS 表。" if not directory else "请选择包含 MAD-X Twiss/TFS 输出的文件夹。")
+        path.setToolTip("请选择 MAD-X sequence 或入口脚本。" if key ==
+                        "Sequence 文件" else "请选择 MAD-X 导出的 Twiss/TFS 表。" if not directory else "请选择包含 MAD-X Twiss/TFS 输出的文件夹。")
         browse = button("浏览")
         browse.setToolTip("选择文件")
         if directory:
@@ -1813,7 +1905,7 @@ class ConfigPage(QWidget):
             field.window(),
             title,
             file_dialog_directory(field),
-            "MAD-X Twiss/TFS (*.tfs *.TFS *.dat *.DAT *.madx *.MADX);;All files (*)",
+            "MAD-X (*.tfs *.TFS *.dat *.DAT *.seq *.SEQ *.madx *.MADX);;All files (*)",
         )
         if path:
             field.setText(path)
@@ -1859,6 +1951,8 @@ class ConfigPage(QWidget):
 
         return (
             value("source_kind"),
+            value("source_format"),
+            self._madx_sequence_load_signature() if fields["source_format"].currentData() == "sequence" else (),
             file_signature("Twiss TFS 文件"),
             file_signature("误差 TFS 文件"),
             value("merge_drift"),
@@ -1876,27 +1970,92 @@ class ConfigPage(QWidget):
                   if key == "insert_bpm" or key.startswith("bpm_") and key != "bpm_hint"),
         )
 
+    def _madx_sequence_load_signature(self) -> tuple:
+        fields = self._madx_fields
+        source = Path(fields["Sequence 文件"].text().strip())
+        try:
+            stat = source.stat()
+            file_signature = (str(source.resolve()), stat.st_size, stat.st_mtime_ns)
+        except OSError:
+            file_signature = (str(source), )
+        reference = None
+        if fields["beam_source"].currentData() == "pass":
+            try:
+                reference = self._madx_pass_beam()
+            except ValueError:
+                reference = fields["reference_bunch"].currentData()
+        needs_optics = fields.get("source_kind") == "twiss" or (fields["insert_bpm"].isChecked()
+                                                                and fields["bpm_type"].currentText() == "PhaseAdvanceMonitor")
+        return (file_signature, fields["sequence_name"].text().strip(), fields["beam_source"].currentData(),
+                json.dumps(reference, sort_keys=True, ensure_ascii=False), fields["optics_method"].currentData() if needs_optics else None)
+
+    def _load_madx_import_source(self):
+        fields = self._madx_fields
+        if fields["source_format"].currentData() != "sequence":
+            return fields["Twiss TFS 文件"].text().strip()
+        signature = self._madx_sequence_load_signature()
+        if self._madx_sequence_result is None or self._madx_sequence_signature != signature:
+            from PASS.para.madx_sequence import load_madx_sequence
+
+            main, bunch = self._madx_pass_beam() if fields["beam_source"].currentData() == "pass" else (None, None)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            try:
+                result = load_madx_sequence(fields["Sequence 文件"].text().strip(),
+                                            sequence_name=fields["sequence_name"].text().strip(),
+                                            beam_source=fields["beam_source"].currentData(),
+                                            main=main,
+                                            bunch=bunch,
+                                            optics_method=signature[-1])
+            finally:
+                QApplication.restoreOverrideCursor()
+            self._madx_sequence_result = result
+            self._madx_sequence_signature = signature
+        result = self._madx_sequence_result
+        if fields.get("source_kind") == "twiss":
+            if result.twiss is None:
+                raise ValueError("MAD-X 没有返回所选光学计算的 Twiss 表。")
+            return result.twiss
+        return result.elements
+
+    def _madx_sequence_summary(self) -> str:
+        if self._madx_fields["source_format"].currentData() != "sequence" or self._madx_sequence_result is None:
+            return ""
+        result = self._madx_sequence_result
+        fields = self._madx_fields
+        beam = result.beam
+        text = (f"格架：{fields['sequence_name'].text().strip()}；MAD-X {result.madx_version}\n"
+                f"束流来源：{fields['beam_source'].currentText()}\n")
+        if fields["beam_source"].currentData() == "pass":
+            text += f"参考束团：{fields['reference_bunch'].currentText()}\n"
+        quantities = [f"{key}={float(beam[key]):.10g}" for key in ("MASS", "CHARGE", "ENERGY", "BETA") if key in beam]
+        text += "MAD-X 参考束流（MASS、ENERGY 单位 GeV）：" + "，".join(quantities) + "\n"
+        if self._madx_sequence_signature[-1] is not None:
+            text += f"光学计算：{fields['optics_method'].currentText()}\n"
+        if result.warnings:
+            text += "来源说明：\n" + "\n".join(str(warning) for warning in result.warnings) + "\n"
+        return text
+
     def _read_madx_import(self) -> tuple[list, list[str], float] | None:
         if not self._tool_resources_ready():
             return None
-        source_field = self._madx_fields.get("Twiss TFS 文件")
+        sequence_source = self._madx_fields.get("source_format").currentData() == "sequence"
+        source_key = "Sequence 文件" if sequence_source else "Twiss TFS 文件"
+        source_field = self._madx_fields.get(source_key)
         source = source_field.text().strip() if isinstance(source_field, QLineEdit) else ""
-        if "Twiss TFS 文件" not in self._madx_fields:
-            QMessageBox.warning(self, "缺少文件", "请选择 MAD-X 导出的 Twiss/TFS 文件。")
-            return None
         if not source:
-            QMessageBox.warning(self, "缺少文件", "请选择 MAD-X 导出的 Twiss/TFS 文件。")
+            QMessageBox.warning(self, "缺少文件", f"请选择{source_key}。")
             return None
         if not Path(source).is_file():
-            QMessageBox.warning(self, "文件不存在", "所选文件不存在；.madx 源脚本需要先生成 Twiss/TFS 表。")
+            QMessageBox.warning(self, "文件不存在", "所选文件不存在。")
             return None
-        if Path(source).suffix.casefold() == ".madx":
-            QMessageBox.warning(self, "需要 Twiss/TFS", "PASS 当前读取的是 MAD-X 导出的 Twiss/TFS 表，请先由该 .madx 脚本生成表文件。")
+        if not sequence_source and Path(source).suffix.casefold() in {".madx", ".seq"}:
+            QMessageBox.warning(self, "需要 Twiss/TFS", "此文件是 MAD-X 脚本；请将数据来源切换为 MAD-X sequence。")
             return None
         error_file = self._madx_fields["误差 TFS 文件"].text().strip()
         try:
             from PASS.para.madx import read_madx_elements, read_madx_twiss, read_madx_twiss_interpolated
 
+            source = self._load_madx_import_source()
             element_mode = self._madx_fields.get("source_kind") != "twiss"
             merge_drift = self._madx_fields["merge_drift"].currentText() == "是"
             bpm_monitor = self._madx_bpm_options()
@@ -1948,18 +2107,19 @@ class ConfigPage(QWidget):
                                                               f"基础点 {segments+1}，附加位置 {positions-segments-1}，Twiss command {len(twiss)}\n"
                                                               f"累计相位差：Qx = {twiss[-1].mu_x-twiss[0].mu_x_previous:.12g}，"
                                                               f"Qy = {twiss[-1].mu_y-twiss[0].mu_y_previous:.12g}")
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        except (ImportError, OSError, TypeError, ValueError, KeyError, RuntimeError) as exc:
             QMessageBox.critical(self, "导入失败", str(exc))
             return None
+        self._madx_source_table = source
         return items, names, circumference
 
     @staticmethod
-    def _madx_keyword_counts(source: str) -> Counter[str]:
+    def _madx_keyword_counts(source) -> Counter[str]:
         """Return TFS KEYWORD counts without making import dependent on them."""
         try:
             import tfs
 
-            table = tfs.read(source)
+            table = source if hasattr(source, "columns") else tfs.read(source)
             if "KEYWORD" not in table.columns:
                 return Counter()
             return Counter(str(keyword).casefold() for keyword in table["KEYWORD"])
@@ -2019,7 +2179,7 @@ class ConfigPage(QWidget):
     def _format_command_counts(counts: Counter[str]) -> str:
         return "\n".join(f"{command}：{count}" for command, count in sorted(counts.items())) or "（无项目）"
 
-    def _madx_bpm_report(self, source: str, items: list, names: list[str]) -> list[dict] | None:
+    def _madx_bpm_report(self, source, items: list, names: list[str]) -> list[dict] | None:
         try:
             from PASS.para.bpm import describe_madx_bpms
 
@@ -2091,7 +2251,9 @@ class ConfigPage(QWidget):
             self._madx_preview = preview
             self._madx_preview_signature = signature
         items, names, circumference = self._madx_preview
-        source = str(self._madx_fields["Twiss TFS 文件"].text().strip())
+        source_key = "Sequence 文件" if self._madx_fields["source_format"].currentData() == "sequence" else "Twiss TFS 文件"
+        source = str(self._madx_fields[source_key].text().strip())
+        source_table = self._madx_source_table if self._madx_source_table is not None else source
         source_kind = "Twiss 光学点" if self._madx_fields.get("source_kind") == "twiss" else "元件"
         merge = self._madx_fields["merge_drift"].currentText() == "是"
         sampling = self._madx_fields.get("sampling")
@@ -2102,23 +2264,24 @@ class ConfigPage(QWidget):
                        if self._madx_fields["insert_bpm"].isChecked() else "零长度 Marker，非零长度 Drift")
         if self._madx_fields["insert_bpm"].isChecked() and self._madx_fields["bpm_filter_enabled"].isChecked():
             bpm_summary += "；仅名称或正则匹配的 BPM，未选中者保留默认规则"
-        bpm_rows = self._madx_bpm_report(source, items, names)
+        bpm_rows = self._madx_bpm_report(source_table, items, names)
         bpm_detail = ("BPM 明细：无法读取补充明细。" if bpm_rows is None else
                       f"BPM 明细：{len(bpm_rows)} 个 BPM，插入 monitor {sum(bool(row['selected']) for row in bpm_rows)} 个；关闭摘要后显示逐个转换表。"
                       if bpm_rows else "BPM 明细：来源文件中无 BPM。")
         preview_names = ", ".join(str(name) for name in names[:8])
         if len(names) > 8:
             preview_names += f" 等 {len(names)} 项"
-        keyword_counts = self._madx_keyword_counts(source)
+        keyword_counts = self._madx_keyword_counts(source_table)
         if source_kind == "Twiss 光学点":
             source_summary = self._format_madx_type_counts(keyword_counts, twiss_points=True)
-            source_heading = "Twiss 点按来源元件（TFS 合并前）："
+            source_heading = "Twiss 点按来源元件（合并前）："
         else:
             source_summary = self._format_madx_type_counts(keyword_counts)
-            source_heading = "来源元件类型（TFS 合并前）："
+            source_heading = "来源元件类型（合并前）："
         command_summary = self._format_command_counts(self._command_counts(items))
         text = (f"文件：{Path(source).name}\n"
                 f"类型：MAD-X {source_kind}\n"
+                f"{self._madx_sequence_summary()}"
                 f"最终导入项目：{len(items)}\n"
                 f"环周长：{circumference:.6g} m\n"
                 f"{sampling_summary}"
@@ -2146,6 +2309,7 @@ class ConfigPage(QWidget):
             items, names, circumference = preview
             self._madx_preview = preview
             self._madx_preview_signature = signature
+        source_summary = self._madx_sequence_summary()
         sequence = self.data.setdefault("Sequence", {})
         if not isinstance(sequence, dict):
             QMessageBox.warning(self, "Sequence 无效", "请先修正 JSON 中的 Sequence 对象。")
@@ -2163,8 +2327,9 @@ class ConfigPage(QWidget):
         for key, field in self._madx_fields.items():
             if isinstance(field, QLineEdit):
                 value = field.text()
-                if key in ("Twiss TFS 文件", "误差 TFS 文件"):
-                    if value:
+                if key in ("Twiss TFS 文件", "Sequence 文件", "误差 TFS 文件"):
+                    active_source = "Sequence 文件" if self._madx_fields["source_format"].currentData() == "sequence" else "Twiss TFS 文件"
+                    if value and key in {active_source, "误差 TFS 文件"}:
                         sources[key] = str(Path(value).resolve())
                     continue
                 parameters[key] = value
@@ -2177,6 +2342,11 @@ class ConfigPage(QWidget):
             elif isinstance(field, str):
                 parameters[key] = field
         parameters["bpm_monitor"] = self._madx_bpm_options()
+        if self._madx_fields["source_format"].currentData() == "sequence" and self._madx_sequence_result is not None:
+            parameters["madx_version"] = self._madx_sequence_result.madx_version
+            parameters["reference_beam"] = dict(self._madx_sequence_result.beam)
+            if self._madx_fields["beam_source"].currentData() == "pass":
+                parameters["pass_main"], parameters["pass_reference_bunch"] = self._madx_pass_beam()
         self.recipes.append({
             "id": uuid4().hex,
             "kind": "madx",
@@ -2191,7 +2361,8 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         if first_name:
             self._select_sequence_item(first_name)
-        QMessageBox.information(self, "导入完成", f"已导入 {len(items)} 个项目，环周长 {circumference:.6g} m。")
+        QMessageBox.information(self, "导入完成",
+                                f"已导入 {len(items)} 个项目，环周长 {circumference:.6g} m。" + (f"\n\n{source_summary}" if source_summary else ""))
 
     @staticmethod
     def _unique_sequence_name(name: str, sequence: dict) -> str:
@@ -5150,6 +5321,9 @@ class ConfigPage(QWidget):
         self._madx_fields = {}
         self._madx_preview = None
         self._madx_preview_signature = None
+        self._madx_sequence_result = None
+        self._madx_sequence_signature = None
+        self._madx_source_table = None
         self._optics_mode = None
         self._optics_fields = {}
         self._optics_preview = None

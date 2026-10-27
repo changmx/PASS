@@ -1,4 +1,4 @@
-"""Read MADX TFS files → PASS schema objects.
+"""Read MADX TFS files or computed tables → PASS schema objects.
 
 Consolidates three former modules:
     madx_element  — twiss TFS → Element list (element-by-element tracking)
@@ -26,6 +26,15 @@ from PASS.utils.command_order import command_position_key
 from PASS.utils.constants import const
 
 # Helpers
+
+
+def read_madx_table(source):
+    """Read a TFS path or copy an in-memory table without mutating cached optics."""
+    if isinstance(source, tfs.TfsDataFrame):
+        table = source.copy(deep=True)
+        table.headers = dict(source.headers)
+        return table
+    return tfs.read(source)
 
 
 def _geometry_tolerance(atol: float) -> float:
@@ -187,7 +196,9 @@ def _validate_imported_geometry(items: list, names: list[str], circumference: fl
 
 def _get_madx_reference_beta(headers: dict) -> float:
     """Resolve the reference speed for native TWISS PT derivatives."""
-    if str(headers.get("NAME", "")).upper() == "PTC_TWISS":
+    controlled_ptc = (headers.get("PASS_SOURCE") == "MADX_SEQUENCE" and headers.get("PASS_DERIVATIVE") == "PT"
+                      and headers.get("PASS_PTC_TIME") in (True, 1))
+    if str(headers.get("NAME", "")).upper() == "PTC_TWISS" and not controlled_ptc:
         raise ValueError("PTC_TWISS derivatives depend on the PTC TIME mode, which its TFS headers do not identify. "
                          "The native MAD-X Twiss readers require a TWISS table; export TWISS, CHROM instead.")
     if "GAMMA" in headers:
@@ -268,9 +279,9 @@ def _extract_multipole_kl(row, columns) -> tuple[list, list]:
     return knl, ksl
 
 
-def _read_tfs_headers(twiss_file: str) -> dict:
+def _read_tfs_headers(twiss_file: str | tfs.TfsDataFrame) -> dict:
     """Read raw MADX TFS headers and first-row optics, retaining PT derivatives."""
-    df = tfs.read(twiss_file)
+    df = read_madx_table(twiss_file)
     headers = df.headers
     row0 = df.iloc[0]
     return {
@@ -406,7 +417,7 @@ def merge_drift_twiss_points(items: list[TwissItem], names: list[str], keywords:
 
 
 def read_madx_elements(
-    twiss_file: str,
+    twiss_file: str | tfs.TfsDataFrame,
     error_file: str = "",
     is_merge_drift: bool = False,
     is_field_error: bool = False,
@@ -416,7 +427,7 @@ def read_madx_elements(
     bpm_names: list[str] | None = None,
     bpm_patterns: list[str] | None = None,
 ) -> tuple[list, list[str], float]:
-    """Read a MADX twiss TFS file → (element_items, element_names, circumference).
+    """Read MADX elements → (element_items, element_names, circumference).
 
     Each MADX element is converted to the corresponding PASS Element schema
     object with its physical parameters (length, strength, edge angles, etc.).
@@ -427,7 +438,7 @@ def read_madx_elements(
     zero or absent (MADX twiss TFS stores the bend angle in ANGLE, not K0L).
 
     Args:
-        twiss_file: path to MADX twiss TFS file.
+        twiss_file: MADX TFS path or the sequence loader's elements table.
         error_file: path to MADX error TFS file.
         is_merge_drift: merge consecutive drift elements.
         is_field_error: attach field errors to matching elements.
@@ -444,7 +455,14 @@ def read_madx_elements(
         (items, names, circumference) where items is a list of Element
         schema objects and names is a list of corresponding string names.
     """
-    twiss_table = tfs.read(twiss_file)
+    twiss_table = read_madx_table(twiss_file)
+    if twiss_table.headers.get("PASS_SOURCE") == "MADX_SEQUENCE":
+        if "PASS_UNSUPPORTED" not in twiss_table.columns:
+            raise ValueError(
+                "Sequence element conversion requires loaded.elements, which retains physical source parameters; use loaded.twiss for Twiss points")
+        for _, row in twiss_table.iterrows():
+            if row.get("PASS_UNSUPPORTED", ""):
+                raise ValueError(f"Element {row['NAME']}: {row['PASS_UNSUPPORTED']}")
     if strict_geometry:
         _validate_madx_geometry(twiss_table, element_mode=True)
     selected_rows = _select_bpm_rows(twiss_table, bpm_monitor, bpm_names, bpm_patterns)
@@ -614,7 +632,7 @@ def read_madx_elements(
 
 
 def read_madx_twiss(
-    twiss_file: str,
+    twiss_file: str | tfs.TfsDataFrame,
     error_file: str = "",
     muz: float = 0.0,
     dqx: float | str = "from_file",
@@ -629,7 +647,7 @@ def read_madx_twiss(
     bpm_names: list[str] | None = None,
     bpm_patterns: list[str] | None = None,
 ) -> tuple[list, list[str], float]:
-    """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
+    """Read MADX optics → (twiss_items, item_names, circumference).
 
     Each row becomes a TwissItem with current + previous optical functions.
     The first point has previous = current.
@@ -638,7 +656,7 @@ def read_madx_twiss(
     matched by *insert_patterns* (regex) alongside the twiss points.
 
     Args:
-        twiss_file: path to the MADX twiss TFS file.
+        twiss_file: MADX TFS path or the sequence loader's twiss table.
         error_file: path to the MADX error TFS file (for field errors).
         muz: longitudinal tune (default 0.0).
         dqx: dQx/d(delta). Float or "from_file" to convert the native PT derivative.
@@ -662,7 +680,7 @@ def read_madx_twiss(
     """
     if is_alignment_error:
         raise ValueError("Alignment errors require read_madx_elements; Twiss transfer import cannot move physical magnetic fields")
-    source_table = tfs.read(twiss_file)
+    source_table = read_madx_table(twiss_file)
     if strict_geometry:
         _validate_madx_geometry(source_table, element_mode=False)
     selected_rows = _select_bpm_rows(source_table, bpm_monitor, bpm_names, bpm_patterns)
@@ -907,7 +925,7 @@ def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, lis
 
 
 def read_madx_twiss_interpolated(
-    twiss_file: str,
+    twiss_file: str | tfs.TfsDataFrame,
     num_interp_slice: int,
     error_file: str = "",
     muz: float = 0.0,
@@ -925,6 +943,7 @@ def read_madx_twiss_interpolated(
 ) -> tuple[list, list[str], float]:
     """Resample a full ring using phase-constrained quintic Hermite optics.
 
+    ``twiss_file`` accepts a TFS path or the sequence loader's twiss table.
     ``num_interp_slice`` counts base points including 0 and C: N segments
     require N+1 points. Original rows are replaced; kicks, field errors and
     optical discontinuities add split points. Source phases and their full

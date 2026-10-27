@@ -581,7 +581,7 @@ Supported sequence item types:
 Lattice Sources
 ---------------
 
-PASS supports three methods for generating lattice sequences, which can be selected or combined as needed:
+PASS supports the following methods for generating lattice sequences, which can be selected or combined as needed:
 
 Method 1: Read from MADX twiss file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -612,11 +612,14 @@ Both Twiss readers convert native MAD-X momentum derivatives to PASS's
 :math:`dQ/d\delta` and are unchanged. Raw TFS tables retain their original units.
 Export with ``twiss, chrom`` when using the file's chromaticities.
 
-These readers require native ``TWISS`` output. Identifiable ``PTC_TWISS``
-tables are rejected: their derivative convention depends on PTC's ``TIME``
-mode, which is not recorded in the TFS headers, and their phase columns can
-also differ. Export a native ``TWISS, CHROM`` table for this transport model.
-This does not make native TWISS and exact PTC element models equivalent.
+Direct TFS imports require native ``TWISS`` output. Identifiable raw
+``PTC_TWISS`` tables are rejected: their derivative convention depends on
+PTC's ``TIME`` mode, which is not recorded in ordinary TFS headers, and their
+phase columns can also differ. To compute and import PTC optics, use
+``load_madx_sequence(..., optics_method="ptc")`` as described in
+:ref:`en-madx-sequence`. Its adapter knows the calculation settings and
+returns compatible columns. This does not make native TWISS and exact PTC
+element models equivalent.
 
 The reference speed is derived from ``GAMMA``, or from ``ENERGY/MASS`` when
 ``GAMMA`` is absent. If both descriptions are missing, legacy tables remain
@@ -728,6 +731,158 @@ No MADX file required; uses analytical formulas to generate twiss points with co
        num_points=100,
        longitudinal_transfer="off",
    )
+
+.. _en-madx-sequence:
+
+Method 4: Load a MAD-X sequence or LINE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``PASS.para.madx_sequence.load_madx_sequence`` loads a ``.seq`` or ``.madx``
+source through ``cpymad``, a required dependency installed automatically with
+PASS. No separate installation extra is needed. A source may define either a
+MAD-X ``SEQUENCE`` or a ``LINE``. Select its name with ``sequence_name``
+(default ``"ring"``).
+
+The source is executed by MAD-X, including its ``CALL`` statements and any
+explicit calculation or file-output commands. Relative includes resolve
+from the entry file's directory. Use an entry that defines the lattice and
+its dependencies, then let the loader request the desired optics. The
+loader's own calculation files use a temporary directory; output commands
+inside the supplied source retain their MAD-X behavior.
+Source ``EALIGN``/``EFCOMP`` node errors are rejected because expanding the
+selected lattice again would clear them. Load an ideal lattice and apply
+errors through the existing error-TFS import options. Node kicks produced by
+``CORRECT`` are also rejected; save the intended corrector strengths as
+explicit element parameters before loading.
+
+Loading a source and converting it to PASS commands are separate steps.
+``optics_method=None`` exports the expanded element parameters without
+calculating optics. This is sufficient for physical-element tracking:
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_elements
+   from PASS.para.madx_sequence import load_madx_sequence
+   from PASS.para.schema.sequence import Sequence
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="file",
+       optics_method=None,
+   )
+   items, names, circumference = read_madx_elements(loaded.elements)
+   sequence = Sequence()
+   for name, item in zip(names, items):
+       sequence.add(name, item)
+
+The example creates the lattice portion of a PASS sequence. Add the normal
+Injection and monitor commands and use the returned circumference when
+preparing the complete simulation input.
+
+The loader returns the following attributes:
+
+.. list-table:: Loaded MAD-X data
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Attribute
+     - Meaning
+   * - ``elements``
+     - ``TfsDataFrame`` of expanded element parameters, including source fringe attributes for compatibility checks.
+   * - ``twiss``
+     - ``TfsDataFrame`` of optics when requested; otherwise ``None``.
+   * - ``beam``
+     - Dictionary describing the reference beam used for the export/calculation.
+   * - ``warnings``
+     - Import warnings to review alongside the resulting tables.
+   * - ``madx_version``
+     - Version of the MAD-X engine used by ``cpymad``.
+
+Choose the reference beam explicitly:
+
+* ``beam_source="file"`` requires a real ``BEAM`` declaration in the loaded
+  source or its included files. A missing declaration raises an error;
+  MAD-X's implicit default beam is not a substitute.
+* ``beam_source="pass"`` requires ``main`` and one explicitly selected
+  ``bunch``. Both accept PASS schema instances or dictionaries using Python
+  field names or JSON aliases. This uses the particle identity in
+  ``MainConfig`` and the selected bunch's kinetic energy per nucleon. It does
+  not choose a bunch implicitly when several are present.
+
+For example, the second choice can reuse an existing PASS configuration:
+
+.. code-block:: python
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="pass",
+       main=main_config,
+       bunch=selected_bunch,
+       optics_method="ptc",
+   )
+
+Here ``main_config`` and ``selected_bunch`` are the actual configuration
+objects or dictionaries for the intended run. The source's normalized
+magnet strengths and geometry remain the input lattice parameters; choosing
+a different beam does not itself rematch the lattice.
+
+For Twiss-map transport, request ``optics_method="twiss"`` for ordinary
+MAD-X ``TWISS`` or ``optics_method="ptc"`` for PTC, then pass ``loaded.twiss``
+to either Twiss reader.
+
+Ordinary ``TWISS`` does not implement the PTC/SAD quadrupole ``F1/F2`` fringe
+branch. Use ``"ptc"`` to compute the enabled fringe model's optics, including
+``fringe_rebuild``; selecting ordinary TWISS gives a different physical model.
+
+For example:
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_twiss
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="file",
+       optics_method="ptc",
+   )
+   items, names, circumference = read_madx_twiss(
+       loaded.twiss,
+       dqx="from_file",
+       dqy="from_file",
+       longitudinal_transfer="off",
+   )
+
+``read_madx_elements``, ``read_madx_twiss`` and
+``read_madx_twiss_interpolated`` accept these in-memory tables as well as
+TFS paths; preserve their headers when passing or saving them.
+
+The PTC calculation explicitly uses ``MODEL=2``, ``METHOD=6``, ``EXACT=true``,
+global ``NST=1``, ``TIME=true``, ``FRINGE=true``, ``ICASE=5`` and ``NO=2``.
+Positive element-specific integration settings remain part of the source
+model. The adapter converts the transverse optics column names and obtains
+full tunes from cumulative phase. It retains derivatives with respect to
+``PT`` in the returned table; the existing Twiss readers apply the reference
+beta conversion to ``delta`` exactly once. Do not multiply those columns by
+beta before calling a reader.
+
+Only the uncoupled optics supported by ``TwissItem`` can be imported: nonzero
+closed orbit, vertical dispersion and unsupported coupling are rejected.
+PTC-computed Twiss maps can include the linear optical effect of the
+``fringe_rebuild`` model. This does not add fringe tracking to PASS physical
+magnet elements: element conversion rejects unsupported fringe parameters,
+including quadrupole ``F1/F2``, instead of silently discarding them. Twiss
+maps also do not reproduce the source's finite-amplitude nonlinear fringe
+tracking. See :doc:`gui` for source and beam selection in the import form.
+
+Physical-element conversion reuses the existing PASS tracking maps. It also
+rejects unsupported element types and nonzero attributes such as ``TILT``,
+source apertures, combined-function bend gradients and a bend ``K0`` that
+differs from ``ANGLE/L``. These checks describe the current conversion scope;
+successfully computing source optics does not establish physical-element
+tracking support for every source attribute.
 
 .. _en-madx-bpm:
 
@@ -1031,6 +1186,7 @@ The parameter modules construct, validate and serialize the input objects:
    │   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
    │   └── sequence.py     Sequence: ordered container + auto-sorting
    ├── madx.py        MADX TFS → schema objects (element / twiss / error)
+   ├── madx_sequence.py MAD-X source → element / optics tables through cpymad
    ├── smooth.py      Analytical smooth approximation twiss
    ├── tools/        External data → PASS TFS
    │   ├── data_converter.py General data conversion pipeline

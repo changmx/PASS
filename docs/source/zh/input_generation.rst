@@ -538,7 +538,7 @@ Sequence（序列容器）
 晶格来源
 ------------
 
-PASS 支持三种晶格序列生成方式，可根据需要选择或混合使用：
+PASS 支持以下晶格序列生成方式，可根据需要选择或混合使用：
 
 方式一：从 MADX twiss 文件读取
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -568,10 +568,11 @@ PASS 支持三种晶格序列生成方式，可根据需要选择或混合使用
 显式数值参数 ``dqx``/``dqy`` 已表示 :math:`dQ/d\delta`，保持不变；
 原始 TFS 表本身保留原单位。使用文件色品时应以 ``twiss, chrom`` 导出。
 
-这些读取函数要求原生 ``TWISS`` 输出。对于可识别的 ``PTC_TWISS`` 表会明确拒绝：
-其导数约定取决于 PTC 的 ``TIME`` 模式，而 TFS 头信息未记录该模式；
-相位列也可能不同。此传输模型应使用原生 ``TWISS, CHROM`` 表。
-该单位换算不意味着原生 TWISS 与精确 PTC 元件模型等价。
+直接导入 TFS 时要求原生 ``TWISS`` 输出。对于可识别的原始 ``PTC_TWISS`` 表会明确拒绝：
+其导数约定取决于 PTC 的 ``TIME`` 模式，而普通 TFS 头信息未记录该模式；相位列也可能不同。
+如需计算并导入 PTC 光学，应使用 :ref:`zh-madx-sequence` 中的
+``load_madx_sequence(..., optics_method="ptc")``。其适配器明确掌握计算设置，
+并返回兼容的列。该处理不意味着原生 TWISS 与精确 PTC 元件模型等价。
 
 参考速度优先由 ``GAMMA`` 计算，缺少时由 ``ENERGY/MASS`` 计算。
 两种信息均缺失时，为兼容旧表仍允许读取，但发出警告并采用超相对论近似
@@ -671,6 +672,137 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
        num_points=100,
        longitudinal_transfer="off",
    )
+
+.. _zh-madx-sequence:
+
+方式四：直接加载 MAD-X SEQUENCE 或 LINE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``PASS.para.madx_sequence.load_madx_sequence`` 通过 ``cpymad`` 加载
+``.seq`` 或 ``.madx`` 源文件。``cpymad`` 是 PASS 的必选依赖，安装 PASS 时自动安装，
+无需单独选择额外组件。
+源文件可定义 MAD-X ``SEQUENCE`` 或 ``LINE``，使用 ``sequence_name`` 指定其名称，
+默认为 ``"ring"``。
+
+源文件由 MAD-X 执行，包括其中的 ``CALL`` 以及显式光学计算、文件输出命令。
+相对引用以入口文件所在目录为基准。建议提供定义晶格及其依赖的入口，
+由加载函数按所选方法计算光学。加载函数自身的计算文件放在临时目录中；
+所提供源文件内的输出命令仍按 MAD-X 原有行为执行。
+源文件中已经施加的 ``EALIGN``／``EFCOMP`` 节点误差会被拒绝，因为重新展开所选晶格会清除它们。
+应加载理想晶格，再通过已有的误差 TFS 导入选项添加误差。``CORRECT`` 产生的节点校正踢同样会被拒绝；
+应先把所需校正铁强度保存为显式元件参数，再加载该晶格。
+
+加载源文件与转换 PASS command 分为两步。``optics_method=None`` 只导出展开后的元件参数，
+不计算光学，适用于逐元件跟踪：
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_elements
+   from PASS.para.madx_sequence import load_madx_sequence
+   from PASS.para.schema.sequence import Sequence
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="file",
+       optics_method=None,
+   )
+   items, names, circumference = read_madx_elements(loaded.elements)
+   sequence = Sequence()
+   for name, item in zip(names, items):
+       sequence.add(name, item)
+
+该示例创建 PASS 序列的晶格部分。生成完整模拟输入时，还需添加常规 Injection、
+监视器等命令，并使用返回的周长。
+
+加载结果包含以下属性：
+
+.. list-table:: MAD-X 加载结果
+   :header-rows: 1
+   :widths: 25 75
+
+   * - 属性
+     - 含义
+   * - ``elements``
+     - 展开后元件参数的 ``TfsDataFrame``，保留源端场属性用于兼容性检查。
+   * - ``twiss``
+     - 请求计算时返回光学 ``TfsDataFrame``，否则为 ``None``。
+   * - ``beam``
+     - 本次导出或光学计算所用参考束流的字典。
+   * - ``warnings``
+     - 需结合结果表检查的导入警告。
+   * - ``madx_version``
+     - ``cpymad`` 使用的 MAD-X 引擎版本。
+
+参考束流来源需要明确选择：
+
+* ``beam_source="file"`` 要求源文件或其包含的文件中确实声明 ``BEAM``。
+  缺少声明时会报错，不采用 MAD-X 的隐式默认束流。
+* ``beam_source="pass"`` 要求提供 ``main`` 和明确选择的一个 ``bunch``。
+  两者接受 PASS schema 对象，或使用 Python 字段名／JSON 别名的字典。
+  粒子身份来自 ``MainConfig``，能量来自所选束团的每核子动能；多束团时不自动猜选。
+
+例如，可复用已有 PASS 配置：
+
+.. code-block:: python
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="pass",
+       main=main_config,
+       bunch=selected_bunch,
+       optics_method="ptc",
+   )
+
+其中 ``main_config`` 和 ``selected_bunch`` 是本次模拟实际使用的配置对象或字典。
+源文件中的归一化磁铁强度与几何仍作为晶格参数，选择不同束流不会自动重新匹配晶格。
+
+对于 Twiss 传输，选择 ``optics_method="twiss"`` 计算普通 MAD-X ``TWISS``，
+或选择 ``optics_method="ptc"`` 计算 PTC，再把 ``loaded.twiss`` 交给任一 Twiss 读取函数。
+
+普通 ``TWISS`` 不实现 PTC/SAD 四极 ``F1/F2`` 端场分支。
+要计算已启用端场模型的光学（包括 ``fringe_rebuild``），应选择 ``"ptc"``；
+选择普通 TWISS 得到的是不同的物理模型。
+
+例如：
+
+.. code-block:: python
+
+   from PASS.para.madx import read_madx_twiss
+
+   loaded = load_madx_sequence(
+       "lattice.seq",
+       sequence_name="ring",
+       beam_source="file",
+       optics_method="ptc",
+   )
+   items, names, circumference = read_madx_twiss(
+       loaded.twiss,
+       dqx="from_file",
+       dqy="from_file",
+       longitudinal_transfer="off",
+   )
+
+``read_madx_elements``、``read_madx_twiss``、``read_madx_twiss_interpolated``
+既接受 TFS 路径，也接受这里的内存表；传递或保存表格时应保留头信息。
+
+PTC 明确使用 ``MODEL=2``、``METHOD=6``、``EXACT=true``、全局 ``NST=1``、
+``TIME=true``、``FRINGE=true``、``ICASE=5``、``NO=2``。
+源元件自身的正积分步数设置仍属于源模型。适配器转换横向光学列名，
+并从累计相位取得完整工作点。返回表中保留对 ``PT`` 的导数；现有 Twiss 读取函数
+只执行一次参考 beta 因子换算，转为对 ``delta`` 的导数。
+调用读取函数前不要自行再次乘 beta。
+
+导入范围限于 ``TwissItem`` 支持的无耦合光学：非零闭轨、垂直色散和不支持的耦合会被拒绝。
+经 PTC 计算的 Twiss 映射可以包含 ``fringe_rebuild`` 模型的线性端场光学效果。
+这不等于 PASS 物理磁铁元件已支持端场跟踪：逐元件转换会明确拒绝尚不支持的端场参数，
+包括四极 ``F1/F2``，不会静默丢弃。Twiss 映射也不重现源模型的有限振幅非线性端场跟踪。
+GUI 中的源文件与参考束流选择见 :doc:`gui`。
+
+逐元件转换复用现有 PASS 跟踪映射，还会拒绝尚不支持的元件类型与非零参数，
+例如 ``TILT``、源 aperture、组合功能弯铁梯度，以及不同于 ``ANGLE/L`` 的弯铁 ``K0``。
+这些检查说明当前转换的支持范围；成功计算源光学不代表 PASS 物理元件已能跟踪每一种源参数。
 
 .. _zh-madx-bpm:
 
@@ -942,6 +1074,7 @@ Python 字段 ``num_electron`` 沿用历史命名，实际表示带符号电荷�
    │   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
    │   └── sequence.py     Sequence：有序容器 + 自动排序
    ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
+   ├── madx_sequence.py MAD-X 源文件 → cpymad 元件／光学表
    ├── smooth.py      解析平滑近似 twiss
    ├── tools/        外部数据 → PASS TFS
    │   ├── data_converter.py 通用数据转换流水线
