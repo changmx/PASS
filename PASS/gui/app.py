@@ -606,7 +606,7 @@ class ConfigPage(QWidget):
             (("导入 MAD-X 元件…", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements), ) + tuple(
                 (command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
                 for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "ElectronCooler",
-                                "Kicker", "Bump", "ElSeparator", "RFCavity", "Exciter")),
+                                "Kicker", "Bump", "ElSeparator", "RFCavity", "Exciter", "ACDipole")),
         )
         add_section(
             "监测与诊断",
@@ -1193,6 +1193,8 @@ class ConfigPage(QWidget):
                         "Direction": "forward"
                     })
                 return model_draft(element, required)
+            if command == "ACDipole":
+                return {key: value for key, value in model_draft(element, required).items() if key != "name"}
             if command in {"Bump", "ElSeparator", "ElectronCooler"}:
                 return model_draft(element, required)
             if command == "RFCavity":
@@ -3315,6 +3317,8 @@ class ConfigPage(QWidget):
                 self.form_hint.setText(self.form_hint.text() + " 旧输入需先换算；编辑 Kick angle 并应用后，将替换旧电压、极板长度和间隙参数。")
         elif target.get("Command") == "RFCavity":
             self.form_hint.setText("分量在同一实际粒子时刻 t0−z_rel/(βc) 采样并相加。RF 谐波与 Injection 分组数独立。旧腔级参数和按圈 RF data file 需按物理时间重建 Components。")
+        elif target.get("Command") == "ACDipole":
+            self.form_hint.setText("Kick angle 是有符号 ΔP/P0 振幅；幅度与频率可使用独立物理时间表。Kick time 区间外踢为零，频率端值延拓并积分为相位。所有粒子按 t0−z_rel/(βc) 取样。")
         elif target.get("Command") == "Slicer":
             self.form_hint.setText("保存当前切片区间与成员；RF 不会自动重切片。SortBunch/ReorganizeBunch 后必须再次执行 Slicer。")
         elif target.get("Command") == "WakeField":
@@ -3898,7 +3902,7 @@ class ConfigPage(QWidget):
 
             coordinate.currentTextChanged.connect(lambda: slice_mode(True))
             slice_mode()
-        if command in {"RFCavity", "Exciter"} and "Length (m)" in fields:
+        if command in {"RFCavity", "Exciter", "ACDipole"} and "Length (m)" in fields:
             fields["Length (m)"].setReadOnly(True)
             fields["Length (m)"].setToolTip("此元件为零长度踢；非零旧输入需在 JSON 中修正。")
         if command == "SpaceCharge":
@@ -4272,6 +4276,9 @@ class ConfigPage(QWidget):
         if key == "Groups" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             from PASS.para.schema.wake_field import WakeSolverGroup
             structured = make_editor(list[WakeSolverGroup], value or [], key, self.base_dir)
+        elif (getattr(self, "_field_context", {}).get("Command") == "ACDipole" and spec is not None
+              and key in {"Direction", "Kick angle (rad)", "Kick time (s)", "Frequency (Hz)", "Frequency time (s)", "CPU chunk size"}):
+            structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif getattr(self, "_field_context", {}).get("Command") in {"TransversePickup", "TransverseFeedback"
                                                                     } and spec is not None and key != "Pickup":
             structured = make_editor(spec.annotation, value, key, self.base_dir)

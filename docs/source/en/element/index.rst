@@ -23,6 +23,7 @@ CrossingAngle, CrabCavity and FloatWaister are described in :doc:`../beam_beam`.
    bump
    elseparator
    exciter
+   ac_dipole
    rfcavity
 
 .. _en-element-integration-precision:

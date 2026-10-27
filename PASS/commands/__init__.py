@@ -19,6 +19,7 @@ from .element.kicker import Kicker
 from .element.bump import Bump
 from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
+from .element.ac_dipole import ACDipole
 from .element.rfcavity import RFCavity
 from .element.crossing_angle import CrossingAngle
 from .element.crab_cavity import CrabCavity
@@ -59,6 +60,7 @@ __all__ = [
     "Bump",
     "ElSeparator",
     "Exciter",
+    "ACDipole",
     "RFCavity",
     "CrossingAngle",
     "CrabCavity",

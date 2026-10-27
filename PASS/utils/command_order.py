@@ -27,6 +27,7 @@ COMMAND_PRIORITY = {
     "RFCavity": 300,
     "ElSeparator": 300,
     "Exciter": 300,
+    "ACDipole": 300,
     "CrossingAngle": 300,
     "CrabCavity": 300,
     "FloatWaister": 300,

@@ -564,6 +564,51 @@ class ExciterItem(ElementBase):
         return value
 
 
+class ACDipoleItem(ElementBase):
+    """Ideal transverse kick with independent physical-time amplitude and frequency programs."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
+    name: str | None = Field(default=None, exclude=True)
+    command: str = Field(default="ACDipole", alias="Command")
+    length: float = Field(default=0.0, ge=0, le=0, alias="Length (m)")
+    direction: Literal["x", "y"] = Field(alias="Direction")
+    kick_angle: float | list[float] = Field(alias="Kick angle (rad)", description="Signed normalized momentum amplitude ΔP/P0; scalar or samples.")
+    kick_times: list[float] | None = Field(default=None,
+                                           alias="Kick time (s)",
+                                           description="Physical sample times; kick is zero outside this interval.")
+    frequency: float | list[float] = Field(alias="Frequency (Hz)", description="Nonnegative physical frequency; phase is its time integral.")
+    frequency_times: list[float] | None = Field(default=None,
+                                                alias="Frequency time (s)",
+                                                description="Physical frequency sample times; endpoint values are held outside.")
+    phase: float = Field(default=0.0, alias="Phase (rad)")
+    phase_epoch: float = Field(default=0.0, alias="Phase epoch (s)", description="Physical time at which the carrier phase equals Phase (rad).")
+    is_enabled: StrictBool = Field(default=True, alias="Is enabled")
+    cpu_chunk_size: StrictInt | None = Field(default=65536,
+                                             ge=1,
+                                             alias="CPU chunk size",
+                                             description="Maximum particles per CPU batch; None uses the whole bunch. Ignored on GPU.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, value):
+        if not isinstance(value, dict):
+            return value
+        aliases = {str(field.alias or name).lower(): name for name, field in cls.model_fields.items()}
+        return {aliases.get(str(key).lower(), str(key).lower()): item for key, item in value.items()}
+
+    @model_validator(mode="after")
+    def validate_programs(self):
+        from PASS.utils.program import LinearProgram
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            kick = LinearProgram(self.kick_angle, self.kick_times, origin=self.phase_epoch)
+            frequency = LinearProgram(self.frequency, self.frequency_times, origin=self.phase_epoch)
+        if not np.all(np.isfinite(kick.slopes)) or not np.all(np.isfinite(frequency.slopes)):
+            raise ValueError("ACDipole program slopes must be finite")
+        if (frequency.values < 0).any():
+            raise ValueError("ACDipole frequency must be nonnegative")
+        return self
+
+
 # RFCavity
 
 from PASS.para.schema.rf import RFComponent
@@ -714,6 +759,7 @@ ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
     "bump": BumpItem,
     "elseparator": ElSeparatorItem,
     "exciter": ExciterItem,
+    "acdipole": ACDipoleItem,
     "rfcavity": RFCavityItem,
     "crossingangle": CrossingAngleItem,
     "crabcavity": CrabCavityItem,
