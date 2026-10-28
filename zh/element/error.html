@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
 </ul>
@@ -221,6 +222,9 @@ Yoshida 子步保留负权重，因此增加切片不会增加总误差强度。
 <p>保留原有名义传输。DKD/RKR/SKS 将误差加在中心动量更新处；
 四极矩阵模型采用“半段名义矩阵、误差动量更新、半段名义矩阵”。
 内部空间电荷仍在计划节点执行，使用自身的正积分权重。</p>
+<p>直磁铁启用端场映射时，其梯度包含相同的绝对场误差除以物理长度。
+端场极序截断和入口、出口开关也作用于误差分量，见
+<a class="reference internal" href="quadrupole.html#zh-straight-magnet-fringe"><span class="std std-ref">物理入口和出口端场映射</span></a>。</p>
 <section id="id5">
 <h4>模型限制<a class="headerlink" href="#id5" title="Link to this heading"></a></h4>
 <p>SBend 保留名义曲率及入、出口映射，在弯曲名义传输之间加入局部直线多极动量更新。

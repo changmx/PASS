@@ -142,6 +142,11 @@ GUI 顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作�
 <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> 根据当前模式选择保存目标。<strong>打开 JSON</strong> 打开独立文档，
 不会隐式导入当前项目；后者使用 <strong>导入 JSON 到项目</strong>。
 替换文档或关闭窗口时，可以先保存未保存的修改。</p>
+<p>打开或导入输入、应用 JSON 源码修改以及应用属性修改时，GUI 会将已识别的参数名和
+命令类型转换为文档中的规范拼写，例如将 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 转为 <code class="docutils literal notranslate"><span class="pre">HKICK</span></code>、<code class="docutils literal notranslate"><span class="pre">kicker</span></code> 转为
+<code class="docutils literal notranslate"><span class="pre">Kicker</span></code>。参数值（包括 <code class="docutils literal notranslate"><span class="pre">null</span></code>）保持不变。元件名称、命名配置名称、文件路径及
+未知字段保留原有拼写，并继续遵守现有重名规则。同一参数出现多个键时，即使值相同，
+也会报错并保留修改前的配置，不会选择其中一个覆盖另一个。</p>
 <p>文件操作显示进度，并暂时禁止编辑。取消操作可能需要等待正在进行的读取或写入完成；
 已经完成的保存按成功处理。JSON 另存到其他目录时同步更新相对输入路径，包括撤销与
 重做历史中的引用，使其仍指向同一源文件。</p>

@@ -77,16 +77,17 @@
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">弯转磁铁（Dipole / SBend）</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">四极铁（Quadrupole）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id9">坐标约定</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">四极磁场与归一化强度</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">整体跟踪流程</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">物理推导</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id14">色品效应</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id17">跟踪模型对比</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id23">应用场景</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id24">参考文献</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id25">元件内部空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#zh-straight-magnet-fringe">物理入口和出口端场映射</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">坐标约定</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">四极磁场与归一化强度</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">整体跟踪流程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">物理推导</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">色品效应</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id19">跟踪模型对比</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id25">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id26">参考文献</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id27">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a></li>
@@ -98,6 +99,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
 </ul>
@@ -234,6 +236,48 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">'adaptive'</span></code></p></td>
 <td><p>物理模型，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code> 、 <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code></p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">f1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">F1</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>PTC/SAD 四极端场积分，允许正负，须有限。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">f2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">F2</span> <span class="pre">(m3)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathrm{m}^3\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>PTC/SAD 四极端场积分，允许正负，须有限。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>MAD-X 位选择值；2 启用内置多极端场，4 启用四极 F1/F2。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frngmax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>内置端场的最高极序：2 为四极，3 为六极，4 为八极。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kill_ent_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>屏蔽物理入口的全部已启用端场映射。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kill_exi_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>屏蔽物理出口的全部已启用端场映射。</p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -273,10 +317,49 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
 场误差独立保存。同一页面也说明 <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code> 的用法。</p>
 </section>
-<section id="id2">
-<h2>使用示例<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<section id="id3">
-<h3>厚透镜正四极铁<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="zh-straight-magnet-fringe">
+<span id="id2"></span><h2>物理入口和出口端场映射<a class="headerlink" href="#zh-straight-magnet-fringe" title="Link to this heading"></a></h2>
+<p>Quadrupole、Sextupole、Octupole 和厚 Multipole 支持正、斜多极分量的
+内置端场映射。Quadrupole 还支持 PTC/SAD 的 <code class="docutils literal notranslate"><span class="pre">F1</span></code>、<code class="docutils literal notranslate"><span class="pre">F2</span></code> 映射。
+这两个参数是带符号的场分布积分，单位分别为米、立方米，并非入口、出口边缘角。</p>
+<p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> 使用 MAD-X 的位约定，取 0 到 7 的整数：位值 2 启用内置
+多极端场，位值 4 启用四极 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 分支，位值 1 对这些直磁铁无效。
+因此 0 关闭两者，2 仅启用内置端场，4 仅启用 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code>，6 同时启用两者。
+默认值为 0，保留无端场的原有传输。仅设置非零 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 不会启用该分支。</p>
+<p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code> 指定内置分支包含的最高极序：1 为二极，2 为四极，3 为六极，
+4 为八极。默认值为 2，必须为正整数。它限制参与端场映射的磁场分量，
+并非横向振幅 Taylor 展开的最高幂次，也不屏蔽独立的 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 分支。
+包含六极端场时应设置 <code class="docutils literal notranslate"><span class="pre">FRNGMAX=3</span></code>，包含八极端场时设置 <code class="docutils literal notranslate"><span class="pre">FRNGMAX=4</span></code>。
+二极分量可参与组合多极端场映射；独立二极铁使用 <code class="docutils literal notranslate"><span class="pre">SBend</span></code>。与 PTC 一致，
+仅包含二极阶的多极元件不施加内置直磁铁端场映射。</p>
+<p>入口映射、本体、出口映射依次在磁铁局部对准坐标系执行。每个物理端面只施加
+一次端场，不随数值切片或 Yoshida 子步重复。<code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code>、
+<code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code> 分别屏蔽该端全部已启用分支。端场与本体使用相同的
+bunch 入口时刻采样的名义强度，并包含已启用的绝对正、斜场误差。
+体梯度由积分强度除以物理长度获得，因此启用的非零端场要求正长度；
+零长度积分动量更新本身不能确定该梯度。</p>
+<p>映射保持粒子动量大小，并按横向正则映射一致地更新纵向时间坐标。
+CPU 与 GPU 使用相同物理模型。本体积分精度仍需独立检验：与 PTC 精确传输
+对比时采用 <code class="docutils literal notranslate"><span class="pre">model=&quot;drift-kick-drift-exact&quot;</span></code>，并检查切片收敛。</p>
+<p>入口先执行内置端场，再执行 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code>；出口的顺序相反。<code class="docutils literal notranslate"><span class="pre">F1</span></code> 系数在两端
+反号，<code class="docutils literal notranslate"><span class="pre">F2</span></code> 系数则保持同号。对于 <code class="docutils literal notranslate"><span class="pre">TIME=TRUE</span></code>，PASS 的 <span class="math notranslate nohighlight">\((z,\delta)\)</span>
+对应的 MAD-X PTC 外部正则坐标为</p>
+<div class="math notranslate nohighlight">
+\[t=z/\beta_0,\qquad
+P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.\]</div>
+<p>PTC 内部时间坐标的符号相反，为 <span class="math notranslate nohighlight">\(ct=-z/\beta_0\)</span>。</p>
+<p>实现依据 <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L4492-L4597">PTC 内置端场映射</a>
+与 <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121">PTC 四极端场映射</a>。</p>
+<p>PASS 依据元件显式 <code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> 位启用端场。PTC 的独立全局开关
+<code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,FRINGE=TRUE</span></code> 还会在元件未设置对应位时启用内置多极端场。
+计算 PTC 光学不会改变导入元件的参数。与该全局开关开启的追踪对比时，
+应给相应 PASS 直磁铁显式启用位值 2；也可关闭 PTC 全局开关并使元件位值一致。
+普通 MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 不实现 PTC/SAD 的 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 分支。</p>
+</section>
+<section id="id4">
+<h2>使用示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3>厚透镜正四极铁<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"QF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
@@ -309,8 +392,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 <p>本例只有纯线性场，一个 MKM 矩阵段即可求解所用近轴方程。加入场误差或内部空间电荷后，应另行检查分裂作用的数值收敛。</p>
 </section>
-<section id="id4">
-<h3>薄透镜四极铁<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="id6">
+<h3>薄透镜四极铁<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"QF2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
@@ -324,8 +407,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 <p>零长度四极铁，仅施加 <span class="math notranslate nohighlight">\(K_{1L}\)</span> 薄透镜动量更新，无有限长度本体输运；它在完整格架中的色品作用见下文。</p>
 </section>
-<section id="id5">
-<h3>散焦四极铁<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>散焦四极铁<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"QD1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
@@ -341,8 +424,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 <p>散焦四极铁（ <span class="math notranslate nohighlight">\(K_{1L} &lt; 0\)</span> ），水平散焦、垂直聚焦。</p>
 </section>
-<section id="id6">
-<h3>斜四极铁<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>斜四极铁<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"QS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
@@ -359,8 +442,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 <p>纯斜四极铁（ <span class="math notranslate nohighlight">\(K_{1L} = 0\)</span> , <span class="math notranslate nohighlight">\(K_{1sL} \neq 0\)</span> ），产生 <span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合。</p>
 </section>
-<section id="id7">
-<h3>正、斜分量四极组合<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="id9">
+<h3>正、斜分量四极组合<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"QFS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">50.0</span><span class="p">,</span>
@@ -378,8 +461,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 <p>同时含正、斜四极分量的组合四极铁（模拟安装旋转误差），带圆形孔径检查。</p>
 </section>
-<section id="id8">
-<h3>带旋转角的等效表示<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<section id="id10">
+<h3>带旋转角的等效表示<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
 <p>一个 <span class="math notranslate nohighlight">\(K_{1L} = 0.2\)</span> 的正四极铁旋转角度 <span class="math notranslate nohighlight">\(\theta = 0.01\)</span> rad 后，等效为：</p>
 <div class="math notranslate nohighlight">
 \[K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996\]</div>
@@ -400,8 +483,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </div>
 </section>
 </section>
-<section id="id9">
-<h2>坐标约定<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id11">
+<h2>坐标约定<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
 <p>采用 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a> 的连续纵向坐标。
 <span class="math notranslate nohighlight">\(T_b\)</span> 是理想参考粒子在当前位置的实际通过时刻，不是束团质心时刻；
 局部映射中的 <span class="math notranslate nohighlight">\(\beta_0\)</span> 和 <span class="math notranslate nohighlight">\(P_0\)</span> 表示当前束团参考量。
@@ -461,8 +544,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 \[\chi = \frac{q}{q_0} \cdot \frac{m_0}{m}\]</div>
 <p>对于同种粒子束 <span class="math notranslate nohighlight">\(\chi = 1\)</span> 。</p>
 </section>
-<section id="id10">
-<h2>四极磁场与归一化强度<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<section id="id12">
+<h2>四极磁场与归一化强度<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
 <p>四极磁铁的磁场在横向平面内线性分布。用复数表示：</p>
 <div class="math notranslate nohighlight">
 \[B_y + i B_x = (G + i G_s)(x + i y)\]</div>
@@ -481,8 +564,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 \[K_{1L} = K_1 \cdot L, \qquad K_{1sL} = K_{1s} \cdot L\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(L\)</span> 为磁铁长度。PASS 中用户直接指定 <span class="math notranslate nohighlight">\(K_{1L}\)</span> （ <code class="docutils literal notranslate"><span class="pre">k1l</span></code> ）和 <span class="math notranslate nohighlight">\(K_{1sL}\)</span> （ <code class="docutils literal notranslate"><span class="pre">k1sl</span></code> ），厚透镜时内部自动解出 <span class="math notranslate nohighlight">\(K_1 = K_{1L} / L\)</span> 和 <span class="math notranslate nohighlight">\(K_{1s} = K_{1sL} / L\)</span> 。</p>
 </section>
-<section id="id11">
-<h2>整体跟踪流程<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<section id="id13">
+<h2>整体跟踪流程<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
 <p>根据磁铁长度，四极铁有两种跟踪模式：</p>
 <p><strong>薄透镜模式</strong> （ <span class="math notranslate nohighlight">\(L = 0\)</span> ）</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 薄透镜 (length = 0) ======
@@ -532,10 +615,10 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </ul>
 </div>
 </section>
-<section id="id12">
-<h2>物理推导<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
-<section id="id13">
-<h3>哈密顿量<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<section id="id14">
+<h2>物理推导<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id15">
+<h3>哈密顿量<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
 <p>在直线坐标系中（四极铁无曲率， <span class="math notranslate nohighlight">\(h = 0\)</span> ），四极铁的哈密顿量为：</p>
 <div class="math notranslate nohighlight">
 \[H_{\text{quad}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \frac{\chi}{2}\left(K_1 x^2 - K_1 y^2 + 2 K_{1s} x y\right)\]</div>
@@ -663,19 +746,19 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </table>
 </section>
 </section>
-<section id="id14">
-<h2>色品效应<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id16">
+<h2>色品效应<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
 <p>色品（chromaticity）描述了粒子 工作点 对动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 的依赖。PASS 的 DKD-exact 模型通过精确漂移的 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自然引入色品，无需任何额外处理。</p>
-<section id="id15">
-<h3>物理机制<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<section id="id17">
+<h3>物理机制<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
 <p>在 DKD 积分中，漂移使用精确表达式 <span class="math notranslate nohighlight">\(p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span> ，而动量更新在 <span class="math notranslate nohighlight">\((x, p_x)\)</span> 空间中为 <span class="math notranslate nohighlight">\(\Delta p_x = -\chi K_1 \Delta s \cdot x\)</span> （不除以 <span class="math notranslate nohighlight">\(1+\delta\)</span> ）。</p>
 <p>转换到 <span class="math notranslate nohighlight">\((x, x')\)</span> 空间（其中 <span class="math notranslate nohighlight">\(x' = p_x / (1+\delta)\)</span> ），等效聚焦强度自动变为：</p>
 <div class="math notranslate nohighlight">
 \[K_{1,\text{eff}} = \frac{K_1}{1+\delta}\]</div>
 <p>这就是自然色品 <span class="math notranslate nohighlight">\(Q'_x = -\frac{1}{4\pi}\oint \beta_x K_1 \, ds\)</span> 的物理来源。代码中不需要显式做任何除法——精确漂移的 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自动完成了这件事。</p>
 </section>
-<section id="id16">
-<h3>薄透镜与格架色品<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
+<section id="id18">
+<h3>薄透镜与格架色品<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
 <p>零长度四极铁不增加飞行路程，归一化动量更新为
 <span class="math notranslate nohighlight">\(\Delta p_x=-K_{1L}x\)</span>。该式不显含 <span class="math notranslate nohighlight">\(\delta\)</span>，但在近轴近似下
 <span class="math notranslate nohighlight">\(x'=p_x/(1+\delta)\)</span>，因而</p>
@@ -688,16 +771,16 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 而不能仅由元件长度为零断言不会改变色品或重复计入已有光学作用。</p>
 </section>
 </section>
-<section id="id17">
-<h2>跟踪模型对比<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<section id="id19">
+<h2>跟踪模型对比<a class="headerlink" href="#id19" title="Link to this heading"></a></h2>
 <p>PASS 四极铁支持两种厚透镜体模型，适用于不同精度和速度需求。</p>
-<section id="id18">
-<h3>模型概述<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<section id="id20">
+<h3>模型概述<a class="headerlink" href="#id20" title="Link to this heading"></a></h3>
 <p><strong>drift-kick-drift-exact (DKD-exact)</strong> ：将哈密顿量拆分为精确漂移和薄透镜动量更新，通过辛分裂法组合。保留完整 <span class="math notranslate nohighlight">\(p_z\)</span> 非线性运动学，但线性聚焦和色品有辛分裂误差（可通过增加切片数或使用高阶积分器控制）。</p>
 <p><strong>mat-kick-mat (MKM)</strong> ：求解线性化运动方程 <span class="math notranslate nohighlight">\(u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0\)</span> 的解析精确解，用三角函数（聚焦平面）和双曲函数（散焦平面）构造传输矩阵。它对所用近轴运动方程采用解析解，并累积该模型中的路程增量；不包含完整 <span class="math notranslate nohighlight">\(p_z\)</span> 根号中的高阶横向运动学。</p>
 </section>
-<section id="id19">
-<h3>对比表<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
+<section id="id21">
+<h3>对比表<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
@@ -742,8 +825,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </tbody>
 </table>
 </section>
-<section id="id20">
-<h3>MKM 传输矩阵<a class="headerlink" href="#id20" title="Link to this heading"></a></h3>
+<section id="id22">
+<h3>MKM 传输矩阵<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
 <p>MKM 求解线性化方程的精确解。对纯 <span class="math notranslate nohighlight">\(K_1\)</span> 四极铁， u 平面（聚焦）使用 sin/cos 矩阵， v 平面（散焦）使用 sinh/cosh 矩阵，等效强度 <span class="math notranslate nohighlight">\(K = K_1 \chi / (1+\delta)\)</span> 逐粒子计算。</p>
 <p>对 <span class="math notranslate nohighlight">\(K_1 + K_{1s}\)</span> 组合四极铁，采用 <strong>旋转对角化</strong> ：</p>
 <div class="math notranslate nohighlight">
@@ -784,8 +867,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 </table>
 <p>对纯 <span class="math notranslate nohighlight">\(K_1 + K_{1s}\)</span> （无高阶多极场），矩阵对任意切片长度 <span class="math notranslate nohighlight">\(\Delta s\)</span> 精确，单个矩阵段即可求解所用线性方程。场误差或内部空间电荷加入分裂作用后，仍应检查切片及作用节点的收敛。</p>
 </section>
-<section id="id21">
-<h3>MKM 的局限性<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<section id="id23">
+<h3>MKM 的局限性<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
 <p>MKM 将运动学线性化： <span class="math notranslate nohighlight">\(x' = p_x / (1+\delta)\)</span> ，而非精确的 <span class="math notranslate nohighlight">\(x' = p_x / p_z\)</span> 。展开后：</p>
 <div class="math notranslate nohighlight">
 \[\frac{p_x}{p_z} = \frac{p_x}{1+\delta}\left(1 + \frac{p_x^2 + p_y^2}{2(1+\delta)^2} + \cdots\right)\]</div>
@@ -793,8 +876,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 其有效聚焦强度仍含 <span class="math notranslate nohighlight">\(1/(1+\delta)\)</span>，因此不能据此断言所有高阶色品为零。
 研究大振幅非线性运动时，应同时检查模型近似和数值收敛；改变积分切片数不能补回模型中省略的项。</p>
 </section>
-<section id="id22">
-<h3>切片数与积分器建议<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<section id="id24">
+<h3>切片数与积分器建议<a class="headerlink" href="#id24" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
@@ -835,8 +918,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 准直只移动磁场，孔径和 SC 边界保持在设计坐标系。</p>
 </section>
 </section>
-<section id="id23">
-<h2>应用场景<a class="headerlink" href="#id23" title="Link to this heading"></a></h2>
+<section id="id25">
+<h2>应用场景<a class="headerlink" href="#id25" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><strong>线性聚焦</strong> ：在 FODO 结构中交替排列聚焦（F）和散焦（D）四极铁，实现束流的横向约束</p></li>
 <li><p><strong>色品校正</strong> ：利用四极铁的自然色品效应，通过调整六极铁补偿色品</p></li>
@@ -846,8 +929,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 <li><p><strong>束流传输线</strong> ：在注入线和引出线中使用四极铁聚焦束流，控制束流包络</p></li>
 </ul>
 </section>
-<section id="id24">
-<h2>参考文献<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<section id="id26">
+<h2>参考文献<a class="headerlink" href="#id26" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Xsuite Physics Guide, Sec 1.10.3 (精确漂移), Sec 1.10.5 (四极铁)</p></li>
 <li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/beam_elements/elements_src/quadrupole.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_kick.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_drift.h</span></code></p></li>
@@ -855,8 +938,8 @@ TFS 列名、单位和入口采样约定见 <a class="reference internal" href="
 <li><p>MAD-X 物理手册：四极磁场与线性传输</p></li>
 </ul>
 </section>
-<section id="id25">
-<h2>元件内部空间电荷<a class="headerlink" href="#id25" title="Link to this heading"></a></h2>
+<section id="id27">
+<h2>元件内部空间电荷<a class="headerlink" href="#id27" title="Link to this heading"></a></h2>
 <p>正长度元件可设置 <code class="docutils literal notranslate"><span class="pre">space_charge</span></code> （JSON <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code>）为
 <code class="docutils literal notranslate"><span class="pre">ElementSpaceCharge</span></code> 对象。<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 控制外场传输，
 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge.Num</span> <span class="pre">kicks</span></code> 控制 SC 积分。调度规则、共享资源、

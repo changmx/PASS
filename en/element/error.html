@@ -89,6 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
 </ul>
@@ -232,6 +233,10 @@ therefore does not increase the total error strength.</p>
 of DKD/RKR/SKS steps; the quadrupole matrix model uses half a nominal matrix,
 an error kick, and the other half. Internal space charge remains at its
 scheduled node and receives its own positive integration weight.</p>
+<p>When straight-magnet fringe maps are enabled, their gradients include these
+same absolute field errors divided by the physical length. The fringe order
+cutoff and entrance/exit switches also apply to the error components; see
+<a class="reference internal" href="quadrupole.html#en-straight-magnet-fringe"><span class="std std-ref">Physical entrance and exit fringe maps</span></a>.</p>
 <section id="model-limits">
 <h4>Model limits<a class="headerlink" href="#model-limits" title="Link to this heading"></a></h4>
 <p>SBend retains its nominal curvature and entrance/exit maps. Errors are local

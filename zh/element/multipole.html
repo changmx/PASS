@@ -101,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
 </ul>
@@ -227,6 +228,34 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>斜分量积分强度数组 <span class="math notranslate nohighlight">\([K_{0sL}, K_{1sL}, \ldots]\)</span></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>MAD-X 位选择值；2 启用内置多极端场，4 启用四极 F1/F2。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frngmax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>内置端场的最高极序：2 为四极，3 为六极，4 为八极。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kill_ent_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>屏蔽物理入口的全部已启用端场映射。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kill_exi_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>屏蔽物理出口的全部已启用端场映射。</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -266,6 +295,9 @@
 TFS 列名、单位和入口采样约定见 <a class="reference internal" href="magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。每个非空 bunch 在入口
 采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
 场误差独立保存。同一页面也说明 <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code> 的用法。</p>
+<p>端场映射在物理两端各执行一次，使用启用后的总正、斜分量强度。
+选择值、极序截断、零长度限制与 MAD-X/PTC 对比约定见
+<a class="reference internal" href="quadrupole.html#zh-straight-magnet-fringe"><span class="std std-ref">物理入口和出口端场映射</span></a>。</p>
 </section>
 <section id="id2">
 <h2>使用示例<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>

@@ -144,6 +144,13 @@ sources, and generation settings into one container. <code class="docutils liter
 mode. <strong>Open JSON</strong> opens an independent document; it does not silently import
 into a project. Use <strong>Import JSON into project</strong> for that operation. Replacing a
 document or closing the window offers to save unsaved changes.</p>
+<p>When opening or importing inputs, applying JSON source edits, or applying form
+edits, the GUI converts recognized parameter keys and command types to their
+documented spelling, such as <code class="docutils literal notranslate"><span class="pre">hkick</span></code> to <code class="docutils literal notranslate"><span class="pre">HKICK</span></code> and <code class="docutils literal notranslate"><span class="pre">kicker</span></code> to <code class="docutils literal notranslate"><span class="pre">Kicker</span></code>.
+Values, including <code class="docutils literal notranslate"><span class="pre">null</span></code>, are preserved. Element names, named configurations,
+file paths and unknown fields retain their spelling; existing duplicate-name
+rules still apply. Multiple keys referring to the same parameter are rejected
+without applying the changes, even when their values match.</p>
 <p>File operations show progress and temporarily disable editing. Cancellation may
 wait for an in-progress read or write to finish; a completed save is reported as
 successful. Saving JSON in another directory updates relative input references,

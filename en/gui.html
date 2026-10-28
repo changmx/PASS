@@ -73,6 +73,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#electron-clouds">Electron clouds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#result-files">Result files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss-and-optics">Twiss and optics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mad-x-source-and-reference-beam">MAD-X source and reference beam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-sampling">MAD-X sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm-import">MAD-X BPM import</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#one-turn-transfer">One-turn transfer</a></li>
@@ -683,6 +684,38 @@ unconfirmed JSON also prevent insertion of an outdated preview. Circumference
 defaults to the global value; insertion synchronizes the global circumference
 to the displayed generator value. Existing commands are preserved. Leaving an
 edited generator asks whether to discard its uninserted draft.</p>
+<section id="mad-x-source-and-reference-beam">
+<h3>MAD-X source and reference beam<a class="headerlink" href="#mad-x-source-and-reference-beam" title="Link to this heading"></a></h3>
+<p>Both element import and Twiss-point import offer <strong>Data source</strong> (数据来源):
+<strong>Existing Twiss/TFS</strong> (已有 Twiss/TFS) keeps the TFS workflow, while
+<strong>MAD-X sequence</strong> loads a <code class="docutils literal notranslate"><span class="pre">.seq</span></code> or <code class="docutils literal notranslate"><span class="pre">.madx</span></code> source using <code class="docutils literal notranslate"><span class="pre">cpymad</span></code>,
+which is installed automatically as a required PASS dependency.</p>
+<p>For sequence input, select <strong>Sequence file</strong> (Sequence 文件) and enter the
+<strong>Lattice name</strong> (格架名称), initially <code class="docutils literal notranslate"><span class="pre">ring</span></code>. MAD-X <code class="docutils literal notranslate"><span class="pre">LINE</span></code> and <code class="docutils literal notranslate"><span class="pre">SEQUENCE</span></code>
+definitions are supported. <strong>Beam source</strong> (束流来源) selects either
+<strong>BEAM in file</strong> (文件中的 BEAM) or <strong>PASS beam configuration</strong> (PASS 束流配置).
+The file option requires an explicit beam declaration. With PASS configuration,
+choose <strong>PASS reference bunch</strong> (PASS 参考束团), displayed as an Injection name
+and <code class="docutils literal notranslate"><span class="pre">bunchN</span></code>. No first-bunch default is inferred. This selection supplies one
+reference beam for MAD-X; it does not overwrite the PASS beam configuration.</p>
+<p><strong>Optics calculation</strong> (光学计算) offers <strong>MAD-X TWISS</strong> or <strong>PTC TWISS</strong> when
+importing Twiss points or inserting a <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code>. Ordinary physical
+element import does not require an optics calculation. PTC is needed for
+models using its quadrupole fringe optics. PTC output is converted to the
+supported uncoupled Twiss-map conventions; unsupported closed orbit, vertical
+dispersion or coupling stops the import. Physical-element conversion retains
+quadrupole <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> and supported straight-magnet fringe controls from the
+sequence; see <a class="reference internal" href="element/quadrupole.html#en-straight-magnet-fringe"><span class="std std-ref">Physical entrance and exit fringe maps</span></a>. Other unsupported fringe
+parameters still stop the import instead of being dropped.</p>
+<p>Use <strong>Preview import</strong> before <strong>Import into Sequence</strong>. The preview includes
+the lattice name, MAD-X version, reference-beam choice and any source warnings.
+Preview and import reuse the same loaded result. Changes to the source,
+lattice name, beam selection or requested optics invalidate the relevant
+cache. After editing a file referenced by the source script, use
+<strong>Reload sequence</strong> (重新加载 sequence) to force a fresh load and preview.
+The existing sampling, BPM and geometry options still apply. The Python
+workflow and PTC derivative conversion are documented in <a class="reference internal" href="input_generation.html#en-madx-sequence"><span class="std std-ref">Method 4: Load a MAD-X sequence or LINE</span></a>.</p>
+</section>
 <section id="mad-x-sampling">
 <h3>MAD-X sampling<a class="headerlink" href="#mad-x-sampling" title="Link to this heading"></a></h3>
 <p><strong>Sampling mode</strong> defaults to <strong>Keep original positions</strong>. Selecting <strong>Uniform

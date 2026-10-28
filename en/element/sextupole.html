@@ -98,6 +98,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
 </ul>
@@ -223,6 +224,34 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>Skew sextupole integrated strength <span class="math notranslate nohighlight">\(K_{2sL}\)</span>, default 0</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>MAD-X bit selector; 2 enables intrinsic multipole end maps and 4 enables quadrupole F1/F2.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frngmax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Maximum included pole order: 2 = quadrupole, 3 = sextupole, 4 = octupole.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kill_ent_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Disable all enabled fringe maps at the physical entrance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kill_exi_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Disable all enabled fringe maps at the physical exit.</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -263,6 +292,9 @@ Each nonempty bunch samples once at entry; its strengths remain fixed over
 the entire element. Runtime nominal strengths retain the last executed
 bunch entrance values, with field errors kept separate. The same page
 documents <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code>.</p>
+<p>Fringe maps are applied once at each physical end, using the enabled total
+normal/skew strengths. See <a class="reference internal" href="quadrupole.html#en-straight-magnet-fringe"><span class="std std-ref">Physical entrance and exit fringe maps</span></a> for the selector,
+order cutoff, zero-length restrictions and MAD-X/PTC comparison conventions.</p>
 </section>
 <section id="usage-examples">
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>

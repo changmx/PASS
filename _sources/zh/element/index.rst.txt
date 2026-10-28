@@ -21,6 +21,7 @@
    bump
    elseparator
    exciter
+   ac_dipole
    rfcavity
 
 CrossingAngle、CrabCavity 和 FloatWaister 见 :doc:`../beam_beam`。

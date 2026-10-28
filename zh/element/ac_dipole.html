@@ -1,0 +1,415 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACDipole &mdash; PASS 0.6.1 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2bd037f0"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../../genindex.html" />
+    <link rel="search" title="搜索" href="../../search.html" />
+    <link rel="next" title="射频腔（RFCavity）" href="rfcavity.html" />
+    <link rel="prev" title="激励器（Exciter）" href="exciter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.6.1</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../../en/element/ac_dipole.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">元件误差</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">磁铁 ramping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">弯转磁铁（Dipole / SBend）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">八极铁（Octupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">多极铁（Multipole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">螺线管（Solenoid）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electron_cooler.html">ElectronCooler（电子冷却）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">快脉冲偏转磁铁（Kicker）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ACDipole</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">物理约定</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">输入接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">时间表与相位</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cpu">CPU 分块大小</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">固定频率光学测量示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mad-x">与 MAD-X 的比较</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">慢引出（SlowExtraction）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">逐束团横向反馈</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">监视器与输出</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 使用手册</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">ACDipole</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="acdipole">
+<h1>ACDipole<a class="headerlink" href="#acdipole" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ACDipole</span></code> 是零长度、单横向平面的激励元件，用于固定能量光学测量和规定的扫频实验。
+幅度与频率使用相互独立的物理时间程序。所有 bunch 取样同一个波形；
+圈数计数器和 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 都不会重置波形相位。</p>
+<section id="id1">
+<h2>物理约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>对于 <code class="docutils literal notranslate"><span class="pre">Direction</span> <span class="pre">=</span> <span class="pre">x</span></code> （垂直激励时将 <span class="math notranslate nohighlight">\(x\)</span> 换为 <span class="math notranslate nohighlight">\(y\)</span>），</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_0-\frac{z_i}{\beta_0c},\qquad
+\Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
+\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> 指定有符号振幅 <span class="math notranslate nohighlight">\(\theta\)</span>，<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 指定
+<span class="math notranslate nohighlight">\(\phi_0\)</span>，<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> 指定 <span class="math notranslate nohighlight">\(t_*\)</span>。PASS 存储的是
+<span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>，因此直接加上这个 kick，不再除以 <span class="math notranslate nohighlight">\(1+\delta\)</span>。
+只有傍轴近似下的斜率增量才满足 <span class="math notranslate nohighlight">\(\Delta x'\simeq\Delta p_x/(1+\delta)\)</span>。</p>
+<p>正 <code class="docutils literal notranslate"><span class="pre">z</span></code> 表示更早通过。实际 bunch 参考通过时刻 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 和连续的束内相对
+坐标 <code class="docutils literal notranslate"><span class="pre">p.z</span></code> 决定取样时间；名义束团槽位位置不进入这个公式。
+该模型不改变位置、<code class="docutils literal notranslate"><span class="pre">dp</span></code>、参考能量和 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>。
+它描述理想横向激励，不包含完整时变电磁场的纵向感应项，因此不声称是完整的六维辛映射。</p>
+<p>在右手 <span class="math notranslate nohighlight">\((x,y,s)\)</span> 坐标系中沿 <span class="math notranslate nohighlight">\(+s\)</span> 运动时，洛伦兹力给出
+<span class="math notranslate nohighlight">\(\theta_x=-q\int B_y ds/P_0\)</span> 和 <span class="math notranslate nohighlight">\(\theta_y=+q\int B_x ds/P_0\)</span>，
+其中 <span class="math notranslate nohighlight">\(q\)</span> 是有符号粒子电荷。这些公式在固定参考动量下将物理磁场积分转换为输入振幅。
+加速过程中固定的归一化输入不等于
+固定的实验室磁场；这类计算需要显式给出适当的归一化幅度程序。</p>
+</section>
+<section id="id2">
+<h2>输入接口<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>配置模型为 <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.elements.ACDipoleItem</span></code>，名称由
+<code class="docutils literal notranslate"><span class="pre">Sequence.add(name,</span> <span class="pre">item)</span></code> 提供。所有数值都必须有限。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17.0%" />
+<col style="width: 21.0%" />
+<col style="width: 14.0%" />
+<col style="width: 8.0%" />
+<col style="width: 11.0%" />
+<col style="width: 29.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 字段</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p>必填</p></td>
+<td><p>作用位置。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>必须为零。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'x'</span> <span class="pre">|</span> <span class="pre">'y'</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>激励横向平面。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>必填</p></td>
+<td><p>有符号归一化动量振幅。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>幅度采样时刻及有效时间区间。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p>必填</p></td>
+<td><p>非负载波频率，允许为零。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>独立的频率采样时刻。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>相位原点时刻的载波相位。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>频率积分的下限。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>启用激励。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>粒子数</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">65536</span></code></p></td>
+<td><p>每个 CPU 批次的最大粒子数，必须为正整数。<code class="docutils literal notranslate"><span class="pre">None</span></code> 表示整束一次处理。GPU 忽略此参数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>同一位置命令的显式顺序。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
+<td><p>标准横向损失孔径。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
+<td><p>m / rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>标准孔径尺寸。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id3">
+<h2>时间表与相位<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>每个提供的时间数组都必须非空且严格递增。包含多个数值的数组必须具有等长的对应时间数组，
+采样点之间采用线性插值。标量或只有一个数值的数组表示常量，也可以同时指定时间采样点。</p>
+<p>提供 <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code> 时，首尾采样点构成的闭区间之外 kick 为零。
+两个端点仍有效；单时间点区间仅在该时刻有效。不提供 kick 时间表时，标量幅度连续有效。
+每个粒子按自己的到达时刻判断有效区间，因此一个 bunch 可以跨越边界。
+频率表在区间外保持端点值，相位在所有频率节点及幅度边界处连续。</p>
+<p><code class="docutils literal notranslate"><span class="pre">LinearProgram</span></code> 精确积分每个线性频率段。在某一段内若
+<span class="math notranslate nohighlight">\(f(t)=f_a+\dot f(t-t_a)\)</span>，则</p>
+<div class="math notranslate nohighlight">
+\[\Phi(t)-\Phi(t_a)=2\pi\left[f_a(t-t_a)+\tfrac12\dot f(t-t_a)^2\right].\]</div>
+<p>使用 <span class="math notranslate nohighlight">\(2\pi f(t)(t-t_*)\)</span> 会产生错误的扫频相位。
+实现分别保留参考时刻和粒子时间偏移，并在计算正弦前按周期约化相位。
+输入程序是不可变快照，修改波形需要重建命令。这里没有需要在新运行开始时恢复的逐圈相位累加状态。</p>
+<p>CPU 和 CUDA 的波形中间量使用 float64，粒子数组保持配置的存储精度。
+分别保留微小偏移可以避免将其直接加到大时间原点时丢失信息，但不能消除浮点输入
+或局部相位乘积的舍入。时间与频率应处于有实际物理意义的范围，不能假定任意数量级
+都保留任意相位精度。</p>
+</section>
+<section id="cpu">
+<h2>CPU 分块大小<a class="headerlink" href="#cpu" title="Link to this heading"></a></h2>
+<p>默认 <code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span> <span class="pre">=</span> <span class="pre">65536</span></code> 每个 NumPy 批次处理至多 65,536 个粒子。
+显式设为 <code class="docutils literal notranslate"><span class="pre">None</span></code> 时整束一次处理。正整数限制每批粒子数，从而约束临时数组内存。修改此参数
+不改变粒子映射，也不会创建工作线程或将 bunch 分配到多个 CPU 核心；GPU 执行不受影响。</p>
+<p>在实际服务器上，应使用代表性的粒子数和波形，测试例如 16,384、65,536、262,144、
+1,048,576 粒子每块，必要时测试更大的块，并与 <code class="docutils literal notranslate"><span class="pre">None</span></code> 比较。更大内存允许更大的
+数组，但更大的块也可能超过 CPU 缓存容量并增加内存访问量。核数、内存带宽和
+NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NUMA 调度。应依据目标
+服务器上测得的吞吐量与峰值内存选择，而不是套用另一台机器的计时结果。</p>
+</section>
+<section id="id4">
+<h2>固定频率光学测量示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>固定能量环中设 <span class="math notranslate nohighlight">\(f_{\rm rev}=\beta_0c/C\)</span>，并使用
+<span class="math notranslate nohighlight">\(f_{\rm ac}=q_d f_{\rm rev}\)</span>。需要选择实际物理激励频率所在的支路：
+给 <span class="math notranslate nohighlight">\(q_d\)</span> 加整数时，单个理想参考粒子的逐圈取样相同，但其他 bunch 及不同到达时刻
+的粒子所见相位一般不同。</p>
+<p>以下例子假设 <span class="math notranslate nohighlight">\(f_{\rm rev}=10^6\)</span> Hz，且参考粒子首次通过元件的时刻为 <span class="math notranslate nohighlight">\(t=0\)</span>。
+实际使用时替换为所配置环的规定时钟和首次通过时刻。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACDipoleItem</span>
+
+<span class="n">f_rev</span> <span class="o">=</span> <span class="mf">1.0e6</span>
+<span class="n">first_passage_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">ac</span> <span class="o">=</span> <span class="n">ACDipoleItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span>
+    <span class="n">kick_angle</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="n">kick_times</span><span class="o">=</span><span class="p">[</span><span class="n">first_passage_time</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="n">f_rev</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">)],</span>
+    <span class="n">frequency</span><span class="o">=</span><span class="mf">0.31</span> <span class="o">*</span> <span class="n">f_rev</span><span class="p">,</span>
+    <span class="n">phase</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">phase_epoch</span><span class="o">=</span><span class="n">first_passage_time</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ac_x"</span><span class="p">,</span> <span class="n">ac</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>测量平台期应选择与束流 tune 分布有间隔的激励 tune。幅度升降时间（以圈计）应明显长于
+该 tune 间隔的倒数。在将受迫轨迹用于线性光学分析前，应检查关断后的自由振荡残余和
+响应的幅度依赖。实正弦激励包含两个旋转分量，受迫光学需要考虑双边带响应，不能直接等同于自由 betatron 运动。
+受迫响应的解释依据 R. Miyamoto 等人的
+<a class="reference external" href="https://arxiv.org/abs/0709.4192">Parametrization of the Driven Betatron Oscillation</a>，Phys. Rev. ST Accel. Beams 11, 084002 (2008)。</p>
+<p>扫频时，可以将标量频率替换为 <code class="docutils literal notranslate"><span class="pre">frequency=[0.30*f_rev,</span> <span class="pre">0.32*f_rev]</span></code>，并设置
+<code class="docutils literal notranslate"><span class="pre">frequency_times=[first_passage_time,</span> <span class="pre">first_passage_time</span> <span class="pre">+</span> <span class="pre">8000/f_rev]</span></code>。
+幅度程序保持原样。扫过束流 tune 分布的实验与稳态光学测量平台期属于不同的激励过程。</p>
+</section>
+<section id="mad-x">
+<h2>与 MAD-X 的比较<a class="headerlink" href="#mad-x" title="Link to this heading"></a></h2>
+<p>MAD-X <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> 中的 <code class="docutils literal notranslate"><span class="pre">HACDIPOLE</span></code>/<code class="docutils literal notranslate"><span class="pre">VACDIPOLE</span></code> 按圈取样，<code class="docutils literal notranslate"><span class="pre">FREQ</span></code> 的单位是周/圈。
+匹配参考粒子的采样值时使用 <span class="math notranslate nohighlight">\(f_{\rm ac}=\mathtt{FREQ}\,f_{\rm rev}\)</span>，
+振幅归一化采用 <span class="math notranslate nohighlight">\(\theta_0=0.3\,\mathtt{VOLT}/\mathtt{PC}`（``PC`\)</span> 单位 GeV/c）。
+初相取 <span class="math notranslate nohighlight">\(\phi_0=2\pi\,\mathtt{LAG}\)</span>。MAD-X 将 <code class="docutils literal notranslate"><span class="pre">START</span></code> 状态输出为第零圈，
+然后在第一圈施加首次 kick。该对照应使 PASS 在物理时刻 <span class="math notranslate nohighlight">\(t_n=n/f_{\rm rev}\)</span>
+取样，并使用 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span> <span class="pre">=</span> <span class="pre">0</span></code>；仅凭 PASS 圈数计数器不能确定这个时间原点。
+若 <code class="docutils literal notranslate"><span class="pre">RAMP1</span></code> 至 <code class="docutils literal notranslate"><span class="pre">RAMP4</span></code> 严格递增，可将其除以 <span class="math notranslate nohighlight">\(f_{\rm rev}\)</span> 后作为 kick
+采样时刻，振幅取 <span class="math notranslate nohighlight">\([0,\theta_0,\theta_0,0]\)</span>。
+PASS 进一步按各粒子的实际物理到达时刻取样，并支持连续频率程序。
+MAD-X <code class="docutils literal notranslate"><span class="pre">PTC</span></code> 的 AC dipole 约定不同，不属于上述 <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> 对应关系。</p>
+<p>逐圈幅度升降参数及 <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> 与 <code class="docutils literal notranslate"><span class="pre">PTC</span></code> 的差异见
+<a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X-User-Manual/blob/master/elements.tex">MAD-X AC dipole 手册源码</a>。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="exciter.html" class="btn btn-neutral float-left" title="激励器（Exciter）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="rfcavity.html" class="btn btn-neutral float-right" title="射频腔（RFCavity）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

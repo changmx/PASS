@@ -77,6 +77,7 @@
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Quadrupole</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#physical-entrance-and-exit-fringe-maps">Physical entrance and exit fringe maps</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#coordinate-convention">Coordinate Convention</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
@@ -98,6 +99,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
 </ul>
@@ -235,6 +237,48 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">'adaptive'</span></code></p></td>
 <td><p>Physical model, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code>), <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code>, <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code></p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">f1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">F1</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Signed PTC/SAD quadrupole fringe integral; finite.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">f2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">F2</span> <span class="pre">(m3)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\mathrm{m}^3\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Signed PTC/SAD quadrupole fringe integral; finite.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>MAD-X bit selector; 2 enables intrinsic multipole end maps and 4 enables quadrupole F1/F2.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frngmax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Maximum included pole order: 2 = quadrupole, 3 = sextupole, 4 = octupole.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kill_ent_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Disable all enabled fringe maps at the physical entrance.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kill_exi_fringe</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Disable all enabled fringe maps at the physical exit.</p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -275,6 +319,60 @@ Each nonempty bunch samples once at entry; its strengths remain fixed over
 the entire element. Runtime nominal strengths retain the last executed
 bunch entrance values, with field errors kept separate. The same page
 documents <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code>.</p>
+</section>
+<section id="physical-entrance-and-exit-fringe-maps">
+<span id="en-straight-magnet-fringe"></span><h2>Physical entrance and exit fringe maps<a class="headerlink" href="#physical-entrance-and-exit-fringe-maps" title="Link to this heading"></a></h2>
+<p>Quadrupole, Sextupole, Octupole and thick Multipole support intrinsic
+normal/skew multipole fringe maps. Quadrupole additionally supports the
+PTC/SAD <code class="docutils literal notranslate"><span class="pre">F1</span></code> and <code class="docutils literal notranslate"><span class="pre">F2</span></code> maps. These are signed field-profile integrals in
+metres and cubic metres, respectively; they are not entrance/exit angles.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> is an integer from 0 to 7 using the MAD-X bit convention:
+bit value 2 enables intrinsic multipole fringes, bit value 4 enables the
+quadrupole <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> branch, and bit value 1 has no effect on these straight
+magnets. Thus 0 disables both, 2 enables intrinsic fringes, 4 enables only
+<code class="docutils literal notranslate"><span class="pre">F1/F2</span></code>, and 6 enables both. The default is 0, preserving transport without
+fringe maps. Nonzero <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> alone does not enable that branch.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code> is the highest included pole order of the intrinsic branch:
+1 denotes dipole, 2 quadrupole, 3 sextupole, and 4 octupole. It defaults to 2
+and must be a positive integer. It limits which magnetic components enter
+the map, not the power of transverse amplitude retained in a Taylor series.
+It does not disable the separate <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> branch. Use <code class="docutils literal notranslate"><span class="pre">FRNGMAX=3</span></code> to
+include sextupole fringes and <code class="docutils literal notranslate"><span class="pre">FRNGMAX=4</span></code> to include octupole fringes.
+Dipole components enter the combined multipole fringe map; a standalone
+dipole uses <code class="docutils literal notranslate"><span class="pre">SBend</span></code>. As in PTC, a multipole containing only the dipole
+order has no intrinsic straight-magnet fringe map.</p>
+<p>The entrance map, body and exit map execute in that order in the magnet’s
+local aligned frame. Fringe maps run once per physical end, independently
+of the number of numerical slices or Yoshida substeps. <code class="docutils literal notranslate"><span class="pre">KILL_ENT_FRINGE</span></code>
+and <code class="docutils literal notranslate"><span class="pre">KILL_EXI_FRINGE</span></code> suppress both enabled branches at the corresponding
+end. Fringe maps use the same entrance-sampled nominal strengths as the
+body, including enabled absolute normal/skew field errors. Their body
+gradients are obtained from the integrated strengths divided by the
+physical length. An active nonzero fringe therefore requires a positive
+length; a zero-length integrated kick does not define that gradient.</p>
+<p>The maps preserve the particle momentum magnitude and update the
+longitudinal time coordinate consistently with the transverse canonical
+map. CPU and GPU use the same model. The body integration accuracy must
+still be checked separately; for comparisons with exact PTC transport use
+<code class="docutils literal notranslate"><span class="pre">model=&quot;drift-kick-drift-exact&quot;</span></code> and verify slice convergence.</p>
+<p>At entry, the intrinsic map precedes <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code>; at exit, <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> precedes
+the intrinsic map. The <code class="docutils literal notranslate"><span class="pre">F1</span></code> coefficient reverses sign between the two
+ends, whereas the <code class="docutils literal notranslate"><span class="pre">F2</span></code> coefficient keeps its sign. For <code class="docutils literal notranslate"><span class="pre">TIME=TRUE</span></code>, the
+MAD-X PTC’s external canonical coordinates corresponding to PASS
+<span class="math notranslate nohighlight">\((z,\delta)\)</span> are</p>
+<div class="math notranslate nohighlight">
+\[t=z/\beta_0,\qquad
+P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.\]</div>
+<p>PTC’s internal time coordinate has the opposite sign, <span class="math notranslate nohighlight">\(ct=-z/\beta_0\)</span>.</p>
+<p>The implementation follows the <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L4492-L4597">PTC intrinsic fringe map</a>
+and <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121">PTC quadrupole fringe map</a>.</p>
+<p>PASS uses the element’s explicit <code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> bits. In PTC, the separate
+global <code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,FRINGE=TRUE</span></code> also enables intrinsic multipole
+fringes even when the element bit is absent. A calculation of PTC optics
+does not change the imported element parameters. When comparing tracking
+with that global switch, explicitly enable bit value 2 in the corresponding
+PASS straight magnets, or use matching element bits with the global switch
+off. Standard MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> does not implement the PTC/SAD <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> branch.</p>
 </section>
 <section id="usage-examples">
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>

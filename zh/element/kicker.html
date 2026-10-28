@@ -83,20 +83,22 @@
 <li class="toctree-l2"><a class="reference internal" href="electron_cooler.html">ElectronCooler（电子冷却）</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">快脉冲偏转磁铁（Kicker）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">坐标约定</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id8">物理推导</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">整体跟踪流程</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">精确漂移映射</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">辛积分器</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id14">应用场景</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id15">参考文献</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id16">元件内部空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">作用圈数窗口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">坐标约定</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">物理推导</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">整体跟踪流程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">精确漂移映射</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">辛积分器</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">参考文献</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
 </ul>
@@ -158,6 +160,7 @@
 <p>本模块介绍 PASS 中的快脉冲偏转磁铁元件 <strong>Kicker</strong> ，用于模拟带电粒子在脉冲偶极磁铁中的运动。快脉冲偏转磁铁是一种快速作用的横向偏转元件，通过施加角偏转改变束流方向，广泛应用于束流注入、引出、轨道校正和快速束流调节等场景。</p>
 <p>PASS 中的快脉冲偏转磁铁支持 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ）和 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ）两种模式。厚元件采用精确漂移-动量更新-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。物理上，快脉冲偏转磁铁等价于 order-0 多极铁（偶极铁），动量更新公式为 <span class="math notranslate nohighlight">\(\Delta p_x = \text{hkick}\)</span> ， <span class="math notranslate nohighlight">\(\Delta p_y = \text{vkick}\)</span> 。</p>
 <ul class="simple">
+<li><p>运行时注册名：<code class="docutils literal notranslate"><span class="pre">kicker</span></code></p></li>
 <li><p>核心特征：</p>
 <ul>
 <li><p>支持薄透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，仅施加偶极动量更新）</p></li>
@@ -165,6 +168,7 @@
 <li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
 <li><p>水平动量更新（ <code class="docutils literal notranslate"><span class="pre">hkick</span></code> ）与垂直动量更新（ <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）独立设置</p></li>
 <li><p>支持单向动量更新（仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 或仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）和双向动量更新（两者同时非零）</p></li>
+<li><p>支持单圈作用或指定圈数窗口内连续逐圈作用</p></li>
 <li><p>掩码方式施加动量更新，无逐粒子分支</p></li>
 <li><p>零动量更新时薄透镜退化为标记器，厚透镜退化为纯漂移</p></li>
 <li><p>支持孔径检查</p></li>
@@ -222,6 +226,20 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>垂直归一化动量增量；仅在小角度近似下对应弧度。</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">StrictInt</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>包含的起始圈号，从零编号；必须为非负整数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">StrictInt</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> / JSON <code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>不包含的结束圈号；设置时必须大于 <code class="docutils literal notranslate"><span class="pre">start_turn</span></code>。<code class="docutils literal notranslate"><span class="pre">None</span></code> 表示在本次运行内不另设上限。</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -261,18 +279,88 @@
 <li><p>两者均非零：双向快脉冲偏转磁铁</p></li>
 <li><p>两者均为零：薄透镜退化为标记器，厚透镜退化为纯漂移</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">kicker</span></code> 。</p>
+<p>JSON 的 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">Kicker</span></code> 。</p>
 </div>
 </section>
 <section id="id2">
-<h2>使用示例<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h2>作用圈数窗口<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>设置 <code class="docutils literal notranslate"><span class="pre">end_turn</span></code> 时，磁场动量更新的启用条件为
+<code class="docutils literal notranslate"><span class="pre">start_turn</span> <span class="pre">&lt;=</span> <span class="pre">turn</span> <span class="pre">&lt;</span> <span class="pre">end_turn</span></code>，包含起始圈、不包含结束圈，
+与 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a> 和 <a class="reference internal" href="../transverse_feedback.html"><span class="doc">逐束团横向反馈</span></a> 一致。
+圈号从零开始。默认 <code class="docutils literal notranslate"><span class="pre">start_turn=0,</span> <span class="pre">end_turn=None</span></code> 保持每圈作用的原有行为。
+两个端点均要求严格整数，拒绝布尔值、字符串和浮点数；
+仅 <code class="docutils literal notranslate"><span class="pre">end_turn</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">None``（JSON</span> <span class="pre">``null</span></code>）。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 60.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>期望行为</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>第一圈跟踪时作用一次</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>前 100 圈每圈作用一次</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>圈号 20 至 29 每圈作用一次</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">30</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>从圈号 20 起每圈作用，直至本次运行结束</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>在启用圈内，所配置 beam 的所有束团中的每个存活粒子均受到配置的积分踢量。
+所有积分切片共用同一作用窗口，并沿元件长度分摊完整踢量。
+窗口固定于模拟圈号：空圈不会将踢击推迟到粒子注入后，
+窗口结束后才注入的粒子不再受到该元件的踢击。</p>
+<p>窗口之外，名义踢量和该元件附加的绝对场误差同时关闭。
+跟踪保持在设计坐标系中，不执行磁场准直坐标系的进出变换。
+元件仍保留沿自身长度的粒子输运、<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 推进、孔径检查，
+以及内部空间电荷节点的执行。未配置内部空间电荷时，未启用的厚 Kicker
+等价于漂移；未启用的薄 Kicker 仍执行孔径检查。</p>
+<p>这是理想的逐圈开关，窗口内的踢量幅度保持配置值。
+它不模拟实际脉冲宽度，也不按每个粒子的到达时间采样波形；
+给定时间波形的注入模型请使用 <a class="reference internal" href="bump.html"><span class="doc">凸轨磁铁（Bump）</span></a>。</p>
+</section>
 <section id="id3">
-<h3>薄透镜水平快脉冲偏转磁铁<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<h2>使用示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h3>单圈作用<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>以下 Kicker 只在第一圈跟踪时（圈号 0）作用：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"HK_ONCE"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>将 <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> 改为 <code class="docutils literal notranslate"><span class="pre">100</span></code>，即可在圈号 0 至 99 每圈施加相同踢量。
+<code class="docutils literal notranslate"><span class="pre">1,</span> <span class="pre">1</span></code> 等相等端点无效；只在圈号 <code class="docutils literal notranslate"><span class="pre">n</span></code> 作用一次应设置
+<code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn=n,</span> <span class="pre">End</span> <span class="pre">turn=n+1</span></code>。</p>
+</section>
+<section id="id5">
+<h3>薄透镜水平快脉冲偏转磁铁<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 10.0\)</span> m 处放置一个薄透镜水平快脉冲偏转磁铁，归一化动量增量 <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span>：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"HK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
@@ -281,13 +369,13 @@
 </div>
 <p>仅施加水平动量更新，垂直方向不受影响。适用于水平轨道校正或水平注入。</p>
 </section>
-<section id="id4">
-<h3>薄透镜垂直快脉冲偏转磁铁<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="id6">
+<h3>薄透镜垂直快脉冲偏转磁铁<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 20.0\)</span> m 处放置一个薄透镜垂直快脉冲偏转磁铁，归一化动量增量 <span class="math notranslate nohighlight">\(-2.3 \times 10^{-3}\)</span>：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"VK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0023</span>
 <span class="w">    </span><span class="p">}</span>
@@ -296,13 +384,13 @@
 </div>
 <p>仅施加垂直动量更新，水平方向不受影响。负号表示动量更新方向向下。</p>
 </section>
-<section id="id5">
-<h3>厚透镜双向快脉冲偏转磁铁<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>厚透镜双向快脉冲偏转磁铁<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 15.0\)</span> m 处放置一个厚透镜双向快脉冲偏转磁铁，4 个切片，uniform 积分器：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"BK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
@@ -322,7 +410,7 @@
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"BK2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -334,13 +422,13 @@
 </div>
 <p>2 个切片，每个切片执行 3 次 DKD 步（Yoshida 组合），截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
 </section>
-<section id="id6">
-<h3>零动量更新快脉冲偏转磁铁<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>零动量更新快脉冲偏转磁铁<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 30.0\)</span> m 处放置一个零动量更新快脉冲偏转磁铁：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"K0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
@@ -350,8 +438,8 @@
 <p>动量更新为零且长度为零时，快脉冲偏转磁铁退化为标记器，不改变任何粒子坐标。可用于预留元件位置并在后续配置中更改强度。磁铁 ramping 字段为预留接口，本元件不执行时变波形。</p>
 </section>
 </section>
-<section id="id7">
-<h2>坐标约定<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="id9">
+<h2>坐标约定<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <p>采用 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a> 的连续纵向坐标。
 <span class="math notranslate nohighlight">\(T_b\)</span> 是理想参考粒子在当前位置的实际通过时刻，不是束团质心时刻；
 局部映射中的 <span class="math notranslate nohighlight">\(\beta_0\)</span> 和 <span class="math notranslate nohighlight">\(P_0\)</span> 表示当前束团参考量。
@@ -398,17 +486,17 @@
 </table>
 <p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度， <span class="math notranslate nohighlight">\(s\)</span> 为沿参考轨道的弧长， <span class="math notranslate nohighlight">\(t\)</span> 为时间。</p>
 </section>
-<section id="id8">
-<h2>物理推导<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<section id="id9">
-<h3>快脉冲偏转磁铁的物理本质<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<section id="id10">
+<h2>物理推导<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<section id="id11">
+<h3>快脉冲偏转磁铁的物理本质<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <p>快脉冲偏转磁铁在物理上是一个脉冲偶极磁铁（pulsed dipole magnet），在短暂的时间窗口内产生均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> ，对穿过其中的粒子施加横向偏转。在小角度近似下，长度为 <span class="math notranslate nohighlight">\(L\)</span> 的均匀偶极场对参考粒子的偏转角大小为：</p>
 <div class="math notranslate nohighlight">
 \[|\theta| \simeq \frac{|q B_0|L}{P_0} = \frac{|B_0|L}{|B\rho|}\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(B\rho=P_0/q\)</span> 为磁刚度。<code class="docutils literal notranslate"><span class="pre">hkick</span></code>、<code class="docutils literal notranslate"><span class="pre">vkick</span></code> 给出下述归一化横向动量增量；其符号直接指定水平、垂直动量变化的方向。它们与正多极零阶系数之间的换算还须考虑符号约定。</p>
 </section>
-<section id="id10">
-<h3>偶极动量更新<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<section id="id12">
+<h3>偶极动量更新<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p>快脉冲偏转磁铁的动量更新公式为：</p>
 <div class="math notranslate nohighlight">
 \[\Delta p_x = \text{hkick}\]</div>
@@ -422,8 +510,8 @@
 </div>
 </section>
 </section>
-<section id="id11">
-<h2>整体跟踪流程<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<section id="id13">
+<h2>整体跟踪流程<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
 <p>根据磁铁长度，快脉冲偏转磁铁有两种跟踪模式：</p>
 <p><strong>薄透镜模式</strong> （ <span class="math notranslate nohighlight">\(L = 0\)</span> ）</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 薄透镜 (length = 0) ======
@@ -463,8 +551,8 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 </ul>
 </div>
 </section>
-<section id="id12">
-<h2>精确漂移映射<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<section id="id14">
+<h2>精确漂移映射<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <p>漂移部分采用精确漂移（Table 1.1, map D, Eq. 1.86-1.88），与四极铁/六极铁/八极铁/多极铁完全相同：</p>
 <div class="math notranslate nohighlight">
 \[x \mathrel{+}= \frac{p_x}{p_z} L\]</div>
@@ -478,9 +566,12 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <div class="math notranslate nohighlight">
 \[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
 <p>精确漂移保留了 <span class="math notranslate nohighlight">\(p_z\)</span> 的完整非线性，自然引入色品、高阶色散和路径长度效应。</p>
+<p>为保持数值稳定性，纵向漂移采用代数有理化后的等价表达式计算。
+CPU 和 GPU 均由参考 gamma 直接计算 <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span>，
+避免参考速度接近光速时 <span class="math notranslate nohighlight">\(1-\beta_0^2\)</span> 的相消误差。</p>
 </section>
-<section id="id13">
-<h2>辛积分器<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id15">
+<h2>辛积分器<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <section id="uniform-2">
 <h3>Uniform（2阶蛙跳）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
 <p>每个切片执行 Drift-Kick-Drift：</p>
@@ -503,18 +594,18 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 准直只移动磁场，孔径和 SC 边界保持在设计坐标系。</p>
 </section>
 </section>
-<section id="id14">
-<h2>应用场景<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id16">
+<h2>应用场景<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><strong>束流注入</strong> ：在注入段放置快脉冲偏转磁铁，将注入束流偏转至与主环闭合轨道匹配的方向，实现束流注入</p></li>
 <li><p><strong>束流引出</strong> ：在引出点放置快脉冲偏转磁铁，快速将束流偏转至引出通道，实现快引出</p></li>
 <li><p><strong>轨道校正</strong> ：在束线关键位置放置快脉冲偏转磁铁，校正轨道偏差或实现局部凸轨（ bump ）</p></li>
 </ul>
-<p>本 Kicker 模型施加固定配置强度。给定注入波形见 <a class="reference internal" href="bump.html"><span class="doc">凸轨磁铁（Bump）</span></a>，横向激励见 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a>；本元件不包含拾取器反馈控制器。
+<p>本 Kicker 模型在作用圈数窗口内施加固定配置强度。给定注入波形见 <a class="reference internal" href="bump.html"><span class="doc">凸轨磁铁（Bump）</span></a>，横向激励见 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a>；本元件不包含拾取器反馈控制器。
 逐束团质心的延迟 FIR 闭环请使用 <a class="reference internal" href="../transverse_feedback.html"><span class="doc">逐束团横向反馈</span></a> 中的专用节点。</p>
 </section>
-<section id="id15">
-<h2>参考文献<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<section id="id17">
+<h2>参考文献<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>MAD-X User’s Guide, “Kicker” section (hkick / vkick 定义)</p></li>
 <li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/mad_loader.py</span></code> （ <code class="docutils literal notranslate"><span class="pre">convert_kicker</span></code> , <code class="docutils literal notranslate"><span class="pre">_make_kicker_multipole</span></code> ）</p></li>
@@ -522,8 +613,8 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <li><p>Wiedemann, H., “Particle Accelerator Physics”, Ch. 4 (偶极磁铁与偏转)</p></li>
 </ul>
 </section>
-<section id="id16">
-<h2>元件内部空间电荷<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<section id="id18">
+<h2>元件内部空间电荷<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
 <p>正长度元件可设置 <code class="docutils literal notranslate"><span class="pre">space_charge</span></code> （JSON <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code>）为
 <code class="docutils literal notranslate"><span class="pre">ElementSpaceCharge</span></code> 对象。<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 控制外场传输，
 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge.Num</span> <span class="pre">kicks</span></code> 控制 SC 积分。调度规则、共享资源、

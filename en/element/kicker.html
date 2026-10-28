@@ -83,6 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="electron_cooler.html">ElectronCooler</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Kicker</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#turn-window">Turn Window</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#coordinate-convention">Coordinate Convention</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#physical-derivation">Physical Derivation</a></li>
@@ -97,6 +98,7 @@
 <li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
 <li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ac_dipole.html">ACDipole</a></li>
 <li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
 </ul>
@@ -158,7 +160,7 @@
 <p>This module describes the PASS kicker element <strong>Kicker</strong>, used to simulate the motion of charged particles in a pulsed dipole magnet. A kicker is a fast-acting transverse deflection element that changes the beam direction by applying an angular deflection. It is widely used in beam injection, extraction, orbit correction, and fast beam manipulation.</p>
 <p>The PASS kicker supports both <strong>thick element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>) and <strong>thin lens</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. Physically, a kicker is equivalent to an order-0 multipole (dipole), with kick formulas <span class="math notranslate nohighlight">\(\Delta p_x = \text{hkick}\)</span> and <span class="math notranslate nohighlight">\(\Delta p_y = \text{vkick}\)</span>.</p>
 <ul class="simple">
-<li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">kicker</span></code></p></li>
+<li><p>Runtime registry name: <code class="docutils literal notranslate"><span class="pre">kicker</span></code></p></li>
 <li><p>Key features:</p>
 <ul>
 <li><p>Supports thin lens mode (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>, applies only a dipole kick)</p></li>
@@ -166,6 +168,7 @@
 <li><p>Supports uniform (2nd-order leapfrog) and yoshida4 (4th-order Yoshida composition) integrators</p></li>
 <li><p>Horizontal kick (<code class="docutils literal notranslate"><span class="pre">hkick</span></code>) and vertical kick (<code class="docutils literal notranslate"><span class="pre">vkick</span></code>) set independently</p></li>
 <li><p>Supports unidirectional kick (only <code class="docutils literal notranslate"><span class="pre">hkick</span></code> or only <code class="docutils literal notranslate"><span class="pre">vkick</span></code>) and bidirectional kick (both nonzero)</p></li>
+<li><p>Supports a single-turn kick or consecutive kicks within a configured turn window</p></li>
 <li><p>Mask-based kick application, no per-particle branching</p></li>
 <li><p>Zero kick: thin lens degenerates to a marker, thick lens degenerates to a pure drift</p></li>
 <li><p>Supports aperture check</p></li>
@@ -223,6 +226,20 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>Vertical normalized momentum increment; an angle in radians only in the small-angle limit.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">StrictInt</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Inclusive starting turn, numbered from zero; must be nonnegative.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">StrictInt</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> / JSON <code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Exclusive ending turn; when provided, must exceed <code class="docutils literal notranslate"><span class="pre">start_turn</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> imposes no additional upper bound within this run.</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
@@ -262,18 +279,94 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <li><p>Both nonzero: bidirectional kicker</p></li>
 <li><p>Both zero: thin lens degenerates to a marker, thick lens degenerates to a pure drift</p></li>
 </ul>
-<p>The <code class="docutils literal notranslate"><span class="pre">Command</span></code> field should be set to <code class="docutils literal notranslate"><span class="pre">kicker</span></code>.</p>
+<p>The JSON <code class="docutils literal notranslate"><span class="pre">Command</span></code> field should be set to <code class="docutils literal notranslate"><span class="pre">Kicker</span></code>.</p>
 </div>
+</section>
+<section id="turn-window">
+<h2>Turn Window<a class="headerlink" href="#turn-window" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">end_turn</span></code> is provided, the magnetic kick is enabled when
+<code class="docutils literal notranslate"><span class="pre">start_turn</span> <span class="pre">&lt;=</span> <span class="pre">turn</span> <span class="pre">&lt;</span> <span class="pre">end_turn</span></code>. The starting turn is included and the
+ending turn is excluded, as for
+<a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a> and <a class="reference internal" href="../transverse_feedback.html"><span class="doc">Bunch-by-bunch transverse feedback</span></a>. Turn numbering starts at zero.
+The default <code class="docutils literal notranslate"><span class="pre">start_turn=0,</span> <span class="pre">end_turn=None</span></code> preserves the every-turn behavior.
+Both bounds require strict integers: booleans, strings and floating-point
+values are rejected. Only <code class="docutils literal notranslate"><span class="pre">end_turn</span></code> accepts <code class="docutils literal notranslate"><span class="pre">None</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">null</span></code>).</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 60.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Requested behavior</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>One kick on the first tracking turn</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>One kick per turn for the first 100 turns</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>One kick per turn for turn indices 20 through 29</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">30</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>One kick per turn from turn index 20 to the end of the run</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Every live particle in every bunch of the configured beam receives the
+configured integrated kick on an active turn. All integration slices share
+the same turn window and distribute that full kick over the element length.
+The window is fixed to simulation turn indices: an empty turn does not defer
+the kick until particles are injected, and particles injected after the
+window receive no kick from this element.</p>
+<p>Outside the window, both nominal kicks and the attached absolute field errors
+are disabled. Tracking stays in the design frame without applying the
+magnetic alignment coordinate transformations. The element still transports
+particles through its length,
+advances <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>, checks apertures and executes any internal space-charge
+nodes. With no internal space charge, an inactive thick kicker is a drift;
+an inactive thin kicker still checks its aperture.</p>
+<p>This is an ideal turn-based gate with constant configured kick amplitudes
+inside the window. It does not model a pulse duration or sample a waveform
+at individual particle arrival times; use <a class="reference internal" href="bump.html"><span class="doc">Bump</span></a> for a prescribed
+time-dependent injection waveform.</p>
 </section>
 <section id="usage-examples">
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<section id="single-turn-kicker">
+<h3>Single-Turn Kicker<a class="headerlink" href="#single-turn-kicker" title="Link to this heading"></a></h3>
+<p>This kicker acts only on the first tracking turn, at turn index 0:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"HK_ONCE"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Set <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> to <code class="docutils literal notranslate"><span class="pre">100</span></code> to apply the same kick on each of turn indices
+0 through 99. Equal bounds such as <code class="docutils literal notranslate"><span class="pre">1,</span> <span class="pre">1</span></code> are invalid; a single kick at
+turn index <code class="docutils literal notranslate"><span class="pre">n</span></code> uses <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn=n,</span> <span class="pre">End</span> <span class="pre">turn=n+1</span></code>.</p>
+</section>
 <section id="thin-lens-horizontal-kicker">
 <h3>Thin Lens Horizontal Kicker<a class="headerlink" href="#thin-lens-horizontal-kicker" title="Link to this heading"></a></h3>
 <p>The following example places a thin lens horizontal kicker at <span class="math notranslate nohighlight">\(s = 10.0\)</span> m with normalized momentum increment <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span>:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"HK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
@@ -288,7 +381,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"VK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0023</span>
 <span class="w">    </span><span class="p">}</span>
@@ -303,7 +396,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"BK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
@@ -323,7 +416,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"BK2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -341,7 +434,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"K0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Kicker"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"HKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"VKICK"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
@@ -479,6 +572,10 @@ If hkick=0 and vkick=0: degenerates to a single exact drift Drift(L)
 <div class="math notranslate nohighlight">
 \[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
 <p>The exact drift preserves the full nonlinearity of <span class="math notranslate nohighlight">\(p_z\)</span>, naturally introducing chromaticity, higher-order dispersion, and path-length effects.</p>
+<p>For numerical stability, the longitudinal drift is evaluated in an
+algebraically rationalized form. Both CPU and GPU use <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span>
+from the reference gamma directly, avoiding cancellation in
+<span class="math notranslate nohighlight">\(1-\beta_0^2\)</span> when the reference speed is close to the speed of light.</p>
 </section>
 <section id="symplectic-integrators">
 <h2>Symplectic Integrators<a class="headerlink" href="#symplectic-integrators" title="Link to this heading"></a></h2>
@@ -512,7 +609,7 @@ apertures and SC boundaries remain in the design frame.</p>
 <li><p><strong>Beam extraction</strong>: Place kickers at the extraction point to rapidly deflect the beam into the extraction channel, for fast extraction</p></li>
 <li><p><strong>Orbit correction</strong>: Place kickers at key beamline positions to correct orbit deviations or create local orbit bumps</p></li>
 </ul>
-<p>The Kicker model applies constant configured strengths. For a prescribed injection waveform, see <a class="reference internal" href="bump.html"><span class="doc">Bump</span></a>; for transverse excitation, see <a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a>. A pickup-feedback controller is not included in this element.
+<p>The Kicker model applies constant configured strengths within its turn window. For a prescribed injection waveform, see <a class="reference internal" href="bump.html"><span class="doc">Bump</span></a>; for transverse excitation, see <a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a>. A pickup-feedback controller is not included in this element.
 For a delayed bunch-centroid FIR loop, use the dedicated nodes in <a class="reference internal" href="../transverse_feedback.html"><span class="doc">Bunch-by-bunch transverse feedback</span></a>.</p>
 </section>
 <section id="references">

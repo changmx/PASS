@@ -88,6 +88,11 @@ of DKD/RKR/SKS steps; the quadrupole matrix model uses half a nominal matrix,
 an error kick, and the other half. Internal space charge remains at its
 scheduled node and receives its own positive integration weight.
 
+When straight-magnet fringe maps are enabled, their gradients include these
+same absolute field errors divided by the physical length. The fringe order
+cutoff and entrance/exit switches also apply to the error components; see
+:ref:`en-straight-magnet-fringe`.
+
 Model limits
 ^^^^^^^^^^^^
 

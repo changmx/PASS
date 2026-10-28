@@ -1,0 +1,444 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACDipole &mdash; PASS 0.6.1 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2bd037f0"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="RFCavity" href="rfcavity.html" />
+    <link rel="prev" title="Exciter" href="exciter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.6.1</span>
+    
+      
+      
+    
+    <a href="../../zh/element/ac_dipole.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">Magnet ramping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole.html">Quadrupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">Sextupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">Octupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">Multipole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">Solenoid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electron_cooler.html">ElectronCooler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">Kicker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ACDipole</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#physics-convention">Physics convention</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-interface">Input interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#time-tables-and-phase">Time tables and phase</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cpu-batch-size">CPU batch size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixed-frequency-optics-example">Fixed-frequency optics example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comparison-with-mad-x">Comparison with MAD-X</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">Slow extraction (SlowExtraction)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">Monitors and output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Element</a></li>
+      <li class="breadcrumb-item active">ACDipole</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="acdipole">
+<h1>ACDipole<a class="headerlink" href="#acdipole" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ACDipole</span></code> is a zero-length, single-plane transverse excitation for fixed-energy
+optics measurements and prescribed frequency scans. Its amplitude and frequency
+use independent physical-time programs. All bunches sample the same waveform;
+neither the turn counter nor <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> resets its phase.</p>
+<section id="physics-convention">
+<h2>Physics convention<a class="headerlink" href="#physics-convention" title="Link to this heading"></a></h2>
+<p>For <code class="docutils literal notranslate"><span class="pre">Direction</span> <span class="pre">=</span> <span class="pre">x</span></code> (replace <span class="math notranslate nohighlight">\(x\)</span> by <span class="math notranslate nohighlight">\(y\)</span> for vertical excitation),</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_0-\frac{z_i}{\beta_0c},\qquad
+\Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
+\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).\]</div>
+<p>Here <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> specifies the signed amplitude <span class="math notranslate nohighlight">\(\theta\)</span>,
+<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> specifies <span class="math notranslate nohighlight">\(\phi_0\)</span>, and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> specifies
+<span class="math notranslate nohighlight">\(t_*\)</span>. PASS stores <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>, so the kick is added directly.
+Do not divide it by <span class="math notranslate nohighlight">\(1+\delta\)</span>. Only the paraxial slope increment is
+<span class="math notranslate nohighlight">\(\Delta x'\simeq\Delta p_x/(1+\delta)\)</span>.</p>
+<p>Positive <code class="docutils literal notranslate"><span class="pre">z</span></code> means earlier passage. The actual bunch reference passage time
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and continuous bunch-relative <code class="docutils literal notranslate"><span class="pre">p.z</span></code> determine the sampled time;
+nominal bunch-slot positions are not part of this formula.
+The model leaves positions, <code class="docutils literal notranslate"><span class="pre">dp</span></code>, the reference energy and <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> unchanged.
+It models the ideal transverse excitation, without the longitudinal induction
+terms of a complete time-dependent electromagnetic field, and therefore does
+not claim a full six-dimensional symplectic map.</p>
+<p>For motion along <span class="math notranslate nohighlight">\(+s\)</span> in a right-handed <span class="math notranslate nohighlight">\((x,y,s)\)</span> frame, the Lorentz
+force gives <span class="math notranslate nohighlight">\(\theta_x=-q\int B_y ds/P_0\)</span> and
+<span class="math notranslate nohighlight">\(\theta_y=+q\int B_x ds/P_0\)</span>, with signed particle charge <span class="math notranslate nohighlight">\(q\)</span>.
+These convert physical magnetic-field integrals at fixed reference momentum.
+A fixed normalized input is
+not a fixed laboratory field during acceleration; such a calculation must
+prescribe the appropriate normalized amplitude explicitly.</p>
+</section>
+<section id="input-interface">
+<h2>Input interface<a class="headerlink" href="#input-interface" title="Link to this heading"></a></h2>
+<p>The model is <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.elements.ACDipoleItem</span></code>. The name is supplied by
+<code class="docutils literal notranslate"><span class="pre">Sequence.add(name,</span> <span class="pre">item)</span></code>. All numerical values must be finite.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17.0%" />
+<col style="width: 21.0%" />
+<col style="width: 14.0%" />
+<col style="width: 8.0%" />
+<col style="width: 11.0%" />
+<col style="width: 29.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python field</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p>Required</p></td>
+<td><p>Action position.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Must be zero.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'x'</span> <span class="pre">|</span> <span class="pre">'y'</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Required</p></td>
+<td><p>Excited transverse plane.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>Required</p></td>
+<td><p>Signed normalized momentum amplitude.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Amplitude sample times and active time interval.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p>Required</p></td>
+<td><p>Nonnegative carrier frequency; zero is allowed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Independent frequency sample times.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Carrier phase at the phase epoch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Lower limit of the frequency integral.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Enable the excitation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>particles</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">65536</span></code></p></td>
+<td><p>Maximum particles per CPU batch; a positive integer. <code class="docutils literal notranslate"><span class="pre">None</span></code> processes the whole bunch. Ignored on GPU.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Explicit order among commands at the same position.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
+<td><p>Standard transverse loss aperture.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
+<td><p>m / rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>Standard aperture dimensions.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="time-tables-and-phase">
+<h2>Time tables and phase<a class="headerlink" href="#time-tables-and-phase" title="Link to this heading"></a></h2>
+<p>Each supplied time array must be nonempty and strictly increasing. A value array
+with multiple samples requires a matching time array of equal length. Values
+between samples are interpolated linearly. A scalar or one-value array denotes
+a constant value; it may also be paired with time samples.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, the kick is zero outside the closed interval from the
+first to last sample. Both endpoints remain active; a one-time-point interval
+is active only at that instant. Without kick times, a scalar amplitude operates
+continuously. Each particle is gated at its own arrival time, so a bunch can
+straddle a boundary. Frequency samples hold their endpoint values outside their
+interval, and phase remains continuous through every knot and amplitude boundary.</p>
+<p><code class="docutils literal notranslate"><span class="pre">LinearProgram</span></code> integrates each linear frequency segment exactly. For a sweep
+<span class="math notranslate nohighlight">\(f(t)=f_a+\dot f(t-t_a)\)</span> within one segment,</p>
+<div class="math notranslate nohighlight">
+\[\Phi(t)-\Phi(t_a)=2\pi\left[f_a(t-t_a)+\tfrac12\dot f(t-t_a)^2\right].\]</div>
+<p>Using <span class="math notranslate nohighlight">\(2\pi f(t)(t-t_*)\)</span> would give the wrong sweep phase. The implementation
+keeps the reference time and particle offset separate and reduces phase in
+cycles before evaluating the sine. Input programs are immutable snapshots;
+reconstruct the command to change them. There is no turn-by-turn phase state
+to reset at the start of a new tracking run.</p>
+<p>CPU and CUDA use float64 waveform intermediates; particle arrays retain their
+configured storage precision. Keeping small offsets separate avoids loss from
+adding them to large epochs, but does not remove floating-point input or local
+phase-product rounding. Use physically meaningful times and frequencies rather
+than assuming arbitrary magnitudes retain arbitrary phase accuracy.</p>
+</section>
+<section id="cpu-batch-size">
+<h2>CPU batch size<a class="headerlink" href="#cpu-batch-size" title="Link to this heading"></a></h2>
+<p>The default <code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span> <span class="pre">=</span> <span class="pre">65536</span></code> processes at most 65,536 particles per
+NumPy batch. Explicitly setting <code class="docutils literal notranslate"><span class="pre">None</span></code> processes the whole bunch in one batch.
+A positive integer caps each batch, bounding temporary-array memory. Changing
+this setting preserves the particle map and does not create worker threads or
+distribute bunches across CPU cores. GPU execution is unaffected.</p>
+<p>For production servers, benchmark representative particle counts and waveforms
+with, for example, 16,384, 65,536, 262,144, 1,048,576 particles per batch, larger
+batches if appropriate, and <code class="docutils literal notranslate"><span class="pre">None</span></code>. More RAM permits larger arrays, but larger
+batches can exceed CPU cache capacity and increase memory traffic. Core count,
+memory bandwidth and NUMA placement are separate considerations; a batch-size
+setting alone does not provide multicore or NUMA scheduling. Choose from measured
+throughput and peak memory on the target server, not a timing from another machine.</p>
+</section>
+<section id="fixed-frequency-optics-example">
+<h2>Fixed-frequency optics example<a class="headerlink" href="#fixed-frequency-optics-example" title="Link to this heading"></a></h2>
+<p>For a fixed-energy ring set <span class="math notranslate nohighlight">\(f_{\rm rev}=\beta_0c/C\)</span> and
+<span class="math notranslate nohighlight">\(f_{\rm ac}=q_d f_{\rm rev}\)</span>. Choose the physical drive-frequency branch:
+adding an integer to <span class="math notranslate nohighlight">\(q_d\)</span> produces identical samples for a single ideal
+reference passage per turn, but generally changes the phase seen by other
+bunches and by particles with different arrival times.</p>
+<p>The following example assumes <span class="math notranslate nohighlight">\(f_{\rm rev}=10^6\)</span> Hz and a first reference
+passage at the element at <span class="math notranslate nohighlight">\(t=0\)</span>. Substitute the actual prescribed clock
+and first-passage time for the configured ring.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACDipoleItem</span>
+
+<span class="n">f_rev</span> <span class="o">=</span> <span class="mf">1.0e6</span>
+<span class="n">first_passage_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">ac</span> <span class="o">=</span> <span class="n">ACDipoleItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">direction</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span>
+    <span class="n">kick_angle</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="n">kick_times</span><span class="o">=</span><span class="p">[</span><span class="n">first_passage_time</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="n">f_rev</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">)],</span>
+    <span class="n">frequency</span><span class="o">=</span><span class="mf">0.31</span> <span class="o">*</span> <span class="n">f_rev</span><span class="p">,</span>
+    <span class="n">phase</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">phase_epoch</span><span class="o">=</span><span class="n">first_passage_time</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ac_x"</span><span class="p">,</span> <span class="n">ac</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Use a drive tune separated from the beam tune footprint for the measurement
+plateau, and ramp the amplitude slowly compared with the inverse tune separation
+in turns. Check residual free oscillations after ramp-down and amplitude
+dependence before interpreting the driven trajectory as linear optics. A real
+sinusoidal drive contains both rotating components; driven optics require their
+two-sideband response, not an identification with unforced betatron motion.
+The driven-response interpretation follows R. Miyamoto et al.,
+<a class="reference external" href="https://arxiv.org/abs/0709.4192">Parametrization of the Driven Betatron Oscillation</a>, Phys. Rev. ST Accel. Beams 11, 084002 (2008).</p>
+<p>To prescribe a sweep, replace the scalar frequency with, for example,
+<code class="docutils literal notranslate"><span class="pre">frequency=[0.30*f_rev,</span> <span class="pre">0.32*f_rev]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">frequency_times=[first_passage_time,</span> <span class="pre">first_passage_time</span> <span class="pre">+</span> <span class="pre">8000/f_rev]</span></code>.
+The amplitude program is unchanged. A sweep through the tune footprint is a
+different excitation experiment from a stationary optics plateau.</p>
+</section>
+<section id="comparison-with-mad-x">
+<h2>Comparison with MAD-X<a class="headerlink" href="#comparison-with-mad-x" title="Link to this heading"></a></h2>
+<p>MAD-X <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> implements <code class="docutils literal notranslate"><span class="pre">HACDIPOLE</span></code>/<code class="docutils literal notranslate"><span class="pre">VACDIPOLE</span></code> as a turn-sampled kick;
+its <code class="docutils literal notranslate"><span class="pre">FREQ</span></code> is cycles per turn. For matching reference samples use
+<span class="math notranslate nohighlight">\(f_{\rm ac}=\mathtt{FREQ}\,f_{\rm rev}\)</span> and normalize the amplitude as
+<span class="math notranslate nohighlight">\(\theta_0=0.3\,\mathtt{VOLT}/\mathtt{PC}\)</span> (<code class="docutils literal notranslate"><span class="pre">PC</span></code> in GeV/c).
+Use <span class="math notranslate nohighlight">\(\phi_0=2\pi\,\mathtt{LAG}\)</span>. MAD-X outputs the <code class="docutils literal notranslate"><span class="pre">START</span></code> state as turn
+zero, then applies its first kick at turn one. Align PASS physical sampling at
+<span class="math notranslate nohighlight">\(t_n=n/f_{\rm rev}\)</span> with <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span> <span class="pre">=</span> <span class="pre">0</span></code> for that comparison;
+the PASS turn counter alone does not establish this time origin.
+For strictly increasing <code class="docutils literal notranslate"><span class="pre">RAMP1</span></code> through <code class="docutils literal notranslate"><span class="pre">RAMP4</span></code>, use their values divided by
+<span class="math notranslate nohighlight">\(f_{\rm rev}\)</span> as kick times and amplitudes
+<span class="math notranslate nohighlight">\([0,\theta_0,\theta_0,0]\)</span>. PASS additionally
+samples individual physical arrival times and supports continuous frequency
+programs. MAD-X <code class="docutils literal notranslate"><span class="pre">PTC</span></code> has different AC-dipole conventions and is not covered
+by this <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> mapping.</p>
+<p>See the <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X-User-Manual/blob/master/elements.tex">MAD-X AC-dipole manual source</a>
+for its turn ramps and the distinction between <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> and <code class="docutils literal notranslate"><span class="pre">PTC</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="exciter.html" class="btn btn-neutral float-left" title="Exciter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rfcavity.html" class="btn btn-neutral float-right" title="RFCavity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

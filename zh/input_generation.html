@@ -75,6 +75,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mad-x-sequence-line">方式四：直接加载 MAD-X SEQUENCE 或 LINE</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm">MAD-X BPM 标记与监视器</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id8">混合模式</a></li>
 </ul>
@@ -678,7 +679,7 @@ RF 频率时，应使用分量的 <code class="docutils literal notranslate"><sp
 </section>
 <section id="id6">
 <h2>晶格来源<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p>PASS 支持三种晶格序列生成方式，可根据需要选择或混合使用：</p>
+<p>PASS 支持以下晶格序列生成方式，可根据需要选择或混合使用：</p>
 <section id="madx-twiss">
 <h3>方式一：从 MADX twiss 文件读取<a class="headerlink" href="#madx-twiss" title="Link to this heading"></a></h3>
 <p>读取 MADX 生成的 twiss TFS 文件，每个元件转为一个 <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> 传输点。适用于 <strong>逐 twiss 传输</strong> 模式。</p>
@@ -702,10 +703,11 @@ RF 频率时，应使用分量的 <code class="docutils literal notranslate"><sp
 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DPX</span></code> 以及从文件读取的 <code class="docutils literal notranslate"><span class="pre">DQ1</span></code>/<code class="docutils literal notranslate"><span class="pre">DQ2</span></code> 均乘以 <span class="math notranslate nohighlight">\(\beta_0\)</span>。
 显式数值参数 <code class="docutils literal notranslate"><span class="pre">dqx</span></code>/<code class="docutils literal notranslate"><span class="pre">dqy</span></code> 已表示 <span class="math notranslate nohighlight">\(dQ/d\delta\)</span>，保持不变；
 原始 TFS 表本身保留原单位。使用文件色品时应以 <code class="docutils literal notranslate"><span class="pre">twiss,</span> <span class="pre">chrom</span></code> 导出。</p>
-<p>这些读取函数要求原生 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 输出。对于可识别的 <code class="docutils literal notranslate"><span class="pre">PTC_TWISS</span></code> 表会明确拒绝：
-其导数约定取决于 PTC 的 <code class="docutils literal notranslate"><span class="pre">TIME</span></code> 模式，而 TFS 头信息未记录该模式；
-相位列也可能不同。此传输模型应使用原生 <code class="docutils literal notranslate"><span class="pre">TWISS,</span> <span class="pre">CHROM</span></code> 表。
-该单位换算不意味着原生 TWISS 与精确 PTC 元件模型等价。</p>
+<p>直接导入 TFS 时要求原生 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 输出。对于可识别的原始 <code class="docutils literal notranslate"><span class="pre">PTC_TWISS</span></code> 表会明确拒绝：
+其导数约定取决于 PTC 的 <code class="docutils literal notranslate"><span class="pre">TIME</span></code> 模式，而普通 TFS 头信息未记录该模式；相位列也可能不同。
+如需计算并导入 PTC 光学，应使用 <a class="reference internal" href="#zh-madx-sequence"><span class="std std-ref">方式四：直接加载 MAD-X SEQUENCE 或 LINE</span></a> 中的
+<code class="docutils literal notranslate"><span class="pre">load_madx_sequence(...,</span> <span class="pre">optics_method=&quot;ptc&quot;)</span></code>。其适配器明确掌握计算设置，
+并返回兼容的列。该处理不意味着原生 TWISS 与精确 PTC 元件模型等价。</p>
 <p>参考速度优先由 <code class="docutils literal notranslate"><span class="pre">GAMMA</span></code> 计算，缺少时由 <code class="docutils literal notranslate"><span class="pre">ENERGY/MASS</span></code> 计算。
 两种信息均缺失时，为兼容旧表仍允许读取，但发出警告并采用超相对论近似
 <span class="math notranslate nohighlight">\(\beta_0=1\)</span>；非超相对论束流应补充参考能量头信息。
@@ -787,14 +789,144 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 </pre></div>
 </div>
 </section>
+<section id="mad-x-sequence-line">
+<span id="zh-madx-sequence"></span><h3>方式四：直接加载 MAD-X SEQUENCE 或 LINE<a class="headerlink" href="#mad-x-sequence-line" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.para.madx_sequence.load_madx_sequence</span></code> 通过 <code class="docutils literal notranslate"><span class="pre">cpymad</span></code> 加载
+<code class="docutils literal notranslate"><span class="pre">.seq</span></code> 或 <code class="docutils literal notranslate"><span class="pre">.madx</span></code> 源文件。<code class="docutils literal notranslate"><span class="pre">cpymad</span></code> 是 PASS 的必选依赖，安装 PASS 时自动安装，
+无需单独选择额外组件。
+源文件可定义 MAD-X <code class="docutils literal notranslate"><span class="pre">SEQUENCE</span></code> 或 <code class="docutils literal notranslate"><span class="pre">LINE</span></code>，使用 <code class="docutils literal notranslate"><span class="pre">sequence_name</span></code> 指定其名称，
+默认为 <code class="docutils literal notranslate"><span class="pre">&quot;ring&quot;</span></code>。</p>
+<p>源文件由 MAD-X 执行，包括其中的 <code class="docutils literal notranslate"><span class="pre">CALL</span></code> 以及显式光学计算、文件输出命令。
+相对引用以入口文件所在目录为基准。建议提供定义晶格及其依赖的入口，
+由加载函数按所选方法计算光学。加载函数自身的计算文件放在临时目录中；
+所提供源文件内的输出命令仍按 MAD-X 原有行为执行。
+源文件中已经施加的 <code class="docutils literal notranslate"><span class="pre">EALIGN</span></code>／<code class="docutils literal notranslate"><span class="pre">EFCOMP</span></code> 节点误差会被拒绝，因为重新展开所选晶格会清除它们。
+应加载理想晶格，再通过已有的误差 TFS 导入选项添加误差。<code class="docutils literal notranslate"><span class="pre">CORRECT</span></code> 产生的节点校正踢同样会被拒绝；
+应先把所需校正铁强度保存为显式元件参数，再加载该晶格。</p>
+<p>加载源文件与转换 PASS command 分为两步。<code class="docutils literal notranslate"><span class="pre">optics_method=None</span></code> 只导出展开后的元件参数，
+不计算光学，适用于逐元件跟踪：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx_sequence</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_madx_sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.sequence</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="n">loaded</span> <span class="o">=</span> <span class="n">load_madx_sequence</span><span class="p">(</span>
+    <span class="s2">"lattice.seq"</span><span class="p">,</span>
+    <span class="n">sequence_name</span><span class="o">=</span><span class="s2">"ring"</span><span class="p">,</span>
+    <span class="n">beam_source</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span>
+    <span class="n">optics_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circumference</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span><span class="n">loaded</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
+<span class="n">sequence</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+    <span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>该示例创建 PASS 序列的晶格部分。生成完整模拟输入时，还需添加常规 Injection、
+监视器等命令，并使用返回的周长。</p>
+<p>加载结果包含以下属性：</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">MAD-X 加载结果</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">elements</span></code></p></td>
+<td><p>展开后元件参数的 <code class="docutils literal notranslate"><span class="pre">TfsDataFrame</span></code>，保留源端场属性用于兼容性检查。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">twiss</span></code></p></td>
+<td><p>请求计算时返回光学 <code class="docutils literal notranslate"><span class="pre">TfsDataFrame</span></code>，否则为 <code class="docutils literal notranslate"><span class="pre">None</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beam</span></code></p></td>
+<td><p>本次导出或光学计算所用参考束流的字典。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">warnings</span></code></p></td>
+<td><p>需结合结果表检查的导入警告。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">madx_version</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cpymad</span></code> 使用的 MAD-X 引擎版本。</p></td>
+</tr>
+</tbody>
+</table>
+<p>参考束流来源需要明确选择：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">beam_source=&quot;file&quot;</span></code> 要求源文件或其包含的文件中确实声明 <code class="docutils literal notranslate"><span class="pre">BEAM</span></code>。
+缺少声明时会报错，不采用 MAD-X 的隐式默认束流。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">beam_source=&quot;pass&quot;</span></code> 要求提供 <code class="docutils literal notranslate"><span class="pre">main</span></code> 和明确选择的一个 <code class="docutils literal notranslate"><span class="pre">bunch</span></code>。
+两者接受 PASS schema 对象，或使用 Python 字段名／JSON 别名的字典。
+粒子身份来自 <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code>，能量来自所选束团的每核子动能；多束团时不自动猜选。</p></li>
+</ul>
+<p>例如，可复用已有 PASS 配置：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loaded</span> <span class="o">=</span> <span class="n">load_madx_sequence</span><span class="p">(</span>
+    <span class="s2">"lattice.seq"</span><span class="p">,</span>
+    <span class="n">sequence_name</span><span class="o">=</span><span class="s2">"ring"</span><span class="p">,</span>
+    <span class="n">beam_source</span><span class="o">=</span><span class="s2">"pass"</span><span class="p">,</span>
+    <span class="n">main</span><span class="o">=</span><span class="n">main_config</span><span class="p">,</span>
+    <span class="n">bunch</span><span class="o">=</span><span class="n">selected_bunch</span><span class="p">,</span>
+    <span class="n">optics_method</span><span class="o">=</span><span class="s2">"ptc"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>其中 <code class="docutils literal notranslate"><span class="pre">main_config</span></code> 和 <code class="docutils literal notranslate"><span class="pre">selected_bunch</span></code> 是本次模拟实际使用的配置对象或字典。
+源文件中的归一化磁铁强度与几何仍作为晶格参数，选择不同束流不会自动重新匹配晶格。</p>
+<p>对于 Twiss 传输，选择 <code class="docutils literal notranslate"><span class="pre">optics_method=&quot;twiss&quot;</span></code> 计算普通 MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code>，
+或选择 <code class="docutils literal notranslate"><span class="pre">optics_method=&quot;ptc&quot;</span></code> 计算 PTC，再把 <code class="docutils literal notranslate"><span class="pre">loaded.twiss</span></code> 交给任一 Twiss 读取函数。</p>
+<p>普通 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 不实现 PTC/SAD 四极 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 端场分支。
+要计算已启用端场模型的光学（包括 <code class="docutils literal notranslate"><span class="pre">fringe_rebuild</span></code>），应选择 <code class="docutils literal notranslate"><span class="pre">&quot;ptc&quot;</span></code>；
+选择普通 TWISS 得到的是不同的物理模型。</p>
+<p>例如：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss</span>
+
+<span class="n">loaded</span> <span class="o">=</span> <span class="n">load_madx_sequence</span><span class="p">(</span>
+    <span class="s2">"lattice.seq"</span><span class="p">,</span>
+    <span class="n">sequence_name</span><span class="o">=</span><span class="s2">"ring"</span><span class="p">,</span>
+    <span class="n">beam_source</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span>
+    <span class="n">optics_method</span><span class="o">=</span><span class="s2">"ptc"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circumference</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
+    <span class="n">loaded</span><span class="o">.</span><span class="n">twiss</span><span class="p">,</span>
+    <span class="n">dqx</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span>
+    <span class="n">dqy</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span>
+    <span class="n">longitudinal_transfer</span><span class="o">=</span><span class="s2">"off"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">read_madx_elements</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code>
+既接受 TFS 路径，也接受这里的内存表；传递或保存表格时应保留头信息。</p>
+<p>PTC 明确使用 <code class="docutils literal notranslate"><span class="pre">MODEL=2</span></code>、<code class="docutils literal notranslate"><span class="pre">METHOD=6</span></code>、<code class="docutils literal notranslate"><span class="pre">EXACT=true</span></code>、全局 <code class="docutils literal notranslate"><span class="pre">NST=1</span></code>、
+<code class="docutils literal notranslate"><span class="pre">TIME=true</span></code>、<code class="docutils literal notranslate"><span class="pre">FRINGE=true</span></code>、<code class="docutils literal notranslate"><span class="pre">ICASE=5</span></code>、<code class="docutils literal notranslate"><span class="pre">NO=2</span></code>。
+源元件自身的正积分步数设置仍属于源模型。适配器转换横向光学列名，
+并从累计相位取得完整工作点。返回表中保留对 <code class="docutils literal notranslate"><span class="pre">PT</span></code> 的导数；现有 Twiss 读取函数
+只执行一次参考 beta 因子换算，转为对 <code class="docutils literal notranslate"><span class="pre">delta</span></code> 的导数。
+调用读取函数前不要自行再次乘 beta。</p>
+<p>导入范围限于 <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> 支持的无耦合光学：非零闭轨、垂直色散和不支持的耦合会被拒绝。
+经 PTC 计算的 Twiss 映射可以包含 <code class="docutils literal notranslate"><span class="pre">fringe_rebuild</span></code> 模型的线性端场光学效果。
+逐元件转换保留四极 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code>、直磁铁 <code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> / <code class="docutils literal notranslate"><span class="pre">FRNGMAX</span></code> 以及入口、出口
+屏蔽标志，用于非线性端场跟踪。普通 Twiss 表往往缺少这些参数，因此应使用 sequence
+源生成的 <code class="docutils literal notranslate"><span class="pre">loaded.elements</span></code>。Twiss 映射不重现有限振幅非线性端场跟踪。
+参数与全局开关约定见 <a class="reference internal" href="element/quadrupole.html#zh-straight-magnet-fringe"><span class="std std-ref">物理入口和出口端场映射</span></a>；GUI 中的源文件与参考束流
+选择见 <a class="reference internal" href="gui.html"><span class="doc">图形界面</span></a>。</p>
+<p>逐元件转换复用现有 PASS 跟踪映射，还会拒绝尚不支持的元件类型与非零参数，
+例如 <code class="docutils literal notranslate"><span class="pre">TILT</span></code>、源 aperture、组合功能弯铁梯度，以及不同于 <code class="docutils literal notranslate"><span class="pre">ANGLE/L</span></code> 的弯铁 <code class="docutils literal notranslate"><span class="pre">K0</span></code>。
+这些检查说明当前转换的支持范围；成功计算源光学不代表 PASS 物理元件已能跟踪每一种源参数。
+MAD-X 通用 <code class="docutils literal notranslate"><span class="pre">MULTIPOLE</span></code> 使用不具备厚直磁铁端场属性的 PTC 薄映射，
+因此导入时拒绝其非零端场位 2/4；直接配置的 PASS 厚 <code class="docutils literal notranslate"><span class="pre">Multipole</span></code> 支持内置端场。
+螺线管端场属性和非四极的 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 仍不支持。sequence 展开只修正共享边界处
+不超过四个浮点间隔的位置舍入差；实际重叠和外部 TFS 的严格几何规则保持不变。</p>
+</section>
 <section id="mad-x-bpm">
 <span id="zh-madx-bpm"></span><h3>MAD-X BPM 标记与监视器<a class="headerlink" href="#mad-x-bpm" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">read_madx_elements</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code> 和
 <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 均识别 <code class="docutils literal notranslate"><span class="pre">MONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">HMONITOR</span></code>、<code class="docutils literal notranslate"><span class="pre">VMONITOR</span></code>。
 其 <code class="docutils literal notranslate"><span class="pre">bpm_monitor</span></code> 参数默认为 <code class="docutils literal notranslate"><span class="pre">None</span></code>。逐元件跟踪采用以下规则，
 其中 TFS <code class="docutils literal notranslate"><span class="pre">S</span></code> 为元件出口位置，<code class="docutils literal notranslate"><span class="pre">L</span></code> 为元件长度：</p>
-<table class="docutils align-default" id="id14">
-<caption><span class="caption-text">BPM 导入行为</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">BPM 导入行为</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 25.0%" />
@@ -1034,6 +1166,7 @@ RF 使用独立的 <code class="docutils literal notranslate"><span class="pre">
 │   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
 │   └── sequence.py     Sequence：有序容器 + 自动排序
 ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
+├── madx_sequence.py MAD-X 源文件 → cpymad 元件／光学表
 ├── smooth.py      解析平滑近似 twiss
 ├── tools/        外部数据 → PASS TFS
 │   ├── data_converter.py 通用数据转换流水线

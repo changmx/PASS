@@ -15,6 +15,14 @@ mode. **Open JSON** opens an independent document; it does not silently import
 into a project. Use **Import JSON into project** for that operation. Replacing a
 document or closing the window offers to save unsaved changes.
 
+When opening or importing inputs, applying JSON source edits, or applying form
+edits, the GUI converts recognized parameter keys and command types to their
+documented spelling, such as ``hkick`` to ``HKICK`` and ``kicker`` to ``Kicker``.
+Values, including ``null``, are preserved. Element names, named configurations,
+file paths and unknown fields retain their spelling; existing duplicate-name
+rules still apply. Multiple keys referring to the same parameter are rejected
+without applying the changes, even when their values match.
+
 File operations show progress and temporarily disable editing. Cancellation may
 wait for an in-progress read or write to finish; a completed save is reported as
 successful. Saving JSON in another directory updates relative input references,
