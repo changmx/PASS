@@ -64,6 +64,42 @@ Interface Parameters
      - -
      - ``'adaptive'``
      - Physical model, options: ``adaptive`` (default ``mat-kick-mat``), ``drift-kick-drift-exact``, ``mat-kick-mat``
+   * - ``f1``
+     - ``F1 (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Signed PTC/SAD quadrupole fringe integral; finite.
+   * - ``f2``
+     - ``F2 (m3)``
+     - ``float``
+     - :math:`\mathrm{m}^3`
+     - ``0.0``
+     - Signed PTC/SAD quadrupole fringe integral; finite.
+   * - ``fringe``
+     - ``FRINGE``
+     - ``int``
+     - —
+     - ``0``
+     - MAD-X bit selector; 2 enables intrinsic multipole end maps and 4 enables quadrupole F1/F2.
+   * - ``frngmax``
+     - ``FRNGMAX``
+     - ``int``
+     - —
+     - ``2``
+     - Maximum included pole order: 2 = quadrupole, 3 = sextupole, 4 = octupole.
+   * - ``kill_ent_fringe``
+     - ``KILL_ENT_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - Disable all enabled fringe maps at the physical entrance.
+   * - ``kill_exi_fringe``
+     - ``KILL_EXI_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - Disable all enabled fringe maps at the physical exit.
    * - ``num_slices``
      - ``Num slices``
      - ``int``
@@ -96,6 +132,75 @@ Each nonempty bunch samples once at entry; its strengths remain fixed over
 the entire element. Runtime nominal strengths retain the last executed
 bunch entrance values, with field errors kept separate. The same page
 documents ``update_strengths``.
+
+.. _en-straight-magnet-fringe:
+
+Physical entrance and exit fringe maps
+--------------------------------------
+
+Quadrupole, Sextupole, Octupole and thick Multipole support intrinsic
+normal/skew multipole fringe maps. Quadrupole additionally supports the
+PTC/SAD ``F1`` and ``F2`` maps. These are signed field-profile integrals in
+metres and cubic metres, respectively; they are not entrance/exit angles.
+
+``FRINGE`` is an integer from 0 to 7 using the MAD-X bit convention:
+bit value 2 enables intrinsic multipole fringes, bit value 4 enables the
+quadrupole ``F1/F2`` branch, and bit value 1 has no effect on these straight
+magnets. Thus 0 disables both, 2 enables intrinsic fringes, 4 enables only
+``F1/F2``, and 6 enables both. The default is 0, preserving transport without
+fringe maps. Nonzero ``F1/F2`` alone does not enable that branch.
+
+``FRNGMAX`` is the highest included pole order of the intrinsic branch:
+1 denotes dipole, 2 quadrupole, 3 sextupole, and 4 octupole. It defaults to 2
+and must be a positive integer. It limits which magnetic components enter
+the map, not the power of transverse amplitude retained in a Taylor series.
+It does not disable the separate ``F1/F2`` branch. Use ``FRNGMAX=3`` to
+include sextupole fringes and ``FRNGMAX=4`` to include octupole fringes.
+Dipole components enter the combined multipole fringe map; a standalone
+dipole uses ``SBend``. As in PTC, a multipole containing only the dipole
+order has no intrinsic straight-magnet fringe map.
+
+The entrance map, body and exit map execute in that order in the magnet's
+local aligned frame. Fringe maps run once per physical end, independently
+of the number of numerical slices or Yoshida substeps. ``KILL_ENT_FRINGE``
+and ``KILL_EXI_FRINGE`` suppress both enabled branches at the corresponding
+end. Fringe maps use the same entrance-sampled nominal strengths as the
+body, including enabled absolute normal/skew field errors. Their body
+gradients are obtained from the integrated strengths divided by the
+physical length. An active nonzero fringe therefore requires a positive
+length; a zero-length integrated kick does not define that gradient.
+
+The maps preserve the particle momentum magnitude and update the
+longitudinal time coordinate consistently with the transverse canonical
+map. CPU and GPU use the same model. The body integration accuracy must
+still be checked separately; for comparisons with exact PTC transport use
+``model="drift-kick-drift-exact"`` and verify slice convergence.
+
+At entry, the intrinsic map precedes ``F1/F2``; at exit, ``F1/F2`` precedes
+the intrinsic map. The ``F1`` coefficient reverses sign between the two
+ends, whereas the ``F2`` coefficient keeps its sign. For ``TIME=TRUE``, the
+MAD-X PTC's external canonical coordinates corresponding to PASS
+:math:`(z,\delta)` are
+
+.. math::
+
+   t=z/\beta_0,\qquad
+   P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.
+
+PTC's internal time coordinate has the opposite sign, :math:`ct=-z/\beta_0`.
+
+The implementation follows the `PTC intrinsic fringe map
+<https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L4492-L4597>`_
+and `PTC quadrupole fringe map
+<https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121>`_.
+
+PASS uses the element's explicit ``FRINGE`` bits. In PTC, the separate
+global ``PTC_SETSWITCH,FRINGE=TRUE`` also enables intrinsic multipole
+fringes even when the element bit is absent. A calculation of PTC optics
+does not change the imported element parameters. When comparing tracking
+with that global switch, explicitly enable bit value 2 in the corresponding
+PASS straight magnets, or use matching element bits with the global switch
+off. Standard MAD-X ``TWISS`` does not implement the PTC/SAD ``F1/F2`` branch.
 
 Usage Examples
 --------------

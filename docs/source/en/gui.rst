@@ -603,8 +603,10 @@ importing Twiss points or inserting a ``PhaseAdvanceMonitor``. Ordinary physical
 element import does not require an optics calculation. PTC is needed for
 models using its quadrupole fringe optics. PTC output is converted to the
 supported uncoupled Twiss-map conventions; unsupported closed orbit, vertical
-dispersion or coupling stops the import. Physical-element conversion also
-stops on unsupported fringe parameters instead of dropping them.
+dispersion or coupling stops the import. Physical-element conversion retains
+quadrupole ``F1/F2`` and supported straight-magnet fringe controls from the
+sequence; see :ref:`en-straight-magnet-fringe`. Other unsupported fringe
+parameters still stop the import instead of being dropped.
 
 Use **Preview import** before **Import into Sequence**. The preview includes
 the lattice name, MAD-X version, reference-beam choice and any source warnings.

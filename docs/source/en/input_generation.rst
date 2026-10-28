@@ -871,11 +871,13 @@ beta before calling a reader.
 Only the uncoupled optics supported by ``TwissItem`` can be imported: nonzero
 closed orbit, vertical dispersion and unsupported coupling are rejected.
 PTC-computed Twiss maps can include the linear optical effect of the
-``fringe_rebuild`` model. This does not add fringe tracking to PASS physical
-magnet elements: element conversion rejects unsupported fringe parameters,
-including quadrupole ``F1/F2``, instead of silently discarding them. Twiss
-maps also do not reproduce the source's finite-amplitude nonlinear fringe
-tracking. See :doc:`gui` for source and beam selection in the import form.
+``fringe_rebuild`` model. Physical-element conversion preserves quadrupole
+``F1/F2``, straight-magnet ``FRINGE`` / ``FRNGMAX`` and entrance/exit kill
+flags for nonlinear fringe tracking. Ordinary Twiss tables often lack these
+parameters, so use ``loaded.elements`` from the sequence source. Twiss maps
+do not reproduce finite-amplitude nonlinear fringe tracking. See
+:ref:`en-straight-magnet-fringe` for parameter and global-switch conventions,
+and :doc:`gui` for source and beam selection in the import form.
 
 Physical-element conversion reuses the existing PASS tracking maps. It also
 rejects unsupported element types and nonzero attributes such as ``TILT``,
@@ -883,6 +885,13 @@ source apertures, combined-function bend gradients and a bend ``K0`` that
 differs from ``ANGLE/L``. These checks describe the current conversion scope;
 successfully computing source optics does not establish physical-element
 tracking support for every source attribute.
+MAD-X's generic ``MULTIPOLE`` uses a thin PTC map without the thick
+straight-magnet fringe attributes; conversion rejects its nonzero fringe
+bits 2/4. A directly configured PASS thick ``Multipole`` supports intrinsic
+fringes. Solenoid fringe attributes and non-quadrupole ``F1/F2`` remain
+unsupported. Sequence expansion corrects only shared-boundary position
+roundoff of up to four floating-point spacings; meaningful overlaps and
+the strict geometry rules for external TFS tables remain unchanged.
 
 .. _en-madx-bpm:
 

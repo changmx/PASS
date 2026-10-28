@@ -5,6 +5,7 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.fringe import FRINGE_CUDA, _MagnetFringe
 from PASS.commands.element.magnet_maps import _GpuBody, _launch_multipole_bunch, _prepare_multipole_coefficients
 from PASS.commands.element.ramping import configure_magnet_ramping, refresh_magnet_strengths, update_magnet_strengths
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
@@ -34,6 +35,7 @@ class Quadrupole(Command):
         self.cmd_name = kwargs["name"]
         self.field_errors = FieldErrors(kwargs)
         self.alignment_errors = AlignmentErrors(kwargs)
+        self.fringe_maps = _MagnetFringe(kwargs, order=1)
 
         configure_magnet_ramping(self, kwargs, order=1)
 
@@ -103,7 +105,9 @@ class Quadrupole(Command):
                     continue
                 if self.ramp is not None:
                     self.update_strengths(bunch.t0)
+                self.fringe_maps.apply_cpu(self, beam, bunch, turn, True)
                 self._track_quadrupole_cpu(beam, bunch, turn)
+                self.fringe_maps.apply_cpu(self, beam, bunch, turn, False)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks)
         for bunch in beam.bunches:
@@ -135,7 +139,12 @@ class Quadrupole(Command):
                     continue
                 if self.ramp is not None:
                     self.update_strengths(bunch.t0)
+                separate_fringe = self._sc_nodes or (self.model == "mat-kick-mat" and self.field_errors.active)
+                if separate_fringe:
+                    self.fringe_maps.apply_gpu(self, beam, bunch, turn, True)
                 self._track_quadrupole_gpu(beam, bunch, turn)
+                if separate_fringe:
+                    self.fringe_maps.apply_gpu(self, beam, bunch, turn, False)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
         for bunch in beam.bunches:
@@ -151,7 +160,7 @@ class Quadrupole(Command):
                 body = _GpuBody(self, beam, bunch, turn)
 
                 def matrix(length):
-                    _launch_quadrupole_bunch(self, beam, bunch, length=length, num_slices=1)
+                    _launch_quadrupole_bunch(self, beam, bunch, length=length, num_slices=1, include_fringe=False, turn=turn)
 
                 def transport(ds, on_center):
                     if self.field_errors.active:
@@ -164,7 +173,7 @@ class Quadrupole(Command):
                 body.run(transport)
                 return
             if abs(self.k1l) >= const.eps or abs(self.k1sl) >= const.eps:
-                _launch_quadrupole_bunch(self, beam, bunch)
+                _launch_quadrupole_bunch(self, beam, bunch, turn=turn)
                 return
         kn, ks, inv_fact = _prepare_multipole_coefficients(self, np.array([0., self.k1l]), np.array([0., self.k1sl]))
         if self._sc_nodes:
@@ -456,7 +465,9 @@ extern "C" __global__ void track_quadrupole_matrix(
     pass_real_t* __restrict__ py,
     pass_real_t* __restrict__ z,
     const pass_real_t* __restrict__ dp,
-    const int* __restrict__ tag,
+    int* __restrict__ tag,
+    float* __restrict__ lost_position,
+    int* __restrict__ lost_turn,
     int start_index,
     int end_index,
     pass_real_t beta0,
@@ -466,7 +477,18 @@ extern "C" __global__ void track_quadrupole_matrix(
     pass_real_t cos_theta,
     pass_real_t sin_theta,
     pass_real_t k_eff_base,
-    int num_slice
+    int num_slice,
+    pass_real_t s_position,
+    int turn,
+    const pass_real_t* kn,
+    const pass_real_t* ks,
+    const pass_real_t* inv_fact,
+    int order,
+    int fringe,
+    int frngmax,
+    int kill,
+    pass_real_t f1,
+    pass_real_t f2
 ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (index >= end_index || tag[index] <= 0)
@@ -476,6 +498,13 @@ extern "C" __global__ void track_quadrupole_matrix(
     pass_real_t yi = y[index], pyi = py[index];
     pass_real_t zi = z[index], dpi = dp[index];
     pass_real_t one = (pass_real_t)1;
+
+    if (!pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, kn, ks, inv_fact, order, fringe, frngmax, kill, f1, f2, true)) {
+        tag[index] = -1;
+        lost_position[index] = s_position - ds * num_slice;
+        lost_turn[index] = turn;
+        return;
+    }
 
     for (int slice = 0; slice < num_slice; ++slice) {
         pass_real_t momentum_ratio = one + dpi;
@@ -555,6 +584,17 @@ extern "C" __global__ void track_quadrupole_matrix(
         zi += -path_length_excess - (ds + path_length_excess) * beta0_over_beta_minus_one;
     }
 
+    pass_real_t xb = xi, pxb = pxi, yb = yi, pyb = pyi, zb = zi;
+    if (!pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, kn, ks, inv_fact, order, fringe, frngmax, kill, f1, f2, false)) {
+        xi = xb;
+        pxi = pxb;
+        yi = yb;
+        pyi = pyb;
+        zi = zb;
+        tag[index] = -1;
+        lost_position[index] = s_position;
+        lost_turn[index] = turn;
+    }
     x[index] = xi;
     px[index] = pxi;
     y[index] = yi;
@@ -565,7 +605,7 @@ extern "C" __global__ void track_quadrupole_matrix(
 
 
 @lru_cache(maxsize=None)
-def _get_quadrupole_kernel(dtype):
+def _get_quadrupole_kernel(dtype, fringe_active=False):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
@@ -573,24 +613,38 @@ def _get_quadrupole_kernel(dtype):
 
     dtype = np.dtype(dtype)
     return cp.RawKernel(
-        CUDA_REAL_PREAMBLE + QUAD_MATRIX_BODY,
+        CUDA_REAL_PREAMBLE + FRINGE_CUDA + QUAD_MATRIX_BODY,
         "track_quadrupole_matrix",
-        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}"),
+        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}", f"-DPASS_ENABLE_FRINGE={int(fringe_active)}"),
     )
 
 
-def _launch_quadrupole_bunch(element, beam, bunch, length=None, num_slices=None):
+def _launch_quadrupole_bunch(element, beam, bunch, length=None, num_slices=None, include_fringe=True, turn=0):
     """Apply the existing matrix kernel to one bunch at the current strengths."""
+    import cupy as cp
+
+    from PASS.commands.element.magnet_maps import _upload_coefficients
+
     n = bunch.end_idx - bunch.start_idx
     if n <= 0:
         return
     length = element.length if length is None else length
     num_slices = element.num_slice if num_slices is None else num_slices
     p = beam.particles
-    kernel = _get_quadrupole_kernel(p.dtype.str)
+    order = 0
+    buffers = (p.x, p.x, p.x)
+    fringe_active = False
+    if element.fringe_maps.active and include_fringe:
+        coefficients = element.fringe_maps.coefficients(element)
+        fringe_active = element.fringe_maps.enabled(*coefficients)
+        if fringe_active:
+            buffers = _upload_coefficients(element, "fringe", coefficients, p.dtype, cp.cuda.runtime.getDevice())
+            order = len(coefficients[0]) - 1
+    kernel = _get_quadrupole_kernel(p.dtype.str, fringe_active)
     real = p.real
     threads = 256
     blocks = (n + threads - 1) // threads
-    kernel((blocks, ), (threads, ), (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(bunch.start_idx), np.int32(bunch.end_idx), real(
-        bunch.beta), real(bunch.beta * bunch.gamma), real(1.0 / bunch.gamma), real(length / num_slices), real(
-            element.cos_theta), real(element.sin_theta), real(element.k_eff_base), np.int32(num_slices)))
+    kernel((blocks, ), (threads, ), (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(
+        bunch.start_idx), np.int32(bunch.end_idx), real(bunch.beta), real(bunch.beta * bunch.gamma), real(1.0 / bunch.gamma), real(
+            length / num_slices), real(element.cos_theta), real(element.sin_theta), real(element.k_eff_base), np.int32(num_slices), real(
+                element.s), np.int32(turn), *buffers, np.int32(order), *element.fringe_maps.arguments(real, fringe_active)))

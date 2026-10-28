@@ -63,6 +63,42 @@ PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
      - -
      - ``'adaptive'``
      - 物理模型，可选： ``adaptive`` （默认 ``mat-kick-mat`` ）、 ``drift-kick-drift-exact`` 、 ``mat-kick-mat``
+   * - ``f1``
+     - ``F1 (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - PTC/SAD 四极端场积分，允许正负，须有限。
+   * - ``f2``
+     - ``F2 (m3)``
+     - ``float``
+     - :math:`\mathrm{m}^3`
+     - ``0.0``
+     - PTC/SAD 四极端场积分，允许正负，须有限。
+   * - ``fringe``
+     - ``FRINGE``
+     - ``int``
+     - —
+     - ``0``
+     - MAD-X 位选择值；2 启用内置多极端场，4 启用四极 F1/F2。
+   * - ``frngmax``
+     - ``FRNGMAX``
+     - ``int``
+     - —
+     - ``2``
+     - 内置端场的最高极序：2 为四极，3 为六极，4 为八极。
+   * - ``kill_ent_fringe``
+     - ``KILL_ENT_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - 屏蔽物理入口的全部已启用端场映射。
+   * - ``kill_exi_fringe``
+     - ``KILL_EXI_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - 屏蔽物理出口的全部已启用端场映射。
    * - ``num_slices``
      - ``Num slices``
      - ``int``
@@ -93,6 +129,60 @@ PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
 TFS 列名、单位和入口采样约定见 :doc:`magnet_ramping`。每个非空 bunch 在入口
 采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
 场误差独立保存。同一页面也说明 ``update_strengths`` 的用法。
+
+.. _zh-straight-magnet-fringe:
+
+物理入口和出口端场映射
+----------------------
+
+Quadrupole、Sextupole、Octupole 和厚 Multipole 支持正、斜多极分量的
+内置端场映射。Quadrupole 还支持 PTC/SAD 的 ``F1``、``F2`` 映射。
+这两个参数是带符号的场分布积分，单位分别为米、立方米，并非入口、出口边缘角。
+
+``FRINGE`` 使用 MAD-X 的位约定，取 0 到 7 的整数：位值 2 启用内置
+多极端场，位值 4 启用四极 ``F1/F2`` 分支，位值 1 对这些直磁铁无效。
+因此 0 关闭两者，2 仅启用内置端场，4 仅启用 ``F1/F2``，6 同时启用两者。
+默认值为 0，保留无端场的原有传输。仅设置非零 ``F1/F2`` 不会启用该分支。
+
+``FRNGMAX`` 指定内置分支包含的最高极序：1 为二极，2 为四极，3 为六极，
+4 为八极。默认值为 2，必须为正整数。它限制参与端场映射的磁场分量，
+并非横向振幅 Taylor 展开的最高幂次，也不屏蔽独立的 ``F1/F2`` 分支。
+包含六极端场时应设置 ``FRNGMAX=3``，包含八极端场时设置 ``FRNGMAX=4``。
+二极分量可参与组合多极端场映射；独立二极铁使用 ``SBend``。与 PTC 一致，
+仅包含二极阶的多极元件不施加内置直磁铁端场映射。
+
+入口映射、本体、出口映射依次在磁铁局部对准坐标系执行。每个物理端面只施加
+一次端场，不随数值切片或 Yoshida 子步重复。``KILL_ENT_FRINGE``、
+``KILL_EXI_FRINGE`` 分别屏蔽该端全部已启用分支。端场与本体使用相同的
+bunch 入口时刻采样的名义强度，并包含已启用的绝对正、斜场误差。
+体梯度由积分强度除以物理长度获得，因此启用的非零端场要求正长度；
+零长度积分动量更新本身不能确定该梯度。
+
+映射保持粒子动量大小，并按横向正则映射一致地更新纵向时间坐标。
+CPU 与 GPU 使用相同物理模型。本体积分精度仍需独立检验：与 PTC 精确传输
+对比时采用 ``model="drift-kick-drift-exact"``，并检查切片收敛。
+
+入口先执行内置端场，再执行 ``F1/F2``；出口的顺序相反。``F1`` 系数在两端
+反号，``F2`` 系数则保持同号。对于 ``TIME=TRUE``，PASS 的 :math:`(z,\delta)`
+对应的 MAD-X PTC 外部正则坐标为
+
+.. math::
+
+   t=z/\beta_0,\qquad
+   P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.
+
+PTC 内部时间坐标的符号相反，为 :math:`ct=-z/\beta_0`。
+
+实现依据 `PTC 内置端场映射
+<https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L4492-L4597>`_
+与 `PTC 四极端场映射
+<https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121>`_。
+
+PASS 依据元件显式 ``FRINGE`` 位启用端场。PTC 的独立全局开关
+``PTC_SETSWITCH,FRINGE=TRUE`` 还会在元件未设置对应位时启用内置多极端场。
+计算 PTC 光学不会改变导入元件的参数。与该全局开关开启的追踪对比时，
+应给相应 PASS 直磁铁显式启用位值 2；也可关闭 PTC 全局开关并使元件位值一致。
+普通 MAD-X ``TWISS`` 不实现 PTC/SAD 的 ``F1/F2`` 分支。
 
 使用示例
 --------

@@ -279,6 +279,22 @@ def _extract_multipole_kl(row, columns) -> tuple[list, list]:
     return knl, ksl
 
 
+def _extract_multipole_fringe(row) -> dict:
+    """Preserve integer selectors and logical flags from numeric MAD-X tables."""
+    kwargs = {}
+    for name, default in (("fringe", 0), ("frngmax", 2)):
+        value = row.get(name.upper(), default)
+        if not np.isfinite(value) or value != int(value):
+            raise ValueError(f"Element {row['NAME']}: {name.upper()} must be an integer")
+        kwargs[name] = int(value)
+    for name in ("kill_ent_fringe", "kill_exi_fringe"):
+        value = row.get(name.upper(), False)
+        if value not in (0, 1):
+            raise ValueError(f"Element {row['NAME']}: {name.upper()} must be a logical flag")
+        kwargs[name] = bool(value)
+    return kwargs
+
+
 def _read_tfs_headers(twiss_file: str | tfs.TfsDataFrame) -> dict:
     """Read raw MADX TFS headers and first-row optics, retaining PT derivatives."""
     df = read_madx_table(twiss_file)
@@ -487,6 +503,7 @@ def read_madx_elements(
         name_count[elem_name] = name_count.get(elem_name, 0) + 1
         match_key = _make_match_key(elem_name, name_count[elem_name])
         et = elem_type.lower()
+        fringe_kwargs = _extract_multipole_fringe(row) if et in ("quadrupole", "sextupole", "octupole", "multipole") else {}
 
         if et == "marker":
             item = MarkerItem(s=s)
@@ -518,6 +535,9 @@ def read_madx_elements(
                 length=l,
                 k1l=row.get("K1L", 0.0),
                 k1sl=row.get("K1SL", 0.0),
+                f1=row.get("F1", 0.0),
+                f2=row.get("F2", 0.0),
+                **fringe_kwargs,
             )
         elif et == "sextupole":
             item = SextupoleItem(
@@ -525,6 +545,7 @@ def read_madx_elements(
                 length=l,
                 k2l=row.get("K2L", 0.0),
                 k2sl=row.get("K2SL", 0.0),
+                **fringe_kwargs,
             )
         elif et == "octupole":
             item = OctupoleItem(
@@ -532,10 +553,11 @@ def read_madx_elements(
                 length=l,
                 k3l=row.get("K3L", 0.0),
                 k3sl=row.get("K3SL", 0.0),
+                **fringe_kwargs,
             )
         elif et == "multipole":
             knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
-            item = MultipoleItem(s=s, length=l, knl=knl, ksl=ksl)
+            item = MultipoleItem(s=s, length=l, knl=knl, ksl=ksl, **fringe_kwargs)
         elif et == "solenoid":
             knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
             if "KSI" in twiss_table.columns:

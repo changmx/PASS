@@ -55,6 +55,30 @@ PASS 中的六极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
      - :math:`\text{m}^{-2}`
      - ``0.0``
      - 斜六极积分强度 :math:`K_{2sL}` ，默认 0
+   * - ``fringe``
+     - ``FRINGE``
+     - ``int``
+     - —
+     - ``0``
+     - MAD-X 位选择值；2 启用内置多极端场，4 启用四极 F1/F2。
+   * - ``frngmax``
+     - ``FRNGMAX``
+     - ``int``
+     - —
+     - ``2``
+     - 内置端场的最高极序：2 为四极，3 为六极，4 为八极。
+   * - ``kill_ent_fringe``
+     - ``KILL_ENT_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - 屏蔽物理入口的全部已启用端场映射。
+   * - ``kill_exi_fringe``
+     - ``KILL_EXI_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - 屏蔽物理出口的全部已启用端场映射。
    * - ``num_slices``
      - ``Num slices``
      - ``int``
@@ -85,6 +109,10 @@ PASS 中的六极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
 TFS 列名、单位和入口采样约定见 :doc:`magnet_ramping`。每个非空 bunch 在入口
 采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
 场误差独立保存。同一页面也说明 ``update_strengths`` 的用法。
+
+端场映射在物理两端各执行一次，使用启用后的总正、斜分量强度。
+选择值、极序截断、零长度限制与 MAD-X/PTC 对比约定见
+:ref:`zh-straight-magnet-fringe`。
 
 使用示例
 --------

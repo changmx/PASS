@@ -101,10 +101,14 @@ class MagneticElementBase(SlicedElementBase):
 
 
 class RampingMagneticElementBase(MagneticElementBase):
-    """Time programs of normalized strengths for straight multipole magnets."""
+    """Time programs and physical end maps for straight multipole magnets."""
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     ramping_file: str = Field(default="", alias="Ramping file")
+    fringe: StrictInt = Field(default=0, ge=0, le=7, alias="FRINGE")
+    frngmax: StrictInt = Field(default=2, ge=1, alias="FRNGMAX")
+    kill_ent_fringe: StrictBool = Field(default=False, alias="KILL_ENT_FRINGE")
+    kill_exi_fringe: StrictBool = Field(default=False, alias="KILL_EXI_FRINGE")
 
     @model_validator(mode="after")
     def validate_ramping_sources(self):
@@ -160,6 +164,8 @@ class QuadrupoleItem(RampingMagneticElementBase):
     command: str = Field(default="Quadrupole", alias="Command")
     k1l: float = Field(default=0.0, alias="K1L")
     k1sl: float = Field(default=0.0, alias="K1SL")
+    f1: float = Field(default=0.0, alias="F1 (m)", allow_inf_nan=False)
+    f2: float = Field(default=0.0, alias="F2 (m3)", allow_inf_nan=False)
 
     # ramping
     is_ramping: bool = Field(default=False, alias="Is ramping")

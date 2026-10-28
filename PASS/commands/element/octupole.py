@@ -4,6 +4,7 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.fringe import _MagnetFringe
 from PASS.commands.element.magnet_maps import _GpuBody, _launch_multipole_bunch, _prepare_multipole_coefficients
 from PASS.commands.element.ramping import configure_magnet_ramping, refresh_magnet_strengths, update_magnet_strengths
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
@@ -33,6 +34,7 @@ class Octupole(Command):
         self.cmd_name = kwargs["name"]
         self.field_errors = FieldErrors(kwargs)
         self.alignment_errors = AlignmentErrors(kwargs)
+        self.fringe_maps = _MagnetFringe(kwargs, order=3)
 
         configure_magnet_ramping(self, kwargs, order=3)
 
@@ -94,7 +96,9 @@ class Octupole(Command):
                     continue
                 if self.ramp is not None:
                     self.update_strengths(bunch.t0)
+                self.fringe_maps.apply_cpu(self, beam, bunch, turn, True)
                 self._track_octupole_cpu(beam, bunch, turn)
+                self.fringe_maps.apply_cpu(self, beam, bunch, turn, False)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks)
         for bunch in beam.bunches:
@@ -122,7 +126,12 @@ class Octupole(Command):
                     continue
                 if self.ramp is not None:
                     self.update_strengths(bunch.t0)
+                separate_fringe = self._sc_nodes
+                if separate_fringe:
+                    self.fringe_maps.apply_gpu(self, beam, bunch, turn, True)
                 self._track_octupole_gpu(beam, bunch, turn)
+                if separate_fringe:
+                    self.fringe_maps.apply_gpu(self, beam, bunch, turn, False)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
         for bunch in beam.bunches:

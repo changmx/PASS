@@ -4,6 +4,8 @@ from functools import lru_cache
 
 import numpy as np
 
+from PASS.commands.element.fringe import FRINGE_CUDA
+
 from PASS.utils.constants import const, _build_yoshida_cuda_constants
 from PASS.utils.slicing import run_body_slices
 
@@ -34,7 +36,7 @@ using pass_real_t = double;
 #define PASS_EPS ((pass_real_t){const.eps:.17g})
 '''
 
-MULTIPOLE_KERNEL_BODY = r'''
+MULTIPOLE_KERNEL_BODY = FRINGE_CUDA + r'''
 __device__ __forceinline__ bool pass_drift(
     pass_real_t& x,
     pass_real_t& px,
@@ -155,7 +157,12 @@ extern "C" __global__ void track_multipole_dkd(
     int order,
     int num_slice,
     int integrator,
-    int mode
+    int mode,
+    int fringe,
+    int frngmax,
+    int kill,
+    pass_real_t f1,
+    pass_real_t f2
 ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (index >= end_index || tag[index] <= 0)
@@ -166,6 +173,14 @@ extern "C" __global__ void track_multipole_dkd(
     pass_real_t zi = z[index], dpi = dp[index];
     int ti = tag[index];
     bool alive = true;
+
+    alive = pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, knl, ksl, inv_fact, order, fringe, frngmax, kill, f1, f2, true);
+    if (!alive) {
+        tag[index] = -1;
+        lost_position[index] = s_position - L;
+        lost_turn[index] = turn;
+        return;
+    }
 
     if (mode == 0) {
         pass_kick(pxi, pyi, xi, yi, knl, ksl, inv_fact, order, (pass_real_t)1);
@@ -190,6 +205,19 @@ extern "C" __global__ void track_multipole_dkd(
         }
     }
 
+    if (alive) {
+        pass_real_t xb = xi, pxb = pxi, yb = yi, pyb = pyi, zb = zi;
+        if (!pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, knl, ksl, inv_fact, order, fringe, frngmax, kill, f1, f2, false)) {
+            xi = xb;
+            pxi = pxb;
+            yi = yb;
+            pyi = pyb;
+            zi = zb;
+            ti = -1;
+            lost_position[index] = s_position;
+            lost_turn[index] = turn;
+        }
+    }
     if (alive) {
         x[index] = xi;
         px[index] = pxi;
@@ -293,13 +321,14 @@ def _upload_coefficients(element, name, coefficients, dtype, device):
 
 
 @lru_cache(maxsize=None)
-def _get_multipole_kernel(dtype, device):
+def _get_multipole_kernel(dtype, device, fringe_active=False):
     import cupy as cp
 
     with cp.cuda.Device(device):
         return cp.RawKernel(CUDA_REAL_PREAMBLE + MULTIPOLE_KERNEL_BODY,
                             "track_multipole_dkd",
-                            options=("--std=c++17", f"-DPASS_USE_FLOAT={int(np.dtype(dtype).itemsize == 4)}"))
+                            options=("--std=c++17", f"-DPASS_USE_FLOAT={int(np.dtype(dtype).itemsize == 4)}",
+                                     f"-DPASS_ENABLE_FRINGE={int(fringe_active)}"))
 
 
 def _launch_multipole_bunch(element, beam, bunch, turn, kn, ks, inv_fact, mode):
@@ -311,13 +340,18 @@ def _launch_multipole_bunch(element, beam, bunch, turn, kn, ks, inv_fact, mode):
         return
     p = beam.particles
     real = p.real
+    fringe_maps = getattr(element, "fringe_maps", None)
+    if fringe_maps is not None and fringe_maps.active and not element.is_thick:
+        fringe_maps.coefficients(element)
+    fringe_active = fringe_maps is not None and fringe_maps.enabled(kn, ks, inv_fact)
+    fringe_args = fringe_maps.arguments(real, fringe_active) if fringe_maps is not None else (np.int32(0), np.int32(2), np.int32(0), real(0), real(0))
     device = cp.cuda.runtime.getDevice()
     coefficients = _upload_coefficients(element, "multipole", (kn, ks, inv_fact), p.dtype, device)
-    kernel = _get_multipole_kernel(np.dtype(p.dtype).str, device)
+    kernel = _get_multipole_kernel(np.dtype(p.dtype).str, device, fringe_active)
     kernel(((end - start + 255) // 256, ), (256, ),
            (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), real(
                bunch.beta * bunch.gamma), real(1 / bunch.gamma), np.float64(element.length), real(element.s), np.int32(turn), *coefficients,
-            np.int32(len(kn) - 1), np.int32(element.num_slice), np.int32(element.integrator != "uniform"), np.int32(mode)))
+            np.int32(len(kn) - 1), np.int32(element.num_slice), np.int32(element.integrator != "uniform"), np.int32(mode), *fringe_args))
 
 
 def _compile_stage_kernel(source, body, dtype, device, *, use_double=False):

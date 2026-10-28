@@ -62,11 +62,17 @@ def _element_limitations(element, attributes):
     if omitted:
         limitations.append("unsupported attributes " + ", ".join(omitted))
     if kind in ("quadrupole", "sextupole", "octupole", "multipole", "solenoid"):
-        fringe = nonzero(("fringe", "f1", "f2", "e1", "e2", "h1", "h2", "hgap", "fint", "kill_ent_fringe", "kill_exi_fringe"))
+        fringe = nonzero(("e1", "e2", "h1", "h2", "hgap", "fint"))
+        if kind != "quadrupole":
+            fringe.extend(nonzero(("f1", "f2")))
+        if kind == "solenoid":
+            fringe.extend(nonzero(("fringe", "kill_ent_fringe", "kill_exi_fringe")))
+        if kind == "multipole" and int(attributes.get("fringe", 0)) & 6:
+            limitations.append("MAD-X MULTIPOLE is a thin map without PTC straight-magnet fringe attributes; use an explicit PASS thick Multipole")
         if attributes.get("fintx", -1) > 0:
             fringe.append("FINTX")
         if fringe:
-            limitations.append("fringe fields are deferred: " + ", ".join(fringe))
+            limitations.append("unsupported fringe attributes " + ", ".join(fringe))
     if kind in ("sbend", "rbend"):
         omitted = nonzero(
             ("k0s", "k1", "k1s", "k2", "k2s", "k3", "k3s", "knl", "ksl", "h1", "h2", "f1", "f2", "kill_ent_fringe", "kill_exi_fringe", "add_angle"))
@@ -94,6 +100,11 @@ def _extract_elements(sequence, headers):
         occurrences[name] = occurrences.get(name, 0) + 1
         row = {key.upper(): value for key, value in attributes.items() if isinstance(value, (int, float, bool))}
         row.update(NAME=f"{name}:{occurrences[name]}", KEYWORD=element.base_type.name.upper(), S=float(start) + length, L=length)
+        if rows and row["S"] < rows[-1]["S"]:
+            # Expanded positions can round a shared exit/marker boundary down by one ULP.
+            tolerance = 4 * np.spacing(max(1.0, abs(row["S"]), abs(rows[-1]["S"])))
+            if rows[-1]["S"] - row["S"] <= tolerance:
+                row["S"] = rows[-1]["S"]
         row["PASS_UNSUPPORTED"] = _element_limitations(element, attributes)
         for order in range(21):
             for skew, array_name in (("", "knl"), ("s", "ksl")):

@@ -56,6 +56,30 @@ Interface Parameters
      - :math:`\text{m}^{-2}`
      - ``0.0``
      - Skew sextupole integrated strength :math:`K_{2sL}`, default 0
+   * - ``fringe``
+     - ``FRINGE``
+     - ``int``
+     - —
+     - ``0``
+     - MAD-X bit selector; 2 enables intrinsic multipole end maps and 4 enables quadrupole F1/F2.
+   * - ``frngmax``
+     - ``FRNGMAX``
+     - ``int``
+     - —
+     - ``2``
+     - Maximum included pole order: 2 = quadrupole, 3 = sextupole, 4 = octupole.
+   * - ``kill_ent_fringe``
+     - ``KILL_ENT_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - Disable all enabled fringe maps at the physical entrance.
+   * - ``kill_exi_fringe``
+     - ``KILL_EXI_FRINGE``
+     - ``bool``
+     - —
+     - ``False``
+     - Disable all enabled fringe maps at the physical exit.
    * - ``num_slices``
      - ``Num slices``
      - ``int``
@@ -88,6 +112,10 @@ Each nonempty bunch samples once at entry; its strengths remain fixed over
 the entire element. Runtime nominal strengths retain the last executed
 bunch entrance values, with field errors kept separate. The same page
 documents ``update_strengths``.
+
+Fringe maps are applied once at each physical end, using the enabled total
+normal/skew strengths. See :ref:`en-straight-magnet-fringe` for the selector,
+order cutoff, zero-length restrictions and MAD-X/PTC comparison conventions.
 
 Usage Examples
 --------------
