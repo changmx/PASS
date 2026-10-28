@@ -77,8 +77,13 @@ def model_draft(model, supplied=None):
     if supplied:
         aliases = {str(field.alias or name).casefold(): field.alias or name for name, field in model.model_fields.items()}
         aliases.update({name.casefold(): field.alias or name for name, field in model.model_fields.items()})
+        seen = {}
         for key, value in supplied.items():
-            result[aliases.get(str(key).casefold(), key)] = deepcopy(value)
+            alias = aliases.get(str(key).casefold(), key)
+            if alias in seen:
+                raise ValueError(f"{alias}: duplicate aliases {seen[alias]!r} and {key!r}; only one may be supplied")
+            seen[alias] = key
+            result[alias] = deepcopy(value)
     return result
 
 

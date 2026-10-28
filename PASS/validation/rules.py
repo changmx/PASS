@@ -132,7 +132,7 @@ def _schema_json_location(model, location):
     return tuple(result)
 
 
-def _normalize_fields(value, annotation, source_paths, report, path=(), source_path=()):
+def _normalize_fields(value, annotation, source_paths, report, path=(), source_path=(), *, python_names=False):
     """Copy schema keys to JSON aliases without changing names, values or defaults."""
     source_paths[path] = source_path
     if get_origin(annotation) is Annotated:
@@ -148,7 +148,10 @@ def _normalize_fields(value, annotation, source_paths, report, path=(), source_p
                                and kind in get_args(model.model_fields["kind"].annotation)), None)
     if isinstance(value, list):
         child = get_args(annotation)[0] if get_origin(annotation) is list else None
-        return [_normalize_fields(item, child, source_paths, report, (*path, i), (*source_path, i)) for i, item in enumerate(value)]
+        return [
+            _normalize_fields(item, child, source_paths, report, (*path, i), (*source_path, i), python_names=python_names)
+            for i, item in enumerate(value)
+        ]
     if not isinstance(value, dict):
         return value
 
@@ -156,8 +159,8 @@ def _normalize_fields(value, annotation, source_paths, report, path=(), source_p
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         fields = {field.alias or name: field.annotation for name, field in annotation.model_fields.items()}
         names = {alias.casefold(): alias for alias in fields}
-        # Keep Python-name aliases only for schemas whose runtime already accepts them.
-        if hasattr(annotation, "_normalize_fields") or hasattr(annotation, "engine_keys"):
+        # Preflight follows runtime aliases; the GUI can canonicalize Python names before saving.
+        if python_names or hasattr(annotation, "_normalize_fields") or hasattr(annotation, "engine_keys"):
             names.update({name.casefold(): field.alias or name for name, field in annotation.model_fields.items()})
         if annotation is MainConfig:
             fields.update({
@@ -187,7 +190,7 @@ def _normalize_fields(value, annotation, source_paths, report, path=(), source_p
         if alias in normalized:
             report.add((*source_path, key), "json.duplicate", "多个字段名对应同一参数；不允许覆盖")
             continue
-        normalized[alias] = _normalize_fields(item, child, source_paths, report, (*path, alias), (*source_path, key))
+        normalized[alias] = _normalize_fields(item, child, source_paths, report, (*path, alias), (*source_path, key), python_names=python_names)
     return normalized
 
 
@@ -355,15 +358,16 @@ class Validator:
                 self.add(p, "turns.duplicate", "重复的圈数范围", True)
             seen.add(tuple(row))
 
-    def window(self, v, p, allow_minus_one=False):
+    def window(self, v, p, allow_minus_one=False, allow_none=False):
         start, end = v.get("Start turn", 0), v.get("End turn", self.turn_count)
-        if not is_integer(start) or not is_integer(end):
+        open_end = allow_none and end is None
+        if not is_integer(start) or (not open_end and not is_integer(end)):
             return
         if allow_minus_one and end == -1:
             end = self.turn_count
-        if start < 0 or end <= start:
+        if start < 0 or (not open_end and end <= start):
             self.add(p, "turns.window", "需要 0 ≤ 开始圈 < 结束圈（结束圈不包含在内）")
-        elif start >= self.turn_count or end > self.turn_count:
+        elif start >= self.turn_count or (not open_end and end > self.turn_count):
             self.add(p, "turns.clipped", f"执行窗口超出本次运行 [0, {self.turn_count})", True)
 
     def globals(self):
@@ -695,6 +699,8 @@ class Validator:
         if kind == "ParticleMonitor":
             self.numeric(v, "Max tag", p, minimum=0)
             self.window(v, p, allow_minus_one=True)
+        if kind == "Kicker":
+            self.window(v, p, allow_none=True)
         if kind == "ReorganizeBunch":
             if v.get("New harmonic number") is None:
                 self.add((*p, "New harmonic number"), "field.required", "必须指定重组后的谐波数")

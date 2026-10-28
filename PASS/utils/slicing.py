@@ -151,7 +151,7 @@ def print_element_slicing(element):
                 "Save turn ranges=%s", first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
 
 
-def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
+def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False, in_magnetic_frame=True):
     """Call transport(ds, on_center) for a whole bunch, then boundary SC.
 
     No reference clock advancement and no longitudinal rebinning occurs here.
@@ -159,6 +159,7 @@ def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
     Each SC entry point checks the aperture once before evaluating its source.
     The owning element checks again at its exit; other slice boundaries do not
     add aperture checks. SC also validates its field domain independently.
+    Set in_magnetic_frame=False when transport has bypassed magnetic alignment.
     """
     plan = element.slice_plan
     p = beam.particles
@@ -178,8 +179,12 @@ def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
                 p.lost_position[region][unrecorded] = command.s
                 p.lost_turn[region][unrecorded] = turn
                 entry_alive[lost] = False
-                from PASS.commands.element.error import _apply_sc_in_design_frame
-                _apply_sc_in_design_frame(element, beam, bunch, node, command, turn, gpu=gpu)
+                if in_magnetic_frame:
+                    from PASS.commands.element.error import _apply_sc_in_design_frame
+                    _apply_sc_in_design_frame(element, beam, bunch, node, command, turn, gpu=gpu)
+                else:
+                    apply = command.apply_bunch_gpu if gpu else command.apply_bunch_cpu
+                    apply(element._sc_sim, beam, bunch)
                 entry_alive[p.tag[region] <= 0] = False
 
         transport(plan.slice_length, callback if pair and node.placement == "center" else None)

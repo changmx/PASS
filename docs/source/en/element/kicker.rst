@@ -5,7 +5,7 @@ This module describes the PASS kicker element **Kicker**, used to simulate the m
 
 The PASS kicker supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. Physically, a kicker is equivalent to an order-0 multipole (dipole), with kick formulas :math:`\Delta p_x = \text{hkick}` and :math:`\Delta p_y = \text{vkick}`.
 
-- Registration name: ``kicker``
+- Runtime registry name: ``kicker``
 - Key features:
 
   - Supports thin lens mode (``length = 0``, applies only a dipole kick)
@@ -13,6 +13,7 @@ The PASS kicker supports both **thick element** (``length > 0``) and **thin lens
   - Supports uniform (2nd-order leapfrog) and yoshida4 (4th-order Yoshida composition) integrators
   - Horizontal kick (``hkick``) and vertical kick (``vkick``) set independently
   - Supports unidirectional kick (only ``hkick`` or only ``vkick``) and bidirectional kick (both nonzero)
+  - Supports a single-turn kick or consecutive kicks within a configured turn window
   - Mask-based kick application, no per-particle branching
   - Zero kick: thin lens degenerates to a marker, thick lens degenerates to a pure drift
   - Supports aperture check
@@ -57,6 +58,18 @@ Interface Parameters
      - 1
      - ``0.0``
      - Vertical normalized momentum increment; an angle in radians only in the small-angle limit.
+   * - ``start_turn``
+     - ``Start turn``
+     - ``StrictInt``
+     - 1
+     - ``0``
+     - Inclusive starting turn, numbered from zero; must be nonnegative.
+   * - ``end_turn``
+     - ``End turn``
+     - ``StrictInt | None``
+     - 1
+     - ``None`` / JSON ``null``
+     - Exclusive ending turn; when provided, must exceed ``start_turn``. ``None`` imposes no additional upper bound within this run.
    * - ``num_slices``
      - ``Num slices``
      - ``int``
@@ -92,10 +105,82 @@ Interface Parameters
   - Both nonzero: bidirectional kicker
   - Both zero: thin lens degenerates to a marker, thick lens degenerates to a pure drift
 
-  The ``Command`` field should be set to ``kicker``.
+  The JSON ``Command`` field should be set to ``Kicker``.
+
+Turn Window
+-----------
+
+When ``end_turn`` is provided, the magnetic kick is enabled when
+``start_turn <= turn < end_turn``. The starting turn is included and the
+ending turn is excluded, as for
+:doc:`exciter` and :doc:`../transverse_feedback`. Turn numbering starts at zero.
+The default ``start_turn=0, end_turn=None`` preserves the every-turn behavior.
+Both bounds require strict integers: booleans, strings and floating-point
+values are rejected. Only ``end_turn`` accepts ``None`` (JSON ``null``).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 60 20 20
+
+   * - Requested behavior
+     - ``Start turn``
+     - ``End turn``
+   * - One kick on the first tracking turn
+     - ``0``
+     - ``1``
+   * - One kick per turn for the first 100 turns
+     - ``0``
+     - ``100``
+   * - One kick per turn for turn indices 20 through 29
+     - ``20``
+     - ``30``
+   * - One kick per turn from turn index 20 to the end of the run
+     - ``20``
+     - ``null``
+
+Every live particle in every bunch of the configured beam receives the
+configured integrated kick on an active turn. All integration slices share
+the same turn window and distribute that full kick over the element length.
+The window is fixed to simulation turn indices: an empty turn does not defer
+the kick until particles are injected, and particles injected after the
+window receive no kick from this element.
+
+Outside the window, both nominal kicks and the attached absolute field errors
+are disabled. Tracking stays in the design frame without applying the
+magnetic alignment coordinate transformations. The element still transports
+particles through its length,
+advances ``bunch.t0``, checks apertures and executes any internal space-charge
+nodes. With no internal space charge, an inactive thick kicker is a drift;
+an inactive thin kicker still checks its aperture.
+
+This is an ideal turn-based gate with constant configured kick amplitudes
+inside the window. It does not model a pulse duration or sample a waveform
+at individual particle arrival times; use :doc:`bump` for a prescribed
+time-dependent injection waveform.
 
 Usage Examples
 --------------
+
+Single-Turn Kicker
+~~~~~~~~~~~~~~~~~~
+
+This kicker acts only on the first tracking turn, at turn index 0:
+
+.. code-block:: json
+
+   {
+       "HK_ONCE": {
+           "S (m)": 10.0,
+           "Command": "Kicker",
+           "HKICK": 0.0015,
+           "Start turn": 0,
+           "End turn": 1
+       }
+   }
+
+Set ``End turn`` to ``100`` to apply the same kick on each of turn indices
+0 through 99. Equal bounds such as ``1, 1`` are invalid; a single kick at
+turn index ``n`` uses ``Start turn=n, End turn=n+1``.
 
 Thin Lens Horizontal Kicker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +192,7 @@ The following example places a thin lens horizontal kicker at :math:`s = 10.0` m
    {
        "HK1": {
            "S (m)": 10.0,
-           "Command": "kicker",
+           "Command": "Kicker",
            "HKICK": 0.0015,
            "VKICK": 0.0
        }
@@ -125,7 +210,7 @@ The following example places a thin lens vertical kicker at :math:`s = 20.0` m w
    {
        "VK1": {
            "S (m)": 20.0,
-           "Command": "kicker",
+           "Command": "Kicker",
            "HKICK": 0.0,
            "VKICK": -0.0023
        }
@@ -143,7 +228,7 @@ The following example places a thick lens bidirectional kicker at :math:`s = 15.
    {
        "BK1": {
            "S (m)": 15.0,
-           "Command": "kicker",
+           "Command": "Kicker",
            "Length (m)": 0.3,
            "HKICK": 0.003,
            "VKICK": -0.0015,
@@ -166,7 +251,7 @@ The following example uses a 4th-order Yoshida integrator, suitable for scenario
    {
        "BK2": {
            "S (m)": 25.0,
-           "Command": "kicker",
+           "Command": "Kicker",
            "Length (m)": 0.5,
            "HKICK": 0.002,
            "VKICK": 0.0,
@@ -187,7 +272,7 @@ The following example places a zero-kick kicker at :math:`s = 30.0` m:
    {
        "K0": {
            "S (m)": 30.0,
-           "Command": "kicker",
+           "Command": "Kicker",
            "HKICK": 0.0,
            "VKICK": 0.0
        }
@@ -350,6 +435,11 @@ where:
 
 The exact drift preserves the full nonlinearity of :math:`p_z`, naturally introducing chromaticity, higher-order dispersion, and path-length effects.
 
+For numerical stability, the longitudinal drift is evaluated in an
+algebraically rationalized form. Both CPU and GPU use :math:`1/\gamma_0^2`
+from the reference gamma directly, avoiding cancellation in
+:math:`1-\beta_0^2` when the reference speed is close to the speed of light.
+
 Symplectic Integrators
 ----------------------
 
@@ -397,7 +487,7 @@ Application Scenarios
 - **Beam extraction**: Place kickers at the extraction point to rapidly deflect the beam into the extraction channel, for fast extraction
 - **Orbit correction**: Place kickers at key beamline positions to correct orbit deviations or create local orbit bumps
 
-The Kicker model applies constant configured strengths. For a prescribed injection waveform, see :doc:`bump`; for transverse excitation, see :doc:`exciter`. A pickup-feedback controller is not included in this element.
+The Kicker model applies constant configured strengths within its turn window. For a prescribed injection waveform, see :doc:`bump`; for transverse excitation, see :doc:`exciter`. A pickup-feedback controller is not included in this element.
 For a delayed bunch-centroid FIR loop, use the dedicated nodes in :doc:`../transverse_feedback`.
 
 References

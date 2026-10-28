@@ -68,7 +68,7 @@ from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme
 from PASS.gui.help import HelpMenu
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.plotting import PlotCanvas, PlotPage
-from PASS.gui.project import input_file_fields, missing_files, read_json
+from PASS.gui.project import input_file_fields, missing_files, normalize_command, normalize_input, read_json
 from PASS.gui.run_page import RunPage
 from PASS.gui.tools import ToolsPage
 from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
@@ -1075,7 +1075,7 @@ class ConfigPage(QWidget):
             self._sync_editor()
             return True
         try:
-            data = read_json(self.editor.toPlainText().encode("utf-8"))
+            data = normalize_input(read_json(self.editor.toPlainText().encode("utf-8")))
         except json.JSONDecodeError as exc:
             message = f"JSON 无效（第 {exc.lineno} 行，第 {exc.colno} 列）：{exc.msg}"
             self._set_validation_status("JSON 无效", "error", message)
@@ -1094,6 +1094,7 @@ class ConfigPage(QWidget):
         self._editor_stale = False
         self._form_dirty = False
         self._data_dirty = True
+        self._sync_editor()
         self._refresh_tree()
         self._clear_form()
         self.file_changed.emit(self.path)
@@ -3469,6 +3470,8 @@ class ConfigPage(QWidget):
         return layout
 
     def _populate_form(self, title: str, target: dict, pending: bool = False, name_value: str | None = None) -> None:
+        if any(isinstance(key, str) and key.casefold() == "command" for key in target):
+            target = normalize_command(target)
         if target.get("Command") == "Injection":
             self._populate_injection_form(title, target, pending, name_value)
             return
@@ -3482,6 +3485,8 @@ class ConfigPage(QWidget):
             self.form_hint.setText("V 为隔板减去高压电极的电压差，VL 为该电压差沿纵向的积分（V·m），二选一，另一个留空。零长度非零冲量使用 VL。电极和有场区覆盖任意局部 v，外部范围由孔径限定；Tilt 不旋转孔径。S 是出口，零强度仍检查材料碰撞。")
         elif target.get("Command") == "Bump":
             self.form_hint.setText("HKICK/VKICK 为积分 ΔP/P0；不再除以 (1+δ)。Enable 只控制电磁踢，关闭后仍有输运和孔径。")
+        elif target.get("Command") == "Kicker":
+            self.form_hint.setText("作用圈数为从 0 开始的 [Start turn, End turn)，End turn 不指定时持续到运行结束；0、1 表示只踢第一圈。窗口外仍保留漂移、孔径和内部空间电荷。")
         elif target.get("Command") == "Exciter":
             self.form_hint.setText("Kick angle 为每路 DDS 的有符号标称踢角（rad），与 Kicker 相同按 ΔP/P0 使用。电压、极板长度和间隙可在工具栏的激励工具中换算。")
             if any(key in target for key in ("Voltage (V)", "Gap (m)", "Plate length (m)")):
@@ -3595,6 +3600,8 @@ class ConfigPage(QWidget):
         try:
             pickup_name = self._read_field_value("Pickup", self._form_fields["Pickup"], "")
             pickup = self.data.get("Sequence", {}).get(pickup_name)
+            if isinstance(pickup, dict):
+                pickup = normalize_command(pickup)
             if not isinstance(pickup, dict) or pickup.get("Command") != "TransversePickup":
                 raise ValueError("请先插入 TransversePickup，并在 Pickup 字段中选择它。")
             plane = pickup.get("Plane", "x")
@@ -4371,11 +4378,15 @@ class ConfigPage(QWidget):
         label.setToolTip(help_text + "\nJSON: " + key if key in hardware else key + "\n" + help_text)
         return label
 
-    @classmethod
-    def _field_help(cls, key: str, value: object) -> str:
+    def _field_help(self, key: str, value: object) -> str:
         if key in FIELD_HELP:
             return FIELD_HELP[key]
-        schema_help = cls._schema_help().get(key, "")
+        model = getattr(self, "_field_model", None)
+        if model is not None:
+            field = next((field for name, field in model.model_fields.items() if (field.alias or name) == key), None)
+            if field is not None and field.description:
+                return field.description
+        schema_help = self._schema_help().get(key, "")
         if schema_help:
             return schema_help
         if isinstance(value, bool):
@@ -4439,6 +4450,17 @@ class ConfigPage(QWidget):
         _SCHEMA_HELP = result
         return result
 
+    def _sequence_command_views(self):
+        for name, item in self.data.get("Sequence", {}).items():
+            if not isinstance(item, dict):
+                continue
+            try:
+                command = normalize_command(item)
+            except ValueError:
+                # Invalid recovery entries must not block unrelated form helpers.
+                continue
+            yield name, command
+
     def _make_field(self, key: str, value: object) -> QWidget:
         structured = None
         model = getattr(self, "_field_model", None)
@@ -4497,9 +4519,7 @@ class ConfigPage(QWidget):
             return structured
         if key == "Pickup" and getattr(self, "_field_context", {}).get("Command") == "TransverseFeedback":
             field = PropertyComboBox()
-            names = [
-                name for name, item in self.data.get("Sequence", {}).items() if isinstance(item, dict) and item.get("Command") == "TransversePickup"
-            ]
+            names = [name for name, item in self._sequence_command_views() if item.get("Command") == "TransversePickup"]
             field.addItems(names)
             field.setEditable(True)
             field.setCurrentText(str(value or ""))
@@ -4516,9 +4536,9 @@ class ConfigPage(QWidget):
             else:
                 names = list(
                     dict.fromkeys(
-                        item.get("Slice set") for item in self.data.get("Sequence", {}).values()
-                        if isinstance(item, dict) and item.get("Command") == "Slicer" and item.get("Slice set") and item.get("Purpose", "general") ==
-                        "general" and item.get("Coordinate", "z_rel") == "z_rel" and not item.get("Periodic", False)))
+                        item.get("Slice set") for _, item in self._sequence_command_views()
+                        if item.get("Command") == "Slicer" and item.get("Slice set") and item.get("Purpose", "general") == "general"
+                        and item.get("Coordinate", "z_rel") == "z_rel" and not item.get("Periodic", False)))
             for name in names:
                 field.addItem(name, name)
             if value is not None and value not in names:
@@ -4550,12 +4570,9 @@ class ConfigPage(QWidget):
         if key == "Slice set" and getattr(self, "_field_context", {}).get("Command") != "Slicer":
             field = PropertyComboBox()
             names = list(
-                dict.fromkeys([
-                    str(value or ""), *[
-                        item.get("Slice set", "")
-                        for item in self.data.get("Sequence", {}).values() if isinstance(item, dict) and item.get("Command") == "Slicer"
-                    ]
-                ]))
+                dict.fromkeys(
+                    [str(value or ""),
+                     *[item.get("Slice set", "") for _, item in self._sequence_command_views() if item.get("Command") == "Slicer"]]))
             field.addItems(names)
             field.setEditable(True)
             field.setCurrentText(str(value or ""))
@@ -4808,7 +4825,7 @@ class ConfigPage(QWidget):
         selected = self._selected_path
         command = (self._selected_mapping or {}).get("Command")
         if selected and selected[0] == "Sequence":
-            before = deepcopy(self.data.get("Sequence", {}).get(selected[1], {}))
+            before = normalize_command(self.data.get("Sequence", {}).get(selected[1], {}))
         elif self._pending_command:
             before = {}
         else:
@@ -5035,6 +5052,17 @@ class ConfigPage(QWidget):
         return text
 
     def _write_form_values(self, target: dict) -> None:
+        values = self._collect_form_values(target)
+        target.clear()
+        target.update(values)
+
+    def _collect_form_values(self, source: dict) -> dict:
+        """Read and validate a complete form before replacing its applied mapping."""
+        target = deepcopy(source)
+        if any(isinstance(key, str) and key.casefold() == "command" for key in target):
+            target = normalize_command(target)
+        elif source is self.data:
+            target = normalize_input(target)
         for key, field in self._form_fields.items():
             if target.get("Command") == "WakeField" and key == "Groups" and self._form_fields["Configuration"].currentData() is not None:
                 target.pop("Groups", None)
@@ -5087,9 +5115,10 @@ class ConfigPage(QWidget):
             elif target.get("Command") == "ElectronCloud":
                 from PASS.para.schema.electron_cloud import load_electron_cloud
                 load_electron_cloud({"Electron cloud": self.data.get("Electron cloud", {}), "Sequence": {"point": target}})
-        elif target is self.data:
+        elif source is self.data:
             from PASS.para.schema.main import MainConfig
             MainConfig.model_validate(target)
+        return target
 
     def _write_bunch_values(self, target: dict | None) -> None:
         if not isinstance(target, dict) or not self._active_bunch_key:
@@ -5199,7 +5228,7 @@ class ConfigPage(QWidget):
         if not new_name or (new_name != old_name and new_name in sequence):
             QMessageBox.warning(self, "名称无效", "名称不能为空或与其他 command 重复。")
             return
-        candidate = deepcopy(self._selected_mapping if sequence[old_name].get("Command") == "Injection" else sequence[old_name])
+        candidate = deepcopy(self._selected_mapping if self._selected_mapping.get("Command") == "Injection" else sequence[old_name])
         try:
             self._write_form_values(candidate)
         except ValueError as exc:

@@ -53,6 +53,41 @@ def read_json(content: bytes) -> dict:
     return value
 
 
+def normalize_command(data: dict) -> dict:
+    """Copy one command using canonical schema keys without filling defaults."""
+    from PASS.validation.report import ValidationReport
+    from PASS.validation.rules import MODELS, _normalize_fields
+
+    kind = next((value for key, value in data.items() if isinstance(key, str) and key.casefold() == "command"), None)
+    canonical = next((name for name in MODELS if isinstance(kind, str) and name.casefold() == kind.casefold()), None)
+    report = ValidationReport(full=False)
+    annotation = MODELS[canonical] if canonical is not None else {"Command": str}
+    normalized = _normalize_fields(data, annotation, {}, report, python_names=True)
+    if not report.ok:
+        raise ProjectError(report.text())
+    if canonical is not None:
+        normalized["Command"] = canonical
+    return normalized
+
+
+def normalize_input(data: dict) -> dict:
+    """Canonicalize input aliases while preserving names, unknown fields and values."""
+    from PASS.para.schema.main import MainConfig
+    from PASS.validation.report import ValidationReport
+    from PASS.validation.rules import _normalize_fields
+
+    if not isinstance(data, dict):
+        raise ProjectError("JSON 根节点必须是对象")
+    report = ValidationReport(full=False)
+    normalized = _normalize_fields(data, MainConfig, {}, report, python_names=True)
+    if not report.ok:
+        raise ProjectError(report.text())
+    sequence = normalized.get("Sequence")
+    if isinstance(sequence, dict):
+        normalized["Sequence"] = {name: normalize_command(command) if isinstance(command, dict) else command for name, command in sequence.items()}
+    return normalized
+
+
 def missing_files(data: dict, base: Path) -> list[str]:
     return [
         f"{pointer}: input file not found: {mapping[key]}" for mapping, key, pointer in file_references(data)
@@ -240,6 +275,7 @@ class Project:
         return asset
 
     def _capture(self, data: dict, base: Path, *, context=None) -> dict:
+        # Commands and resource fragments also use this path; retain their schema context.
         value = deepcopy(data)
         problems = missing_files(value, base)
         if problems:
@@ -254,7 +290,7 @@ class Project:
         return value
 
     def add_config(self, name: str, data: dict, base: Path, *, context=None) -> str:
-        value = self._capture(data, base, context=context)
+        value = self._capture(normalize_input(data), base, context=context)
         config_id = uuid4().hex
         filename = unique_filename(f"{Path(name).stem or 'beam'}.json", [f"{c.name}.json" for c in self.configs.values()])
         name = PurePosixPath(filename).stem
@@ -265,7 +301,7 @@ class Project:
         return config_id
 
     def update_config(self, config_id: str, data: dict, base: Path | None = None, *, context=None) -> None:
-        value = self._capture(data, base or self.config_base, context=context)
+        value = self._capture(normalize_input(data), base or self.config_base, context=context)
         config = self.configs[config_id]
         if config.data != value:
             config.data = value
@@ -468,6 +504,10 @@ class Project:
                 self.configs[identifier] = config
                 if self._dependency_records(config) != entry["dependencies"]:
                     raise ProjectError(f"Dependency index mismatch: {config.name}")
+                # Archive pointers and checksums refer to the submitted key spelling.
+                config.data = normalize_input(data)
+                # Python field names may reveal file references absent from the raw index.
+                self._dependency_records(config)
             for entry in manifest["recipes"]:
                 register(entry["path"])
                 if not entry["path"].startswith("recipes/"):

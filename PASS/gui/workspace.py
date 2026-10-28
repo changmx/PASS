@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 )
 
 from PASS.gui.widgets import file_dialog_directory
-from PASS.gui.project import Project, ProjectError, atomic_write, file_references, json_bytes, read_json, resolved_file
+from PASS.gui.project import Project, ProjectError, atomic_write, file_references, json_bytes, normalize_input, read_json, resolved_file
 
 
 def display_json(value) -> str:
@@ -483,7 +483,7 @@ class DocumentWindowMixin:
         return self.save_document() if result == QMessageBox.Save else result == QMessageBox.Discard
 
     def _set_input(self, data, path="", recipes=None, base=None):
-        self.config.data = deepcopy(data)
+        self.config.data = normalize_input(data)
         self.config.path = str(path)
         self.config.base_dir = Path(base) if base is not None else Path(path).resolve().parent if path else Path.cwd()
         self.config.recipes = deepcopy(recipes or [])
@@ -531,7 +531,7 @@ class DocumentWindowMixin:
             context.report("检查并读取输入 JSON…")
             if identify_file(path) != "json":
                 raise ValueError("请选择 PASS 输入 JSON。")
-            data = read_json(Path(path).read_bytes())
+            data = normalize_input(read_json(Path(path).read_bytes()))
             context.check()
             return data
 

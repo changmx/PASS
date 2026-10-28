@@ -457,12 +457,23 @@ class KickerItem(MagneticElementBase):
     command: str = Field(default="Kicker", alias="Command")
     hkick: float = Field(default=0.0, alias="HKICK")
     vkick: float = Field(default=0.0, alias="VKICK")
+    start_turn: StrictInt = Field(default=0, ge=0, alias="Start turn", description="First active turn, inclusive and zero-based.")
+    end_turn: StrictInt | None = Field(default=None,
+                                       ge=0,
+                                       alias="End turn",
+                                       description="First inactive turn; null keeps the field on to the run end.")
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     kick_ramping_file: str = Field(default="", alias="Kick ramping file")
 
     num_slices: int = Field(default=1, ge=1, alias="Num slices")
     integrator: str = Field(default="adaptive", alias="Integrator")
+
+    @model_validator(mode="after")
+    def validate_turn_window(self):
+        if self.end_turn is not None and self.end_turn <= self.start_turn:
+            raise ValueError("End turn must be greater than Start turn; the end is exclusive")
+        return self
 
 
 class BumpItem(SlicedElementBase):

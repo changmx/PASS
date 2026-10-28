@@ -407,7 +407,7 @@ class _GpuBody:
             self.blocks, (256, ), (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(
                 bunch.start_idx), np.int32(bunch.end_idx), real(1 / bunch.gamma**2), real(length), real(self.position), np.int32(self.turn)))
 
-    def run(self, transport):
+    def run(self, transport, *, in_magnetic_frame=True):
 
         def advance(ds, on_center):
             end_position = self.position + ds
@@ -422,4 +422,4 @@ class _GpuBody:
             transport(ds, callback)
             self.position = end_position
 
-        run_body_slices(self.element, self.beam, self.bunch, self.turn, advance, gpu=True)
+        run_body_slices(self.element, self.beam, self.bunch, self.turn, advance, gpu=True, in_magnetic_frame=in_magnetic_frame)
