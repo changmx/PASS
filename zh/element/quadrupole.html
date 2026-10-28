@@ -352,8 +352,12 @@ P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.\]</div>
 与 <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121">PTC 四极端场映射</a>。</p>
 <p>PASS 依据元件显式 <code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> 位启用端场。PTC 的独立全局开关
 <code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,FRINGE=TRUE</span></code> 还会在元件未设置对应位时启用内置多极端场。
-计算 PTC 光学不会改变导入元件的参数。与该全局开关开启的追踪对比时，
-应给相应 PASS 直磁铁显式启用位值 2；也可关闭 PTC 全局开关并使元件位值一致。
+因此 PASS 导入 sequence 计算 PTC 光学时使用
+<code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,TIME=TRUE,FRINGE=FALSE</span></code>，并保留导入元件的参数。
+该全局设置保留二极铁原有的端面/端场模型与四极显式 <code class="docutils literal notranslate"><span class="pre">FRINGE=6</span></code>；
+没有启用元件端场位的直磁铁不施加内置端场。
+独立运行 PTC 追踪时，应使用相同的全局设置和元件参数。
+若外部脚本保留全局 <code class="docutils literal notranslate"><span class="pre">FRINGE=TRUE</span></code>，应显式屏蔽不需要端场的磁铁两端。
 普通 MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 不实现 PTC/SAD 的 <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> 分支。</p>
 </section>
 <section id="id4">

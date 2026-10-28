@@ -368,11 +368,15 @@ P_T=\frac{\sqrt{1+\beta_0^2\delta(2+\delta)}-1}{\beta_0}.\]</div>
 and <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/5.09.03/libs/ptc/src/Sh_def_kind.f90#L5070-L5121">PTC quadrupole fringe map</a>.</p>
 <p>PASS uses the element’s explicit <code class="docutils literal notranslate"><span class="pre">FRINGE</span></code> bits. In PTC, the separate
 global <code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,FRINGE=TRUE</span></code> also enables intrinsic multipole
-fringes even when the element bit is absent. A calculation of PTC optics
-does not change the imported element parameters. When comparing tracking
-with that global switch, explicitly enable bit value 2 in the corresponding
-PASS straight magnets, or use matching element bits with the global switch
-off. Standard MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> does not implement the PTC/SAD <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> branch.</p>
+fringes even when the element bit is absent. PASS sequence import therefore
+computes PTC optics with <code class="docutils literal notranslate"><span class="pre">PTC_SETSWITCH,TIME=TRUE,FRINGE=FALSE</span></code> and preserves
+the imported element parameters. This global setting preserves the existing
+bend edge/fringe model and explicit quadrupole <code class="docutils literal notranslate"><span class="pre">FRINGE=6</span></code>; straight magnets without enabled
+element bits have no intrinsic fringe. Use the same global setting and
+element flags for independent PTC tracking. To retain a global <code class="docutils literal notranslate"><span class="pre">FRINGE=TRUE</span></code>
+in an external script, explicitly suppress both ends of magnets whose
+fringes should be disabled. Standard MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> does not implement
+the PTC/SAD <code class="docutils literal notranslate"><span class="pre">F1/F2</span></code> branch.</p>
 </section>
 <section id="usage-examples">
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>

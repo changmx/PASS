@@ -860,7 +860,9 @@ For example:
 TFS paths; preserve their headers when passing or saving them.
 
 The PTC calculation explicitly uses ``MODEL=2``, ``METHOD=6``, ``EXACT=true``,
-global ``NST=1``, ``TIME=true``, ``FRINGE=true``, ``ICASE=5`` and ``NO=2``.
+global ``NST=1``, ``TIME=true``, ``FRINGE=false``, ``ICASE=5`` and ``NO=2``.
+Fringe models follow the element parameters; the global switch does not
+enable intrinsic fringes in otherwise disabled straight magnets.
 Positive element-specific integration settings remain part of the source
 model. The adapter converts the transverse optics column names and obtains
 full tunes from cumulative phase. It retains derivatives with respect to

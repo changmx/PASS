@@ -899,7 +899,8 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 <p><code class="docutils literal notranslate"><span class="pre">read_madx_elements</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss</span></code>、<code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code>
 既接受 TFS 路径，也接受这里的内存表；传递或保存表格时应保留头信息。</p>
 <p>PTC 明确使用 <code class="docutils literal notranslate"><span class="pre">MODEL=2</span></code>、<code class="docutils literal notranslate"><span class="pre">METHOD=6</span></code>、<code class="docutils literal notranslate"><span class="pre">EXACT=true</span></code>、全局 <code class="docutils literal notranslate"><span class="pre">NST=1</span></code>、
-<code class="docutils literal notranslate"><span class="pre">TIME=true</span></code>、<code class="docutils literal notranslate"><span class="pre">FRINGE=true</span></code>、<code class="docutils literal notranslate"><span class="pre">ICASE=5</span></code>、<code class="docutils literal notranslate"><span class="pre">NO=2</span></code>。
+<code class="docutils literal notranslate"><span class="pre">TIME=true</span></code>、<code class="docutils literal notranslate"><span class="pre">FRINGE=false</span></code>、<code class="docutils literal notranslate"><span class="pre">ICASE=5</span></code>、<code class="docutils literal notranslate"><span class="pre">NO=2</span></code>。
+端场模型遵循元件的显式设置；全局开关不再替未启用的直磁铁开启内置端场。
 源元件自身的正积分步数设置仍属于源模型。适配器转换横向光学列名，
 并从累计相位取得完整工作点。返回表中保留对 <code class="docutils literal notranslate"><span class="pre">PT</span></code> 的导数；现有 Twiss 读取函数
 只执行一次参考 beta 因子换算，转为对 <code class="docutils literal notranslate"><span class="pre">delta</span></code> 的导数。

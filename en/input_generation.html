@@ -971,7 +971,9 @@ branch. Use <code class="docutils literal notranslate"><span class="pre">&quot;p
 <code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code> accept these in-memory tables as well as
 TFS paths; preserve their headers when passing or saving them.</p>
 <p>The PTC calculation explicitly uses <code class="docutils literal notranslate"><span class="pre">MODEL=2</span></code>, <code class="docutils literal notranslate"><span class="pre">METHOD=6</span></code>, <code class="docutils literal notranslate"><span class="pre">EXACT=true</span></code>,
-global <code class="docutils literal notranslate"><span class="pre">NST=1</span></code>, <code class="docutils literal notranslate"><span class="pre">TIME=true</span></code>, <code class="docutils literal notranslate"><span class="pre">FRINGE=true</span></code>, <code class="docutils literal notranslate"><span class="pre">ICASE=5</span></code> and <code class="docutils literal notranslate"><span class="pre">NO=2</span></code>.
+global <code class="docutils literal notranslate"><span class="pre">NST=1</span></code>, <code class="docutils literal notranslate"><span class="pre">TIME=true</span></code>, <code class="docutils literal notranslate"><span class="pre">FRINGE=false</span></code>, <code class="docutils literal notranslate"><span class="pre">ICASE=5</span></code> and <code class="docutils literal notranslate"><span class="pre">NO=2</span></code>.
+Fringe models follow the element parameters; the global switch does not
+enable intrinsic fringes in otherwise disabled straight magnets.
 Positive element-specific integration settings remain part of the source
 model. The adapter converts the transverse optics column names and obtains
 full tunes from cumulative phase. It retains derivatives with respect to
