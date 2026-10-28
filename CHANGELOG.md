@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.2] - 2026-10-28
+
+### Added
+
+- ACDipole excitation and fringe-field maps for quadrupole, sextupole, octupole, and multipole magnets.
+- MAD-X sequence/LINE import and configurable BPM monitors.
+- Turn-window control for kickers.
+
+### Changed
+
+- Improved GUI import, plotting, editing, and input validation.
+- Included command names in StatMonitor output filenames.
+
+### Fixed
+
+- Corrected RF-bucket matching and MAD-X energy-per-nucleon conversion.
+- Corrected equal-particle slicing and slice widths for nearly identical longitudinal coordinates.
+- Improved drift precision and longitudinal dispersion handling in Twiss transport.
+
+### Removed
+
+- The `equal_charge` slicer alias; use `equal_particle`.
+
+---
+
 ## [0.6.1] - 2026-10-09
 
 ### Added
