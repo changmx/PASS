@@ -152,7 +152,8 @@ def _snapshot_optics(madx, method, elements, beam):
     else:
         madx.command.ptc_create_universe()
         madx.command.ptc_create_layout(model=2, method=6, nst=1, exact=True, time=True)
-        madx.command.ptc_setswitch(time=True, fringe=True)
+        # Honor explicit element flags instead of enabling unrequested multipole fringes.
+        madx.command.ptc_setswitch(time=True, fringe=False)
         madx.command.ptc_twiss(icase=5, no=2, closed_orbit=True)
         raw = madx.table.ptc_twiss
         summary = madx.table.ptc_twiss_summary.dframe().iloc[0].to_dict()

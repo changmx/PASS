@@ -196,11 +196,15 @@ and `PTC quadrupole fringe map
 
 PASS uses the element's explicit ``FRINGE`` bits. In PTC, the separate
 global ``PTC_SETSWITCH,FRINGE=TRUE`` also enables intrinsic multipole
-fringes even when the element bit is absent. A calculation of PTC optics
-does not change the imported element parameters. When comparing tracking
-with that global switch, explicitly enable bit value 2 in the corresponding
-PASS straight magnets, or use matching element bits with the global switch
-off. Standard MAD-X ``TWISS`` does not implement the PTC/SAD ``F1/F2`` branch.
+fringes even when the element bit is absent. PASS sequence import therefore
+computes PTC optics with ``PTC_SETSWITCH,TIME=TRUE,FRINGE=FALSE`` and preserves
+the imported element parameters. This global setting preserves the existing
+bend edge/fringe model and explicit quadrupole ``FRINGE=6``; straight magnets without enabled
+element bits have no intrinsic fringe. Use the same global setting and
+element flags for independent PTC tracking. To retain a global ``FRINGE=TRUE``
+in an external script, explicitly suppress both ends of magnets whose
+fringes should be disabled. Standard MAD-X ``TWISS`` does not implement
+the PTC/SAD ``F1/F2`` branch.
 
 Usage Examples
 --------------
