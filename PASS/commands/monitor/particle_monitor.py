@@ -241,6 +241,8 @@ class ParticleMonitor(Command):
             return False
         if self._tables_written:
             return False
+        if not any(bunch.end_idx > bunch.start_idx for bunch in beam.bunches):
+            return False
         for bunch in beam.bunches:
             self._record_one_turn(beam.particles, bunch, turn)
         self._recorded_end = turn + 1
@@ -362,7 +364,9 @@ class ParticleMonitor(Command):
             if value.shape != template.shape or value.dtype != template.dtype:
                 raise ValueError(f"ParticleMonitor checkpoint initial field {name} does not match")
             initial[name] = value.copy()
-        expected_end = (max(self.start_turn, min(next_turn, self.end_turn)) if self.max_tag >= 1 and self.num_record_turn > 0 else self.start_turn)
+        has_records = any(bunch.end_idx > bunch.start_idx for bunch in self._beam.bunches)
+        expected_end = (max(self.start_turn, min(next_turn, self.end_turn))
+                        if self.max_tag >= 1 and self.num_record_turn > 0 and has_records else self.start_turn)
         pending, count = data["pending_samples"], data["sample_count"]
         if type(data["recorded_end"]) is not int or data["recorded_end"] != expected_end:
             raise ValueError("ParticleMonitor checkpoint has invalid recorded turns")

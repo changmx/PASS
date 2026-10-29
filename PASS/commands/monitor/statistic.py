@@ -266,7 +266,8 @@ class StatMonitor(Command):
 
             start = bunch.start_idx
             end = bunch.end_idx
-            n_particles = bunch.Np
+            if end <= start:
+                continue
             p = beam.particles
 
             x = p.x[start:end]
@@ -288,8 +289,6 @@ class StatMonitor(Command):
 
             n_alive = len(x)
             if n_alive == 0:
-                if n_particles == 0:
-                    continue
                 # Keep an explicit zero-survival row during injection/loss.
                 x = px = y = py = z = dp = np.zeros(1, dtype=p.dtype)
 

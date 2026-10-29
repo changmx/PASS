@@ -353,17 +353,6 @@ class PhaseAdvanceMonitor(Command):
         for bunch in beam.bunches:
             start, end = int(bunch.start_idx), int(bunch.end_idx)
             if end <= start:
-                self._write_bunch(
-                    beam,
-                    bunch,
-                    spec,
-                    backend,
-                    np.empty(0, dtype=np.int32),
-                    np.empty(0, dtype=np.int32),
-                    np.empty(0, dtype=np.float64),
-                    np.empty(0, dtype=np.float32),
-                    host_accumulators,
-                )
                 continue
             tags = _as_host(p.tag[start:end]).astype(np.int32, copy=False)
             tag_ids = np.abs(tags) - 1

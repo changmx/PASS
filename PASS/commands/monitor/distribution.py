@@ -132,9 +132,13 @@ class DistMonitor(Command):
 
         beam: Beam = sim.beams[self.beam_id]
         p = beam.particles
+        did_execute = False
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             self._save_bunch(sim, beam, bunch, p, turn, backend)
-        return True
+            did_execute = True
+        return did_execute
 
     def _save_bunch(self, sim, beam, bunch, p, turn: int, backend: str):
         start = int(bunch.start_idx)
