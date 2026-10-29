@@ -68,7 +68,8 @@ from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme
 from PASS.gui.help import HelpMenu
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.plotting import PlotCanvas, PlotPage
-from PASS.gui.project import input_file_fields, missing_files, normalize_command, normalize_input, read_json
+from PASS.gui.project import (complete_injection_slots, empty_injection_bunch, injection_bunch_keys, input_file_fields, missing_files,
+                              normalize_command, normalize_input, read_json, resize_injection_slots)
 from PASS.gui.run_page import RunPage
 from PASS.gui.tools import ToolsPage
 from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
@@ -160,7 +161,7 @@ FIELD_HELP = {
     "Radius (m)": "均匀圆盘源分布的外半径，单位 m；不是管壁半径，必须大于 0。",
     "Semi-axis A (m)": "均匀椭圆源分布局部 x 方向的半轴，单位 m；必须大于 0。",
     "Semi-axis B (m)": "均匀椭圆源分布局部 y 方向的半轴，单位 m；必须大于 0。",
-    "Harmonic Number": "束团分组槽数；增大时自动补齐空槽，缩小时只移除超出范围的空槽。RF 谐波由 RFCavity 独立设置。",
+    "Harmonic Number": "束团分组槽数；只需填写实际束团，缺少的槽自动补为空槽。缩小时只移除超出范围的空槽。RF 谐波由 RFCavity 独立设置。",
     "Harmonic ID of this bunch": "该 bunch 的分组编号；保留用户的排列，所有槽需恰好覆盖 [0, Harmonic Number)。",
     "Random Seed": "分布生成随机种子。留空（null）时每次运行使用非确定性随机数。",
     "RMS geometric emittance x (m'rad)": "水平 RMS 几何发射度，单位 m·rad；用于叠加色散和中心偏移前的本征分布。",
@@ -1012,6 +1013,19 @@ class ConfigPage(QWidget):
             self.apply_form()
             if self._form_dirty:
                 return False
+        candidate = deepcopy(self.data)
+        try:
+            self._complete_injection_slots(candidate)
+        except ValueError as exc:
+            QMessageBox.warning(self, "槽数无效", str(exc))
+            return False
+        if candidate != self.data:
+            # Completion changes only Sequence; keep open root editors bound
+            # to their applied document and nested mappings.
+            self.data["Sequence"] = candidate["Sequence"]
+            self._data_dirty = True
+            self._sync_editor()
+            self._refresh_tree()
         return True
 
     def _guard_json_draft(self) -> bool:
@@ -1078,6 +1092,7 @@ class ConfigPage(QWidget):
             return True
         try:
             data = normalize_input(read_json(self.editor.toPlainText().encode("utf-8")))
+            self._complete_injection_slots(data)
         except json.JSONDecodeError as exc:
             message = f"JSON 无效（第 {exc.lineno} 行，第 {exc.colno} 列）：{exc.msg}"
             self._set_validation_status("JSON 无效", "error", message)
@@ -3771,7 +3786,7 @@ class ConfigPage(QWidget):
         self._selected_mapping = target
         self._injection_pending = pending
         self.form_title.setText(title)
-        self.form_hint.setText("增大 Harmonic Number 自动补齐空槽；缩小时先将超出范围的槽置空。非空束团须使用相同宏粒子权重。")
+        self.form_hint.setText("只需填写实际束团；应用时自动补齐空槽。Harmonic Number 独立于已填充束团数。非空束团须使用相同宏粒子权重。")
         from PASS.para.schema.bunch import InjectionItem, BunchConfig, OffsetConfig
         self._field_model = InjectionItem
         if pending or name_value is not None:
@@ -3808,6 +3823,13 @@ class ConfigPage(QWidget):
         self._bunch_selector.setObjectName("choiceField")
         keys = self._injection_keys(target)
         self._bunch_selector.addItems(keys)
+        empty_count = 0
+        for index, key in enumerate(keys):
+            bunch = target[key]
+            empty = self._is_empty_injection_bunch(bunch)
+            empty_count += int(empty)
+            status = "空槽" if empty else "已配置束团"
+            self._bunch_selector.setItemData(index, f"{status} · Harmonic ID = {bunch.get('Harmonic ID of this bunch', '?')}", Qt.ToolTipRole)
         if requested_bunch not in keys:
             requested_bunch = keys[0] if keys else None
         self._active_bunch_key = requested_bunch
@@ -3816,17 +3838,21 @@ class ConfigPage(QWidget):
         self._bunch_selector.currentTextChanged.connect(self._select_bunch)
         selector_row.addWidget(self._bunch_selector, 1)
         bunch_layout.addLayout(selector_row)
+        slot_summary = QLabel(f"已配置束团 {len(keys) - empty_count} 个，已有空槽 {empty_count} 个；未声明的槽将在应用时自动补齐。")
+        slot_summary.setWordWrap(True)
+        slot_summary.setObjectName("muted")
+        bunch_layout.addWidget(slot_summary)
         actions_row = QHBoxLayout()
         add = button("添加")
-        add.setToolTip("添加一个默认 bunch，并使 Harmonic Number 与 bunch 数保持一致。")
+        add.setToolTip("优先填充已有空槽；没有空槽时才增加 Harmonic Number。已有槽的 harmonic ID 保持不变。")
         add.clicked.connect(self.add_bunch)
         actions_row.addWidget(add)
         copy_button = button("复制")
-        copy_button.setToolTip("复制当前 bunch 的参数。")
+        copy_button.setToolTip("将当前 bunch 参数复制到已有空槽；没有空槽时才增加 Harmonic Number。新槽使用默认参考到达时间。")
         copy_button.clicked.connect(self.copy_bunch)
         actions_row.addWidget(copy_button)
         delete = button("删除")
-        delete.setToolTip("删除当前 bunch；至少保留一个 bunch。")
+        delete.setToolTip("移除当前 bunch 的粒子来源并保留空槽；Harmonic Number 和其他槽的 harmonic ID 保持不变。")
         delete.clicked.connect(self.delete_bunch)
         delete.setEnabled(len(keys) > 1)
         actions_row.addWidget(delete)
@@ -3931,70 +3957,22 @@ class ConfigPage(QWidget):
 
     @staticmethod
     def _injection_keys(target: dict) -> list[str]:
-        return sorted(
-            (str(key) for key, value in target.items() if re.fullmatch(r"bunch\d+", str(key)) and isinstance(value, dict)),
-            key=lambda key: int(key[5:]),
-        )
+        return injection_bunch_keys(target)
 
-    def _normalize_injection(self, target: dict) -> None:
-        keys = self._injection_keys(target)
-        if not keys:
-            self._add_default_bunch(target)
-            keys = self._injection_keys(target)
-        bunches = [target[key] for key in keys]
-        for key in keys:
-            target.pop(key, None)
-        for index, bunch in enumerate(bunches):
-            target[f"bunch{index}"] = bunch
-        target["Harmonic Number"] = len(bunches)
+    @staticmethod
+    def _complete_injection_slots(data: dict) -> None:
+        complete_injection_slots(data)
+
+    @staticmethod
+    def _is_empty_injection_bunch(bunch: dict) -> bool:
+        return bunch.get("Number of Macro Particles") == 0 and bunch.get("Number of Real Particles") == 0
 
     @staticmethod
     def _empty_injection_bunch(bunch: dict) -> None:
-        """Keep the reference and slot metadata while disabling all particle sources."""
-        bunch.update({
-            "Number of Macro Particles": 0,
-            "Number of Real Particles": 0,
-            "Is Load Distribution from File": False,
-            "Distribution File Path": "",
-            "Insert Particle Coordinate": [],
-            "Insert Particle File": None,
-            "Scan Grid": None,
-            "Is Save Initial Distribution": False,
-        })
-        for name in ("Offset x", "Offset y"):
-            if isinstance(bunch.get(name), dict):
-                bunch[name].update({"Is Offset": False, "Is Load From File": False, "File Path": ""})
+        empty_injection_bunch(bunch)
 
     def _resize_injection_slots(self, target: dict) -> None:
-        """Resize a draft by harmonic ID, keeping every occupied slot intact."""
-        count = target.get("Harmonic Number")
-        if type(count) is not int or count < 1:
-            raise ValueError("Harmonic Number 必须为正整数。")
-        keys = self._injection_keys(target)
-        if count == len(keys):
-            self._normalize_injection(target)
-            return
-        identifiers = [target[key].get("Harmonic ID of this bunch") for key in keys]
-        if any(type(identifier) is not int for identifier in identifiers) or set(identifiers) != set(range(len(keys))):
-            raise ValueError("调整槽数前，Harmonic ID 必须不重复并覆盖当前所有槽。")
-        removed = [key for key in keys if target[key]["Harmonic ID of this bunch"] >= count]
-        occupied = [key for key in removed if target[key].get("Number of Macro Particles", 0) or target[key].get("Number of Real Particles", 0)]
-        if occupied:
-            raise ValueError("缩小 Harmonic Number 会移除非空束团：" + "、".join(occupied) + "。请先将这些槽置空，或保留当前槽数。")
-        source = target.get(self._active_bunch_key) or (target[keys[0]] if keys else None)
-        for index in range(len(keys), count):
-            if source is None:
-                self._add_default_bunch(target)
-            else:
-                target[f"bunch{index}"] = deepcopy(source)
-            bunch = target[f"bunch{index}"]
-            self._empty_injection_bunch(bunch)
-            bunch["Harmonic ID of this bunch"] = index
-            # New slots use the prescribed clock for their own harmonic IDs.
-            bunch["Reference arrival time (s)"] = None
-        for key in removed:
-            target.pop(key)
-        self._normalize_injection(target)
+        resize_injection_slots(target, reference_key=self._active_bunch_key)
 
     def resize_injection_slots(self) -> None:
         if not self._guard_json_draft() or not isinstance(self._selected_mapping, dict):
@@ -4085,11 +4063,17 @@ class ConfigPage(QWidget):
             return
         if not self._commit_bunch_fields(target):
             return
-        self._normalize_injection(target)
-        self._add_default_bunch(target)
-        self._normalize_injection(target)
+        key = next((key for key in self._injection_keys(target) if self._is_empty_injection_bunch(target[key])), None)
+        if key is None:
+            self._add_default_bunch(target)
+            target["Harmonic Number"] += 1
+            key = f"bunch{len(self._injection_keys(target)) - 1}"
+        else:
+            source = next((target[key] for key in self._injection_keys(target) if target[key].get("Number of Macro Particles", 0) > 0), None)
+            target[key]["Number of Macro Particles"] = source["Number of Macro Particles"] if source else 100000
+            target[key]["Number of Real Particles"] = source["Number of Real Particles"] if source else 100000000000
         self._mark_form_dirty()
-        self._rebuild_injection_form(f"bunch{len(self._injection_keys(target)) - 1}")
+        self._rebuild_injection_form(key)
 
     def copy_bunch(self) -> None:
         if not self._guard_json_draft():
@@ -4105,11 +4089,20 @@ class ConfigPage(QWidget):
             self._mark_form_dirty()
             self._rebuild_injection_form()
             return
-        self._normalize_injection(target)
-        new_key = f"bunch{len(self._injection_keys(target))}"
+        if self._is_empty_injection_bunch(target[key]):
+            self._set_sync_status("当前为空槽；可直接填写粒子数或点击添加。", "warning")
+            return
+        new_key = next(
+            (candidate for candidate in self._injection_keys(target) if candidate != key and self._is_empty_injection_bunch(target[candidate])), None)
+        if new_key is None:
+            identifier = target["Harmonic Number"]
+            new_key = f"bunch{len(self._injection_keys(target))}"
+            target["Harmonic Number"] += 1
+        else:
+            identifier = target[new_key]["Harmonic ID of this bunch"]
         target[new_key] = deepcopy(target[key])
-        target[new_key]["Harmonic ID of this bunch"] = len(self._injection_keys(target)) - 1
-        self._normalize_injection(target)
+        target[new_key]["Harmonic ID of this bunch"] = identifier
+        target[new_key]["Reference arrival time (s)"] = None
         self._mark_form_dirty()
         self._rebuild_injection_form(new_key)
 
@@ -4127,16 +4120,9 @@ class ConfigPage(QWidget):
             self._mark_form_dirty()
             self._rebuild_injection_form(key)
             return
-        removed_id = target[key].get("Harmonic ID of this bunch")
-        target.pop(key, None)
-        if isinstance(removed_id, int):
-            for other in self._injection_keys(target):
-                identifier = target[other].get("Harmonic ID of this bunch")
-                if isinstance(identifier, int) and identifier > removed_id:
-                    target[other]["Harmonic ID of this bunch"] = identifier - 1
-        self._normalize_injection(target)
+        self._empty_injection_bunch(target[key])
         self._mark_form_dirty()
-        self._rebuild_injection_form("bunch0")
+        self._rebuild_injection_form(key)
 
     @staticmethod
     def _add_property_row(layout, label, field):

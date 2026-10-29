@@ -292,16 +292,24 @@ Injection preserves valid harmonic-ID permutations when applying a form.
 the count fills new slots with zero real and macro particles, retaining the
 current bunch's reference parameters and assigning each new slot its own
 harmonic ID and default reference arrival time. For one populated bunch in four
-groups, change 1 to 4; the other three slots are created empty. This group count
-remains independent of the RF cavity harmonics.
+groups, fill only ``bunch0`` with harmonic ID 0 and set the count to 4; the other
+three slots are created empty. GUI JSON drafts and imported inputs with fewer
+bunch entries are also completed when applying the source or saving/running.
+Saved inputs retain the full slot structure. Empty slots require no separate
+particle configuration and produce no monitor files. The bunch selector's
+tooltips and summary identify empty slots. This group count remains independent
+of the RF cavity harmonics.
 
 **Empty current slot** (当前槽置空) and **Empty other slots** (其余槽置空) zero the
 selected particle counts and clear particle sources without changing the group
 count. Reference parameters and harmonic IDs are retained. Reducing the group
 count removes only empty slots whose harmonic IDs are outside the new range;
 occupied slots must first be emptied. These operations remain form drafts until
-applied. Adding/copying bunches assigns a new slot; deleting a slot compresses
-higher IDs.
+applied. Adding/copying a populated bunch fills an existing empty slot first;
+the group count increases only when every slot is occupied. Copying an empty
+slot does not create another slot. Deleting a bunch leaves its slot empty and
+preserves the group count and every other harmonic ID. To remove slots, reduce
+``Harmonic Number`` explicitly.
 The batch summary shows the planned total, first/subsequent batch sizes, last
 injection turn and macro-particle weight. New bunches retain the existing weight.
 Distribution input offers ``sequential`` or ``repeat``. Random seeds and

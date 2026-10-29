@@ -71,7 +71,7 @@ def normalize_command(data: dict) -> dict:
 
 
 def normalize_input(data: dict) -> dict:
-    """Canonicalize input aliases while preserving names, unknown fields and values."""
+    """Canonicalize aliases and complete valid GUI Injection shorthand."""
     from PASS.para.schema.main import MainConfig
     from PASS.validation.report import ValidationReport
     from PASS.validation.rules import _normalize_fields
@@ -85,7 +85,91 @@ def normalize_input(data: dict) -> dict:
     sequence = normalized.get("Sequence")
     if isinstance(sequence, dict):
         normalized["Sequence"] = {name: normalize_command(command) if isinstance(command, dict) else command for name, command in sequence.items()}
+    complete_injection_slots(normalized)
     return normalized
+
+
+def injection_bunch_keys(target: dict) -> list[str]:
+    return sorted(
+        (str(key) for key, value in target.items() if re.fullmatch(r"bunch\d+", str(key)) and isinstance(value, dict)),
+        key=lambda key: int(key[5:]),
+    )
+
+
+def empty_injection_bunch(bunch: dict) -> None:
+    """Keep reference and slot metadata while disabling every particle source."""
+    bunch.update({
+        "Number of Macro Particles": 0,
+        "Number of Real Particles": 0,
+        "Is Load Distribution from File": False,
+        "Distribution File Path": "",
+        "Insert Particle Coordinate": [],
+        "Insert Particle File": None,
+        "Scan Grid": None,
+        "Is Save Initial Distribution": False,
+    })
+    for name in ("Offset x", "Offset y"):
+        if isinstance(bunch.get(name), dict):
+            bunch[name].update({"Is Offset": False, "Is Load From File": False, "File Path": ""})
+
+
+def resize_injection_slots(target: dict, *, reference_key: str | None = None) -> None:
+    """Resize a GUI draft by harmonic ID without removing an occupied slot."""
+    count = target.get("Harmonic Number")
+    if type(count) is not int or count < 1:
+        raise ValueError("Harmonic Number 必须为正整数。")
+    if any(re.fullmatch(r"bunch\d+", str(key)) and not isinstance(value, dict) for key, value in target.items()):
+        raise ValueError("每个已声明的 bunch 必须是参数对象；请修正无效条目后再补齐空槽。")
+    keys = injection_bunch_keys(target)
+    if not keys:
+        raise ValueError("请至少声明一个束团，再补齐空槽。")
+    bunches = [target[key] for key in keys]
+    if count != len(keys):
+        identifiers = [target[key].get("Harmonic ID of this bunch") for key in keys]
+        if any(type(identifier) is not int or identifier < 0 for identifier in identifiers) or len(set(identifiers)) != len(identifiers):
+            raise ValueError("调整槽数前，已声明的 Harmonic ID 必须为不重复的非负整数。")
+        identifier_set = set(identifiers)
+        removed = [key for key in keys if target[key]["Harmonic ID of this bunch"] >= count]
+        occupied = [key for key in removed if target[key].get("Number of Macro Particles", 0) or target[key].get("Number of Real Particles", 0)]
+        if occupied:
+            raise ValueError("缩小 Harmonic Number 会移除非空束团：" + "、".join(occupied) + "。请先将这些槽置空，或保留当前槽数。")
+        source = target.get(reference_key) or target[keys[0]]
+        bunches = [target[key] for key in keys if key not in removed]
+        for identifier in range(count):
+            if identifier in identifier_set:
+                continue
+            bunch = deepcopy(source)
+            empty_injection_bunch(bunch)
+            bunch["Harmonic ID of this bunch"] = identifier
+            # Missing slots use the prescribed clock for their own harmonic IDs.
+            bunch["Reference arrival time (s)"] = None
+            bunches.append(bunch)
+    for key in keys:
+        target.pop(key)
+    for index, bunch in enumerate(bunches):
+        target[f"bunch{index}"] = bunch
+
+
+def complete_injection_slots(data: dict) -> None:
+    """Expand valid GUI shorthand; preserve malformed drafts for validation."""
+    sequence = data.get("Sequence", {})
+    if not isinstance(sequence, dict):
+        return
+    for target in sequence.values():
+        if not isinstance(target, dict) or target.get("Command") != "Injection":
+            continue
+        count = target.get("Harmonic Number")
+        keys = injection_bunch_keys(target)
+        if type(count) is not int or not 0 < len(keys) < count:
+            continue
+        identifiers = [target[key].get("Harmonic ID of this bunch") for key in keys]
+        if any(type(identifier) is not int or not 0 <= identifier < count for identifier in identifiers):
+            continue
+        if len(set(identifiers)) != len(identifiers):
+            continue
+        if any(re.fullmatch(r"bunch\d+", str(key)) and not isinstance(value, dict) for key, value in target.items()):
+            continue
+        resize_injection_slots(target)
 
 
 def missing_files(data: dict, base: Path) -> list[str]:
