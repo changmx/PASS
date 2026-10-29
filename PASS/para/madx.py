@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 import tfs
 
-from PASS.para.bpm import _create_bpm_items, _is_bpm, _select_bpm_rows, _split_bpm_twiss_table, _unique_names
+from PASS.para.bpm import _create_bpm_items, _is_bpm, _madx_element_label, _select_bpm_rows, _split_bpm_twiss_table, _unique_names
 from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem, SolenoidItem
 from PASS.utils.command_order import command_position_key
@@ -221,13 +221,12 @@ def _get_madx_reference_beta(headers: dict) -> float:
 
 
 def _make_name(elem_name: str, s: float) -> str:
-    """Build a unique name: f"{madx_name}_s{s:.3f}".
+    """Build a label with one position suffix: f"{madx_name}_s{s:.3f}".
 
-    Uses the raw MADX element name (not occurrence-suffixed) so the
-    original lattice label is preserved.  The s-position suffix makes
-    every name unique even when the same MADX name appears multiple times.
+    Omit trailing MAD-X :N instance identifiers; source matching retains them.
+    The final sequence resolves any collisions at equal rounded positions.
     """
-    return f"{elem_name}_s{s:.3f}"
+    return f"{_madx_element_label(elem_name)}_s{s:.3f}"
 
 
 def _make_match_key(elem_name: str, occurrence: int) -> str:
@@ -900,7 +899,7 @@ def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, lis
         s = twiss_table.iloc[i]["S"]
         name = _make_name(elem_name, s)
 
-        if not combined.search(name):
+        if not (combined.search(name) or combined.search(f"{elem_name}_s{s:.3f}")):
             continue
 
         et = elem_type.lower()

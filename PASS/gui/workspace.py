@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import shlex
 from uuid import uuid4
@@ -18,7 +19,9 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -43,6 +46,85 @@ from PASS.gui.project import Project, ProjectError, atomic_write, file_reference
 
 def display_json(value) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)
+
+
+class ProjectSaveDialog(QDialog):
+    """Choose a parent and a project folder name without creating files yet."""
+
+    def __init__(self, parent, title, directory, name, *, current_path=None):
+        super().__init__(parent)
+        self.current_path = Path(current_path).resolve() if current_path else None
+        self.setWindowTitle(title)
+        self.setMinimumWidth(520)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        location = QHBoxLayout()
+        self.directory = QLineEdit(str(directory))
+        browse = QPushButton("浏览…")
+        browse.clicked.connect(self._browse_directory)
+        location.addWidget(self.directory, 1)
+        location.addWidget(browse)
+        form.addRow("保存位置", location)
+        self.name = QLineEdit(name)
+        self.name.setPlaceholderText("项目名称，也是新文件夹的名称")
+        form.addRow("项目名称（文件夹）", self.name)
+        layout.addLayout(form)
+        self.destination_label = QLabel()
+        self.destination_label.setWordWrap(True)
+        self.destination_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        layout.addWidget(self.destination_label)
+        hint = QLabel("保存时自动创建项目文件夹，并将配置与依赖文件放入其中。")
+        hint.setObjectName("muted")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.buttons.button(QDialogButtonBox.Save).setText("保存")
+        self.buttons.button(QDialogButtonBox.Cancel).setText("取消")
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
+        self.directory.textChanged.connect(self._refresh_destination)
+        self.name.textChanged.connect(self._refresh_destination)
+        self._refresh_destination()
+        self.name.selectAll()
+        self.name.setFocus()
+
+    def _browse_directory(self):
+        value = QFileDialog.getExistingDirectory(self, "选择项目保存位置", self.directory.text())
+        if value:
+            self.directory.setText(value)
+
+    def destination_directory(self):
+        directory = Path(self.directory.text().strip()).expanduser()
+        if not self.directory.text().strip() or not directory.is_dir():
+            raise ValueError("请选择已有的保存位置。")
+        name = self.name.text().strip()
+        if not name or name in {".", ".."} or re.search(r'[<>:"/\\|?*\x00-\x1f]', name) or name.endswith("."):
+            raise ValueError("请输入有效的项目名称；名称不能包含路径分隔符或特殊文件名字符。")
+        if re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", name):
+            raise ValueError("此名称是系统保留的文件夹名称，请使用其他名称。")
+        destination = directory / name
+        if destination.exists() and not destination.is_dir():
+            raise ValueError("此名称已被文件占用，请使用其他项目名称。")
+        entry = destination / "project.passproj"
+        if entry.exists() and entry.resolve() != self.current_path:
+            raise ValueError("此文件夹已包含其他项目，请使用其他名称或打开该项目。")
+        return destination.resolve()
+
+    def _refresh_destination(self):
+        try:
+            destination = self.destination_directory()
+        except (OSError, ValueError) as exc:
+            self.destination_label.setText(str(exc))
+            self.buttons.button(QDialogButtonBox.Save).setEnabled(False)
+            return False
+        self.destination_label.setText(f"项目路径：{destination}")
+        self.buttons.button(QDialogButtonBox.Save).setEnabled(True)
+        return True
+
+    def accept(self):
+        if self._refresh_destination():
+            super().accept()
 
 
 def _rebase_project_history(history, base, original, candidate):
@@ -756,12 +838,25 @@ class DocumentWindowMixin:
             return False
         if self.project:
             path = self.project.path
-            if not path or save_as or self.project.legacy:
-                title = "将旧工程另存为目录工程（原文件保留）" if self.project.legacy else "选择新工程文件夹（保存 project.passproj）"
-                value = QFileDialog.getExistingDirectory(self, title, str(path.parent if path else file_dialog_directory(self)))
-                if not value:
+            choose_destination = not path or save_as or self.project.legacy
+            if choose_destination:
+                title = "将旧工程另存为目录工程（原文件保留）" if self.project.legacy else "保存 PASS 项目"
+                if path and self.project.legacy:
+                    directory, name = path.parent, path.stem
+                elif path:
+                    directory, name = path.parent.parent, path.parent.name + "_copy"
+                else:
+                    directory, name = file_dialog_directory(self), self.project.name or "PASS_project"
+                dialog = ProjectSaveDialog(self, title, directory, name, current_path=None if self.project.legacy else path)
+                try:
+                    if dialog.exec() != QDialog.Accepted:
+                        return False
+                    path = dialog.destination_directory() / "project.passproj"
+                except (OSError, ValueError) as exc:
+                    QMessageBox.warning(self, "保存项目失败", str(exc))
                     return False
-                path = Path(value) / "project.passproj"
+                finally:
+                    dialog.deleteLater()
             original = self.project
             data = deepcopy(self.config.data)
             history = deepcopy(self.config._history)
@@ -775,6 +870,8 @@ class DocumentWindowMixin:
                 original.check_external_changes(context=context)
                 candidate = original.clone(context=context)
                 try:
+                    if choose_destination:
+                        candidate.name = path.parent.name
                     candidate.update_config(active_id, data, base, context=context)
                     existing = {recipe["id"] for recipe in candidate.recipes}
                     for recipe in recipes:
@@ -1039,6 +1136,8 @@ class DocumentWindowMixin:
                 field.setCurrentText(str(value))
             elif isinstance(field, QCheckBox):
                 field.setChecked(bool(value))
+        if "element_overrides" in fields:
+            fields["element_overrides"].set_value(parameters.get("element_overrides", {}))
         self._show_page(0)
         return True
 

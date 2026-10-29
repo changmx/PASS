@@ -16,7 +16,7 @@ from PASS.core.beam import Beam
 from PASS.utils.logger import set_simple_logging, set_normal_logging
 from PASS.utils.helper import get_current_time
 from PASS.utils.particle_monitor_io import append_particle_samples, export_particle_samples_tfs, restore_particle_samples_tfs
-from PASS.utils.table_io import _encode_command_name, normalize_output_format, table_path
+from PASS.utils.table_io import _make_monitor_output_name, normalize_output_format, table_path
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,6 @@ class ParticleMonitor(Command):
         self.s = kwargs["s (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
-        self._output_name = _encode_command_name(self.cmd_name)
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5"))
         if "output layout" in kwargs or "output_layout" in kwargs:
             raise ValueError("ParticleMonitor no longer accepts Output layout")
@@ -111,6 +110,7 @@ class ParticleMonitor(Command):
         self.output_dir_particle: str = cfg.output_dir_particle
         self.output_hms: str = cfg.output_hms
         Path(self.output_dir_particle).mkdir(parents=True, exist_ok=True)
+        self._output_name = _make_monitor_output_name(sim, self.beam_id, self.cmd_type, self.cmd_name, f"{self.s:.3f}")
         filename = f"{self.output_hms}_beam{self.beam_id}_{self._output_name}_s{self.s:.3f}_particles.tfs"
         self.output_path = table_path(Path(self.output_dir_particle) / filename, self.output_format)
         self._owned_temporary_paths = set()

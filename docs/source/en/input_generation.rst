@@ -970,6 +970,12 @@ importer, so do not include ``s``, ``command`` or ``order`` (or their aliases).
 The MAD-X horizontal/vertical BPM keyword does not restrict the selected
 PASS monitor's recorded coordinates.
 
+Generated PASS command names omit a terminal numeric MAD-X occurrence suffix:
+``bpm:1`` at 422.0936762 m becomes ``bpm_s422.094``. Position distinguishes
+repeated element names; only identical generated labels receive ``_2``, ``_3``,
+etc. Raw source names remain unchanged for BPM selection and magnetic-error
+instance matching.
+
 To monitor only part of the lattice, pass ``bpm_names`` (exact names) and/or
 ``bpm_patterns`` (regular expressions). Both match the original MAD-X ``NAME``
 case-insensitively, before generated name suffixes or drift merging. Regular

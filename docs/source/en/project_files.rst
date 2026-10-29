@@ -16,6 +16,13 @@ dependencies, sources, and generation settings as ordinary files. ``Ctrl+S``
 follows the active mode. The first save of an old ZIP project selects a new
 project directory and preserves the original archive. Subsequent saves update
 the new project files; PASS no longer writes old-format project archives.
+
+For the first project save or **Project Save as**, choose the parent location
+and enter the project name, which is also the folder name. The dialog shows the
+complete destination; saving creates that folder automatically. There is no
+need to create it beforehand, and cancelling creates nothing. Saving an existing
+project with ``Ctrl+S`` continues to use its current location.
+
 **Open JSON** opens an independent document; it does not silently import
 into a project. Use **Import JSON into project** for that operation. Replacing a
 document or closing the window offers to save unsaved changes.
@@ -155,6 +162,13 @@ as standalone JSON runs:
            assets/<filename>           # copied dependency bytes
            run.json                    # run record
            gui.log                     # complete process log for GUI runs
+
+``configuration0.json`` preserves the original parameter values and paths for
+comparing runs. ``beam0.json`` is the input actually consumed by tracking, with
+dependency paths redirected to the snapshot and an absolute output root. Without
+external dependencies, they may differ only in ``Output directory``. Run history
+compares the configuration files, while rerunning checks both files against their
+recorded hashes before using the runtime inputs; retain both in the snapshot.
 
 Dependencies are copied directly into ``assets/``, without numbered subdirectories.
 Filenames are preserved; conflicts are checked without case sensitivity and

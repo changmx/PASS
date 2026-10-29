@@ -127,6 +127,11 @@ parameters start with name, position ``s``, and length, followed by the element'
 field strengths and geometry, then ``Model``, ``Integrator``, and slice count.
 Presentation order is independent of schema inheritance and JSON key order.
 
+Sequence commands, including Injection and SortBunch, expose ``Order``.
+Leave it blank or enter ``null`` to use the default command priority. If any
+command at the same ``s`` has an explicit order, all commands at that position
+must have distinct integer orders.
+
 For example, ``SBend`` displays name, ``S (m)``, ``Length (m)``, ``K0L``,
 ``E1 (rad)``, ``E2 (rad)``, ``Hgap (m)``, ``Fint``, ``Fintx``, ``Model``,
 ``Integrator``, and ``Num slices``, followed by **Field errors**, **Alignment errors**, **Aperture**,
@@ -282,12 +287,29 @@ Injection, clocks, RF and pulsed elements
 -----------------------------------------
 
 Injection preserves valid harmonic-ID permutations when applying a form.
-Adding/copying bunches assigns a new slot; deleting a slot compresses higher IDs.
+``Harmonic Number`` is editable: enter the desired group count and select
+**Update harmonic slots** (更新谐波槽数), or apply the form directly. Increasing
+the count fills new slots with zero real and macro particles, retaining the
+current bunch's reference parameters and assigning each new slot its own
+harmonic ID and default reference arrival time. For one populated bunch in four
+groups, change 1 to 4; the other three slots are created empty. This group count
+remains independent of the RF cavity harmonics.
+
+**Empty current slot** (当前槽置空) and **Empty other slots** (其余槽置空) zero the
+selected particle counts and clear particle sources without changing the group
+count. Reference parameters and harmonic IDs are retained. Reducing the group
+count removes only empty slots whose harmonic IDs are outside the new range;
+occupied slots must first be emptied. These operations remain form drafts until
+applied. Adding/copying bunches assigns a new slot; deleting a slot compresses
+higher IDs.
 The batch summary shows the planned total, first/subsequent batch sizes, last
 injection turn and macro-particle weight. New bunches retain the existing weight.
 Distribution input offers ``sequential`` or ``repeat``. Random seeds and
-reference arrival times can be cleared to null. Integer fields accept large
-particle counts without a signed-32-bit limit.
+reference arrival times can be cleared to null. Integer text inputs accept exact
+scientific notation, such as ``1e5`` or ``2.5e3``, and save ordinary JSON integers.
+Fractional results, NaN and infinity are rejected. Particle-count fields retain
+support for values above the signed-32-bit limit; bounded controls retain their
+existing ranges.
 
 The shared design clock is calculated from the initial beam, circumference and
 enabled RF waveforms; global configuration has no clock-table input. It is
@@ -624,6 +646,28 @@ cache. After editing a file referenced by the source script, use
 **Reload sequence** (重新加载 sequence) to force a fresh load and preview.
 The existing sampling, BPM and geometry options still apply. The Python
 workflow and PTC derivative conversion are documented in :ref:`en-madx-sequence`.
+
+Batch properties during element import
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For physical-element import, enable **Set properties by element type**
+(按元件类型批量设置属性), select a command type and a property, then choose
+**Add property setting** (添加属性设置). Enter its value and add further settings
+for the same or other types. For example, set every imported SBend's ``Model``
+to ``rot-kick-rot`` and every Quadrupole's ``Num slices`` to ``20``.
+Only selected properties of matching newly imported elements are replaced;
+unselected properties and existing sequence entries retain their values.
+``Command``, position and length come from the source.
+
+Preview validates the resulting elements and lists the batch settings before
+import. Invalid settings prevent insertion. Explicit ``Order`` settings must
+still be complete and distinct at each shared position. Settings are retained
+in drafts and saved import recipes. Add **Aperture type** before **Aperture value**
+when changing aperture shape, so the value editor uses the selected geometry.
+
+The ordinary SBend property editor also offers ``rot-kick-rot`` alongside
+``adaptive`` and ``drift-kick-drift-exact``. Quadrupole instead offers
+``mat-kick-mat`` for its matrix-based map.
 
 MAD-X sampling
 ~~~~~~~~~~~~~~

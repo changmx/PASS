@@ -66,14 +66,19 @@ A pair of files is generated for each bunch and each monitor command:
 
 The output directory is ``output_dir_stat``.
 
-``encoded_command_name`` is the canonical runtime command name supplied by
-Sequence, percent-escaped once for use in a filename. Special characters are
-encoded, including ``/`` as ``%2F`` and a literal ``%`` as ``%25``. The HDF5/TFS
-``Monitor`` metadata retains the unescaped runtime name. Distinct command names
-therefore have separate histories even at the same position or when their
-positions round to the same four-decimal filename value. Existing output files
-keep their names; readers that require the previous exact filename stem need
-to account for the added ``_cmd_`` component.
+``encoded_command_name`` omits the imported numeric MAD-X occurrence suffix
+and trailing position label. For example, either ``bpm:1_s422.094`` or
+``bpm_s422.094`` produces ``_cmd_bpm_s_422.0937`` when the current position is
+422.0936762 m. The filename contains the position once, using the current
+``S (m)`` value even if the command has moved since import. Other special
+characters remain percent-escaped, such as ``/`` as ``%2F``.
+
+Only an actual filename collision within the same beam, monitor type and
+formatted position adds ``_2``, ``_3``, etc. Case-only differences also count
+as collisions so files remain safe on Windows. The HDF5/TFS ``Monitor``
+metadata retains the complete unescaped runtime name, and ``S`` retains the
+full position value. Existing output files keep their names; readers using
+exact stems must account for the simplified names in newly written files.
 
 Example metadata (HDF5 attributes, or TFS headers in text mode):
 

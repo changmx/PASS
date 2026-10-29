@@ -14,6 +14,11 @@ def _is_bpm(keyword) -> bool:
     return str(keyword).casefold() in ("monitor", "hmonitor", "vmonitor")
 
 
+def _madx_element_label(name: str) -> str:
+    """Omit MAD-X instance suffixes from labels, retaining raw source identities."""
+    return re.sub(r"(?<=.):[0-9]+$", "", str(name))
+
+
 def _select_bpm_rows(table, bpm_monitor=None, bpm_names=None, bpm_patterns=None):
     """Select original row positions; omitted selectors mean all BPMs."""
     for label, values in (("bpm_names", bpm_names), ("bpm_patterns", bpm_patterns)):
@@ -159,16 +164,16 @@ def _create_bpm_items(table, bpm_monitor=None, *, include_drifts=False, bpm_name
         if index not in selected_rows:
             if length == 0:
                 items.append(MarkerItem(s=s))
-                names.append(f"{row['NAME']}_s{s:.3f}")
+                names.append(f"{_madx_element_label(row['NAME'])}_s{s:.3f}")
             elif include_drifts:
                 items.append(DriftItem(s=s, length=length))
-                names.append(f"{row['NAME']}_s{s:.3f}")
+                names.append(f"{_madx_element_label(row['NAME'])}_s{s:.3f}")
             for item in items[first_item:]:
                 item._madx_bpm_sources = (index, )
             continue
         sample = _bpm_center_row(row) if cls is PhaseAdvanceMonitorItem else row
         center = s - length / 2
-        name = f"{row['NAME']}_s{center:.3f}"
+        name = f"{_madx_element_label(row['NAME'])}_s{center:.3f}"
         if include_drifts and length > 0:
             items.append(DriftItem(s=center, length=length / 2))
             names.append(f"{name}_drift_in")
@@ -192,7 +197,7 @@ def _create_bpm_items(table, bpm_monitor=None, *, include_drifts=False, bpm_name
         names.append(name)
         if include_drifts and length > 0:
             items.append(DriftItem(s=s, length=length / 2))
-            names.append(f"{row['NAME']}_s{s:.3f}_drift_out")
+            names.append(f"{_madx_element_label(row['NAME'])}_s{s:.3f}_drift_out")
         for item in items[first_item:]:
             item._madx_bpm_sources = (index, )
     return items, names

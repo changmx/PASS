@@ -112,6 +112,9 @@
 
 每个完成窗口、每个束流、束团和监视器 各写一个 HDF5 文件（可选 TFS），保存在配置的 ``output_dir_tuneSpread`` 目录（通常为 ``tuneSpread``）。每个束团独立输出，包含已损失粒子。列包含 ``tag``、``tuneXFractional``、``tuneYFractional``、两平面各自的区间数、``validX/Y``、``completeX/Y`` 和损失信息。``valid`` 表示粒子仍存活且至少有一个有效区间；``complete`` 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。
 
+文件名标签遵循 :doc:`table_output` 的规则：省略导入实例编号和重复的位置标签，
+当前位置只出现一次。``Monitor`` 元数据保留完整命令名。
+
 文件头记录固定光学参考、窗口端点、期望区间数、后端、精度以及 ``PASSVersion``。
 
 正常提前停止时，已经完成的窗口文件保留。

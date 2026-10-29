@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 import json
 from pathlib import Path
+import re
 from urllib.parse import quote
 
 import h5py
@@ -14,6 +15,24 @@ import tfs
 def _encode_command_name(name: str) -> str:
     """Preserve command identity while escaping filename/path characters."""
     return quote(name, safe="._-")
+
+
+def _make_monitor_output_name(sim, beam_id: int, command_type: str, name: str, position: str) -> str:
+    """Omit imported occurrence/position suffixes; number only actual collisions."""
+    # The output path supplies the current S, including after a command is moved.
+    name = re.sub(r"_s_?[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?(?P<suffix>_[0-9]+)?$", r"\g<suffix>", name)
+    name = re.sub(r":[0-9]+(?=_[0-9]+$|$)", "", name)
+    base = _encode_command_name(name or "monitor")
+    # Each fresh simulation owns its namespace; rounded positions match paths.
+    if not hasattr(sim, "_monitor_output_names"):
+        sim._monitor_output_names = {}
+    used = sim._monitor_output_names.setdefault((beam_id, command_type, position), set())
+    candidate, suffix = base, 2
+    while candidate.casefold() in used:
+        candidate = f"{base}_{suffix}"
+        suffix += 1
+    used.add(candidate.casefold())
+    return candidate
 
 
 def normalize_output_format(value="hdf5-gzip1") -> str:

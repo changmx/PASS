@@ -60,10 +60,15 @@ HDF5 options; their event and histogram tables do not offer TFS output.
 HDF5 tables use ``.h5``; TFS tables use ``.tfs`` with the same filename stem.
 For :doc:`StatMonitor <statmonitor>`, the CSV, HDF5 and TFS stem is
 ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}``.
-The command-name component isolates histories by Sequence's canonical runtime
-name, percent-escaped once for filenames; ``Monitor`` metadata retains that name
-without escaping. Readers using the previous exact stem must account for
-``_cmd_``; existing output files retain their names.
+StatMonitor, DistMonitor, PhaseAdvanceMonitor, ParticleMonitor and
+SlowExtractionMonitor omit numeric
+MAD-X occurrence suffixes and trailing position labels from the command-name
+component. The filename supplies the current position once. Other special
+characters remain percent-escaped. A numeric suffix is added only for actual
+collisions within the same beam, monitor type and formatted position, including
+case-only differences. ``Monitor`` metadata retains the complete runtime name.
+Readers using exact stems must account for the simplified names; existing
+output files retain their names.
 SpaceCharge field output uses a multidimensional HDF5 layout
 and does not offer TFS export.
 

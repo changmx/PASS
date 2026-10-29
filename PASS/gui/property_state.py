@@ -151,7 +151,7 @@ def restore_field(field, state):
     elif kind == "spin" and isinstance(field, (QSpinBox, QDoubleSpinBox)):
         text = state["text"]
         if field.validate(text, len(text))[0] == QValidator.Acceptable:
-            field.setValue(int(text) if isinstance(field, QSpinBox) else float(text))
+            field.setValue(field.valueFromText(text))
         else:
             field.lineEdit().setText(text)
     elif kind == "text" and isinstance(field, QLineEdit):

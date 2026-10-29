@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import math
 import os
 from pathlib import Path
-import re
 import tempfile
 
 import h5py
@@ -16,7 +14,7 @@ import numpy as np
 from PASS.commands.command import Command
 from PASS.para.schema.slow_extraction import SlowExtractionMonitorItem
 from PASS.utils.constants import const
-from PASS.utils.table_io import append_table, write_table
+from PASS.utils.table_io import _encode_command_name, _make_monitor_output_name, append_table, write_table
 
 
 @Command.register("slowextractionmonitor")
@@ -66,6 +64,7 @@ class SlowExtractionMonitor(Command):
         self._output_failed = False
         self._dirty = False
         self._finalized = False
+        self._output_name = _make_monitor_output_name(sim, self.beam_id, self.cmd_type, self.cmd_name, f"{self.s:.4f}")
         super().__init__()
 
     def print(self):
@@ -82,11 +81,8 @@ class SlowExtractionMonitor(Command):
             raise ValueError(f"SlowExtractionMonitor '{self.cmd_name}': Source changed during tracking")
         if self._source is None:
             self._source = source
-            label = f"{source.cmd_name}_{self.cmd_name}"
-            slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", label).strip("_") or "monitor"
-            digest = hashlib.sha256(label.encode("utf-8")).hexdigest()[:8]
-            run_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(source.run_id))
-            stem = f"{slug}_{digest}_{run_id}_beam{self.beam_id}"
+            run_id = _encode_command_name(str(source.run_id))
+            stem = f"{run_id}_spill_beam{self.beam_id}_cmd_{self._output_name}_s_{self.s:.4f}"
             self.output_paths = {kind: self._output_dir / f"{stem}_{kind}.h5" for kind in self._histograms}
         return source
 

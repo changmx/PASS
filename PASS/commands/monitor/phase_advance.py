@@ -17,7 +17,7 @@ from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-from PASS.utils.table_io import _encode_command_name, normalize_output_format, table_path, write_table
+from PASS.utils.table_io import _make_monitor_output_name, normalize_output_format, table_path, write_table
 from PASS.utils.logger import set_normal_logging, set_simple_logging
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,6 @@ class PhaseAdvanceMonitor(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
-        self._output_name = _encode_command_name(self.cmd_name)
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.enable = bool(kwargs.get("enable", True))
 
@@ -135,6 +134,7 @@ class PhaseAdvanceMonitor(Command):
         self.output_dir = Path(cfg.output_dir_tuneSpread)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.output_hms = str(cfg.output_hms)
+        self._output_name = _make_monitor_output_name(sim, self.beam_id, self.cmd_type, self.cmd_name, f"{self.s:.4f}")
         super().__init__()
 
     def _validate_optics(self) -> None:

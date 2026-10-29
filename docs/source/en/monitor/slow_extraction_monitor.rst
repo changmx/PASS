@@ -151,9 +151,14 @@ Output tables
 -------------
 
 Tables are written under ``slow_extraction/`` in the run output directory;
-flat-output mode omits the ``slow_extraction`` subdirectory. Source and monitor
-names, a digest, run identity and beam identifier form the filename stem.
-Suffixes ``_turn.h5`` and ``_time.h5`` identify the selected histogram types.
+flat-output mode omits the ``slow_extraction`` subdirectory. Filenames use
+``{run_id}_spill_beam{beam}_cmd_{monitor_name}_s_{s:.4f}_{kind}.h5``, where
+``kind`` is ``turn`` or ``time``. The source run identity separates independent
+runs. The simplified monitor name follows :doc:`table_output`: imported
+occurrence numbers and position labels are omitted, the current position appears
+once, and only actual collisions add a number. Full monitor/source names, source
+run identity and event-file path remain in the metadata. Existing files retain
+their names.
 Completed turn bins are appended once at each write interval; the active
 partial turn bin is appended only at finalization. The in-memory
 ``get_histogram("turn")`` result also includes the current partial bin.

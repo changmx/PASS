@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import QCheckBox, QFormLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QVBoxLayout, QWidget
 
-from PASS.gui.structured import IntegerSpinBox, StructuredField
+from PASS.gui.structured import IntegerSpinBox, StructuredField, _parse_integer
 
 
 class ScanGridEditor(StructuredField):
@@ -87,8 +87,8 @@ class ScanGridEditor(StructuredField):
         dp_values = [float(value) for value in self.dp_values.text().replace("，", ",").replace(",", " ").split()]
         grid = ScanGridConfig(x_range=[float(self.x_min.text()) * 1e-3, float(self.x_max.text()) * 1e-3],
                               y_range=[float(self.y_min.text()) * 1e-3, float(self.y_max.text()) * 1e-3],
-                              num_x=int(self.n_x.text()),
-                              num_y=int(self.n_y.text()),
+                              num_x=_parse_integer(self.n_x.text()),
+                              num_y=_parse_integer(self.n_y.text()),
                               dp_values=dp_values,
                               px=float(self.px.text()),
                               py=float(self.py.text()),

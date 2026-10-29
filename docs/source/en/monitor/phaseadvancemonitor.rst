@@ -125,6 +125,10 @@ and loss metadata. ``valid`` means at least one accepted interval while the
 particle remains alive; ``complete`` means every interval in the window was
 accepted. Lost particles are never included in phase accumulation.
 
+The filename label follows :doc:`table_output`: imported occurrence numbers
+and duplicate position labels are omitted; the current position appears once.
+``Monitor`` metadata retains the complete command name.
+
 Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and ``PASSVersion``.
 

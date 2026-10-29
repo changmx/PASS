@@ -10,7 +10,6 @@ import csv
 import io
 from pathlib import Path
 import math
-import re
 import types
 from typing import Annotated, Literal, Union, get_args, get_origin
 
@@ -41,18 +40,20 @@ from PySide6.QtWidgets import (
 )
 
 from PASS.gui.widgets import file_dialog_directory
-from PASS.gui.structured import Column, NumberDelegate, NumericTable, StructuredField
+from PASS.gui.structured import Column, NumberDelegate, NumericTable, StructuredField, _integer_input_state, _parse_integer
 from PASS.gui.widgets import Choice
 from PASS.gui.project import input_file_fields
 
 
 class IntegerValidator(QValidator):
-    """Python integers, without Qt's signed 32-bit input limit."""
+    """Exact integer input, including scientific notation and optional null."""
+
+    def __init__(self, parent=None, *, nullable=False):
+        super().__init__(parent)
+        self.nullable = nullable
 
     def validate(self, text, position):
-        state = (QValidator.Acceptable
-                 if re.fullmatch(r"[+-]?\d+", text.strip()) else QValidator.Intermediate if text.strip() in {"", "+", "-"} else QValidator.Invalid)
-        return state, text, position
+        return _integer_input_state(text, nullable=self.nullable), text, position
 
 
 def bare(annotation):
@@ -147,12 +148,15 @@ class ScalarField(StructuredField):
                 raise ValueError(f"{self.label}：请明确选择是或否")
             return self.input.isChecked()
         text = self.input.text().strip()
+        if self.input.property("nullable") and (not text or text.casefold() == "null"):
+            return None
         if self.label.casefold() in input_file_fields() and not text:
             raise ValueError(f"{self.label}：请选择文件，或关闭文件输入模式")
         if self.annotation is int:
-            if not re.fullmatch(r"[+-]?\d+", text):
-                raise ValueError(f"{self.label}：需要整数")
-            return int(text)
+            try:
+                return _parse_integer(text)
+            except ValueError as exc:
+                raise ValueError(f"{self.label}：{exc}") from exc
         if self.annotation is float:
             try:
                 value = float(text)
@@ -187,6 +191,11 @@ class OptionalField(StructuredField):
     def editor(self):
         if self._editor is None:
             self._editor = make_editor(self._annotation, self._value, self._label, self._base_dir, parent=self)
+            if isinstance(self._editor, ScalarField) and self._editor.annotation in (int, float):
+                self._editor.input.setProperty("nullable", True)
+                self._editor.input.setPlaceholderText("留空或 null")
+                if self._editor.annotation is int:
+                    self._editor.input.setValidator(IntegerValidator(self._editor.input, nullable=True))
             self._editor.changed.connect(self.changed)
             self._root.addWidget(self._editor)
             self._toggle(self.enabled_box.isChecked())

@@ -89,6 +89,7 @@ from PASS.gui.structured import (
     TurnsEditor,
     Column,
     format_scientific,
+    _parse_integer,
 )
 
 # These values are constrained by PASS command implementations.  Unknown
@@ -138,6 +139,7 @@ TIMING_MODE_OPTIONS = ("off", "turn", "command", "synchronized-command")
 _SCHEMA_HELP: dict[str, str] | None = None
 
 FIELD_HELP = {
+    "Order": "同一 s 位置的执行顺序。留空或填写 null 使用默认优先级；若同位置任一命令指定 Order，该位置所有命令均须指定互不重复的整数。",
     "Write interval (turns)": "每圈采样，累计这些圈数后一次写入同一文件；不减少记录圈数。结束时写入剩余缓存。",
     "Coverage check": "跟踪前检查 SC 权重和区间：warn 警告，error 停止，off 不检查。",
     "Coverage mode": "full-ring 要求覆盖全环；partial 允许仅覆盖部分区段。",
@@ -158,7 +160,7 @@ FIELD_HELP = {
     "Radius (m)": "均匀圆盘源分布的外半径，单位 m；不是管壁半径，必须大于 0。",
     "Semi-axis A (m)": "均匀椭圆源分布局部 x 方向的半轴，单位 m；必须大于 0。",
     "Semi-axis B (m)": "均匀椭圆源分布局部 y 方向的半轴，单位 m；必须大于 0。",
-    "Harmonic Number": "束团分组数；添加或删除 bunch 时由界面自动保持一致。",
+    "Harmonic Number": "束团分组槽数；增大时自动补齐空槽，缩小时只移除超出范围的空槽。RF 谐波由 RFCavity 独立设置。",
     "Harmonic ID of this bunch": "该 bunch 的分组编号；保留用户的排列，所有槽需恰好覆盖 [0, Harmonic Number)。",
     "Random Seed": "分布生成随机种子。留空（null）时每次运行使用非确定性随机数。",
     "RMS geometric emittance x (m'rad)": "水平 RMS 几何发射度，单位 m·rad；用于叠加色散和中心偏移前的本征分布。",
@@ -1155,6 +1157,7 @@ class ConfigPage(QWidget):
             from PASS.para.schema.bunch import InjectionItem
 
             template = InjectionItem().to_sequence_dict()
+            template["Order"] = None
             template["S (m)"] = 0.0
             # The Gaussian rejection sampler requires a non-degenerate ellipse.
             # These are GUI starting values; the public physics schema is unchanged.
@@ -1278,7 +1281,7 @@ class ConfigPage(QWidget):
             model, required = monitor_models[command]
             return model(**({"S (m)": position} | required)).model_dump(by_alias=True)
         if command == "SortBunch":
-            return {"S (m)": position, "Command": "SortBunch"}
+            return {"S (m)": position, "Command": "SortBunch", "Order": None}
         raise KeyError(f"Unknown GUI command: {command}")
 
     def select_command(self, command: str) -> None:
@@ -1436,7 +1439,7 @@ class ConfigPage(QWidget):
                 if key in ("name", "longitudinal_transfer"):
                     values[key] = text
                 elif key == "num_segments":
-                    values[key] = int(text)
+                    values[key] = _parse_integer(text)
                 elif key == "muz" and self._optics_fields["longitudinal_transfer"].currentText() != "matrix":
                     values[key] = 0.0
                 else:
@@ -1693,6 +1696,11 @@ class ConfigPage(QWidget):
             self._madx_fields["alignment_errors"] = alignment
             self.form_layout.addRow("", alignment)
 
+            from PASS.gui.import_options import ElementImportOverrides
+            overrides = ElementImportOverrides(self.base_dir, self.data)
+            self._madx_fields["element_overrides"] = overrides
+            self.form_layout.addRow(overrides)
+
         self._add_madx_bpm_fields()
         transfer = PropertyComboBox()
         transfer.setObjectName("choiceField")
@@ -1799,7 +1807,7 @@ class ConfigPage(QWidget):
             command = model.model_fields["command"].default
             editor = self._make_madx_bpm_editor(model)
             self._madx_fields[f"bpm_settings_{command}"] = editor
-            self.form_layout.addRow("Monitor 参数", editor)
+            self.form_layout.addRow(editor)
             editor.changed.connect(self._madx_bpm_changed)
         hint = QLabel()
         hint.setWordWrap(True)
@@ -1826,6 +1834,10 @@ class ConfigPage(QWidget):
             return field
 
         editor = ObjectEditor(values, factory, self._read_field_value)
+        # A full-width, stacked form has stable row heights in the narrow sidebar.
+        editor.layout().setRowWrapPolicy(QFormLayout.WrapAllRows)
+        editor.layout().insertRow(0, QLabel("Monitor 参数"))
+        editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         for field in editor.fields.values():
             field.changed.connect(editor.changed)
         return editor
@@ -1969,6 +1981,7 @@ class ConfigPage(QWidget):
             value("num_segments"),
             tuple((key, json.dumps(capture_field(field), sort_keys=True, ensure_ascii=False)) for key, field in fields.items()
                   if key == "insert_bpm" or key.startswith("bpm_") and key != "bpm_hint"),
+            json.dumps(capture_field(fields["element_overrides"]), sort_keys=True, ensure_ascii=False) if "element_overrides" in fields else "",
         )
 
     def _madx_sequence_load_signature(self) -> tuple:
@@ -2073,6 +2086,7 @@ class ConfigPage(QWidget):
                     strict_geometry=strict_geometry,
                     **selection,
                 )
+                items = self._madx_fields["element_overrides"].apply_to(items, names, circumference, self.data)
             else:
                 patterns = [part.strip() for part in self._madx_fields["patterns"].text().split(",") if part.strip()]
                 interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
@@ -2080,7 +2094,7 @@ class ConfigPage(QWidget):
                 reader = read_madx_twiss
                 if interpolation:
                     try:
-                        segments = int(self._madx_fields["num_segments"].text().strip())
+                        segments = _parse_integer(self._madx_fields["num_segments"].text())
                     except ValueError as exc:
                         raise ValueError("一圈分段数 N 必须是正整数。") from exc
                     if segments < 1:
@@ -2280,6 +2294,9 @@ class ConfigPage(QWidget):
             source_summary = self._format_madx_type_counts(keyword_counts)
             source_heading = "来源元件类型（合并前）："
         command_summary = self._format_command_counts(self._command_counts(items))
+        overrides = self._madx_fields.get("element_overrides")
+        override_values = overrides.get_value() if overrides is not None else {}
+        override_summary = "\n".join(f"{command}：{', '.join(values)}" for command, values in override_values.items()) or "无"
         text = (f"文件：{Path(source).name}\n"
                 f"类型：MAD-X {source_kind}\n"
                 f"{self._madx_sequence_summary()}"
@@ -2288,6 +2305,7 @@ class ConfigPage(QWidget):
                 f"{sampling_summary}"
                 f"严格检查几何一致性：{'是' if self._madx_fields['strict_geometry'].isChecked() else '否'}\n"
                 f"BPM 处理：{bpm_summary}\n"
+                f"按类型批量设置：{override_summary}\n"
                 f"{bpm_detail}\n"
                 f"\n{source_heading}\n{source_summary}\n"
                 f"\n最终 PASS command：\n{command_summary}\n"
@@ -2343,6 +2361,8 @@ class ConfigPage(QWidget):
             elif isinstance(field, str):
                 parameters[key] = field
         parameters["bpm_monitor"] = self._madx_bpm_options()
+        if "element_overrides" in self._madx_fields:
+            parameters["element_overrides"] = self._madx_fields["element_overrides"].get_value()
         if self._madx_fields["source_format"].currentData() == "sequence" and self._madx_sequence_result is not None:
             parameters["madx_version"] = self._madx_sequence_result.madx_version
             parameters["reference_beam"] = dict(self._madx_sequence_result.beam)
@@ -3539,10 +3559,12 @@ class ConfigPage(QWidget):
         if target.get("Command") == "Slicer" and target.get("Coordinate") is None:
             from PASS.utils.coordinates import resolve_slice_coordinate
             complete["Coordinate"] = resolve_slice_coordinate(None, target.get("Periodic", False))
-        self._field_defaults = complete
-        self._field_context = complete
         from PASS.validation.rules import MODELS
         self._field_model = MODELS.get(target.get("Command"))
+        if self._field_model is not None and "order" in self._field_model.model_fields:
+            complete.setdefault("Order", None)
+        self._field_defaults = complete
+        self._field_context = complete
         if "Command" in complete:
             self._show_command_badge(str(complete["Command"]))
         sections = [(None, [key for key in complete if key != "Command"])] if twiss_layouts else self._property_sections(complete)
@@ -3749,7 +3771,7 @@ class ConfigPage(QWidget):
         self._selected_mapping = target
         self._injection_pending = pending
         self.form_title.setText(title)
-        self.form_hint.setText("保留 bunch 的 harmonic ID 排列。所有非空束团须使用相同宏粒子权重；删除槽会压缩后续槽编号。")
+        self.form_hint.setText("增大 Harmonic Number 自动补齐空槽；缩小时先将超出范围的槽置空。非空束团须使用相同宏粒子权重。")
         from PASS.para.schema.bunch import InjectionItem, BunchConfig, OffsetConfig
         self._field_model = InjectionItem
         if pending or name_value is not None:
@@ -3768,15 +3790,14 @@ class ConfigPage(QWidget):
             if key == "Command":
                 self._show_command_badge(str(value))
                 continue
-            if key == "Harmonic Number":
-                field = QLineEdit(str(len(self._injection_keys(target))))
-                field.setObjectName("readonlyField")
-                field.setReadOnly(True)
-                field.setToolTip(FIELD_HELP[key])
-            else:
-                field = self._make_field(str(key), value)
-                self._form_fields[key] = field
+            field = self._make_field(str(key), value)
+            self._form_fields[key] = field
             self.form_layout.addRow(self._field_label(str(key), value), field)
+            if key == "Harmonic Number":
+                resize = button("更新谐波槽数")
+                resize.setToolTip("保留现有束团参数，新增槽默认无粒子；也可直接点击应用修改。")
+                resize.clicked.connect(self.resize_injection_slots)
+                self.form_layout.addRow(resize)
 
         bunch_box = QGroupBox("Bunch 配置")
         bunch_box.setObjectName("bunchBox")
@@ -3810,6 +3831,17 @@ class ConfigPage(QWidget):
         delete.setEnabled(len(keys) > 1)
         actions_row.addWidget(delete)
         bunch_layout.addLayout(actions_row)
+        empty_row = QHBoxLayout()
+        empty = button("当前槽置空")
+        empty.setToolTip("将当前槽的真实粒子数和宏粒子数置零，清除插入粒子及文件来源；保留参考参数和 harmonic ID。")
+        empty.clicked.connect(lambda: self.empty_injection_slots(others=False))
+        empty_row.addWidget(empty)
+        empty_others = button("其余槽置空")
+        empty_others.setToolTip("保留当前束团，将其余槽的粒子数置零并清除粒子来源；Harmonic Number 保持不变。")
+        empty_others.setEnabled(len(keys) > 1)
+        empty_others.clicked.connect(lambda: self.empty_injection_slots(others=True))
+        empty_row.addWidget(empty_others)
+        bunch_layout.addLayout(empty_row)
         if self._active_bunch_key and isinstance(target.get(self._active_bunch_key), dict):
             bunch = deepcopy(defaults["bunch0"])
             bunch.update(target[self._active_bunch_key])
@@ -3917,6 +3949,84 @@ class ConfigPage(QWidget):
         target["Harmonic Number"] = len(bunches)
 
     @staticmethod
+    def _empty_injection_bunch(bunch: dict) -> None:
+        """Keep the reference and slot metadata while disabling all particle sources."""
+        bunch.update({
+            "Number of Macro Particles": 0,
+            "Number of Real Particles": 0,
+            "Is Load Distribution from File": False,
+            "Distribution File Path": "",
+            "Insert Particle Coordinate": [],
+            "Insert Particle File": None,
+            "Scan Grid": None,
+            "Is Save Initial Distribution": False,
+        })
+        for name in ("Offset x", "Offset y"):
+            if isinstance(bunch.get(name), dict):
+                bunch[name].update({"Is Offset": False, "Is Load From File": False, "File Path": ""})
+
+    def _resize_injection_slots(self, target: dict) -> None:
+        """Resize a draft by harmonic ID, keeping every occupied slot intact."""
+        count = target.get("Harmonic Number")
+        if type(count) is not int or count < 1:
+            raise ValueError("Harmonic Number 必须为正整数。")
+        keys = self._injection_keys(target)
+        if count == len(keys):
+            self._normalize_injection(target)
+            return
+        identifiers = [target[key].get("Harmonic ID of this bunch") for key in keys]
+        if any(type(identifier) is not int for identifier in identifiers) or set(identifiers) != set(range(len(keys))):
+            raise ValueError("调整槽数前，Harmonic ID 必须不重复并覆盖当前所有槽。")
+        removed = [key for key in keys if target[key]["Harmonic ID of this bunch"] >= count]
+        occupied = [key for key in removed if target[key].get("Number of Macro Particles", 0) or target[key].get("Number of Real Particles", 0)]
+        if occupied:
+            raise ValueError("缩小 Harmonic Number 会移除非空束团：" + "、".join(occupied) + "。请先将这些槽置空，或保留当前槽数。")
+        source = target.get(self._active_bunch_key) or (target[keys[0]] if keys else None)
+        for index in range(len(keys), count):
+            if source is None:
+                self._add_default_bunch(target)
+            else:
+                target[f"bunch{index}"] = deepcopy(source)
+            bunch = target[f"bunch{index}"]
+            self._empty_injection_bunch(bunch)
+            bunch["Harmonic ID of this bunch"] = index
+            # New slots use the prescribed clock for their own harmonic IDs.
+            bunch["Reference arrival time (s)"] = None
+        for key in removed:
+            target.pop(key)
+        self._normalize_injection(target)
+
+    def resize_injection_slots(self) -> None:
+        if not self._guard_json_draft() or not isinstance(self._selected_mapping, dict):
+            return
+        if self._commit_bunch_fields(self._selected_mapping):
+            self._mark_form_dirty()
+            self._rebuild_injection_form(self._active_bunch_key)
+
+    def empty_injection_slots(self, *, others: bool) -> None:
+        if not self._guard_json_draft() or not isinstance(self._selected_mapping, dict):
+            return
+        candidate = deepcopy(self._selected_mapping)
+        try:
+            self._capture_injection_draft(candidate, resize=False)
+        except ValueError as exc:
+            QMessageBox.warning(self, "粒子参数无效", str(exc))
+            return
+        for key in self._injection_keys(candidate):
+            if (key != self._active_bunch_key) == others:
+                self._empty_injection_bunch(candidate[key])
+        active = candidate.get(self._active_bunch_key)
+        try:
+            self._resize_injection_slots(candidate)
+        except ValueError as exc:
+            QMessageBox.warning(self, "槽数无效", str(exc))
+            return
+        self._selected_mapping.clear()
+        self._selected_mapping.update(candidate)
+        self._mark_form_dirty()
+        self._rebuild_injection_form(next((key for key in self._injection_keys(candidate) if candidate[key] is active), None))
+
+    @staticmethod
     def _add_default_bunch(target: dict) -> None:
         from PASS.para.schema.bunch import BunchConfig
 
@@ -3959,7 +4069,7 @@ class ConfigPage(QWidget):
             del blocker
             return
         try:
-            self._capture_injection_draft(self._selected_mapping)
+            key = self._capture_injection_draft(self._selected_mapping, selected_key=key)
         except ValueError as exc:
             QMessageBox.warning(self, "字段无效", str(exc))
             if self._bunch_selector:
@@ -3990,6 +4100,11 @@ class ConfigPage(QWidget):
             return
         if not self._commit_bunch_fields(target):
             return
+        key = self._active_bunch_key
+        if key is None:
+            self._mark_form_dirty()
+            self._rebuild_injection_form()
+            return
         self._normalize_injection(target)
         new_key = f"bunch{len(self._injection_keys(target))}"
         target[new_key] = deepcopy(target[key])
@@ -4006,6 +4121,11 @@ class ConfigPage(QWidget):
         if not isinstance(target, dict) or not key or len(self._injection_keys(target)) <= 1:
             return
         if not self._commit_bunch_fields(target):
+            return
+        key = self._active_bunch_key
+        if key is None or len(self._injection_keys(target)) <= 1:
+            self._mark_form_dirty()
+            self._rebuild_injection_form(key)
             return
         removed_id = target[key].get("Harmonic ID of this bunch")
         target.pop(key, None)
@@ -4245,7 +4365,7 @@ class ConfigPage(QWidget):
                 fields[(offset, key)].setEnabled(active)
         try:
             values = {
-                key: int(fields[(key, None)].text())
+                key: _parse_integer(fields[(key, None)].text())
                 for key in ("Total Injection Turns", "Injection Interval", "Number of Macro Particles", "Number of Real Particles")
             }
             turns, interval = values["Total Injection Turns"], values["Injection Interval"]
@@ -4269,20 +4389,24 @@ class ConfigPage(QWidget):
 
     def _commit_bunch_fields(self, target):
         try:
-            self._capture_injection_draft(target)
+            self._active_bunch_key = self._capture_injection_draft(target)
             return True
         except ValueError as exc:
             QMessageBox.warning(self, "粒子参数无效", str(exc))
             return False
 
-    def _capture_injection_draft(self, target: dict) -> None:
+    def _capture_injection_draft(self, target: dict, *, resize: bool = True, selected_key: str | None = None) -> str | None:
         """Capture visible fields atomically without validating other bunch drafts."""
         candidate = deepcopy(target)
         for key, field in self._form_fields.items():
             candidate[key] = self._read_field_value(key, field, candidate.get(key, self._field_defaults.get(key)))
         self._write_bunch_values(candidate)
+        active = candidate.get(self._active_bunch_key if selected_key is None else selected_key)
+        if resize:
+            self._resize_injection_slots(candidate)
         target.clear()
         target.update(candidate)
+        return next((key for key in self._injection_keys(target) if target[key] is active), None)
 
     def _electron_cloud_block(self) -> dict:
         """Read accepted schema spellings without normalizing away disabled resources."""
@@ -4598,6 +4722,9 @@ class ConfigPage(QWidget):
             field = PropertyComboBox()
             field.setObjectName("choiceField")
             options = list(ENUM_OPTIONS[key])
+            if key == "Model":
+                from PASS.gui.import_options import _element_parameter_options
+                options = list(_element_parameter_options(getattr(self, "_field_context", {}).get("Command"), key) or options)
             value_text = "" if value is None else str(value)
             if value_text not in options:
                 options.insert(0, value_text)
@@ -4634,7 +4761,7 @@ class ConfigPage(QWidget):
             kind = next((t.__name__ for t in types if t in (int, float, str)), None)
             field.setProperty("valueKind", kind)
         if (isinstance(value, int) and not isinstance(value, bool)) or field.property("valueKind") == "int":
-            field.setValidator(IntegerValidator(field))
+            field.setValidator(IntegerValidator(field, nullable=bool(field.property("nullable"))))
         elif isinstance(value, float):
             field.setValidator(QDoubleValidator(field))
         if value is None:
@@ -5018,9 +5145,10 @@ class ConfigPage(QWidget):
             return None
         kind = field.property("valueKind")
         if kind == "int":
-            if not re.fullmatch(r"[+-]?\d+", text):
-                raise ValueError(f"{key}：必须填写整数")
-            return int(text)
+            try:
+                return _parse_integer(text)
+            except ValueError as exc:
+                raise ValueError(f"{key}：{exc}") from exc
         if kind == "float":
             try:
                 result = float(text)
@@ -5046,7 +5174,7 @@ class ConfigPage(QWidget):
                     pass
             return text
         if isinstance(old_value, int) and not isinstance(old_value, bool):
-            return int(text)
+            return _parse_integer(text)
         if isinstance(old_value, float):
             return float(text)
         return text
@@ -5080,7 +5208,7 @@ class ConfigPage(QWidget):
                 timing[key] = self._read_field_value(key, field, timing.get(key))
         if target.get("Command") == "Injection":
             self._write_bunch_values(target)
-            self._normalize_injection(target)
+            self._resize_injection_slots(target)
         if "Device Id" in self._form_fields:
             devices = target["Device Id"]
             if target.get("Backend (gpu/cpu)") == "gpu" and not devices:
@@ -5230,6 +5358,8 @@ class ConfigPage(QWidget):
             return
         candidate = deepcopy(self._selected_mapping if self._selected_mapping.get("Command") == "Injection" else sequence[old_name])
         try:
+            active_id = (self._read_field_value("Harmonic ID of this bunch", self._bunch_fields[("Harmonic ID of this bunch", None)], None)
+                         if candidate.get("Command") == "Injection" and self._active_bunch_key else None)
             self._write_form_values(candidate)
         except ValueError as exc:
             QMessageBox.warning(self, "字段无效", str(exc))
@@ -5246,6 +5376,9 @@ class ConfigPage(QWidget):
             sequence.clear()
             sequence.update(renamed)
         self._selected_mapping = candidate
+        if candidate.get("Command") == "Injection":
+            self._active_bunch_key = next(
+                (key for key in self._injection_keys(candidate) if candidate[key].get("Harmonic ID of this bunch") == active_id), None)
         self._selected_path = ("Sequence", new_name)
         self._data_dirty = True
         self._sync_editor(defer=True)

@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import csv
 import io
 import math
 import re
+import sys
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QValidator
@@ -35,6 +36,40 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+
+def _parse_integer(value):
+    """Parse integral decimal text exactly, including scientific notation."""
+    if type(value) is int:
+        return value
+    if not isinstance(value, str) or not re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", value.strip()):
+        raise ValueError("需要整数（支持 1e5、2.5e3 等结果为整数的科学计数法）")
+    try:
+        number = Decimal(value.strip())
+        if number != number.to_integral_value():
+            raise ValueError("需要整数，不能使用小数结果")
+        # Bound exponent expansion before constructing an enormous Python int.
+        if number and number.adjusted() >= (sys.get_int_max_str_digits() or 4300):
+            raise ValueError("整数数值过大")
+        return int(number)
+    except InvalidOperation as exc:
+        raise ValueError("需要有限整数") from exc
+
+
+def _integer_input_state(text, *, nullable=False):
+    """Keep incomplete mantissas/exponents editable until a value is committed."""
+    value = text.strip()
+    if nullable and (not value or value.casefold() == "null"):
+        return QValidator.Acceptable
+    try:
+        _parse_integer(value)
+        return QValidator.Acceptable
+    except ValueError:
+        if nullable and "null".startswith(value.casefold()):
+            return QValidator.Intermediate
+        if re.fullmatch(r"[+-]?(?:\d*\.?\d*)?(?:[eE][+-]?\d*)?", value):
+            return QValidator.Intermediate
+        return QValidator.Invalid
 
 
 def format_scientific(value):
@@ -92,6 +127,15 @@ class IntegerSpinBox(QSpinBox):
         self.setValue(value)
         self.setKeyboardTracking(False)
 
+    def valueFromText(self, text):
+        return _parse_integer(text)
+
+    def validate(self, text, position):
+        state = _integer_input_state(text)
+        if state == QValidator.Acceptable and not self.minimum() <= _parse_integer(text) <= self.maximum():
+            state = QValidator.Intermediate
+        return state, text, position
+
     def wheelEvent(self, event):
         event.ignore()
 
@@ -116,13 +160,13 @@ class Column:
         if isinstance(value, bool):
             raise ValueError(f"{self.title} 必须是数值")
         if self.integer:
-            # Do not round fractional indices or silently accept 1.0 as a turn.
-            if not re.fullmatch(r"[+-]?\d+", str(value).strip()):
-                raise ValueError(f"{self.title} 必须是整数")
-            number = int(value)
+            try:
+                number = _parse_integer(value)
+            except ValueError as exc:
+                raise ValueError(f"{self.title}：{exc}") from exc
         else:
             number = float(value)
-        if not math.isfinite(number) or not self.minimum <= number <= self.maximum:
+        if not self.minimum <= number <= self.maximum or not math.isfinite(number):
             raise ValueError(f"{self.title} 超出有效数值范围")
         return number
 

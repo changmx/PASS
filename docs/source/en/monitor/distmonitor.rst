@@ -106,6 +106,10 @@ contains the run time, beam and bunch identifiers, monitor position, monitor
 name, and turn number. All born particles in the bunch are written, including
 lost particles. Reserved slots with ``tag=0`` are omitted.
 
+The filename label follows :doc:`table_output`: imported occurrence numbers
+and duplicate position labels are omitted; the current position appears once.
+``Monitor`` metadata retains the complete command name.
+
 The nine default data columns are:
 
 .. list-table::
