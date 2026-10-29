@@ -344,7 +344,7 @@ MainConfig（全局参数）
      - ``Is plot figure``
      - ``bool``
      - ``False``
-     - 是否在跟踪结束后生成图形。
+     - 跟踪正常结束后从已保存结果生成 :doc:`监视器图片 <monitor/plotting>`；默认保存在本次运行的 ``plot/`` 目录。
    * - ``timing``
      - ``Timing``
      - ``TimingConfig``

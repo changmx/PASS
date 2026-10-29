@@ -30,6 +30,7 @@
    :maxdepth: 1
 
    table_output
+   plotting
    statmonitor
    distmonitor
    particlemonitor

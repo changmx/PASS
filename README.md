@@ -199,6 +199,19 @@ Each normal run saves an input snapshot in its result directory's `input/` subdi
 
 Edit `myproject.passproj`, `beam0.json`, and text dependencies with a text editor. In the GUI, use **File → Reload project** after external edits and before saving or running; external-change checks protect against overwriting or running stale inputs. Move or share the directory with all referenced files, because the `.passproj` description alone is not a complete project. **Export runnable input bundle** can package the selected inputs and dependencies for sharing.
 
+### Automatic plotting
+
+Set `"Is plot figure": true` in the beam input to generate figures after successful tracking. Each StatMonitor history produces a nine-panel figure, each distribution snapshot a six-panel figure, and each ParticleMonitor file a twelve-panel figure using all recorded particles and valid samples. Figures are saved in the run's `plot/` directory.
+
+You can also plot an existing result directory without repeating the simulation:
+
+```bash
+python -m PASS.plot output/2026_1029/1036_59
+python -m PASS.plot output/2026_1029/1036_59 --format png pdf
+```
+
+The default is 300 dpi PNG. Repeated plotting preserves existing figures by choosing unused filenames. See [automatic plotting](https://changmx.github.io/PASS/en/monitor/plotting.html) for layouts, units, options, and the plotting manifest.
+
 ### Graphical interface
 
 Install the `gui` extra, then launch with either `pass-gui` or `python -m PASS.gui`. For the example above, select **File → Open project** and choose `/home/myprojpath/myproject.passproj`, or **File → Open project folder** and choose `/home/myprojpath`. To work with just the beam input, use **File → Open JSON** and choose `/home/myprojpath/beam0.json`.

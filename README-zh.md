@@ -199,6 +199,19 @@ pass-run myproject.passproj --output "results/test run"
 
 可以用文本编辑器直接修改 `myproject.passproj`、`beam0.json` 和文本依赖文件。在 GUI 中，外部修改后应先使用 **文件 → 重新加载项目**，再保存或运行；外部修改检查会避免覆盖修改或使用过期输入。移动或分享工程时，需要携带整个目录及其引用文件，单个 `.passproj` 描述文件并不包含完整工程。**导出可运行输入包** 可以将所选输入及依赖打包分享。
 
+### 自动绘图
+
+在束流输入中设置 `"Is plot figure": true`，即可在跟踪正常结束后自动绘图。每份 StatMonitor 历史数据生成九联图，每份分布快照生成六联图，每份 ParticleMonitor 文件生成十二联图，并使用全部已记录粒子及有效样本。图片保存在本次运行的 `plot/` 目录中。
+
+也可以直接对已有结果目录绘图，无须重新运行模拟：
+
+```bash
+python -m PASS.plot output/2026_1029/1036_59
+python -m PASS.plot output/2026_1029/1036_59 --format png pdf
+```
+
+默认输出 300 dpi PNG。再次绘图时使用未占用的文件名，保留已有图片。布局、单位、选项及绘图记录见[自动绘图](https://changmx.github.io/PASS/zh/monitor/plotting.html)。
+
 ### 图形界面
 
 安装 `gui` 组件后，使用 `pass-gui` 或 `python -m PASS.gui` 启动界面。对于上述示例，可以通过 **文件 → 打开项目** 选择 `/home/myprojpath/myproject.passproj`，或通过 **文件 → 打开项目文件夹** 选择 `/home/myprojpath`。如果只编辑单份束流输入，使用 **文件 → 打开 JSON** 选择 `/home/myprojpath/beam0.json`。

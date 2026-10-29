@@ -30,6 +30,7 @@ Select a monitor by the data needed for analysis. Monitor positions use the same
    :maxdepth: 1
 
    table_output
+   plotting
    statmonitor
    distmonitor
    particlemonitor

@@ -373,7 +373,7 @@ MainConfig (Global Parameters)
      - ``Is plot figure``
      - ``bool``
      - ``False``
-     - Whether to generate plots after tracking.
+     - Generate :doc:`monitor figures <monitor/plotting>` from saved results after successful tracking; default output is the run's ``plot/`` directory.
    * - ``timing``
      - ``Timing``
      - ``TimingConfig``

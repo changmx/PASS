@@ -176,10 +176,13 @@ class Executor:
             logger.info(center_string(" Start Plotting "))
             set_normal_logging()
 
-            plot_main(sim)
+            plot_result = plot_main(sim)
 
             set_simple_logging()
             logger.info("")
-            logger.info(center_string(" Plotting Completed "))
+            if plot_result and plot_result["summary"]["failed"]:
+                logger.warning(center_string(" Plotting Finished With Errors "))
+            else:
+                logger.info(center_string(" Plotting Completed "))
             set_normal_logging()
         return False if stopped else None
