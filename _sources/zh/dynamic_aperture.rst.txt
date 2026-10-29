@@ -221,9 +221,8 @@ Matplotlib 后端。单个初始 dp 可用 ``plot_dynamic_aperture(result, dp=0.
 
    python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png
 
-此文件从 GUI 使用的同一套读取、分析和绘图源码生成。维护者修改这些源码后，
-运行 ``python tools/export_dynamic_aperture.py`` 更新，再用
-``python tools/export_dynamic_aperture.py --check`` 检查一致性。
+此文件是 PASS 读取、分析和绘图代码的独立副本。修改包内实现后，需要将相关
+改动同步到此文件并验证；它不会自动重新生成。
 已复制到其他位置的文件是当时的版本，需要重新复制才能更新。
 
 数值收敛

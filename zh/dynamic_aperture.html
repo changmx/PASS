@@ -329,9 +329,8 @@ Matplotlib 后端。单个初始 dp 可用 <code class="docutils literal notrans
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png</span>
 </pre></div>
 </div>
-<p>此文件从 GUI 使用的同一套读取、分析和绘图源码生成。维护者修改这些源码后，
-运行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span></code> 更新，再用
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span> <span class="pre">--check</span></code> 检查一致性。
+<p>此文件是 PASS 读取、分析和绘图代码的独立副本。修改包内实现后，需要将相关
+改动同步到此文件并验证；它不会自动重新生成。
 已复制到其他位置的文件是当时的版本，需要重新复制才能更新。</p>
 </section>
 <section id="id5">

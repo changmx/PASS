@@ -376,10 +376,9 @@ not select a Matplotlib backend. For a single initial dp, call
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png</span>
 </pre></div>
 </div>
-<p>The distributed file is generated from the same reader, analysis and plotting
-sources used by the GUI. After changing these sources, maintainers regenerate
-it with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span></code> and verify it with
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/export_dynamic_aperture.py</span> <span class="pre">--check</span></code>. Copies already taken to
+<p>This file is an independent copy of the reader, analysis and plotting code used
+by PASS. Changes to the package implementation must also be applied and verified
+in this file; it is not regenerated automatically. Copies already taken to
 another location remain snapshots until replaced.</p>
 </section>
 <section id="numerical-convergence">
