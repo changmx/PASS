@@ -968,6 +968,8 @@ class IBS(Command):
         method = self.configuration.method
         save_diagnostics = self.parameters.save_diagnostics and self._turn_selected(int(sim.state.turn))
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             _validate_reference(bunch)
             indices, coordinates = _gather_bunch(p, bunch)
             n_alive = len(indices)

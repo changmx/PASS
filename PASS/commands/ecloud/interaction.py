@@ -19,11 +19,13 @@ def stage_frozen_cloud(beam, fields, interaction_length):
         raise ValueError("ElectronCloud interaction length must be finite and nonnegative")
     diagnostics = dict(n_alive=0, max_electric_field=0.0, max_kick=0.0, bunches=[])
     if interaction_length == 0 or fields.electron_density == 0:
-        diagnostics["n_alive"] = sum(int(xp.count_nonzero(p.tag[b.start_idx:b.end_idx] > 0)) for b in beam.bunches)
+        diagnostics["n_alive"] = sum(int(xp.count_nonzero(p.tag[b.start_idx:b.end_idx] > 0)) for b in beam.bunches if b.end_idx > b.start_idx)
         return diagnostics, []
     staged = []
     for bunch in beam.bunches:
         start, end = bunch.start_idx, bunch.end_idx
+        if end <= start:
+            continue
         indices = xp.flatnonzero(p.tag[start:end] > 0) + start
         n_alive = int(indices.size)
         if n_alive == 0:

@@ -277,6 +277,15 @@ When an ``auto`` range has zero span at coordinate :math:`z_0`, every saved
 slices empty. ``equal_particle`` retains rank assignment. A bunch with no live
 particles keeps its empty result.
 
+Slots with no allocated particle records cache only zero-charge slice geometry
+and refresh the observation time; they require no particle slicing and produce
+no slot snapshots. This geometry lets stateful effects such as ElectronCloud
+advance through zero-charge intervals. Bunches containing lost records or
+reserved records for later injection still update and save their slices normally.
+For an unallocated slot with an ``auto`` range, ElectronCloud uses the bunch
+reference time as a zero-charge observation point instead of treating the tiny
+fallback slice width as a physical pulse. Explicit empty intervals remain intact.
+
 If the number of live particles is smaller than ``N``, only that many slices
 can be populated.  The remaining slices are retained with zero count and a
 warning is emitted.  ``effective_num_slices`` records

@@ -380,7 +380,7 @@ class SpaceCharge(Command):
         check before source evaluation. PIC field-domain validation remains
         mandatory independently of this loss check.
         """
-        if not self.is_enabled:
+        if not self.is_enabled or bunch.end_idx <= bunch.start_idx:
             return False
         turn = int(sim.state.turn)
         if check_aperture:
@@ -640,7 +640,7 @@ class SpaceCharge(Command):
 
     def apply_bunch_gpu(self, sim, beam, bunch, *, check_aperture=True):
         """Check the node aperture before the device source and kick by default."""
-        if not self.is_enabled:
+        if not self.is_enabled or bunch.end_idx <= bunch.start_idx:
             return False
         if check_aperture:
             from PASS.utils.aperture import check_aperture_gpu

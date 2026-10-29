@@ -21,15 +21,16 @@ class WakeClock:
     def sample(self):
         p, xp = self.beam.particles, self.xp
         times = xp.empty(len(p.z), dtype=xp.float64)
+        bunches = [b for b in self.beam.bunches if b.end_idx > b.start_idx]
         if xp is not np:
-            if self.beam.bunches:
-                ranges = xp.asarray([(b.start_idx, b.end_idx) for b in self.beam.bunches], dtype=xp.int64)
-                parameters = xp.asarray([(b.t0, b.beta * const.c) for b in self.beam.bunches], dtype=xp.float64)
-                maximum = max(b.end_idx - b.start_idx for b in self.beam.bunches)
-                self._kernel('sample_times', p.dtype)((max(1, min(128, (maximum + 255) // 256)), len(self.beam.bunches)), (256, ),
+            if bunches:
+                ranges = xp.asarray([(b.start_idx, b.end_idx) for b in bunches], dtype=xp.int64)
+                parameters = xp.asarray([(b.t0, b.beta * const.c) for b in bunches], dtype=xp.float64)
+                maximum = max(b.end_idx - b.start_idx for b in bunches)
+                self._kernel('sample_times', p.dtype)((max(1, min(128, (maximum + 255) // 256)), len(bunches)), (256, ),
                                                       (p.z, ranges, parameters, times))
             return times
-        for b in self.beam.bunches:
+        for b in bunches:
             bunch_slice = slice(b.start_idx, b.end_idx)
             times[bunch_slice] = b.t0 - p.z[bunch_slice].astype(xp.float64) / (b.beta * const.c)
         return times

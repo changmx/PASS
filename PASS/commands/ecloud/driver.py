@@ -12,7 +12,7 @@ from .interaction import _stage_cloud_slice
 
 @dataclass(frozen=True)
 class BeamSliceInterval:
-    """A prescribed, piecewise-constant beam line charge in physical seconds."""
+    """A beam interval, or a zero-duration, zero-charge observation point."""
 
     time_start: float
     time_end: float
@@ -64,29 +64,39 @@ def build_slice_intervals(beam, slice_set_name, turn, s, xp, *, include_particle
         if not (math.isfinite(ratio) and ratio >= 0 and math.isfinite(charge) and charge != 0):
             raise ValueError("ElectronCloud beam particle weight and signed charge must be finite and physical")
         start, end = bunch.start_idx, bunch.end_idx
-        alive = p.tag[start:end] > 0
+        if end <= start and slices.z_range_mode == "auto":
+            # An unoccupied automatic range has no physical pulse width.
+            # Retain only its reference-time observation of the evolving cloud.
+            events.append(BeamSliceInterval(t0, t0, int(bunch.bunch_id), -1, 0., 0., beta, bunch_index))
+            continue
         ids = xp.asarray(slices.slice_id)
         n_slices = slices.num_slices
         if ids.shape != (end - start, ) or ids.dtype.kind not in "iu":
             raise ValueError("ElectronCloud saved slice memberships do not match the bunch particle range")
-        live_ids, live_z = ids[alive], p.z[start:end][alive]
-        if not bool(xp.all((live_ids >= 0) & (live_ids < n_slices))) or not bool(xp.all(xp.isfinite(live_z))):
-            raise ValueError("ElectronCloud live source particles require valid memberships and finite z")
+        alive = p.tag[start:end] > 0 if end > start else None
+        if slices.z_range_mode == "auto" and not bool(xp.any(alive)):
+            # Lost/pending records stay allocated, but their synthetic empty
+            # Slicer range does not define a physical beam pulse either.
+            events.append(BeamSliceInterval(t0, t0, int(bunch.bunch_id), -1, 0., 0., beta, bunch_index))
+            continue
         table = slices.slice_table
         lower, upper, widths = (_host(table[name]).astype(np.float64) for name in ("z_min", "z_max", "delta_z"))
         if any(values.shape != (n_slices, ) or not np.all(np.isfinite(values)) for values in (lower, upper, widths)):
             raise ValueError("ElectronCloud saved slice intervals must be finite one-dimensional arrays")
         if np.any(upper < lower) or not np.allclose(widths, upper - lower, rtol=8 * np.finfo(float).eps, atol=0):
             raise ValueError("ElectronCloud saved slice widths do not match the saved endpoints")
-        low, high = xp.asarray(lower)[live_ids], xp.asarray(upper)[live_ids]
-        scale = xp.maximum(xp.maximum(xp.abs(low), xp.abs(high)), xp.abs(live_z))
-        tolerance = 8 * np.finfo(p.z.dtype).eps * scale
-        if not bool(xp.all((live_z >= low - tolerance) & (live_z <= high + tolerance))):
-            raise ValueError("ElectronCloud live source particles lie outside their saved slices; execute a covering Slicer again")
-        if live_ids.size:
-            counts = _host(xp.bincount(live_ids.astype(xp.int64), minlength=n_slices))
-        else:
-            counts = np.zeros(n_slices, dtype=np.int64)
+        counts = np.zeros(n_slices, dtype=np.int64)
+        if end > start:
+            live_ids, live_z = ids[alive], p.z[start:end][alive]
+            if not bool(xp.all((live_ids >= 0) & (live_ids < n_slices))) or not bool(xp.all(xp.isfinite(live_z))):
+                raise ValueError("ElectronCloud live source particles require valid memberships and finite z")
+            low, high = xp.asarray(lower)[live_ids], xp.asarray(upper)[live_ids]
+            scale = xp.maximum(xp.maximum(xp.abs(low), xp.abs(high)), xp.abs(live_z))
+            tolerance = 8 * np.finfo(p.z.dtype).eps * scale
+            if not bool(xp.all((live_z >= low - tolerance) & (live_z <= high + tolerance))):
+                raise ValueError("ElectronCloud live source particles lie outside their saved slices; execute a covering Slicer again")
+            if live_ids.size:
+                counts = _host(xp.bincount(live_ids.astype(xp.int64), minlength=n_slices))
         for slice_index in range(n_slices):
             width = float(widths[slice_index])
             n_real = float(counts[slice_index]) * ratio
@@ -102,14 +112,15 @@ def build_slice_intervals(beam, slice_set_name, turn, s, xp, *, include_particle
             expected_duration = width / (beta * const.c)
             if abs((time_end - time_start) - expected_duration) > 1e-6 * expected_duration:
                 raise ValueError("ElectronCloud absolute time cannot resolve the saved slice duration to 1e-6 relative accuracy")
-            indices = xp.flatnonzero(alive & (ids == slice_index)) + start if include_particles else None
+            indices = (xp.flatnonzero(alive & (ids == slice_index)) + start if end > start else ids) if include_particles else None
             events.append(
                 BeamSliceInterval(time_start, time_end, int(bunch.bunch_id), slice_index, n_real, line_charge, beta, bunch_index, indices,
                                   ratio * charge * const.e / width))
     events.sort(key=lambda event: (event.time_start, event.time_end, event.bunch_id, event.slice_index))
     if not events:
         raise ValueError("ElectronCloud dynamic mode requires at least one finite slice observation interval")
-    for previous, current in zip(events, events[1:]):
+    intervals = [event for event in events if event.time_end > event.time_start]
+    for previous, current in zip(intervals, intervals[1:]):
         duration = min(current.time_end - current.time_start, previous.time_end - previous.time_start)
         if current.time_start < previous.time_end - _time_tolerance(current.time_start, previous.time_end, duration):
             raise ValueError("ElectronCloud dynamic mode does not support overlapping bunch or slice time intervals")
@@ -121,8 +132,9 @@ def evolve_buildup(cloud, events, turn, *, beam=None, interaction_length=0.0):
     if cloud.last_turn is not None and turn <= cloud.last_turn:
         raise ValueError("ElectronCloud dynamic mode already processed this turn or a later turn")
     if cloud.time is not None:
-        first = events[0].time_start
-        duration = events[0].time_end - first
+        first_interval = next((event for event in events if event.time_end > event.time_start), None)
+        first = first_interval.time_start if first_interval is not None else cloud.time
+        duration = first_interval.time_end - first if first_interval is not None else 0.
         if first < cloud.time - _time_tolerance(first, cloud.time, duration):
             raise ValueError("ElectronCloud dynamic mode cannot rewind physical time; check actual transport and bunch intervals")
     if cloud.configuration.mode == "coupled" and (beam is None or not math.isfinite(interaction_length) or interaction_length < 0):
@@ -139,9 +151,10 @@ def evolve_buildup(cloud, events, turn, *, beam=None, interaction_length=0.0):
             if event.particle_indices is None:
                 raise ValueError("coupled electron clouds require actual saved beam slice memberships")
             indices = event.particle_indices
-            p = beam.particles
-            witness = (p.x[indices], p.y[indices])
-            beam_field = candidate.pic.solve(*witness, event.charge_per_length)
+            if indices.size:
+                p = beam.particles
+                witness = (p.x[indices], p.y[indices])
+                beam_field = candidate.pic.solve(*witness, event.charge_per_length)
         diagnostics = candidate.advance_to(end_time,
                                            line_charge=event.line_charge if event is not None else 0.0,
                                            beam_beta=event.beam_beta if event is not None else 0.0,
@@ -177,6 +190,14 @@ def evolve_buildup(cloud, events, turn, *, beam=None, interaction_length=0.0):
         if candidate.time is None:
             candidate.advance_to(events[0].time_start)
         for event in events:
+            if event.time_start == event.time_end:
+                if event.n_real_particles != 0 or event.line_charge != 0:
+                    raise ValueError("A zero-duration electron-cloud observation cannot carry beam charge")
+                # A reference-time observation inside an already evolved pulse
+                # adds neither a second source nor a backwards clock step.
+                if event.time_start > candidate.time:
+                    advance(event.time_start)
+                continue
             if event.time_start > candidate.time:
                 advance(event.time_start)
             if event.time_end <= candidate.time:

@@ -76,9 +76,8 @@ def _common_sign(configuration, beam_id, bunch):
     return -1 if configuration.beams[1] == beam_id and not getattr(bunch, "collision_frame", None) else 1
 
 
-def _members(sim, beam, bunch, source):
-    """One compact initial schedule transfer; particle indices stay on device."""
-    p, xp = beam.particles, beam.particles.xp
+def _validate_slice_set(sim, beam, bunch, source):
+    """Check encounter metadata without scanning particle arrays."""
     start, end = int(bunch.start_idx), int(bunch.end_idx)
     slice_set = bunch.slice_sets[source.slice_set]
     if slice_set.slice_id is None or len(slice_set.slice_id) != end - start:
@@ -99,6 +98,14 @@ def _members(sim, beam, bunch, source):
         generation = getattr(slice_set, "observation_generation", 0)
         if getattr(slice_set, "_beam_beam_consumed_generation", None) == generation:
             raise ValueError("BeamBeam requires a new explicit Slicer execution for each encounter")
+    return slice_set
+
+
+def _members(sim, beam, bunch, source):
+    """One compact initial schedule transfer; particle indices stay on device."""
+    p, xp = beam.particles, beam.particles.xp
+    start, end = int(bunch.start_idx), int(bunch.end_idx)
+    slice_set = _validate_slice_set(sim, beam, bunch, source)
     sid = xp.asarray(slice_set.slice_id)
     alive = p.tag[start:end] > 0
     invalid = (sid < 0) | (sid >= slice_set.num_slices)
@@ -288,6 +295,27 @@ def collide_bunch_pair(sim, configuration, beam_a, bunch_a, beam_b, bunch_b, *, 
         raise ValueError("Both beams must use the same backend and particle precision")
     beams, bunches = (beam_a, beam_b), (bunch_a, bunch_b)
     sources = [configuration.sources[str(beam.beam_id)] for beam in beams]
+    if any(bunch.end_idx <= bunch.start_idx for bunch in bunches):
+        # Keep the fixed encounter and luminosity rows without constructing
+        # collision sources when either side has no allocated particle records.
+        slice_sets = [_validate_slice_set(sim, beam, bunch, source) for beam, bunch, source in zip(beams, bunches, sources)]
+        for slices in slice_sets:
+            if hasattr(slices, "observation_generation"):
+                slices._beam_beam_consumed_generation = slices.observation_generation
+        result = {
+            "slice_events": 0,
+            "mode": configuration.mode,
+            "methods": [source.method for source in sources],
+            "precision": beam_a.particles.x.dtype.name,
+            "potential_reference_length": configuration.potential_reference_length
+        }
+        if luminosity is not None:
+            xp = beam_a.particles.xp
+            result["luminosity_overlap_m2"] = xp.zeros((), dtype=xp.float64)
+            result["luminosity_populations"] = tuple(
+                int(xp.count_nonzero(beam.particles.tag[bunch.start_idx:bunch.end_idx] > 0)) * bunch.ratio if bunch.end_idx > bunch.start_idx else 0.0
+                for beam, bunch in zip(beams, bunches))
+        return result
     memberships = [_members(sim, beam, bunch, source) for beam, bunch, source in zip(beams, bunches, sources)]
     resources = resources or _resources(sim, configuration, beam_a.particles)
     resources.begin()

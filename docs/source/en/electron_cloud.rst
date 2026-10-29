@@ -371,12 +371,18 @@ ULPs and :math:`10^{-12}` times the shorter slice duration. If subtracting
 absolute endpoints changes a saved slice duration by more than :math:`10^{-6}`
 relative to :math:`\Delta z/(\beta_0c)`, execution is rejected. This prevents
 large absolute clocks from silently erasing short bunch pulses.
-The first interval start establishes the initial cloud time, including negative
-times; no unspecified earlier history is invented. Each command call ends at
-the last saved bin's trailing edge, not automatically at the end of the ring
-period. The following call advances the intervening gap. Declared empty
-bunches contribute their saved empty intervals; missing buckets are not
-created implicitly.
+The first interval or observation point establishes the initial cloud time,
+including negative times; no unspecified earlier history is invented. Each
+command call ends at the last saved bin's trailing edge or later observation
+point, not automatically at the end of the ring period. The following call
+advances the intervening gap. Slots without live source particles retain
+explicit empty intervals. With an ``auto`` range, they contribute only a
+zero-charge observation at ``bunch.t0``; the tiny fallback slice width is not a
+physical pulse. This also applies when allocated records are all lost or pending
+injection: those records and their statistics remain present, but they cannot
+define an automatic pulse width. Observation points already covered by a real
+interval do not cause another advance. Lost or reserved records retain normal
+slicing; this rule only changes their zero-charge electron-cloud time projection.
 
 Reference time advances through transport commands, not through the executor's
 turn counter. Multi-turn input therefore needs an actual closed transport path.

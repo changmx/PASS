@@ -288,6 +288,10 @@ CPU and GPU implementations reside in the same tracking module. The GPU path
 keeps centroid reduction, FIR history, delayed output and particle kicks on the
 device; diagnostic output is an optional, separately sampled transfer.
 
+Slots with no allocated particle records keep their feedback channels and history
+timing, but require no particle reduction or kick and produce no CSV rows. Slots
+with lost records or reserved records for later injection remain in diagnostics.
+
 Particle ranges must form a complete, non-overlapping partition. GPU particle
 arrays must be contiguous one-dimensional arrays with the declared precision,
 length and device. These requirements are checked without transferring particle

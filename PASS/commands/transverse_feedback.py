@@ -177,6 +177,7 @@ class TransverseFeedback(Command):
         if self.parameters.diagnostics_interval:
             self._diagnostic_buffer = self.xp.empty((128, self.n_bunches, 10), dtype=np.float64)
             self._diagnostic_turns = np.empty(128, dtype=np.int64)
+            self._diagnostic_occupied = np.empty((128, self.n_bunches), dtype=bool)
         self._prepared = True
 
     def _refresh_layout(self):
@@ -211,7 +212,7 @@ class TransverseFeedback(Command):
             if not 0 <= start <= end <= len(p.tag):
                 raise ValueError("Invalid feedback particle range")
             ranges.append((start, end))
-            for first in range(start, max(start + 1, end), 2048):
+            for first in range(start, end, 2048):
                 tiles.append((slot, first, min(first + 2048, end)))
             offsets.append(len(tiles))
         expected_start = 0
@@ -222,6 +223,9 @@ class TransverseFeedback(Command):
         if expected_start != len(p.tag):
             raise ValueError("Feedback bunch ranges must cover every particle")
         self._ranges = ranges
+        empty_slots = [slot for slot, (start, end) in enumerate(ranges) if end <= start]
+        if empty_slots:
+            self.latest[self.xp.asarray(empty_slots), 5:9] = 0.0
         self._tiles_host = np.asarray(tiles, dtype=np.int64)
         self.tiles = self.xp.asarray(self._tiles_host)
         self.offsets = self.xp.asarray(offsets, dtype=np.int64)
@@ -266,7 +270,7 @@ class TransverseFeedback(Command):
             self.history_turn[index, slot] = -1
             self.pending[target, slot] = 0.0
             self.pending_turn[target, slot] = -1
-            if not self._active_host[slot]:
+            if not self._active_host[slot] or end <= start:
                 continue
             alive = p.tag[start:end] > 0
             n_alive = int(np.count_nonzero(alive))
@@ -312,7 +316,9 @@ class TransverseFeedback(Command):
             return False
         p = self._beam.particles
         partial, finish, _kick = self._kernels
-        partial(((len(self._tiles_host) + 7) // 8, ), (256, ),
+        if len(self._tiles_host):
+            partial(
+                ((len(self._tiles_host) + 7) // 8, ), (256, ),
                 (p.x, p.y, p.tag, self.tiles, self.active, self.partials, self.counts, np.int32(self.plane_mask), np.int64(len(self._tiles_host))))
         finish(((self.n_bunches + 7) // 8, ), (256, ),
                (self.partials, self.counts, self.offsets, self.active, self.generation, self.seen_generation, self.coefficients, self.reference,
@@ -326,10 +332,12 @@ class TransverseFeedback(Command):
         if not self._begin_kick(turn):
             return False
         p = self._beam.particles
-        self._kernels[2](((len(self._tiles_host) + 7) // 8, ), (256, ),
-                         (p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, self.tiles, self.offsets, self.active, self.generation,
-                          self.seen_generation, self.pending, self.pending_turn, self.gain, self.max_kick, self.latest, np.int32(self.n_bunches),
-                          np.int32(self.delay_turns), np.int64(turn), np.float64(self.s), np.int32(self.plane_mask), np.int64(len(self._tiles_host))))
+        if len(self._tiles_host):
+            self._kernels[2](
+                ((len(self._tiles_host) + 7) // 8, ), (256, ),
+                (p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, self.tiles, self.offsets, self.active, self.generation, self.seen_generation,
+                 self.pending, self.pending_turn, self.gain, self.max_kick, self.latest, np.int32(self.n_bunches), np.int32(
+                     self.delay_turns), np.int64(turn), np.float64(self.s), np.int32(self.plane_mask), np.int64(len(self._tiles_host))))
         self._last_kick_turn = turn
         self._record_diagnostics(turn)
         return True
@@ -351,6 +359,8 @@ class TransverseFeedback(Command):
         target = turn % (self.delay_turns + 1)
         for slot, (start, end) in enumerate(self._ranges):
             self.latest[slot, 5:9] = 0.0
+            if end <= start:
+                continue
             if not self._active_host[slot] or self.generation[slot] != self.seen_generation[slot] or self.pending_turn[target, slot] != turn:
                 continue
             with np.errstate(over="ignore", invalid="ignore"):
@@ -389,8 +399,12 @@ class TransverseFeedback(Command):
         interval = self.parameters.diagnostics_interval
         if not interval or turn % interval:
             return
+        occupied = [end > start for start, end in self._ranges]
+        if not any(occupied):
+            return
         self._diagnostic_buffer[self._diagnostic_size] = self.latest
         self._diagnostic_turns[self._diagnostic_size] = turn
+        self._diagnostic_occupied[self._diagnostic_size] = occupied
         self._diagnostic_size += 1
         if self._diagnostic_size == len(self._diagnostic_turns):
             self._flush_diagnostics()
@@ -414,6 +428,8 @@ class TransverseFeedback(Command):
             writer = csv.writer(stream)
             for index, record in enumerate(records):
                 for slot, row in enumerate(record):
+                    if not self._diagnostic_occupied[index, slot]:
+                        continue
                     kick_turn = int(self._diagnostic_turns[index])
                     sample_turn = int(row[9])
                     filter_target_turn = sample_turn + self.delay_turns if sample_turn >= 0 else -1

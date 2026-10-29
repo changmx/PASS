@@ -302,6 +302,34 @@ def _slice_coordinates(p, bunch, slice_set, turn=None, location=None):
     return p.z[start:end]
 
 
+def _prepare_empty_slice(slice_set: SliceSet, xp) -> None:
+    """Cache zero-charge geometry for consumers that advance physical clocks."""
+    if slice_set.periodic:
+        slice_set.periodic_max_step = 0.0
+    if slice_set.slice_id is not None and slice_set.slice_id.size == 0 and slice_set.slice_table is not None:
+        return
+    n_slices = slice_set.num_slices
+    z_min, z_max = _z_interval(slice_set, np.empty(0), np.empty(0, dtype=bool))
+    edges = np.linspace(z_min, z_max, n_slices + 1)
+    lower, upper = edges[-2::-1], edges[:0:-1]
+    widths = upper - lower
+    if slice_set.model == "equal_length" and np.any(widths <= 0):
+        raise ValueError("Equal-length Slicer edges are not strictly increasing in float64; adjust the explicit interval or number of slices")
+    slice_set.slice_id = xp.empty(0, dtype=xp.int32)
+    slice_set.slice_table = {
+        "z_min": xp.asarray(lower),
+        "z_max": xp.asarray(upper),
+        "z_center": xp.asarray(0.5 * (lower + upper)),
+        "z_particle_min": xp.full(n_slices, xp.nan),
+        "z_particle_max": xp.full(n_slices, xp.nan),
+        "delta_z": xp.asarray(widths),
+        "macro_count": xp.zeros(n_slices, dtype=xp.int64),
+        "effective_num_slices": 0,
+        "real_charge": xp.zeros(n_slices),
+        "lind_density": xp.zeros(n_slices),
+    }
+
+
 def _slice_one_bunch_cpu(p, bunch, slice_set: SliceSet, turn=None, location=None) -> None:
     """Compute IDs and statistics for one contiguous bunch range on CPU."""
     start, end = int(bunch.start_idx), int(bunch.end_idx)
@@ -470,6 +498,10 @@ class Slicer(Command):
             except KeyError as exc:
                 raise KeyError(f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}") from exc
             self._observation(beam, bunch, slice_set, turn)
+            if bunch.end_idx <= bunch.start_idx:
+                _prepare_empty_slice(slice_set, np)
+                slice_set.valid_turn, slice_set.valid_s = turn, self.s
+                continue
             _slice_one_bunch_cpu(beam.particles, bunch, slice_set, turn, self.s)
             slice_set.valid_turn = turn
             slice_set.valid_s = self.s
@@ -493,7 +525,7 @@ class Slicer(Command):
         # Slice boundaries are physical geometry, independent of particle
         # storage precision. Quantizing them to float32 destroys a uniform
         # grid and makes wake FFT/partitioned solvers reject valid slices.
-        kernels = _get_slicer_kernels(np.dtype(np.float64).str)
+        kernels = None
         pending = []
         for bunch in beam.bunches:
             try:
@@ -501,6 +533,12 @@ class Slicer(Command):
             except KeyError as exc:
                 raise KeyError(f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}") from exc
             self._observation(beam, bunch, slice_set, turn)
+            if bunch.end_idx <= bunch.start_idx:
+                _prepare_empty_slice(slice_set, cp)
+                slice_set.valid_turn, slice_set.valid_s = turn, self.s
+                continue
+            if kernels is None:
+                kernels = _get_slicer_kernels(np.dtype(np.float64).str)
             local_z = _slice_coordinates(beam.particles, bunch, slice_set, turn, self.s).astype(cp.float64, copy=False)
             defer = (len(beam.bunches) > 1 and slice_set.model == "equal_length" and slice_set.z_range_mode == "explicit")
             if defer:
