@@ -500,7 +500,7 @@ extern "C" __global__ void track_quadrupole_matrix(
     pass_real_t one = (pass_real_t)1;
 
     if (!pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, kn, ks, inv_fact, order, fringe, frngmax, kill, f1, f2, true)) {
-        tag[index] = -1;
+        tag[index] = -abs(tag[index]);
         lost_position[index] = s_position - ds * num_slice;
         lost_turn[index] = turn;
         return;
@@ -591,7 +591,7 @@ extern "C" __global__ void track_quadrupole_matrix(
         yi = yb;
         pyi = pyb;
         zi = zb;
-        tag[index] = -1;
+        tag[index] = -abs(tag[index]);
         lost_position[index] = s_position;
         lost_turn[index] = turn;
     }

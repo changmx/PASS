@@ -37,6 +37,10 @@
    phaseadvancemonitor
    slow_extraction_monitor
 
+粒子注入后，其身份编号 ``abs(tag)`` 在损失和重分组过程中保持不变。
+损失标记为 ``tag=-particle_id``，磁铁边缘场造成的损失也遵循这一规则，
+使轨迹记录和注入快照始终关联原粒子。
+
 .. _zh-reference-state:
 
 输出中的参考信息

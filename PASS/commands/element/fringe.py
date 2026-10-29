@@ -88,7 +88,7 @@ class _MagnetFringe:
         for name, value in zip(("x", "px", "y", "py", "z"), (x, px, y, py, z), strict=True):
             getattr(p, name)[indices[alive]] = value[alive]
         lost = indices[~alive]
-        p.tag[lost] = -1
+        p.tag[lost] = -np.abs(p.tag[lost])
         p.lost_position[lost] = element.s - element.length if entrance else element.s
         p.lost_turn[lost] = turn
 
@@ -291,7 +291,7 @@ extern "C" __global__ void track_fringe(
         return;
     pass_real_t xi = x[i], pxi = px[i], yi = y[i], pyi = py[i], zi = z[i];
     if (!pass_fringe(xi, pxi, yi, pyi, zi, dp[i], inv_gamma, kn, ks, inv_fact, order, fringe, frngmax, kill, f1, f2, entrance)) {
-        tag[i] = -1;
+        tag[i] = -abs(tag[i]);
         lost_position[i] = position;
         lost_turn[i] = turn;
         return;

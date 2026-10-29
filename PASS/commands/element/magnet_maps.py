@@ -176,7 +176,7 @@ extern "C" __global__ void track_multipole_dkd(
 
     alive = pass_fringe(xi, pxi, yi, pyi, zi, dpi, inv_gamma, knl, ksl, inv_fact, order, fringe, frngmax, kill, f1, f2, true);
     if (!alive) {
-        tag[index] = -1;
+        tag[index] = -abs(tag[index]);
         lost_position[index] = s_position - L;
         lost_turn[index] = turn;
         return;
@@ -213,7 +213,7 @@ extern "C" __global__ void track_multipole_dkd(
             yi = yb;
             pyi = pyb;
             zi = zb;
-            ti = -1;
+            ti = -abs(ti);
             lost_position[index] = s_position;
             lost_turn[index] = turn;
         }

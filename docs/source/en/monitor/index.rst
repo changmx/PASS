@@ -37,6 +37,11 @@ Select a monitor by the data needed for analysis. Monitor positions use the same
    phaseadvancemonitor
    slow_extraction_monitor
 
+Once injected, a particle retains its identity ``abs(tag)`` through loss and
+regrouping. Loss uses ``tag=-particle_id``, including at magnet fringes, so
+trajectory records and injection snapshots remain associated with the original
+particle.
+
 .. _en-reference-state:
 
 Output reference information
