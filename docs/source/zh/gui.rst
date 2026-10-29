@@ -6,6 +6,9 @@
 执行 ``python -m pip install --editable ".[gui]"`` 安装。
 通过 ``python -m PASS.gui`` 或 ``pass-gui`` 启动。
 
+启动时优先准备输入 schema，配置页无需加载跟踪命令即可进入可编辑状态。
+计算、绘图和格式转换依赖随后继续在后台加载；这些资源的准备状态不影响编辑配置。
+
 1. 打开 PASS 输入 JSON、``.passproj`` 工程文件或工程文件夹，
    或创建新的输入配置。文件夹入口优先使用 ``project.passproj``；没有该文件时，
    要求文件夹中恰有一个 ``.passproj`` 文件，不会搜索子目录。

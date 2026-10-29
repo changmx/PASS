@@ -63,7 +63,7 @@ class ModulePreloader(QThread):
                      "PASS.gui.tool_magnets", "PASS.gui.tool_exciter", "PASS.gui.tool_conversion", "PASS.gui.parameter_preview", "PASS.para.madx"):
             if self.isInterruptionRequested():
                 break
-            self.progress.emit("正在准备工具资源…")
+            self.progress.emit("正在准备输入配置…" if name == "PASS.validation.files" else "正在准备工具资源…")
             try:
                 importlib.import_module(name)
                 if name == "PASS.validation.files" and not self.isInterruptionRequested():

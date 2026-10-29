@@ -73,7 +73,7 @@ from PASS.para.schema.wake_field import (
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
 from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
-from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
+from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem, ElectronBeamConfig, ElectronCoolerItem
 
 # Low-level: schema objects → JSON

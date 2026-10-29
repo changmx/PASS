@@ -73,7 +73,7 @@ from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem, ElementSpaceCharge
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
 from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
-from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
+from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 
 __all__ = [
     'MainConfig', 'TimingConfig', 'BunchConfig', 'OffsetConfig', 'ScanGridConfig', 'InjectionItem', 'TwissItem', 'SlicerItem', 'TransversePickupItem',

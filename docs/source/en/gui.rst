@@ -6,6 +6,11 @@ To install from a GitHub clone or extracted source archive, run
 ``python -m pip install --editable ".[gui]"`` from the directory containing ``pyproject.toml``.
 Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
+Startup prepares the input schemas first, so the configuration page can become
+editable without loading the tracking commands. Calculation, plotting and file
+conversion dependencies continue loading in the background; their preparation
+status does not prevent editing the configuration.
+
 1. Open a PASS input JSON, a ``.passproj`` project, or a project folder, or configure
    a new input. Folder selection prefers ``project.passproj``, otherwise it requires
    exactly one ``.passproj`` file directly in that folder.

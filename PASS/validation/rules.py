@@ -25,7 +25,7 @@ from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, Sp
 from PASS.para.schema.electron_cloud import ElectronCloudConfig, ElectronCloudItem, load_electron_cloud
 from PASS.para.schema.ibs import IBSConfig, IBSItem, IBSOpticsConfig, load_intrabeam_scattering
 from PASS.para.schema.twiss import TwissItem
-from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
+from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamItem, load_beam_beam
 from .report import ValidationReport, _json_key_identity, parse_json
 
 

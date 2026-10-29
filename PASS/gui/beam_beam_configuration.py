@@ -5,7 +5,7 @@ from copy import deepcopy
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCheckBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTabWidget, QVBoxLayout
 
-from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamLuminosityConfig, BeamBeamSourceConfig, FrozenParameters
+from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamConfiguration, BeamBeamLuminosityConfig, BeamBeamSourceConfig, FrozenParameters
 from PASS.gui.parameters import Choice, SchemaEditor, make_editor, model_draft
 from PASS.gui.structured import Column, NumericTable, StructuredField
 

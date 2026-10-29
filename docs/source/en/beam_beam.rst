@@ -1054,8 +1054,10 @@ Implementation and validation scope
 
 The command and rendezvous state live in ``PASS/commands/beam_beam.py``.
 The three independent elements live in ``PASS/commands/element/``.
-Within ``PASS/commands/collision/``, ``config.py`` defines the schema and
-``interaction.py`` owns source preparation, slice-pair order and the six-dimensional
+Input models and joint validation live in ``PASS/para/schema/beam_beam.py``;
+``PASS/commands/collision/config.py`` preserves the former import path.
+Within ``PASS/commands/collision/``, ``interaction.py`` owns source preparation,
+slice-pair order and the six-dimensional
 kick. ``hourglass.py`` propagates prepared source centers and covariances, their
 distance derivatives, and the PIC source sampling lattice. Source propagation
 uses :math:`-S`; its potential derivative holds collision-plane transverse

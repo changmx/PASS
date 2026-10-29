@@ -1271,7 +1271,7 @@ class ConfigPage(QWidget):
             configuration = next(iter(configurations), "default") if isinstance(configurations, dict) else "default"
             return SpaceChargeItem(s=position, configuration=configuration).model_dump(by_alias=True)
         if command == "BeamBeam":
-            from PASS.commands.collision.config import BeamBeamItem
+            from PASS.para.schema.beam_beam import BeamBeamItem
             name = next(iter(self.data.get("Beam beam", {}).get("Configurations", {})), "IP1")
             return BeamBeamItem(s=position, configuration=name).model_dump(by_alias=True)
         if command in monitor_models:
@@ -5539,7 +5539,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         QApplication.instance().styleHints().colorSchemeChanged.connect(self._system_theme_changed)
         if not defer_configuration:
             self._initialize_configuration()
-        QTimer.singleShot(150, self.tools.start_preload)
+        QTimer.singleShot(0, self.tools.start_preload)
 
     def _initialize_configuration(self):
         """Build Qt controls on the GUI thread after shared schemas are imported."""

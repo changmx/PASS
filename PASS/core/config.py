@@ -122,7 +122,7 @@ class Config:
                 data1["electron cloud"] = self._electron_cloud_engine_data(electron_cloud1)
                 data1["intrabeam scattering"] = self._intrabeam_scattering_engine_data(intrabeam_scattering1)
 
-        from PASS.commands.collision.config import load_beam_beam
+        from PASS.para.schema.beam_beam import load_beam_beam
         self.beam_beam_enabled, self.beam_beam_configurations = load_beam_beam([raw0] if beam1_path is None else [raw0, raw1])
         from PASS.validation.relations import find_slice_usage_conflicts
         for beam_id, data in enumerate([raw0] if beam1_path is None else [raw0, raw1]):
