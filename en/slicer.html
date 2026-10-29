@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -428,6 +428,14 @@ does not make such particles physically contained.</p>
 <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> assigns all live particles to slice <code class="docutils literal notranslate"><span class="pre">0</span></code> and leaves the other
 slices empty. <code class="docutils literal notranslate"><span class="pre">equal_particle</span></code> retains rank assignment. A bunch with no live
 particles keeps its empty result.</p>
+<p>Slots with no allocated particle records cache only zero-charge slice geometry
+and refresh the observation time; they require no particle slicing and produce
+no slot snapshots. This geometry lets stateful effects such as ElectronCloud
+advance through zero-charge intervals. Bunches containing lost records or
+reserved records for later injection still update and save their slices normally.
+For an unallocated slot with an <code class="docutils literal notranslate"><span class="pre">auto</span></code> range, ElectronCloud uses the bunch
+reference time as a zero-charge observation point instead of treating the tiny
+fallback slice width as a physical pulse. Explicit empty intervals remain intact.</p>
 <p>If the number of live particles is smaller than <code class="docutils literal notranslate"><span class="pre">N</span></code>, only that many slices
 can be populated.  The remaining slices are retained with zero count and a
 warning is emitted.  <code class="docutils literal notranslate"><span class="pre">effective_num_slices</span></code> records

@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -1317,8 +1317,10 @@ commands do not restore the complete simulation.</p>
 <h2>Implementation and validation scope<a class="headerlink" href="#implementation-and-validation-scope" title="Link to this heading"></a></h2>
 <p>The command and rendezvous state live in <code class="docutils literal notranslate"><span class="pre">PASS/commands/beam_beam.py</span></code>.
 The three independent elements live in <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/</span></code>.
-Within <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code>, <code class="docutils literal notranslate"><span class="pre">config.py</span></code> defines the schema and
-<code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> owns source preparation, slice-pair order and the six-dimensional
+Input models and joint validation live in <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/beam_beam.py</span></code>;
+<code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/config.py</span></code> preserves the former import path.
+Within <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code>, <code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> owns source preparation,
+slice-pair order and the six-dimensional
 kick. <code class="docutils literal notranslate"><span class="pre">hourglass.py</span></code> propagates prepared source centers and covariances, their
 distance derivatives, and the PIC source sampling lattice. Source propagation
 uses <span class="math notranslate nohighlight">\(-S\)</span>; its potential derivative holds collision-plane transverse

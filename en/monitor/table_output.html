@@ -20,7 +20,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="StatMonitor" href="statmonitor.html" />
+    <link rel="next" title="Automatic plotting" href="plotting.html" />
     <link rel="prev" title="Monitors and output" href="index.html" /> 
 </head>
 
@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -97,11 +97,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#reading-tables">Reading tables</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -210,10 +212,15 @@ set <code class="docutils literal notranslate"><span class="pre">output_format</
 <p>HDF5 tables use <code class="docutils literal notranslate"><span class="pre">.h5</span></code>; TFS tables use <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> with the same filename stem.
 For <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a>, the CSV, HDF5 and TFS stem is
 <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}</span></code>.
-The command-name component isolates histories by Sequence’s canonical runtime
-name, percent-escaped once for filenames; <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains that name
-without escaping. Readers using the previous exact stem must account for
-<code class="docutils literal notranslate"><span class="pre">_cmd_</span></code>; existing output files retain their names.
+StatMonitor, DistMonitor, PhaseAdvanceMonitor, ParticleMonitor and
+SlowExtractionMonitor omit numeric
+MAD-X occurrence suffixes and trailing position labels from the command-name
+component. The filename supplies the current position once. Other special
+characters remain percent-escaped. A numeric suffix is added only for actual
+collisions within the same beam, monitor type and formatted position, including
+case-only differences. <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains the complete runtime name.
+Readers using exact stems must account for the simplified names; existing
+output files retain their names.
 SpaceCharge field output uses a multidimensional HDF5 layout
 and does not offer TFS export.</p>
 </section>
@@ -353,7 +360,7 @@ columns and original headers as a <code class="docutils literal notranslate"><sp
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Monitors and output" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="statmonitor.html" class="btn btn-neutral float-right" title="StatMonitor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="plotting.html" class="btn btn-neutral float-right" title="Automatic plotting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

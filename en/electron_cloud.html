@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -532,12 +532,18 @@ ULPs and <span class="math notranslate nohighlight">\(10^{-12}\)</span> times th
 absolute endpoints changes a saved slice duration by more than <span class="math notranslate nohighlight">\(10^{-6}\)</span>
 relative to <span class="math notranslate nohighlight">\(\Delta z/(\beta_0c)\)</span>, execution is rejected. This prevents
 large absolute clocks from silently erasing short bunch pulses.
-The first interval start establishes the initial cloud time, including negative
-times; no unspecified earlier history is invented. Each command call ends at
-the last saved bin’s trailing edge, not automatically at the end of the ring
-period. The following call advances the intervening gap. Declared empty
-bunches contribute their saved empty intervals; missing buckets are not
-created implicitly.</p>
+The first interval or observation point establishes the initial cloud time,
+including negative times; no unspecified earlier history is invented. Each
+command call ends at the last saved bin’s trailing edge or later observation
+point, not automatically at the end of the ring period. The following call
+advances the intervening gap. Slots without live source particles retain
+explicit empty intervals. With an <code class="docutils literal notranslate"><span class="pre">auto</span></code> range, they contribute only a
+zero-charge observation at <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>; the tiny fallback slice width is not a
+physical pulse. This also applies when allocated records are all lost or pending
+injection: those records and their statistics remain present, but they cannot
+define an automatic pulse width. Observation points already covered by a real
+interval do not cause another advance. Lost or reserved records retain normal
+slicing; this rule only changes their zero-charge electron-cloud time projection.</p>
 <p>Reference time advances through transport commands, not through the executor’s
 turn counter. Multi-turn input therefore needs an actual closed transport path.
 Use <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and saved intervals for timing, never nominal <code class="docutils literal notranslate"><span class="pre">z_center</span></code> or

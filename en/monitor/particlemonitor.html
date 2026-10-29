@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -92,6 +92,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ParticleMonitor</a><ul>
@@ -109,6 +110,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -258,6 +260,9 @@ TFS uses the same stem and <code class="docutils literal notranslate"><span clas
 <code class="docutils literal notranslate"><span class="pre">Layout=&quot;single_file&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>, monitor position, beam ID,
 particle tag bound and requested recording interval.</p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">monitor_name</span></code> uses the simplified filename label described in <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>;
+imported occurrence numbers and duplicate position labels are omitted. The
+<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains the complete command name.</p>
 <p>The PM readers require this current version-2 format. Output configuration
 contains only the format and buffering settings; it has no layout field.</p>
 <p>The write interval changes buffering only: <strong>every turn is still sampled</strong>.
@@ -416,7 +421,7 @@ commands in the sequence finished. Finalization flushes existing samples and
 never adds a sample at a different lattice position. A cooperative early stop
 therefore preserves only the already sampled turns. GUI normal stopping waits
 for a complete turn before finalizing; forced process termination may lose the
-pending block. See <a class="reference internal" href="../project_files.html"><span class="doc">Single-file projects</span></a> for stop controls.</p>
+pending block. See <a class="reference internal" href="../project_files.html"><span class="doc">Editable projects</span></a> for stop controls.</p>
 <p><code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> stores the actual sample count. Final TFS headers contain all
 final counts, including <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code>, <code class="docutils literal notranslate"><span class="pre">ValidRows</span></code>, <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> and
 <code class="docutils literal notranslate"><span class="pre">Completed</span></code>. Normal early stopping produces a complete TFS table for the

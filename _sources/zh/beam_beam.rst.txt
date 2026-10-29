@@ -933,7 +933,9 @@ FloatWaister 参数与强度约定
 
 主命令与会合状态位于 ``PASS/commands/beam_beam.py``。
 三个独立元件位于 ``PASS/commands/element/``。
-在 ``PASS/commands/collision/`` 中，``config.py`` 定义配置，``interaction.py`` 负责源准备、
+输入模型与联合校验位于 ``PASS/para/schema/beam_beam.py``；
+``PASS/commands/collision/config.py`` 保留原导入路径的兼容接口。
+在 ``PASS/commands/collision/`` 中，``interaction.py`` 负责源准备、
 切片对顺序和六维 kick。``hourglass.py`` 负责已准备源的中心、协方差及其距离导数的传播，
 并管理 PIC 源的传播采样网格。源沿 :math:`-S` 传播，势的距离导数保持碰撞平面的横向坐标不变；
 亮度诊断复用同一组传播矩。``luminosity.py`` 负责密度重叠和 TFS/HDF5 追加记录，

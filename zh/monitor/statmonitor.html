@@ -22,7 +22,7 @@
     <link rel="index" title="索引" href="../../genindex.html" />
     <link rel="search" title="搜索" href="../../search.html" />
     <link rel="next" title="分布监视器（DistMonitor）" href="distmonitor.html" />
-    <link rel="prev" title="表格输出格式" href="table_output.html" /> 
+    <link rel="prev" title="自动绘图" href="plotting.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -92,6 +92,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">监视器与输出</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">自动绘图</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">配置示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">接口参数</a></li>
@@ -105,6 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#id2">空槽与粒子记录</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
@@ -212,12 +214,14 @@
 <li><p><strong>TFS</strong> （选择后代替 HDF5，结束时生成） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>输出目录为 <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code> 。</p>
-<p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> 来自 Sequence 提供的规范化运行时命令名称，经过一次
-百分号转义以用于文件名。特殊字符会被编码，例如 <code class="docutils literal notranslate"><span class="pre">/</span></code> 为 <code class="docutils literal notranslate"><span class="pre">%2F</span></code>，名称中的
-字面百分号 <code class="docutils literal notranslate"><span class="pre">%</span></code> 为 <code class="docutils literal notranslate"><span class="pre">%25</span></code>。HDF5/TFS 的 <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留未转义的运行时
-名称。因此，名称不同的命令即使位于同一位置，或位置保留四位小数后相同，也各自
-保存独立历史。已有输出文件保留原文件名；依赖旧版完整文件名主体的读取程序需要
-适配新增的 <code class="docutils literal notranslate"><span class="pre">_cmd_</span></code> 部分。</p>
+<p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> 省略导入名称中的数字 MAD-X 实例后缀及末尾的位置标签。
+例如当前位置为 422.0936762 m 时，<code class="docutils literal notranslate"><span class="pre">bpm:1_s422.094</span></code> 和 <code class="docutils literal notranslate"><span class="pre">bpm_s422.094</span></code>
+都会生成 <code class="docutils literal notranslate"><span class="pre">_cmd_bpm_s_422.0937</span></code>。文件名只出现一次位置，采用当前 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>，
+即使导入后修改了命令位置也如此。其他特殊字符仍使用百分号转义，例如 <code class="docutils literal notranslate"><span class="pre">/</span></code> 为 <code class="docutils literal notranslate"><span class="pre">%2F</span></code>。</p>
+<p>只有同一束流、同一监视器类型、同一格式化位置下真的出现文件名冲突时，才追加
+<code class="docutils literal notranslate"><span class="pre">_2</span></code>、<code class="docutils literal notranslate"><span class="pre">_3</span></code> 等编号。仅大小写不同也按冲突处理，以适配 Windows。
+HDF5/TFS 的 <code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留完整、未转义的运行时名称，<code class="docutils literal notranslate"><span class="pre">S</span></code> 保留完整位置值。
+已有输出文件保留原文件名；依赖完整文件名主体的读取程序需要适配新输出的简化名称。</p>
 <p>元数据示例（HDF5 属性，文本模式下为 TFS 文件头）：</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
 <span class="o">@</span> <span class="n">Monitor</span>          <span class="n">stat1</span>
@@ -485,7 +489,7 @@ beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
-        <a href="table_output.html" class="btn btn-neutral float-left" title="表格输出格式" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="plotting.html" class="btn btn-neutral float-left" title="自动绘图" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
         <a href="distmonitor.html" class="btn btn-neutral float-right" title="分布监视器（DistMonitor）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

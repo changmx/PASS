@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -385,6 +385,11 @@ Slicer 会报错，不会自动修改区间或切片数。此要求同时适用�
 <code class="docutils literal notranslate"><span class="pre">z_max</span></code> 都等于 <span class="math notranslate nohighlight">\(z_0\)</span>，全部 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> 为零。<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 将全部
 存活粒子放入切片 <code class="docutils literal notranslate"><span class="pre">0</span></code>，其余切片为空；<code class="docutils literal notranslate"><span class="pre">equal_particle</span></code> 保留按秩分配。
 没有存活粒子的束团仍保留空结果。</p>
+<p>未分配任何粒子记录的槽只缓存零电荷切片几何并刷新观测时刻，不执行粒子切片，
+也不保存该槽的快照。保留的几何供电子云等有历史状态的效应推进零电荷时间区间。
+含已丢失粒子记录或为后续注入预留记录的束团仍按通常流程更新和保存切片。
+对于未分配记录且使用 <code class="docutils literal notranslate"><span class="pre">auto</span></code> 区间的槽，ElectronCloud 仅以束团参考时刻作为零电荷观测点，
+不会把空切片的极小回退宽度当作物理脉冲；显式指定的空区间仍然保留。</p>
 <p>如果存活粒子数小于 <code class="docutils literal notranslate"><span class="pre">N</span></code>，最多只有这些粒子数目的切片能够非空。其余切片仍然保留，粒子数为 0，并记录警告。<code class="docutils literal notranslate"><span class="pre">effective_num_slices</span></code> 保存 <span class="math notranslate nohighlight">\(\min(N_{live},N)\)</span>；不会修改用户设置的网格大小。</p>
 </section>
 <section id="sliceset">

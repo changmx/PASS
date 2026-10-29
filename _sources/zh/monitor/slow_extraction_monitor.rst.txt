@@ -140,8 +140,12 @@
 ------
 
 表格写在运行输出目录下的 ``slow_extraction/``；flat-output 模式省略
-``slow_extraction`` 子目录。文件名由 source 和 monitor 名称、摘要、运行标识及束流编号组成，
-``_turn.h5``、``_time.h5`` 后缀分别标识两类直方图。完整圈数 bin 在每次写盘时仅追加一次，
+``slow_extraction`` 子目录。文件名采用
+``{run_id}_spill_beam{beam}_cmd_{monitor_name}_s_{s:.4f}_{kind}.h5``，其中
+``kind`` 为 ``turn`` 或 ``time``。source 的运行标识用于区分独立运行。
+监视器名称遵循 :doc:`table_output` 的简化规则：省略导入实例编号和位置标签，
+当前位置只出现一次，仅在实际重名时追加编号。完整 monitor/source 名称、source 运行标识
+及事件文件路径保留在元数据中，已有文件保留原名称。完整圈数 bin 在每次写盘时仅追加一次，
 当前未完成的 partial 圈数 bin 仅在 finalize 时追加；内存中的 ``get_histogram("turn")``
 也包含当前 partial bin。时间表在同一路径发布完整累计快照，允许后续事件更新早期 bin。
 source 的逐粒子事件表单独保存。

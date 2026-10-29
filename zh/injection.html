@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -1225,12 +1225,18 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>束团 ID （ <code class="docutils literal notranslate"><span class="pre">bunch_id</span></code> ）严格按照从 0 开始、步长 1 递增的顺序编号，由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 的键名决定。束团数量由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch</span></code> 键的数量决定。</p>
-<p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 必须唯一，并完整覆盖 <span class="math notranslate nohighlight">\(0,1,\ldots,h_{\mathrm{group}}-1\)</span> 。因此输入中束团数等于 <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> ；未填充的槽位也要声明为宏粒子数为 0 的空束团。</p>
+<p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 必须唯一，并完整覆盖 <span class="math notranslate nohighlight">\(0,1,\ldots,h_{\mathrm{group}}-1\)</span> 。因此输入中束团数等于 <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> ；未填充的槽位也要声明为宏粒子数为 0 的空束团。GUI 会自动为未填写的槽位补齐这些空束团声明。</p>
 <ul class="simple">
 <li><p><strong>全填充</strong> ：所有分组都包含非零宏粒子，中心依次位于 <span class="math notranslate nohighlight">\(0,C/h_{\mathrm{group}},\ldots,(h_{\mathrm{group}}-1)C/h_{\mathrm{group}}\)</span></p></li>
 <li><p><strong>部分填充</strong> ：保留完整的分组编号，但将未填充槽位对应束团的宏粒子数设为 0</p></li>
 </ul>
 </div>
+<p>运行时仅在分配的粒子区间长度为零（<code class="docutils literal notranslate"><span class="pre">start_idx</span> <span class="pre">==</span> <span class="pre">end_idx</span></code>）时，才判定该槽位为空。
+空槽跳过粒子计算及逐束团监视文件输出。尚未注入的预留粒子和已经损失的粒子仍是
+已分配的记录，因此存活粒子数为零不等于空束团，全部损失后的损失统计会继续记录。
+后续 <code class="docutils literal notranslate"><span class="pre">SortBunch</span></code> 或 <code class="docutils literal notranslate"><span class="pre">ReorganizeBunch</span></code> 可以将粒子分入原本的空槽，此后该槽正常参与计算。
+空槽仍保留少量参考时间、参考能量更新及共享效应的时间同步，以保证后续重分组所用
+参考状态有效。</p>
 <p>下图为环形布局下的束团分组示例。圆环代表加速器周长 <span class="math notranslate nohighlight">\(C\)</span> ，标记点为名义槽位 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span> 。分组编号按顺时针方向递增。上图为 <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=4\)</span> 全填充；下图为 <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=5\)</span> 部分填充，其中分组 1、3、4 由空束团占位：</p>
 <div style="text-align: center">
 <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
@@ -1680,24 +1686,30 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <span class="pre">``&quot;hdf5-gzip1&quot;``（gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；JSON 参数位于对应
 <code class="docutils literal notranslate"><span class="pre">bunchN</span></code> 块中的 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>。此参数只控制初始分布输出，
 载入文件时按扩展名识别输入格式。详见 <a class="reference internal" href="monitor/table_output.html"><span class="doc">表格输出格式</span></a>。</p>
-<p>文件在该源最后一个计划注入事件中，完成同一事件所有源的注入后保存当前束团快照，
-不会等待其他源在未来圈结束。排序后，当前束团可能包含多个源的粒子，以及未来批次
-尚未激活的零 tag 预留位置；快照不按原始源筛选。多圈注入时，先前批次可能已经
+<p>在该源最后一个计划注入事件中，完成同一事件所有源的注入后，按稳定粒子 ID 找到
+包含该源记录（含损失记录）的当前束团并保存快照，不会等待其他源在未来圈结束。
+若该源分散到多个当前束团，每个束团独立保存一个文件，使每个文件只使用一套当前参考量。
+每份快照包含整个当前束团，包括其他源的粒子和未来批次尚未激活的零 tag 预留位置；
+行数据不按原始源筛选，原来已空的槽不生成快照。未改变分组时保留原文件名；
+该源发生迁移、分裂或分组网格改变后，文件名增加 <code class="docutils literal notranslate"><span class="pre">_groupN</span></code> 标识当前束团。
+多圈注入时，先前批次可能已经
 传输或丢失，因此它不保留每个粒子的出生坐标。用于 DA 分析的逐粒子注入初值由
 ParticleMonitor 在每次注入事件中另行捕获。
 载入分布时读取六维坐标列作为新的入射分布，不通过文件中的 tag、损失历史或
 参考元数据恢复束流状态。</p>
 <p>保存时先写完整的私有临时文件，再发布到最终路径，不覆盖已有目标。
-若该路径已有快照或输入分布，保留原文件并报错。保存失败后可以重试，
-不会重复注入同一批粒子。若发布成功后才收到异常，则用文件身份确认本次已发布的
-完整快照，重试不会将它误判为外来已有文件。</p>
+若该路径已有快照或输入分布，保留原文件并报错。保存失败后可在中断的注入事件重试，
+不会重复注入同一批粒子。已经成功发布的组文件保留并在重试时跳过；全部所需组保存
+成功后才将该源标记为完成。若发布成功后才收到异常，则用文件身份确认本次已发布的
+完整快照，重试不会将它误判为外来已有文件。保存成功前须将跟踪停留在该事件。</p>
 <p>快照文件头的 <code class="docutils literal notranslate"><span class="pre">Ek</span></code>、<code class="docutils literal notranslate"><span class="pre">m0</span></code> 描述当前束团参考量；<code class="docutils literal notranslate"><span class="pre">InjectionKineticEnergy</span></code>
 单独保留生成入射分布时使用的源能量。<code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime``（s）、</span>
 <span class="pre">``ReferenceBeta</span></code> 与 <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum``（eV/c，离子按每核子计）对应注入后</span>
 <span class="pre">保存事件的参考量。因此，存活粒子的动量为</span> <span class="pre">``ReferenceMomentum</span> <span class="pre">*</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">dp)</span></code>，
 到达时间为 <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span> <span class="pre">-</span> <span class="pre">z</span> <span class="pre">/</span> <span class="pre">(ReferenceBeta</span> <span class="pre">*</span> <span class="pre">c)</span></code>。
-<code class="docutils literal notranslate"><span class="pre">HarmonicId</span></code>、<code class="docutils literal notranslate"><span class="pre">HarmonicNumber</span></code>、<code class="docutils literal notranslate"><span class="pre">ZCenter``（m）记录当前分组，保存的</span> <span class="pre">``z</span></code>
-仍为 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>。这些参考量只适用于存活粒子；损失行保留丢失事件时的坐标。
+<code class="docutils literal notranslate"><span class="pre">HarmonicId</span></code>、<code class="docutils literal notranslate"><span class="pre">HarmonicNumber</span></code>、<code class="docutils literal notranslate"><span class="pre">ZCenter``（m）记录当前分组，``BunchId</span></code>
+标识当前束团；<code class="docutils literal notranslate"><span class="pre">SourceBunchId</span></code>、<code class="docutils literal notranslate"><span class="pre">SourceHarmonicId</span></code>、<code class="docutils literal notranslate"><span class="pre">SourceHarmonicNumber</span></code>
+保留原注入源标识。保存的 <code class="docutils literal notranslate"><span class="pre">z</span></code> 仍为 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>。这些参考量只适用于存活粒子；损失行保留丢失事件时的坐标。
 发射度、Twiss 参数等其他生成设置不代表快照中测得的统计量。</p>
 <p>HDF5 载入仅读取当前批次的六个坐标切片，每批读取后关闭文件。
 TFS 缓存列索引和批次边界的字节偏移，再读取所需批次；文件大小或修改时间变化

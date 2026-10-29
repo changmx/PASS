@@ -30,11 +30,26 @@
    :maxdepth: 1
 
    table_output
+   plotting
    statmonitor
    distmonitor
    particlemonitor
    phaseadvancemonitor
    slow_extraction_monitor
+
+空槽与粒子记录
+--------------
+
+beam 仍保留全部谐波槽位。没有分配粒子记录的空槽会被逐束团监视器跳过，
+不生成该束团的输出文件。判断依据是已分配的粒子范围，而非存活粒子数量。
+为后续注入预留的记录仍然有效；粒子已经全部损失的束团也继续保留损失诊断和
+存活数量为零的统计记录。重分组后如果有粒子进入空槽，监视器会在下一次计划采样时
+记录该槽。ParticleMonitor 和 SlowExtractionMonitor 仍保存整个 beam 的轨迹或
+引出汇总，空槽不会增加文件。
+
+粒子注入后，其身份编号 ``abs(tag)`` 在损失和重分组过程中保持不变。
+损失标记为 ``tag=-particle_id``，磁铁边缘场造成的损失也遵循这一规则，
+使轨迹记录和注入快照始终关联原粒子。
 
 .. _zh-reference-state:
 

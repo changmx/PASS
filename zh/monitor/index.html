@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -91,11 +91,13 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">监视器与输出</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">自动绘图</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">空槽与粒子记录</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
@@ -170,6 +172,7 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">自动绘图</a></li>
 <li class="toctree-l1"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
@@ -177,8 +180,20 @@
 <li class="toctree-l1"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
 </ul>
 </div>
+<section id="id2">
+<h2>空槽与粒子记录<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>beam 仍保留全部谐波槽位。没有分配粒子记录的空槽会被逐束团监视器跳过，
+不生成该束团的输出文件。判断依据是已分配的粒子范围，而非存活粒子数量。
+为后续注入预留的记录仍然有效；粒子已经全部损失的束团也继续保留损失诊断和
+存活数量为零的统计记录。重分组后如果有粒子进入空槽，监视器会在下一次计划采样时
+记录该槽。ParticleMonitor 和 SlowExtractionMonitor 仍保存整个 beam 的轨迹或
+引出汇总，空槽不会增加文件。</p>
+<p>粒子注入后，其身份编号 <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code> 在损失和重分组过程中保持不变。
+损失标记为 <code class="docutils literal notranslate"><span class="pre">tag=-particle_id</span></code>，磁铁边缘场造成的损失也遵循这一规则，
+使轨迹记录和注入快照始终关联原粒子。</p>
+</section>
 <section id="zh-reference-state">
-<span id="id2"></span><h2>输出中的参考信息<a class="headerlink" href="#zh-reference-state" title="Link to this heading"></a></h2>
+<span id="id3"></span><h2>输出中的参考信息<a class="headerlink" href="#zh-reference-state" title="Link to this heading"></a></h2>
 <p>分布文件头保存 <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code>、<code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code>、
 <code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span></code>、<code class="docutils literal notranslate"><span class="pre">CoordinateDefinition</span></code> 和元件出口事件标识。
 统计监视器逐行保存相应参考参数。ParticleMonitor 仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时

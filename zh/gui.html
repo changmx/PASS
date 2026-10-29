@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="索引" href="../genindex.html" />
     <link rel="search" title="搜索" href="../search.html" />
-    <link rel="next" title="单文件项目" href="project_files.html" />
+    <link rel="next" title="可编辑项目" href="project_files.html" />
     <link rel="prev" title="JSON 输入文件检测" href="input_validation.html" /> 
 </head>
 
@@ -74,19 +74,20 @@
 <li class="toctree-l2"><a class="reference internal" href="#id10">结果文件</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x">MAD-X 来源与参考束流</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">MAD-X 采样方式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">导入元件时批量设置属性</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">MAD-X 采样方式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm">MAD-X BPM 导入</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">单圈传输</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">平滑近似</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id14">手动传输点与后续编辑</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">单圈传输</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">平滑近似</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">手动传输点与后续编辑</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id15">工具</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id16">主题与控件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id17">帮助与本地文档</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id16">工具</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id17">主题与控件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id18">帮助与本地文档</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -151,8 +152,12 @@
 也可以从 GitHub 克隆仓库或下载并解压源码，在包含 <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> 的目录中
 执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> 安装。
 通过 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> 或 <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> 启动。</p>
+<p>启动时优先准备输入 schema，配置页无需加载跟踪命令即可进入可编辑状态。
+计算、绘图和格式转换依赖随后继续在后台加载；这些资源的准备状态不影响编辑配置。</p>
 <ol class="arabic simple">
-<li><p>打开 PASS 输入 JSON 或 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 工程文件，或创建新的输入配置。</p></li>
+<li><p>打开 PASS 输入 JSON、<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 工程文件或工程文件夹，
+或创建新的输入配置。文件夹入口优先使用 <code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>；没有该文件时，
+要求文件夹中恰有一个 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件，不会搜索子目录。</p></li>
 <li><p>设置全局参数、注入与执行序列。每份属性表单通过 <strong>应用修改</strong> 写入输入；
 未应用的表单与 JSON 文本均为草稿。</p></li>
 <li><p>在执行序列工具栏选择 <strong>校验</strong>，处理报告中的错误。校验范围与报告见
@@ -160,8 +165,8 @@
 <li><p>保存输入或工程，在 <strong>运行</strong> 页面选择输入并启动模拟。</p></li>
 <li><p>打开结果目录，或在 <strong>绘图</strong> 页面载入输出。</p></li>
 </ol>
-<p>配置页编辑跟踪引擎使用的同一份输入。工程打包、运行快照、停止和重新运行见
-<a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。独立计算工具位于 <strong>工具</strong> 页面，详见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。
+<p>配置页编辑跟踪引擎使用的同一份输入。可编辑工程文件、旧工程转换、运行快照、停止和重新运行见
+<a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。独立计算工具位于 <strong>工具</strong> 页面，详见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。
 <strong>分析</strong> 页面采用与 <strong>工具</strong> 相同的图标与文字左侧导航，三个并列入口为
 <strong>频谱分析</strong>、<strong>频率图分析</strong> 和 <strong>动力学孔径</strong>。
 FFT 频谱与频率图可读取模拟结果或外部数值文件；共用 Python 函数、支持格式
@@ -202,7 +207,7 @@ dp 列表初始全选，可逐项勾选或使用全选/清空按钮。内部丢�
 <p>状态栏显示资源就绪状态。在此之前，波形/电极预览、MAD-X 预览/导入和 Bump CSV 转换
 只显示简短状态提示，不在界面线程等待模块导入；加载完成后可重新执行这些操作。
 文件读取和实际计算仍需要时间，首次创建工具页面也可能产生短暂停顿。</p>
-<p>可向窗口及其子编辑器拖入一个本地 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 或 PASS 输入 JSON。
+<p>可向窗口及其子编辑器拖入一个本地 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>、工程文件夹或 PASS 输入 JSON。
 替换前先检查文件内容，再确认是否替换；有未保存修改时提供保存、放弃和取消选项。
 无效文件或取消操作会保留当前文档。在项目模式下，输入 JSON 可替换当前输入、
 作为另一份配置加入项目，或作为独立文档打开。配置选择器显示输入数量，
@@ -219,10 +224,13 @@ NPY/NPZ/TSV/TXT/DAT 拖入后打开分析页，直接向分析页拖入 CSV/TFS/
 <p>属性表单与 JSON 源码分别保留草稿。源码通过 <strong>应用源码</strong> 或 <strong>放弃源码修改</strong> 处理。
 两处同时存在未应用的修改时，先放弃其中一份草稿，再应用另一份；保存前须处理未应用修改。
 Injection、空间电荷、尾场与电子云的表单以整体方式应用，每次应用对应一个撤销步骤；
-<strong>取消修改</strong> 恢复已应用的参数。草稿不会自动备份，手动保存与恢复见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
+<strong>取消修改</strong> 恢复已应用的参数。草稿不会自动备份，手动保存与恢复见 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p>属性标题旁显示只读的 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 类型，可编辑参数从名称、位置 <code class="docutils literal notranslate"><span class="pre">s</span></code>、长度开始。
 元件本身的场强和几何参数排在前面，随后是 <code class="docutils literal notranslate"><span class="pre">Model</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrator</span></code> 与切片数。
 界面的排列独立于 schema 的继承顺序与打开的 JSON 中键的排列。</p>
+<p>序列命令（包括 Injection 和 SortBunch）均显示 <code class="docutils literal notranslate"><span class="pre">Order</span></code>。
+留空或输入 <code class="docutils literal notranslate"><span class="pre">null</span></code> 使用默认命令优先级；若同一 <code class="docutils literal notranslate"><span class="pre">s</span></code> 位置的任一命令指定了
+Order，该位置所有命令都须填写互不重复的整数顺序。</p>
 <p>例如二极磁铁 <code class="docutils literal notranslate"><span class="pre">SBend</span></code> 的顺序为：名称、<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">K0L</span></code>、
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Fint</span></code>、<code class="docutils literal notranslate"><span class="pre">Fintx</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、
 <code class="docutils literal notranslate"><span class="pre">Integrator</span></code>、<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>，之后依次为 <strong>场误差</strong>、<strong>安装误差</strong>、<strong>孔径</strong>、<strong>Ramping</strong>、
@@ -328,11 +336,24 @@ CPU 后端下禁用该列表。</p></li>
 </section>
 <section id="rf">
 <h2>注入、时钟、RF 与脉冲元件<a class="headerlink" href="#rf" title="Link to this heading"></a></h2>
-<p>Injection 应用表单时保留合法 harmonic ID 排列；新增/复制束团分配新槽，删除槽时压缩其后的编号。
+<p>Injection 应用表单时保留合法 harmonic ID 排列。<code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> 可直接编辑，
+填写分组数后点击 <strong>更新谐波槽数</strong>，或直接应用表单。增大时自动补齐真实粒子数和宏粒子数均为零的空槽，
+沿用当前束团的参考参数，为新槽设置各自的 harmonic ID 和默认参考到达时间。
+例如只填充四个分组中的一个时，只填写 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code>，将其 harmonic ID 设为 0、分组数设为 4，
+其余三个槽自动置空。GUI JSON 草稿和导入输入中的束团条目不足时，也会在应用源码或保存/运行时补齐。
+保存的输入仍保留完整槽结构；空槽不需要单独配置粒子参数，也不会生成监视器文件。
+束团选择器的提示和摘要会标明空槽。该分组数仍与 RFCavity 的 RF 谐波独立。</p>
+<p><strong>当前槽置空</strong> 和 <strong>其余槽置空</strong> 将对应粒子数置零并清除粒子来源，保留参考参数、harmonic ID 和分组数。
+缩小分组数只移除 harmonic ID 超出新范围的空槽；非空槽须先置空。
+这些操作在应用表单前均为草稿。新增/复制非空束团优先使用已有空槽，仅在所有槽都非空时增加分组数。
+复制空槽不会创建新槽。删除束团后保留空槽，分组数和其他 harmonic ID 均不变；
+如需移除槽，请显式减小 <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code>。
 批次摘要显示计划总量、首次/后续批次数量、末次注入圈和宏粒子权重；新增束团沿用已有权重。
 分布文件支持 <code class="docutils literal notranslate"><span class="pre">sequential</span></code> 和 <code class="docutils literal notranslate"><span class="pre">repeat</span></code>。
 随机种子与参考到达时间可清空为 null。电极损失使用独立 ElSeparator 配置。
-整数输入支持大粒子数，不受有符号 32 位上限限制。</p>
+整数文本输入支持 <code class="docutils literal notranslate"><span class="pre">1e5</span></code>、<code class="docutils literal notranslate"><span class="pre">2.5e3</span></code> 等精确整数科学计数法，保存为普通 JSON 整数；
+拒绝非整数结果、NaN 和无穷大。粒子数字段仍不受有符号 32 位上限限制，
+已有范围限制的控件保持各自范围。</p>
 <p>共同设计时钟由初始束流、环周长和启用的 RF 波形自动计算，全局配置不再输入时钟表。
 它独立于集体效应对实际粒子的影响。需要保留外部 RF 频率程序时，使用分量的直接频率模式。
 设计计算与迁移限制见 <a class="reference internal" href="input_generation.html#zh-reference-clock"><span class="std std-ref">自动设计时钟与初始化</span></a>。</p>
@@ -411,8 +432,8 @@ history、网格、记忆长度和周期边界控件随模式变化。
 全局 <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> 与单点 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code> 必须同时开启。
 即使引用同一配置，各作用点也拥有独立电子云状态。
 界面写入 <a class="reference internal" href="electron_cloud.html"><span class="doc">电子云（ElectronCloud）</span></a> 描述的普通输入格式。</p>
-<table class="docutils align-default" id="id18">
-<caption><span class="caption-text">模式与求解器选择</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id19">
+<caption><span class="caption-text">模式与求解器选择</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 35.0%" />
@@ -567,7 +588,22 @@ CSV 与元数据文件应配套保留。</p>
 <a class="reference internal" href="input_generation.html#zh-madx-sequence"><span class="std std-ref">方式四：直接加载 MAD-X SEQUENCE 或 LINE</span></a>。</p>
 </section>
 <section id="id11">
-<h3>MAD-X 采样方式<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<h3>导入元件时批量设置属性<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>逐元件导入时，勾选 <strong>按元件类型批量设置属性</strong>，选择 <strong>元件类型</strong> 与
+<strong>要统一设置的属性</strong>，点击 <strong>添加属性设置</strong> 并填写值。可为同一类型或不同类型添加多项设置。
+例如，将本次导入的所有 SBend 的 <code class="docutils literal notranslate"><span class="pre">Model</span></code> 设为 <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code>，
+所有 Quadrupole 的 <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 设为 <code class="docutils literal notranslate"><span class="pre">20</span></code>。
+仅覆盖本次导入中匹配类型的指定属性；未选择的属性和已有 Sequence 条目保留原值。
+<code class="docutils literal notranslate"><span class="pre">Command</span></code>、位置与长度使用来源数据。</p>
+<p>预览会校验覆盖后的元件并列出批量设置，无效设置会阻止插入。
+显式 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 仍须满足同位置所有命令均指定且互不重复的要求。
+设置保留在草稿与保存的导入配方中。改变孔径形状时，先添加 <strong>Aperture type</strong>，
+再添加 <strong>Aperture value</strong>，使数值编辑器使用所选几何形状。</p>
+<p>普通 SBend 属性表单也提供 <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code>，与 <code class="docutils literal notranslate"><span class="pre">adaptive</span></code>、
+<code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code> 并列；Quadrupole 的对应矩阵模型为 <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code>。</p>
+</section>
+<section id="id12">
+<h3>MAD-X 采样方式<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p><strong>采样方式</strong> 默认选择 <strong>保留原始位置</strong>。选择 <strong>等间距插值</strong> 后启用正整数
 <strong>一圈分段数 N</strong>，生成从 0 到 C、间距 C/N 的 N+1 个基础点。
 该模式禁用并忽略 <strong>是否合并连续 Drift</strong>，不设高级插值参数菜单。</p>
@@ -598,8 +634,8 @@ CSV 与元数据文件应配套保留。</p>
 勾选后选择 <strong>Monitor 类型</strong> 并填写 <strong>Monitor 参数</strong>，即可在选中的 BPM 处添加
 <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>、<code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 或 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code>。
 参数控件与普通监视器编辑器一致。逐元件导入采用以下规则：</p>
-<table class="docutils align-default" id="id19">
-<caption><span class="caption-text">BPM 长度与记录开关</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id20">
+<caption><span class="caption-text">BPM 长度与记录开关</span><a class="headerlink" href="#id20" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 35.0%" />
@@ -646,8 +682,8 @@ BPM，也能追溯已并入更长漂移的 BPM。</p>
 筛选与严格检查设置会保存在导入草稿及配方中。
 Python API 和监视器选项见 <a class="reference internal" href="input_generation.html#zh-madx-bpm"><span class="std std-ref">MAD-X BPM 标记与监视器</span></a>。</p>
 </section>
-<section id="id12">
-<h3>单圈传输<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<section id="id13">
+<h3>单圈传输<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
 <p>输入名称、周长 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和一组周期光学参数
 <span class="math notranslate nohighlight">\(\alpha_x,\alpha_y,\beta_x,\beta_y\)</span>，表单按此顺序排列。
 Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
@@ -662,8 +698,8 @@ Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
 其他模式生成的纵向相移为零。引擎的 matrix 模式还使用束团纵向尺寸和动量展宽，
 drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="reference internal" href="twiss.html"><span class="doc">Twiss 参数输运（Twiss）</span></a>。</p>
 </section>
-<section id="id13">
-<h3>平滑近似<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<section id="id14">
+<h3>平滑近似<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
 <p>输入 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、正的完整 tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和正整数 <strong>一圈分段数</strong>
 <span class="math notranslate nohighlight">\(N\)</span>。计算平滑近似 beta 时，不应只填写 tune 的小数部分，例如应输入
 9.47，而不是 0.47；表单标签标明了“完整工作点”：</p>
@@ -680,8 +716,8 @@ drift 模式使用滑移因子和传输长度。跟踪公式参见 <a class="ref
 标准平滑光学使用零 alpha；非零常数对应自定义传输矩阵序列。
 纵向模式与单圈表单一致。该入口仅生成 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令，不生成 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 计算点。</p>
 </section>
-<section id="id14">
-<h3>手动传输点与后续编辑<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<section id="id15">
+<h3>手动传输点与后续编辑<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
 <p>选择 <strong>插入 Twiss 传输点</strong> 可添加传输映射。一个命令描述两端之间的传输，
 因此表单分为 <strong>起点光学参数</strong>、<strong>终点光学参数</strong> 和 <strong>传输设置</strong>。
 <code class="docutils literal notranslate"><span class="pre">Mu</span></code> 为累计相位，单位为周（<span class="math notranslate nohighlight">\(2\pi\)</span>），不是弧度。</p>
@@ -698,15 +734,15 @@ DDS 相位从共同启动时刻 <code class="docutils literal notranslate"><span
 RF 命令属性使用 Components 列表配置规定的物理时间波形。</p>
 </section>
 </section>
-<section id="id15">
-<h2>工具<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<section id="id16">
+<h2>工具<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
 <p><strong>工具</strong> 提供束流参数计算器、共振线图、RF bucket、相空间绘制与发射度计算、
 磁铁参数换算、激励计算和数据格式转换。计算独立于当前模拟输入。
 离子与原子使用每核子动能 AMeV；A=0 的粒子使用每粒子动能 MeV。
 粒子质量取自随程序提供的评估质量数据。单位、公式、数据来源与操作见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。</p>
 </section>
-<section id="id16">
-<h2>主题与控件<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<section id="id17">
+<h2>主题与控件<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
 <p>顶部可选择深色、浅色或跟随系统的主题。窗口与侧栏尺寸、主题及执行序列的列设置
 保存在本机。拖动表头分隔线调整列宽，右键选择其他列；名称、Command 和位置列始终显示。
 执行序列按引擎的位置分箱和命令优先级排列，悬停位置列可查看完整数值。</p>
@@ -716,8 +752,8 @@ RF 命令属性使用 Components 列表配置规定的物理时间波形。</p>
 <strong>还原</strong> 恢复原布局并保留草稿。下拉框通过单击选项改变选择；展开列表后的滚轮
 仅用于浏览选项。</p>
 </section>
-<section id="id17">
-<h2>帮助与本地文档<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<section id="id18">
+<h2>帮助与本地文档<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
 <p>主题按钮旁的 <strong>帮助</strong> 菜单提供 <strong>在线说明文档</strong> （中文 / English）、<strong>源代码</strong>、
 <strong>阅读本地文档</strong> （中文 / English）、<strong>重新编译本地文档</strong> 和 <strong>关于 PASS</strong>。
 网页链接和本地 HTML 均使用系统默认浏览器打开。</p>
@@ -752,7 +788,7 @@ Sphinx 警告且各语言首页均存在时，才更新 <code class="docutils li
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
         <a href="input_validation.html" class="btn btn-neutral float-left" title="JSON 输入文件检测" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
-        <a href="project_files.html" class="btn btn-neutral float-right" title="单文件项目" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="project_files.html" class="btn btn-neutral float-right" title="可编辑项目" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

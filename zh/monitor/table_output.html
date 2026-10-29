@@ -20,7 +20,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="索引" href="../../genindex.html" />
     <link rel="search" title="搜索" href="../../search.html" />
-    <link rel="next" title="统计监视器（StatMonitor）" href="statmonitor.html" />
+    <link rel="next" title="自动绘图" href="plotting.html" />
     <link rel="prev" title="监视器与输出" href="index.html" /> 
 </head>
 
@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -97,11 +97,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#id4">读取表格</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">自动绘图</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#id2">空槽与粒子记录</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
@@ -209,9 +211,11 @@
 <p>HDF5 表格使用 <code class="docutils literal notranslate"><span class="pre">.h5</span></code>，TFS 表格使用 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code>，文件名主体保持一致。
 <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a> 的 CSV、HDF5 和 TFS 使用文件名主体
 <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}</span></code>。
-其中命令名称来自 Sequence 提供的规范化运行时名称，经一次百分号转义用于文件名，
-以隔离不同命令的历史；<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留未转义名称。依赖旧版完整文件名主体
-的读取程序需要适配 <code class="docutils literal notranslate"><span class="pre">_cmd_</span></code>，已有输出文件保留原名称。
+StatMonitor、DistMonitor、PhaseAdvanceMonitor、ParticleMonitor 和 SlowExtractionMonitor 省略命令名中的数字
+MAD-X 实例后缀及末尾的位置标签，文件名仅保留一次当前位置。其他特殊字符继续百分号转义。
+只有同一束流、同一监视器类型、同一格式化位置下真的发生文件名冲突时，才追加数字编号，
+仅大小写不同也按冲突处理。<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留完整运行时名称。
+依赖完整文件名主体的读取程序需要适配简化名称，已有输出文件保留原名称。
 SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。</p>
 </section>
 <section id="hdf5">
@@ -334,7 +338,7 @@ HDF5 是二进制文件，不能用 <code class="docutils literal notranslate"><
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
         <a href="index.html" class="btn btn-neutral float-left" title="监视器与输出" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
-        <a href="statmonitor.html" class="btn btn-neutral float-right" title="统计监视器（StatMonitor）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="plotting.html" class="btn btn-neutral float-right" title="自动绘图" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

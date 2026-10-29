@@ -92,7 +92,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -213,11 +213,13 @@ installation, <code class="docutils literal notranslate"><span class="pre">pytho
 and explicitly uses the selected Python interpreter. Neither entry point requires
 Qt or PySide6. After installation, use <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--version</span></code> or
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS</span> <span class="pre">--version</span></code> to print the version and exit without an input file.
-Input type is selected by the file extension:</p>
+Pass JSON inputs, a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file, or a project directory:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json</span>
 <span class="go">pass-run input/beam0.json input/beam1.json</span>
 <span class="go">pass-run example.passproj</span>
 <span class="go">python -m PASS example.passproj</span>
+<span class="go">pass-run path/to/project-directory</span>
+<span class="go">pass-run .</span>
 </pre></div>
 </div>
 <p>Named input options provide the same three modes:</p>
@@ -228,14 +230,18 @@ Input type is selected by the file extension:</p>
 </div>
 <p>Use either positional inputs or named input options; do not mix them.
 <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> and <code class="docutils literal notranslate"><span class="pre">--beam1</span></code> require JSON files, and <code class="docutils literal notranslate"><span class="pre">--beam1</span></code> requires
-<code class="docutils literal notranslate"><span class="pre">--beam0</span></code>. <code class="docutils literal notranslate"><span class="pre">--passproj</span></code> requires a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file and cannot be combined
-with either beam option. Relative input paths use the terminal’s working
+<code class="docutils literal notranslate"><span class="pre">--beam0</span></code>. <code class="docutils literal notranslate"><span class="pre">--passproj</span></code> accepts a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file or a project directory
+and cannot be combined with either beam option. Relative input paths use the terminal’s working
 directory; quote paths containing spaces.</p>
-<p>One or two JSON files run the corresponding beams. A single <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file
-runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
+<p>One or two JSON files run the corresponding beams. A <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file or project
+directory runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
 saved, it uses the active configuration. It does not execute every configuration
-in the project. Invalid saved selections or duplicate beams are errors. See
-<a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a> for project selection and output paths.</p>
+in the project. A directory prefers <code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>, otherwise it opens its
+only <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file; multiple candidates require an explicit file path.
+New plain JSON and
+old ZIP project descriptions are both readable. Invalid saved selections or
+duplicate beams are errors. See
+<a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a> for project selection and output paths.</p>
 <p>Use <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code> to choose the output root for this run. It takes precedence
 over the JSON or saved project setting and works with one JSON, two JSON files,
 or one project. Relative command-line output paths are resolved from the working
@@ -316,7 +322,7 @@ and results while preserving the layout above. The original JSON and input
 files remain unchanged. <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> serializes the original
 configuration values; copied dependency files preserve their exact bytes.
 The GUI and command-line project runs use the same input-copying, hashing, and
-result-directory rules; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.</p>
+result-directory rules; see <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a>.</p>
 <p>The parameter JSON saved alongside results retains its existing filename and
 stores absolute input and output paths. It is generated from the configuration
 already loaded, after resolving paths and before expanding named configurations,
@@ -500,7 +506,7 @@ directory free of snapshot subdirectories.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
-<td><p>Whether to generate plots after tracking.</p></td>
+<td><p>Generate <a class="reference internal" href="monitor/plotting.html"><span class="doc">monitor figures</span></a> from saved results after successful tracking; default output is the run’s <code class="docutils literal notranslate"><span class="pre">plot/</span></code> directory.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Timing</span></code></p></td>
@@ -1078,6 +1084,11 @@ or JSON aliases. Position, command type and ordering are supplied by the
 importer, so do not include <code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">command</span></code> or <code class="docutils literal notranslate"><span class="pre">order</span></code> (or their aliases).
 The MAD-X horizontal/vertical BPM keyword does not restrict the selected
 PASS monitor’s recorded coordinates.</p>
+<p>Generated PASS command names omit a terminal numeric MAD-X occurrence suffix:
+<code class="docutils literal notranslate"><span class="pre">bpm:1</span></code> at 422.0936762 m becomes <code class="docutils literal notranslate"><span class="pre">bpm_s422.094</span></code>. Position distinguishes
+repeated element names; only identical generated labels receive <code class="docutils literal notranslate"><span class="pre">_2</span></code>, <code class="docutils literal notranslate"><span class="pre">_3</span></code>,
+etc. Raw source names remain unchanged for BPM selection and magnetic-error
+instance matching.</p>
 <p>To monitor only part of the lattice, pass <code class="docutils literal notranslate"><span class="pre">bpm_names</span></code> (exact names) and/or
 <code class="docutils literal notranslate"><span class="pre">bpm_patterns</span></code> (regular expressions). Both match the original MAD-X <code class="docutils literal notranslate"><span class="pre">NAME</span></code>
 case-insensitively, before generated name suffixes or drift merging. Regular

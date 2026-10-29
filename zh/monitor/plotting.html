@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>自动绘图 &mdash; PASS 0.6.2 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=1c28bd9a"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../../genindex.html" />
+    <link rel="search" title="搜索" href="../../search.html" />
+    <link rel="next" title="统计监视器（StatMonitor）" href="statmonitor.html" />
+    <link rel="prev" title="表格输出格式" href="table_output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.6.2</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../../en/monitor/plotting.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">可编辑项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">慢引出（SlowExtraction）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">逐束团横向反馈</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">监视器与输出</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">自动绘图</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">对已有结果绘图</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">图片布局</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">坐标与风格</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">文件及诊断</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#id2">空槽与粒子记录</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">频谱分析与频率图</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">动力学孔径扫描</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 使用手册</a></li>
+          <li class="breadcrumb-item"><a href="index.html">监视器与输出</a></li>
+      <li class="breadcrumb-item active">自动绘图</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>自动绘图<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>将顶层 <code class="docutils literal notranslate"><span class="pre">&quot;Is</span> <span class="pre">plot</span> <span class="pre">figure&quot;:</span> <span class="pre">true``（Python</span> <span class="pre">字段</span> <span class="pre">``is_plot=True</span></code>）开启后，
+PASS 会在跟踪正常结束、监视器完成文件写入后读取结果并生成图片。默认值为
+<code class="docutils literal notranslate"><span class="pre">false</span></code>。停止或失败的运行不会启动自动绘图。</p>
+<p>绘图使用已保存的数据，同一入口也可以处理历史结果，无须重新跟踪。
+这一步不需要 GUI、Qt 或 GPU。</p>
+<section id="id2">
+<h2>对已有结果绘图<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>传入包含统计文件、<code class="docutils literal notranslate"><span class="pre">distribution/</span></code> 和 <code class="docutils literal notranslate"><span class="pre">particle/</span></code> 子目录的单次结果目录，
+而不是输出根目录：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.plot output/2026_1029/1036_59</span>
+<span class="go">python -m PASS.plot output/2026_1029/1036_59 --format png pdf --dpi 300 --bins 80</span>
+<span class="go">python -m PASS.plot output/2026_1029/1036_59 --output figures/review</span>
+</pre></div>
+</div>
+<p>相对路径以终端当前工作目录为基准，包含空格的路径需要加引号。
+默认图片保存在所选运行目录内的 <code class="docutils literal notranslate"><span class="pre">plot/</span></code>；<code class="docutils literal notranslate"><span class="pre">--output</span></code> 只修改图片输出位置。</p>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">命令行选项</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>选项</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">png</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">png</span></code>、<code class="docutils literal notranslate"><span class="pre">pdf</span></code> 中的一种或多种。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dpi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
+<td><p>PNG 分辨率，以及 PDF 中密集数据栅格图层的分辨率。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--bins</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">80</span></code></p></td>
+<td><p>分布投影每个坐标轴上的分箱数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--output</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;run&gt;/plot</span></code></p></td>
+<td><p>图片及绘图记录的输出目录。</p></td>
+</tr>
+</tbody>
+</table>
+<p>对应的 Python 调用返回绘图记录：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_main</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_run</span>
+
+<span class="n">manifest</span> <span class="o">=</span> <span class="n">plot_run</span><span class="p">(</span>
+    <span class="s2">"output/2026_1029/1036_59"</span><span class="p">,</span>
+    <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">formats</span><span class="o">=</span><span class="p">(</span><span class="s2">"png"</span><span class="p">,</span> <span class="s2">"pdf"</span><span class="p">),</span>
+    <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">bins</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h2>图片布局<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>每份 <a class="reference internal" href="statmonitor.html"><span class="doc">统计监视器（StatMonitor）</span></a> 历史数据按束流、束团、监视器生成一张 3 × 3 九联图。
+每个已保存的 BPM 都有自己的统计图，不把多个 BPM 叠加成一张拥挤的曲线图。
+九个子图各自保留 <code class="docutils literal notranslate"><span class="pre">Turn</span></code> 横轴标签及横轴刻度文字。</p>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">StatMonitor 子图，按行排列</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>左</p></th>
+<th class="head"><p>中</p></th>
+<th class="head"><p>右</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\langle x\rangle,\langle y\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_x,\sigma_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\varepsilon_x,\varepsilon_y\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\langle p_x\rangle,\langle p_y\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle z_{\mathrm{fold}}\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_{z,\mathrm{fold}}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\langle\delta\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_\delta\)</span></p></td>
+<td><p>损失百分比</p></td>
+</tr>
+</tbody>
+</table>
+<p>图片直接使用已保存的统计矩及损失百分比，不从部分粒子重新计算。
+纵轴范围按各监视器数据自适应。全程为零的损失率仍正常绘制。</p>
+<p>每份 <a class="reference internal" href="distmonitor.html"><span class="doc">分布监视器（DistMonitor）</span></a> 快照按束流、束团、监视器、保存圈生成一张 2 × 3 六联图。
+同时支持已保存的注入分布。</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">分布子图，按行排列</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>左</p></th>
+<th class="head"><p>中</p></th>
+<th class="head"><p>右</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x-p_x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(y-p_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-\delta\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(x-y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-y\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>六个投影采用存活粒子（<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>）的二维直方图，共享色条表示每个网格内的
+宏粒子数，不是物理电荷密度。每张图内的六个子图共享一个计数色标，
+上限取这六个子图中的最大网格计数；不同保存圈各自确定色标。
+同一束流、束团、监视器的不同保存圈仍共享坐标范围和分箱边界。
+注入分布单独分组进行比较。
+空快照及没有存活粒子的快照记为跳过。</p>
+<p>每份 <a class="reference internal" href="particlemonitor.html"><span class="doc">粒子监视器（ParticleMonitor）</span></a> 文件生成一张 4 × 3 十二联图：</p>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">ParticleMonitor 子图，按行排列</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>左</p></th>
+<th class="head"><p>中</p></th>
+<th class="head"><p>右</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x\)</span> 随圈数变化</p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span> 随圈数变化</p></td>
+<td><p><span class="math notranslate nohighlight">\(z\)</span> 随圈数变化</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(p_x\)</span> 随圈数变化</p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span> 随圈数变化</p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span> 随圈数变化</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x-p_x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(y-p_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-\delta\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(x-y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-y\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>所有已记录的粒子 ID 和全部有效轨迹样本均参与绘制，不限制粒子数，也不对历史记录抽样。
+前两行使用细线，投影使用小散点。通过 <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> 排除尚未注入及已损失记录；
+无效样本会断开逐圈曲线。不生成冗长的逐粒子图例。
+这些投影叠加了保存圈范围内的轨迹，而 DistMonitor 投影是某个时刻的分布快照。</p>
+</section>
+<section id="id4">
+<h2>坐标与风格<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>图片采用白色背景、内向刻度，保留坐标标签和单位、必要的短图例及分布计数色条。
+不显示标题、参数说明框，也不自动叠加 Twiss 椭圆或 RF bucket。
+同图中的水平／垂直统计曲线采用蓝色／橙色；分布计数使用 <code class="docutils literal notranslate"><span class="pre">jet</span></code> 色图，空网格留白。</p>
+<p>横向位置使用 mm，纵向位置使用 m，RMS 发射度使用 mm mrad。
+已保存的横向动量为 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>、<span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>，
+<code class="docutils literal notranslate"><span class="pre">dp</span></code> 为 <span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>。这些量按 <span class="math notranslate nohighlight">\(10^{-3}\)</span> 缩放显示，
+不标成斜率或实际纵向动量。</p>
+<p>StatMonitor 的 <code class="docutils literal notranslate"><span class="pre">zAverage</span></code>、<code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> 使用按周长折叠的坐标。
+源文件元数据明确标识该约定时，轴标签包含 <code class="docutils literal notranslate"><span class="pre">fold</span></code>；缺少这类元数据的独立 CSV
+使用通用 <code class="docutils literal notranslate"><span class="pre">z</span></code> 标签。分布和粒子图保留已保存的连续束团相对坐标 <span class="math notranslate nohighlight">\(z\)</span>；
+绘图不加上 <code class="docutils literal notranslate"><span class="pre">zCenter</span></code>，也不折叠这些坐标。
+坐标约定见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+<p>保留完整有效坐标范围，不平滑数据，也不按百分位裁剪。
+PDF 中密集数据图层栅格化，坐标文字和刻度保留为矢量元素；
+栅格化控制文件大小，不减少参与绘图的数据。</p>
+</section>
+<section id="id5">
+<h2>文件及诊断<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>默认目录布局为：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;run&gt;/plot/
+    statistics/
+    distribution/
+    particle/
+    manifest.json
+</pre></div>
+</div>
+<p>图片文件名保留来源标识，包括源文件中的束流、束团、监视器及圈号等信息。
+已有图片予以保留，再次绘图时使用未占用的文件名后缀，绘图记录也采用该规则
+（<code class="docutils literal notranslate"><span class="pre">manifest_2.json</span></code> 等）。
+绘图记录包含输入来源、生成文件、绘图设置、跳过记录和失败信息。</p>
+<p>支持已保存的 HDF5、TFS 表格，统计结果还支持 CSV。
+同名文件仅处理一份，优先使用 HDF5 而不是配套文本副本。
+绘图只读取原始结果，不修改它们，也不重新运行模拟。
+单份输入绘图失败时会报告错误并继续处理其他输入。
+自动绘图失败与跟踪成功状态分别报告；图片输出不完整时应查看绘图记录和日志。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="table_output.html" class="btn btn-neutral float-left" title="表格输出格式" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="statmonitor.html" class="btn btn-neutral float-right" title="统计监视器（StatMonitor）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

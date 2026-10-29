@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -92,6 +92,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
@@ -103,6 +104,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -281,13 +283,16 @@ lost particles. Columns are <code class="docutils literal notranslate"><span cla
 and loss metadata. <code class="docutils literal notranslate"><span class="pre">valid</span></code> means at least one accepted interval while the
 particle remains alive; <code class="docutils literal notranslate"><span class="pre">complete</span></code> means every interval in the window was
 accepted. Lost particles are never included in phase accumulation.</p>
+<p>The filename label follows <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>: imported occurrence numbers
+and duplicate position labels are omitted; the current position appears once.
+<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains the complete command name.</p>
 <p>Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and <code class="docutils literal notranslate"><span class="pre">PASSVersion</span></code>.</p>
 <p>Normal early stopping preserves completed window files. A window that has
 started but not finished emits a warning during finalization and produces no
 partial tune table; its endpoint is not shortened to make it appear complete.
 GUI normal stopping occurs at a turn boundary, while force stopping cannot
-guarantee finalization. See <a class="reference internal" href="../project_files.html"><span class="doc">Single-file projects</span></a> for the GUI stop controls and
+guarantee finalization. See <a class="reference internal" href="../project_files.html"><span class="doc">Editable projects</span></a> for the GUI stop controls and
 run records.</p>
 <p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) defaults to <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>;
 Use <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> for uncompressed HDF5 or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> for text output. See <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a> for

@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -91,11 +91,13 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Monitors and output</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -170,6 +172,7 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l1"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l1"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
@@ -177,6 +180,21 @@
 <li class="toctree-l1"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
 </ul>
 </div>
+<section id="empty-slots-and-particle-records">
+<h2>Empty slots and particle records<a class="headerlink" href="#empty-slots-and-particle-records" title="Link to this heading"></a></h2>
+<p>The beam retains all harmonic slots. A slot with no allocated particle records
+is skipped by bunch monitors and produces no bunch-specific output file.
+This decision uses the allocated particle range, not the number of live particles.
+Reserved records for later injection remain active; a bunch whose particles
+have all been lost also keeps its loss diagnostics and zero-survival statistics.
+If regrouping later fills an empty slot, monitors include it at their next
+scheduled sample. ParticleMonitor and SlowExtractionMonitor keep their
+beam-wide trajectory and extraction summaries; empty slots do not add files.</p>
+<p>Once injected, a particle retains its identity <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code> through loss and
+regrouping. Loss uses <code class="docutils literal notranslate"><span class="pre">tag=-particle_id</span></code>, including at magnet fringes, so
+trajectory records and injection snapshots remain associated with the original
+particle.</p>
+</section>
 <section id="output-reference-information">
 <span id="en-reference-state"></span><h2>Output reference information<a class="headerlink" href="#output-reference-information" title="Link to this heading"></a></h2>
 <p>Distribution headers record <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code>, <code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code>,

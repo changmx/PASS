@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>单文件项目 &mdash; PASS 0.6.2 使用手册</title>
+  <title>可编辑项目 &mdash; PASS 0.6.2 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">单文件项目</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">可编辑项目</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#id2">保存与打开</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id3">查看和复用参数</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id4">运行</a><ul>
@@ -70,7 +70,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#id6">导出</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id7">恢复已有草稿</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">容器格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">工程格式与迁移</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
@@ -122,7 +122,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
-      <li class="breadcrumb-item active">单文件项目</li>
+      <li class="breadcrumb-item active">可编辑项目</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -132,14 +132,21 @@
            <div itemprop="articleBody">
              
   <section id="id1">
-<h1>单文件项目<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
-<p>PASS 的 GUI 和命令行均支持普通独立 JSON 输入和单文件 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 项目。
-GUI 顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作。</p>
+<h1>可编辑项目<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>PASS 的 GUI 和命令行均支持普通独立 JSON 输入和目录项目。新的 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>
+是普通 JSON 工程描述文件，输入 JSON 和依赖文件放在旁边，可以直接打开修改。
+GUI 顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作。旧 ZIP <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 项目
+保留读取兼容，所有项目保存操作统一生成新格式。</p>
 <section id="id2">
 <h2>保存与打开<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>独立模式下，<strong>保存 JSON</strong> 和 <strong>JSON 另存为</strong> 写入普通 PASS 输入。
-项目模式下，<strong>保存项目</strong> 将所有输入 JSON、输入依赖、源文件和生成设置写入一个容器。
-<code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> 根据当前模式选择保存目标。<strong>打开 JSON</strong> 打开独立文档，
+项目模式下，<strong>保存项目</strong> 将工程描述、输入 JSON、输入依赖、源文件和生成设置
+保存为普通文件。<code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> 根据当前模式选择保存目标。旧 ZIP 项目首次保存时
+选择新的工程目录，原压缩文件保留；之后保存更新新工程文件，不再生成旧格式项目包。</p>
+<p>项目首次保存或 <strong>项目另存为</strong> 时，选择上级保存位置并输入项目名称（同时作为文件夹名）。
+对话框显示完整目标路径，保存时自动创建该文件夹，无需预先手动创建；取消不会创建目录。
+已保存项目按 <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> 时仍使用原位置。</p>
+<p><strong>打开 JSON</strong> 打开独立文档，
 不会隐式导入当前项目；后者使用 <strong>导入 JSON 到项目</strong>。
 替换文档或关闭窗口时，可以先保存未保存的修改。</p>
 <p>打开或导入输入、应用 JSON 源码修改以及应用属性修改时，GUI 会将已识别的参数名和
@@ -150,12 +157,17 @@ GUI 顶部 <strong>文件</strong> 菜单区分 JSON、项目以及导出操作�
 <p>文件操作显示进度，并暂时禁止编辑。取消操作可能需要等待正在进行的读取或写入完成；
 已经完成的保存按成功处理。JSON 另存到其他目录时同步更新相对输入路径，包括撤销与
 重做历史中的引用，使其仍指向同一源文件。</p>
-<p><strong>从当前输入创建项目</strong> 将当前配置打包。可以继续导入其他 JSON，
+<p><strong>从当前输入创建项目</strong> 为当前配置建立项目。可以继续导入其他 JSON，
 通过输入选择框切换。项目复制所引用的粒子分布、偏移表、RF 分量程序、Bump 波形、
 WakeField 模型文件和磁铁 ramping 文件，
 也保留导入前的原始 JSON、MAD-X TFS 和生成设置。
 缺失输入会报告其在 JSON 中的位置，阻止保存不完整项目。
 在 <strong>项目内容</strong> 中还可以添加其他源文件。</p>
+<p>使用 <strong>打开项目文件夹</strong> 打开包含 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件的目录，也可以直接打开
+单个 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件。在其他编辑器中修改工程文件后，使用 <strong>重新加载项目</strong>
+读取已保存的文件。GUI 保存和启动运行前会检查工程文件是否在磁盘上发生变化；
+需要重新加载并处理 GUI 中尚未保存的修改后再继续。日常编辑工程文件不需要手工
+维护校验和，运行快照仍独立记录和校验输入文件的哈希。</p>
 </section>
 <section id="id3">
 <h2>查看和复用参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
@@ -189,16 +201,22 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj</span>
 <span class="go">pass-run --passproj example.passproj</span>
 <span class="go">python -m PASS example.passproj</span>
+<span class="go">pass-run path/to/project-directory</span>
+<span class="go">pass-run --passproj path/to/project-directory</span>
+<span class="go">pass-run .</span>
 </pre></div>
 </div>
-<p>这些命令等价。<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 后缀触发项目读取，包括归档和校验和验证。
-命令行使用 GUI 保存的 <code class="docutils literal notranslate"><span class="pre">run_settings.beam0</span></code> 和可选的 <code class="docutils literal notranslate"><span class="pre">run_settings.beam1</span></code>。
-未保存 Beam 0 选择时，使用 <code class="docutils literal notranslate"><span class="pre">active_config_id</span></code> 对应配置；未选择 Beam 1 时仅运行单束流。
+<p>文件入口打开指定工程；目录入口优先读取 <code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>，没有该文件时，
+读取目录中唯一的 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>，例如 <code class="docutils literal notranslate"><span class="pre">myproject.passproj</span></code>。若存在多个且没有
+<code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>，需要显式指定工程文件。不会搜索子目录。
+程序根据内容区分新明文 JSON 工程与旧 ZIP 工程，旧归档仍执行校验和及依赖索引检查。
+新工程描述使用 <code class="docutils literal notranslate"><span class="pre">run.beam0</span></code> 和可选的 <code class="docutils literal notranslate"><span class="pre">run.beam1</span></code> 指定配置文件名。
+未保存 Beam 0 选择时，使用 <code class="docutils literal notranslate"><span class="pre">active_config</span></code> 对应配置；未选择 Beam 1 时仅运行单束流。
 已保存的选择不再存在，或两束选择了同一份配置时，会明确报错。
 项目中的其他配置不会自动执行，项目文件也不能与第二个输入参数组合使用。
 位置参数与命名输入选项不能混用。<code class="docutils literal notranslate"><span class="pre">--passproj</span></code> 不能与 <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> 或 <code class="docutils literal notranslate"><span class="pre">--beam1</span></code>
 组合使用；这两个选项用于选择独立 JSON 输入，具体用法见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。</p>
-<p>未覆盖输出目录时，命令行项目运行使用 <code class="docutils literal notranslate"><span class="pre">run_settings.output_directory</span></code>，默认为 <code class="docutils literal notranslate"><span class="pre">output</span></code>。
+<p>未覆盖输出目录时，命令行项目运行使用 <code class="docutils literal notranslate"><span class="pre">run.output_directory</span></code>，默认为 <code class="docutils literal notranslate"><span class="pre">output</span></code>。
 相对路径以已保存项目所在目录为基准，不受命令行当前工作目录或所选 JSON 内输出目录影响；
 绝对路径保持不变。结果与输入快照采用下述布局，均位于项目临时缓存之外。
 运行不会修改项目文件。</p>
@@ -226,6 +244,11 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
         gui.log                     # GUI 运行的完整进程日志
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">configuration0.json</span></code> 保留原始参数值与路径，供运行记录比较配置。
+<code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> 是跟踪实际读取的输入，其中依赖路径指向快照，输出根目录转为绝对路径。
+没有外部依赖时，两者可能仅在 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> 上不同。
+运行历史比较 configuration 文件；重新运行会先校验两份文件的记录哈希，再使用运行输入，
+因此快照中应同时保留两份文件。</p>
 <p>依赖直接复制到 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不创建编号子目录。保留原文件名；检查重名时不区分大小写，
 冲突时在扩展名前追加编号，例如 <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>。
 运行 JSON 使用指向这些已复制文件的相对路径，并以绝对路径指定输出根目录。
@@ -280,6 +303,8 @@ GUI 新建高斯束团使用 1e-6 m rad 的正横向发射度，运行前拒绝�
 <h2>导出<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <p><strong>导出当前 JSON</strong> 仅输出配置副本，不包含引用文件，
 也不改变当前正在编辑的文档。
+相对依赖路径会按导出目录调整，继续指向原文件。
+需要携带完整输入时，使用下述可运行输入包。
 <strong>导出可运行输入包</strong> 将运行页所选输入及其依赖写入 ZIP，附带 <code class="docutils literal notranslate"><span class="pre">run.py</span></code> 和英文使用说明。
 完整解压后，在安装了 PASS 的环境执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">run.py</span></code>。
 启动脚本以解压目录为基准解析路径，运行输入包不需要安装 Qt。</p>
@@ -299,35 +324,66 @@ GUI 启动或关闭时不会删除这些文件。</p>
 正常关闭会将已处理记录标为 resolved，但不删除恢复文件。</p>
 </section>
 <section id="id8">
-<h2>容器格式<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<p>格式版本 2 使用标准 ZIP/ZIP64，元数据采用 UTF-8 JSON：</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>manifest.json                  # 格式/PASS 版本、输入和文件清单
-configs/&lt;配置名称&gt;.json         # 普通 PASS 输入 JSON
-assets/&lt;文件名&gt;                # 原始输入/源文件字节
-recipes/&lt;index&gt;.json            # 生成设置和源文件引用
+<h2>工程格式与迁移<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>版本 3 使用 UTF-8 JSON <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 描述文件，同一工程目录中保存普通输入文件。
+新建工程及旧工程转换不会创建 <code class="docutils literal notranslate"><span class="pre">configs/</span></code> 或 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 目录：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>my-project/
+    project.passproj              # 明文 JSON 工程描述
+    beam0.json                    # 可直接编辑的 PASS 输入
+    beam1.json                    # 可选第二束或候选配置
+    quadrupole_ramp.tfs            # 被引用的输入依赖
+    distribution.tfs
+    output/                       # 运行时创建的结果目录
 </pre></div>
 </div>
-<p>在 PASS 外查看内容时，可用支持 ZIP 的压缩软件打开文件，
-或复制一份并将副本改名为 <code class="docutils literal notranslate"><span class="pre">.zip</span></code> 后解压。
-<code class="docutils literal notranslate"><span class="pre">manifest.json</span></code> 和 <code class="docutils literal notranslate"><span class="pre">configs/*.json</span></code> 可用普通文本编辑器阅读。
-GUI 中的 <strong>项目内容</strong> 可直接预览配置和源文件，无需手工解压。
-修改后应通过 GUI 保存项目，使依赖索引和校验和一同更新；
-手工修改归档成员可能导致项目校验失败。</p>
-<p>文件直接放在 <code class="docutils literal notranslate"><span class="pre">configs/</span></code> 和 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不再使用 UUID 子目录。
-配置使用其显示名称，依赖文件保留原始文件名；中文和空格保留，
-不安全的文件名字符会被替换。同一目录内出现重名时，在扩展名前依次添加
-<code class="docutils literal notranslate"><span class="pre">1</span></code>、<code class="docutils literal notranslate"><span class="pre">2</span></code>、<code class="docutils literal notranslate"><span class="pre">3</span></code> 等，例如 <code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>。
-配置文件也遵循相同规则，例如 <code class="docutils literal notranslate"><span class="pre">beam.json</span></code> 和 <code class="docutils literal notranslate"><span class="pre">beam1.json</span></code>。</p>
-<p>稳定 ID 仅用于清单内部引用，不决定文件名。配置采用相对路径引用资产；
-清单记录 SHA-256 校验和、依赖索引、当前活动配置和运行设置。移动项目只需复制一个文件，
-不需要携带临时编辑缓存；运行输入不依赖原电脑路径。
-源文件是快照，外部同名文件变化不会自动改变项目。</p>
-<p>保存时先写入并校验新归档，再替换旧文件。版本 2 拒绝不支持的格式版本、
-不安全路径、重复条目、校验和或依赖索引不一致。
-限制为 100,000 个条目、256 GiB 解压后总大小以及每个 JSON 条目 64 MiB。
-大型项目保存需要写入完整新归档的时间和额外磁盘空间。
-大型仿真输出不自动归档；显式添加为输入或源文件的内容会被内嵌，
-包括作为下一次输入使用的结果文件。</p>
+<p>以下描述只选择 Beam 0 运行：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pass-project"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"format_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"My simulation"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"beam0.json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"beam1.json"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"active_config"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam0.json"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"run"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"beam0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam0.json"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"beam1"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"output_directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"output"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">configs</span></code> 列出全部候选输入，<code class="docutils literal notranslate"><span class="pre">run</span></code> 选择一次运行使用的输入。
+将 <code class="docutils literal notranslate"><span class="pre">run.beam1</span></code> 改为 <code class="docutils literal notranslate"><span class="pre">&quot;beam1.json&quot;</span></code> 即选择第二份不同的输入。
+可选 <code class="docutils literal notranslate"><span class="pre">name</span></code> 是工程标题。最小描述可以省略 <code class="docutils literal notranslate"><span class="pre">configs</span></code>，此时由 <code class="docutils literal notranslate"><span class="pre">active_config</span></code>
+和已保存的束流选择确定输入列表。可选 <code class="docutils literal notranslate"><span class="pre">sources</span></code> 条目包含 <code class="docutils literal notranslate"><span class="pre">path</span></code> 和 <code class="docutils literal notranslate"><span class="pre">kind</span></code>，
+可选 <code class="docutils literal notranslate"><span class="pre">recipes</span></code> 列出生成设置 JSON 文件，用于保留导入的源文件和旧工程生成设置。</p>
+<p>新导入的 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 辅助文件保存在 <code class="docutils literal notranslate"><span class="pre">sources/</span></code> 子目录中；若该名称已被占用，
+则使用带编号的替代名称。这样可以避免目录入口将辅助文件误认为工程描述；束流 JSON
+和普通 ramping 文件仍与工程描述放在一起。如果自定义名称的工程根目录中已经存在
+<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 辅助文件，应另存到新目录，或手工将辅助文件移入子目录、更新引用并
+重新加载后再保存。已有文件会保留。</p>
+<p>工程描述中的路径相对于描述文件所在目录。输入依赖相对于引用它的 JSON 解析，
+因此仍可使用 <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">beam0.json</span></code> 独立运行。例如磁铁可以设置
+<code class="docutils literal notranslate"><span class="pre">&quot;Ramping</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;quadrupole_ramp.tfs&quot;</span></code>，多个命令或输入可以引用同一个文件。
+程序从输入配置自动收集依赖，无需在工程描述中另行维护 ramping 文件登记表。
+已有相对子目录受支持，重新加载和保存时保留。引用的工程文件必须位于工程目录内。
+仅大小写不同的依赖路径必须指向同一个实际文件；指向不同文件时会拒绝读取，
+以保证工程的跨平台可移植性。
+引用的成员路径不能包含符号链接或 Windows 目录联接，即使链接后接 <code class="docutils literal notranslate"><span class="pre">..</span></code> 也不允许。</p>
+<p>可以使用普通编辑器修改工程描述、输入 JSON 和文本依赖，不需要手工更新内容哈希
+或 UUID 引用。外部修改后重新打开或重新加载工程。移动或分享时应携带工程目录及其
+引用文件，仅复制 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 描述文件并不完整。GUI 的 <strong>项目内容</strong> 提供配置和
+源文件的只读预览。目标目录中无关的同名文件不会被覆盖，发生冲突时应选择其他目录。
+移除引用时不会自动删除已保存的工程文件。
+另存到其他目录时，不会覆盖目标中已有的文件；即使原目录与目标目录重叠，目标文件
+属于原工程，也不会覆盖。</p>
+<p>版本 2 ZIP/ZIP64 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 仅保留读取兼容，原有校验和、依赖索引、路径及大小检查
+仍然有效。打开或运行旧工程不会修改原文件。首次保存必须选择不同于原压缩文件所在
+目录的目标目录，生成版本 3 工程。转换保留全部候选输入、源文件、生成设置及束流选择，
+重写依赖路径并处理文件名冲突，原归档保留。新保存操作不再生成版本 2 归档，也不提供
+旧格式工程导出。<strong>导出可运行输入包</strong> 仍作为独立功能，将选中的运行输入导出为 ZIP。</p>
+<p>旧版 PASS 无法读取版本 3 描述文件。运行快照继续复制输入和依赖，并记录用于复现的
+SHA-256 校验和；快照的固定输入规则与日常可编辑工程分开。大型仿真输出不会自动加入
+工程，只有显式作为输入或源文件添加时才成为工程依赖。</p>
 </section>
 </section>
 

@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -92,6 +92,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">监视器与输出</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">自动绘图</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">粒子监视器（ParticleMonitor）</a><ul>
@@ -109,6 +110,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#id2">空槽与粒子记录</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
@@ -257,6 +259,8 @@ TFS 使用相同文件名主体和 <code class="docutils literal notranslate"><s
 <code class="docutils literal notranslate"><span class="pre">Layout=&quot;single_file&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">FormatVersion=2</span></code>、监测位置、束流编号、
 粒子 tag 上界和计划记录区间。</p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">monitor_name</span></code> 采用 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a> 中的简化文件名标签，省略导入实例编号和重复的位置标签。
+<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> 元数据保留完整命令名。</p>
 <p>PM 读取器要求当前第 2 版格式。输出配置仅包含格式与缓冲设置，不设布局字段。</p>
 <p>写入间隔只改变缓冲方式，<strong>仍然每圈采样</strong>。
 例如 <code class="docutils literal notranslate"><span class="pre">write_interval_turns=128</span></code> 将 128 个记录圈一起追加到 HDF5 后复用缓冲区。
@@ -398,7 +402,7 @@ float64 历史缓冲的大小上限为</p>
 <code class="docutils literal notranslate"><span class="pre">Completed</span></code> 只表示监视器覆盖自己的计划区间，不代表 sequence 中后续命令完成。
 收尾仅刷新已有样本，不在其他格点位置补采样。协作提前停止因此只保留已经采样的圈。
 GUI 正常停止会等待整圈完成再收尾；强制终止进程可能丢失尚未写出的块。
-停止操作见 <a class="reference internal" href="../project_files.html"><span class="doc">单文件项目</span></a>。</p>
+停止操作见 <a class="reference internal" href="../project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p><code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> 保存实际样本数。最终 TFS 文件头包含全部最终计数，
 包括 <code class="docutils literal notranslate"><span class="pre">ValidSamples</span></code>、<code class="docutils literal notranslate"><span class="pre">ValidRows</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Completed</span></code>。
 正常提前停止会为已观测区间生成完整 TFS 表；未覆盖计划区间时 <code class="docutils literal notranslate"><span class="pre">Completed=false</span></code>。</p>

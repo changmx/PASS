@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single-file projects &mdash; PASS 0.6.2 User Manual</title>
+  <title>Editable projects &mdash; PASS 0.6.2 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Single-file projects</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Editable projects</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#saving-and-opening">Saving and opening</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running">Running</a><ul>
@@ -70,7 +70,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#exporting">Exporting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#restoring-existing-drafts">Restoring existing drafts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#container-format">Container format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#project-format-and-migration">Project format and migration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
@@ -122,7 +122,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS User Manual</a></li>
-      <li class="breadcrumb-item active">Single-file projects</li>
+      <li class="breadcrumb-item active">Editable projects</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -131,17 +131,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="single-file-projects">
-<h1>Single-file projects<a class="headerlink" href="#single-file-projects" title="Link to this heading"></a></h1>
-<p>PASS supports ordinary standalone JSON inputs and single-file <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>
-projects through the GUI and command line. The GUI <strong>File</strong> menu separates JSON,
-project, and export actions.</p>
+  <section id="editable-projects">
+<h1>Editable projects<a class="headerlink" href="#editable-projects" title="Link to this heading"></a></h1>
+<p>PASS supports ordinary standalone JSON inputs and directory projects through the
+GUI and command line. A new <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> is a plain JSON project description;
+input JSON and dependency files are stored beside it and can be edited directly.
+The GUI <strong>File</strong> menu separates JSON, project, and export actions. Existing ZIP
+<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> projects remain readable, but all project saves use the new format.</p>
 <section id="saving-and-opening">
 <h2>Saving and opening<a class="headerlink" href="#saving-and-opening" title="Link to this heading"></a></h2>
 <p>In standalone mode, <strong>Save JSON</strong> and <strong>JSON Save as</strong> write an ordinary PASS input.
-In project mode, <strong>Save project</strong> writes all input JSON files, input dependencies,
-sources, and generation settings into one container. <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> follows the active
-mode. <strong>Open JSON</strong> opens an independent document; it does not silently import
+In project mode, <strong>Save project</strong> writes the project description, input JSON,
+dependencies, sources, and generation settings as ordinary files. <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code>
+follows the active mode. The first save of an old ZIP project selects a new
+project directory and preserves the original archive. Subsequent saves update
+the new project files; PASS no longer writes old-format project archives.</p>
+<p>For the first project save or <strong>Project Save as</strong>, choose the parent location
+and enter the project name, which is also the folder name. The dialog shows the
+complete destination; saving creates that folder automatically. There is no
+need to create it beforehand, and cancelling creates nothing. Saving an existing
+project with <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> continues to use its current location.</p>
+<p><strong>Open JSON</strong> opens an independent document; it does not silently import
 into a project. Use <strong>Import JSON into project</strong> for that operation. Replacing a
 document or closing the window offers to save unsaved changes.</p>
 <p>When opening or importing inputs, applying JSON source edits, or applying form
@@ -155,13 +165,20 @@ without applying the changes, even when their values match.</p>
 wait for an in-progress read or write to finish; a completed save is reported as
 successful. Saving JSON in another directory updates relative input references,
 including those used by undo/redo, so they still identify the same source files.</p>
-<p><strong>Create project from current input</strong> packages the current configuration. Import
+<p><strong>Create project from current input</strong> creates a project from the current configuration. Import
 additional JSON files and use the input selector to switch between them. Projects
 copy referenced particle distributions, offset tables, RF component programs,
 Bump waveforms, WakeField model files, and magnet ramping files. Original imported JSON and MAD-X TFS files and generator settings
 are retained as sources. Missing inputs identify their JSON location and prevent
 an incomplete project from being saved. Additional source files can be added from
 <strong>Project contents</strong>.</p>
+<p>Use <strong>Open project folder</strong> to open a directory containing a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file.
+Individual <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> files can also be opened directly. After editing project
+files in another editor, use <strong>Reload project</strong> to read the saved files again.
+Saving or starting a GUI run checks whether the project files have changed on
+disk; reload and resolve any unsaved GUI edits before continuing. Editable
+project files do not require manually maintained checksums. Run snapshots still
+record and verify checksums independently.</p>
 </section>
 <section id="inspecting-and-reusing-parameters">
 <h2>Inspecting and reusing parameters<a class="headerlink" href="#inspecting-and-reusing-parameters" title="Link to this heading"></a></h2>
@@ -198,19 +215,27 @@ unsaved project uses the current working directory.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run example.passproj</span>
 <span class="go">pass-run --passproj example.passproj</span>
 <span class="go">python -m PASS example.passproj</span>
+<span class="go">pass-run path/to/project-directory</span>
+<span class="go">pass-run --passproj path/to/project-directory</span>
+<span class="go">pass-run .</span>
 </pre></div>
 </div>
-<p>These commands are equivalent. The <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> extension selects project
-loading, including archive and checksum validation. The command line uses
-<code class="docutils literal notranslate"><span class="pre">run_settings.beam0</span></code> and the optional <code class="docutils literal notranslate"><span class="pre">run_settings.beam1</span></code> saved by the GUI.
-When no Beam 0 selection has been saved, <code class="docutils literal notranslate"><span class="pre">active_config_id</span></code> supplies Beam 0;
+<p>The file forms open the specified project. Directory forms prefer
+<code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>; otherwise they open the only <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file directly
+in that directory, such as <code class="docutils literal notranslate"><span class="pre">myproject.passproj</span></code>. If several exist without
+<code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>, specify the desired file explicitly. Subdirectories are
+not searched. New plain JSON and old ZIP project files
+are distinguished by their contents. Old archives retain their checksum and
+dependency-index checks. The new project description uses <code class="docutils literal notranslate"><span class="pre">run.beam0</span></code> and the
+optional <code class="docutils literal notranslate"><span class="pre">run.beam1</span></code> to name the selected configuration files.
+When no Beam 0 selection has been saved, <code class="docutils literal notranslate"><span class="pre">active_config</span></code> supplies Beam 0;
 Beam 1 is omitted unless selected. A saved selection that no longer exists, or
 selecting the same configuration for both beams, is an error. Other configurations
 are not run automatically. A project file cannot be combined with a second input
 argument. Do not mix positional inputs with named input options. <code class="docutils literal notranslate"><span class="pre">--passproj</span></code>
 cannot be combined with <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> or <code class="docutils literal notranslate"><span class="pre">--beam1</span></code>; those options select standalone
 JSON inputs instead. See <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a> for the JSON command forms.</p>
-<p>Without an override, command-line project runs use <code class="docutils literal notranslate"><span class="pre">run_settings.output_directory</span></code>, defaulting to
+<p>Without an override, command-line project runs use <code class="docutils literal notranslate"><span class="pre">run.output_directory</span></code>, defaulting to
 <code class="docutils literal notranslate"><span class="pre">output</span></code>. Relative paths are resolved beside the saved project, regardless of
 the shell’s working directory or output directories inside the selected JSON
 configurations. Absolute output paths remain absolute. Results and input snapshots
@@ -246,6 +271,12 @@ as standalone JSON runs:</p>
         gui.log                     # complete process log for GUI runs
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">configuration0.json</span></code> preserves the original parameter values and paths for
+comparing runs. <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> is the input actually consumed by tracking, with
+dependency paths redirected to the snapshot and an absolute output root. Without
+external dependencies, they may differ only in <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code>. Run history
+compares the configuration files, while rerunning checks both files against their
+recorded hashes before using the runtime inputs; retain both in the snapshot.</p>
 <p>Dependencies are copied directly into <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without numbered subdirectories.
 Filenames are preserved; conflicts are checked without case sensitivity and
 resolved by appending a number before the extension, such as <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code> or
@@ -318,6 +349,9 @@ emittances of 1e-6 m rad; zero-extent Gaussian generation is rejected before lau
 <h2>Exporting<a class="headerlink" href="#exporting" title="Link to this heading"></a></h2>
 <p><strong>Export current JSON</strong> writes a copy of the configuration only. It does not
 include referenced files and does not change which document is being edited.
+Relative dependency paths are adjusted for the export directory so they still
+refer to the original files. Move those files with a runnable input bundle when
+sharing a self-contained input.
 <strong>Export runnable input bundle</strong> writes the run page’s selected inputs and their
 dependencies as ZIP, together with <code class="docutils literal notranslate"><span class="pre">run.py</span></code> and an English usage note. Extract
 the entire bundle, install PASS, and execute <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">run.py</span></code>. The launcher
@@ -341,43 +375,86 @@ does not resolve the source recovery record. That record remains pending until
 the recovered document is saved or explicitly discarded. Normal closing marks
 handled records as resolved without deleting the recovery files.</p>
 </section>
-<section id="container-format">
-<h2>Container format<a class="headerlink" href="#container-format" title="Link to this heading"></a></h2>
-<p>Version 2 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>manifest.json                     # format/PASS versions, input and asset index
-configs/&lt;configuration-name&gt;.json  # ordinary PASS input JSON
-assets/&lt;filename&gt;                 # original input/source bytes
-recipes/&lt;index&gt;.json               # generation settings and source references
+<section id="project-format-and-migration">
+<h2>Project format and migration<a class="headerlink" href="#project-format-and-migration" title="Link to this heading"></a></h2>
+<p>Version 3 uses a UTF-8 JSON <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> description and ordinary files in the
+same project directory. New projects and legacy conversions do not create
+<code class="docutils literal notranslate"><span class="pre">configs/</span></code> or <code class="docutils literal notranslate"><span class="pre">assets/</span></code> directories:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>my-project/
+    project.passproj              # plain JSON project description
+    beam0.json                    # editable PASS input
+    beam1.json                    # optional second input or candidate
+    quadrupole_ramp.tfs            # referenced input dependency
+    distribution.tfs
+    output/                       # run results, created when running
 </pre></div>
 </div>
-<p>To inspect the contents outside PASS, open the file with a ZIP-compatible archive
-application, or copy it, rename the copy to <code class="docutils literal notranslate"><span class="pre">.zip</span></code>, and extract it. Read
-<code class="docutils literal notranslate"><span class="pre">manifest.json</span></code> and <code class="docutils literal notranslate"><span class="pre">configs/*.json</span></code> with an ordinary text editor. In the GUI,
-<strong>Project contents</strong> provides configuration and source previews without manual
-extraction. Save project changes through the GUI so the dependency index and
-checksums are updated together; editing archive members by hand can invalidate
-the project.</p>
-<p>Files are stored directly in <code class="docutils literal notranslate"><span class="pre">configs/</span></code> and <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without UUID
-subdirectories. Configurations use their display names and assets retain their
-original filenames. Chinese characters and spaces are preserved; characters
-unsafe in filenames are replaced. If a name already exists in the same directory,
-PASS adds <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, and so on before the extension, for example
-<code class="docutils literal notranslate"><span class="pre">rf.tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code>, and <code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>. Configuration names follow the same rule,
-for example <code class="docutils literal notranslate"><span class="pre">beam.json</span></code> and <code class="docutils literal notranslate"><span class="pre">beam1.json</span></code>.</p>
-<p>Stable IDs remain internal manifest references and do not determine filenames.
-Configurations refer to assets by relative paths. The manifest records SHA-256
-checksums, the dependency index, the active configuration, and run settings. Copying the project requires
-only one file; the temporary editing cache
-does not need to be transferred. The runtime input does not depend on paths on
-the original computer. Source files are snapshots and are not silently refreshed
-when an external file changes.</p>
-<p>Saving writes and verifies a new archive before replacing the old one. Version 2
-rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
-or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
-and 64 MiB per JSON member. A large project requires time and additional disk
-space to write a complete new archive. Large simulation outputs are not archived
-automatically; files explicitly added as inputs or sources are embedded regardless
-of their type, including results reused as input.</p>
+<p>An example description selecting only Beam 0 is:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pass-project"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"format_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"My simulation"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"beam0.json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"beam1.json"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"active_config"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam0.json"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"run"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"beam0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam0.json"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"beam1"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"output_directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"output"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">configs</span></code> lists all candidate inputs, while <code class="docutils literal notranslate"><span class="pre">run</span></code> selects the inputs for one
+run. Set <code class="docutils literal notranslate"><span class="pre">run.beam1</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;beam1.json&quot;</span></code> to select a second, distinct input.
+The optional <code class="docutils literal notranslate"><span class="pre">name</span></code> is the project title. A minimal description may omit
+<code class="docutils literal notranslate"><span class="pre">configs</span></code>; its inputs are then derived from <code class="docutils literal notranslate"><span class="pre">active_config</span></code> and the saved
+beam selections. Optional <code class="docutils literal notranslate"><span class="pre">sources</span></code> entries contain <code class="docutils literal notranslate"><span class="pre">path</span></code> and <code class="docutils literal notranslate"><span class="pre">kind</span></code>;
+optional <code class="docutils literal notranslate"><span class="pre">recipes</span></code> lists generation-setting JSON files. These retain imported
+source files and generator settings when converting an old project.</p>
+<p>Newly imported auxiliary files ending in <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> are saved under
+<code class="docutils literal notranslate"><span class="pre">sources/</span></code> (or a numbered alternative if that name is occupied). This keeps
+directory execution from mistaking them for project entries; beam JSON and
+ordinary ramping files remain beside the description. If a custom-named project
+already has auxiliary <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> files at its top level, save it into a new
+directory, or move those auxiliaries into a subdirectory, update their references,
+and reload before saving. Existing files are preserved.</p>
+<p>Project-description paths are relative to its directory. Input dependencies are
+resolved relative to the JSON that references them, so <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> remains
+independently runnable with <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">beam0.json</span></code>. For example, a magnet can
+refer to <code class="docutils literal notranslate"><span class="pre">&quot;Ramping</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;quadrupole_ramp.tfs&quot;</span></code>. A shared file may be referenced
+by multiple commands or inputs. Dependencies are collected from input references;
+there is no separate ramping registry to maintain in the project description.
+Existing relative subdirectories are supported and preserved when a project is
+loaded and saved. Referenced project files must remain within the project
+directory. Dependency paths differing only in letter case must identify the same
+physical file; distinct files are rejected to keep the project portable.
+Referenced member paths cannot contain symbolic links or Windows junctions,
+including components followed by <code class="docutils literal notranslate"><span class="pre">..</span></code>.</p>
+<p>Edit the description, input JSON, and text dependencies with an ordinary editor.
+There are no stored content hashes or UUID-based references to update manually.
+Reopen or reload after external edits. Move or share the project directory with
+all its referenced files; copying only the <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> description is not enough.
+The GUI’s <strong>Project contents</strong> provides read-only previews of configurations and
+sources. Unrelated files in a destination directory are not overwritten; choose
+a separate destination if a filename conflicts. Saved project files are not
+automatically deleted when a reference is removed.
+Saving into another directory never overwrites existing destination files,
+including original project members when the source and destination directories
+overlap.</p>
+<p>Version 2 ZIP/ZIP64 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> archives are read-only compatibility inputs.
+Their original checksum, dependency-index, path, and size checks remain in force.
+Opening or running one does not modify it. Its first save must target a different
+directory from the original archive’s directory and produces a version 3 project.
+Conversion preserves all candidate inputs, sources, generation settings, and
+beam selections, rewrites dependency paths, and resolves filename conflicts.
+The original archive remains intact. New project saves never produce version 2
+archives, and there is no old-format project export. <strong>Export runnable input
+bundle</strong> remains available as a separate ZIP export of selected runtime inputs.</p>
+<p>Older PASS versions cannot open version 3 descriptions. Run snapshots continue
+to copy inputs and dependencies and record SHA-256 hashes for reproduction;
+their immutable-input rules are separate from editable project files. Large
+simulation outputs are not automatically included in a project. They become
+project dependencies only when explicitly added as inputs or sources.</p>
 </section>
 </section>
 

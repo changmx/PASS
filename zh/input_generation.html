@@ -92,7 +92,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -212,11 +212,13 @@
 安装后，<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS</span></code> 接受完全相同的参数，并明确使用所选 Python 解释器。
 两种入口都不需要 Qt 或 PySide6。安装后执行 <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--version</span></code> 或
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS</span> <span class="pre">--version</span></code> 查看版本号并退出，无需提供输入文件。
-程序根据文件后缀识别输入类型：</p>
+可以指定 JSON 输入、<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件或工程目录：</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json</span>
 <span class="go">pass-run input/beam0.json input/beam1.json</span>
 <span class="go">pass-run example.passproj</span>
 <span class="go">python -m PASS example.passproj</span>
+<span class="go">pass-run path/to/project-directory</span>
+<span class="go">pass-run .</span>
 </pre></div>
 </div>
 <p>命名输入选项也支持相同的三种运行方式：</p>
@@ -227,12 +229,14 @@
 </div>
 <p>位置参数和命名输入选项只能选择其中一种，不能混用。
 <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> 和 <code class="docutils literal notranslate"><span class="pre">--beam1</span></code> 要求 JSON 文件，<code class="docutils literal notranslate"><span class="pre">--beam1</span></code> 必须与 <code class="docutils literal notranslate"><span class="pre">--beam0</span></code> 一起使用。
-<code class="docutils literal notranslate"><span class="pre">--passproj</span></code> 要求 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件，不能与任何束流选项组合使用。
+<code class="docutils literal notranslate"><span class="pre">--passproj</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件或工程目录，不能与任何束流选项组合使用。
 相对输入路径以终端当前工作目录为基准，包含空格的路径需要加引号。</p>
-<p>一个或两个 JSON 分别用于单束流或双束流运行。单个 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件使用已保存的
+<p>一个或两个 JSON 分别用于单束流或双束流运行。<code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 文件或工程目录使用已保存的
 Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
-不会依次执行项目中的全部配置。已保存的选择失效或两束选择重复时会报错。
-项目选择和输出路径规则见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
+不会依次执行项目中的全部配置。目录入口优先打开 <code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>，没有该文件时
+打开其中唯一的 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>；存在多个候选时需要显式指定文件。同时支持读取
+新明文 JSON 工程和旧 ZIP 工程。已保存的选择失效或两束选择重复时会报错。
+项目选择和输出路径规则见 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p>使用 <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code> 指定本次运行的输出根目录，优先于 JSON 或项目保存的设置，
 支持单份 JSON、双份 JSON 或一个项目。命令行指定的相对输出路径以启动时的工作目录
 为基准，原始 JSON 和项目文件保持不变：</p>
@@ -301,7 +305,7 @@ Python 集成可使用
 并以绝对 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> 保存到执行快照；移动快照不会改变结果目的地。
 覆盖同时改变快照和结果的输出根目录，保留上述布局。原始 JSON 和输入文件保持不变。
 <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> 重新序列化原始配置值；依赖文件则逐字节原样复制。
-GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录规则，见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
+GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录规则，见 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p>结果目录中的参数 JSON 保留原有文件名，并保存绝对输入路径和输出路径。
 它从已经载入的配置生成，使用解析路径后、展开命名配置前的内容，不再次读取源 JSON。
 主快照中的 <code class="docutils literal notranslate"><span class="pre">beamN.json</span></code> 仍使用相对依赖路径。</p>
@@ -473,7 +477,7 @@ Python API 显式设置 <code class="docutils literal notranslate"><span class="
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
-<td><p>是否在跟踪结束后生成图形。</p></td>
+<td><p>跟踪正常结束后从已保存结果生成 <a class="reference internal" href="monitor/plotting.html"><span class="doc">监视器图片</span></a>；默认保存在本次运行的 <code class="docutils literal notranslate"><span class="pre">plot/</span></code> 目录。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Timing</span></code></p></td>
@@ -990,6 +994,9 @@ MAD-X 通用 <code class="docutils literal notranslate"><span class="pre">MULTIP
 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code>；字段可使用 Python 名称或 JSON 别名。
 位置、命令类型和排序由导入器决定，不应在模板内填写 <code class="docutils literal notranslate"><span class="pre">s</span></code>、<code class="docutils literal notranslate"><span class="pre">command</span></code>、<code class="docutils literal notranslate"><span class="pre">order</span></code>
 或其别名。MAD-X 的水平/垂直 BPM 关键字不限制所选 PASS 监视器记录的坐标。</p>
+<p>生成的 PASS 命令名省略末尾的数字 MAD-X 实例后缀：例如位于 422.0936762 m 的
+<code class="docutils literal notranslate"><span class="pre">bpm:1</span></code> 生成 <code class="docutils literal notranslate"><span class="pre">bpm_s422.094</span></code>。同名元件通过位置区分，只有生成名称完全相同时
+才追加 <code class="docutils literal notranslate"><span class="pre">_2</span></code>、<code class="docutils literal notranslate"><span class="pre">_3</span></code> 等编号。用于 BPM 筛选和磁场误差实例匹配的原始来源名称保持不变。</p>
 <p>如需只记录部分 BPM，可传入 <code class="docutils literal notranslate"><span class="pre">bpm_names</span></code> （精确名称）和/或 <code class="docutils literal notranslate"><span class="pre">bpm_patterns</span></code>
 （正则表达式）。两者均在生成名称后缀和漂移合并之前，对原始 MAD-X <code class="docutils literal notranslate"><span class="pre">NAME</span></code>
 进行不区分大小写的匹配。正则表达式采用搜索匹配；如需匹配整个名称，应使用

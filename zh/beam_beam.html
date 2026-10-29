@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -1196,7 +1196,9 @@ RF 相位由 <code class="docutils literal notranslate"><span class="pre">Phase<
 <h2>实现位置与验证范围<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <p>主命令与会合状态位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/beam_beam.py</span></code>。
 三个独立元件位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/</span></code>。
-在 <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code> 中，<code class="docutils literal notranslate"><span class="pre">config.py</span></code> 定义配置，<code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> 负责源准备、
+输入模型与联合校验位于 <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/beam_beam.py</span></code>；
+<code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/config.py</span></code> 保留原导入路径的兼容接口。
+在 <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code> 中，<code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> 负责源准备、
 切片对顺序和六维 kick。<code class="docutils literal notranslate"><span class="pre">hourglass.py</span></code> 负责已准备源的中心、协方差及其距离导数的传播，
 并管理 PIC 源的传播采样网格。源沿 <span class="math notranslate nohighlight">\(-S\)</span> 传播，势的距离导数保持碰撞平面的横向坐标不变；
 亮度诊断复用同一组传播矩。<code class="docutils literal notranslate"><span class="pre">luminosity.py</span></code> 负责密度重叠和 TFS/HDF5 追加记录，

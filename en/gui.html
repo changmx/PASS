@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Single-file projects" href="project_files.html" />
+    <link rel="next" title="Editable projects" href="project_files.html" />
     <link rel="prev" title="JSON input validation" href="input_validation.html" /> 
 </head>
 
@@ -74,6 +74,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#result-files">Result files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss-and-optics">Twiss and optics</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-source-and-reference-beam">MAD-X source and reference beam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-properties-during-element-import">Batch properties during element import</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-sampling">MAD-X sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-bpm-import">MAD-X BPM import</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#one-turn-transfer">One-turn transfer</a></li>
@@ -86,7 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#help-and-local-documentation">Help and local documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -151,8 +152,14 @@
 To install from a GitHub clone or extracted source archive, run
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> from the directory containing <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.
 Launch it with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> or <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code>.</p>
+<p>Startup prepares the input schemas first, so the configuration page can become
+editable without loading the tracking commands. Calculation, plotting and file
+conversion dependencies continue loading in the background; their preparation
+status does not prevent editing the configuration.</p>
 <ol class="arabic simple">
-<li><p>Open a PASS input JSON or a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> project, or configure a new input.</p></li>
+<li><p>Open a PASS input JSON, a <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> project, or a project folder, or configure
+a new input. Folder selection prefers <code class="docutils literal notranslate"><span class="pre">project.passproj</span></code>, otherwise it requires
+exactly one <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file directly in that folder.</p></li>
 <li><p>Edit the global parameters, injection, and execution sequence. Select <strong>Apply</strong>
 to commit each property form; unapplied forms and JSON text are drafts.</p></li>
 <li><p>Select <strong>Validate</strong> in the sequence toolbar and resolve errors. See
@@ -161,7 +168,8 @@ to commit each property form; unapplied forms and JSON text are drafts.</p></li>
 <li><p>Open the result directory or load outputs on <strong>Plot</strong>.</p></li>
 </ol>
 <p>The configuration page edits the same input used by the tracking engine.
-For project packaging, run snapshots, stopping, and rerunning, see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.
+For editable project files, old-project conversion, run snapshots, stopping, and
+rerunning, see <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a>.
 Standalone calculations are available under <strong>Tools</strong>; see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a>.
 The <strong>Analysis</strong> workspace uses the same icon-and-text sidebar as <strong>Tools</strong>,
 with three entries: <strong>Spectrum</strong>, <strong>Frequency map analysis</strong> and <strong>Dynamic aperture</strong>.
@@ -225,7 +233,7 @@ previews, MAD-X previews/imports and Bump CSV conversion display a brief status
 message instead of waiting for imports on the interface thread; retry these
 actions after loading completes. File reading and actual calculations still take
 time, and creating a tool on its first visit can cause a short pause.</p>
-<p>Drop one local <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> or PASS input JSON onto the window, including child
+<p>Drop one local <code class="docutils literal notranslate"><span class="pre">.passproj</span></code>, a project folder, or PASS input JSON onto the window, including child
 editors. File contents are checked before replacing the current document. A
 replacement requires confirmation; unsaved changes offer Save/Discard/Cancel.
 Invalid files or cancellation keep the current document. With a project open,
@@ -247,11 +255,15 @@ project window, launch another <code class="docutils literal notranslate"><span 
 discard one draft before applying the other. Saving requires resolving drafts.
 Injection, Space charge, WakeField, and ElectronCloud forms apply their changes together as one
 undo step. <strong>Cancel</strong> restores applied parameters. Drafts are not automatically
-backed up; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a> for manual saving and recovery.</p>
+backed up; see <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a> for manual saving and recovery.</p>
 <p>The read-only <code class="docutils literal notranslate"><span class="pre">Command</span></code> type appears beside the property heading. Editable
 parameters start with name, position <code class="docutils literal notranslate"><span class="pre">s</span></code>, and length, followed by the element’s
 field strengths and geometry, then <code class="docutils literal notranslate"><span class="pre">Model</span></code>, <code class="docutils literal notranslate"><span class="pre">Integrator</span></code>, and slice count.
 Presentation order is independent of schema inheritance and JSON key order.</p>
+<p>Sequence commands, including Injection and SortBunch, expose <code class="docutils literal notranslate"><span class="pre">Order</span></code>.
+Leave it blank or enter <code class="docutils literal notranslate"><span class="pre">null</span></code> to use the default command priority. If any
+command at the same <code class="docutils literal notranslate"><span class="pre">s</span></code> has an explicit order, all commands at that position
+must have distinct integer orders.</p>
 <p>For example, <code class="docutils literal notranslate"><span class="pre">SBend</span></code> displays name, <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">K0L</span></code>,
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Fint</span></code>, <code class="docutils literal notranslate"><span class="pre">Fintx</span></code>, <code class="docutils literal notranslate"><span class="pre">Model</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Integrator</span></code>, and <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>, followed by <strong>Field errors</strong>, <strong>Alignment errors</strong>, <strong>Aperture</strong>,
@@ -396,12 +408,36 @@ transport <code class="docutils literal notranslate"><span class="pre">Num</span
 <section id="injection-clocks-rf-and-pulsed-elements">
 <h2>Injection, clocks, RF and pulsed elements<a class="headerlink" href="#injection-clocks-rf-and-pulsed-elements" title="Link to this heading"></a></h2>
 <p>Injection preserves valid harmonic-ID permutations when applying a form.
-Adding/copying bunches assigns a new slot; deleting a slot compresses higher IDs.
+<code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> is editable: enter the desired group count and select
+<strong>Update harmonic slots</strong> (更新谐波槽数), or apply the form directly. Increasing
+the count fills new slots with zero real and macro particles, retaining the
+current bunch’s reference parameters and assigning each new slot its own
+harmonic ID and default reference arrival time. For one populated bunch in four
+groups, fill only <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> with harmonic ID 0 and set the count to 4; the other
+three slots are created empty. GUI JSON drafts and imported inputs with fewer
+bunch entries are also completed when applying the source or saving/running.
+Saved inputs retain the full slot structure. Empty slots require no separate
+particle configuration and produce no monitor files. The bunch selector’s
+tooltips and summary identify empty slots. This group count remains independent
+of the RF cavity harmonics.</p>
+<p><strong>Empty current slot</strong> (当前槽置空) and <strong>Empty other slots</strong> (其余槽置空) zero the
+selected particle counts and clear particle sources without changing the group
+count. Reference parameters and harmonic IDs are retained. Reducing the group
+count removes only empty slots whose harmonic IDs are outside the new range;
+occupied slots must first be emptied. These operations remain form drafts until
+applied. Adding/copying a populated bunch fills an existing empty slot first;
+the group count increases only when every slot is occupied. Copying an empty
+slot does not create another slot. Deleting a bunch leaves its slot empty and
+preserves the group count and every other harmonic ID. To remove slots, reduce
+<code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> explicitly.
 The batch summary shows the planned total, first/subsequent batch sizes, last
 injection turn and macro-particle weight. New bunches retain the existing weight.
 Distribution input offers <code class="docutils literal notranslate"><span class="pre">sequential</span></code> or <code class="docutils literal notranslate"><span class="pre">repeat</span></code>. Random seeds and
-reference arrival times can be cleared to null. Integer fields accept large
-particle counts without a signed-32-bit limit.</p>
+reference arrival times can be cleared to null. Integer text inputs accept exact
+scientific notation, such as <code class="docutils literal notranslate"><span class="pre">1e5</span></code> or <code class="docutils literal notranslate"><span class="pre">2.5e3</span></code>, and save ordinary JSON integers.
+Fractional results, NaN and infinity are rejected. Particle-count fields retain
+support for values above the signed-32-bit limit; bounded controls retain their
+existing ranges.</p>
 <p>The shared design clock is calculated from the initial beam, circumference and
 enabled RF waveforms; global configuration has no clock-table input. It is
 independent of collective changes to the tracked particles. To preserve an
@@ -716,6 +752,25 @@ cache. After editing a file referenced by the source script, use
 The existing sampling, BPM and geometry options still apply. The Python
 workflow and PTC derivative conversion are documented in <a class="reference internal" href="input_generation.html#en-madx-sequence"><span class="std std-ref">Method 4: Load a MAD-X sequence or LINE</span></a>.</p>
 </section>
+<section id="batch-properties-during-element-import">
+<h3>Batch properties during element import<a class="headerlink" href="#batch-properties-during-element-import" title="Link to this heading"></a></h3>
+<p>For physical-element import, enable <strong>Set properties by element type</strong>
+(按元件类型批量设置属性), select a command type and a property, then choose
+<strong>Add property setting</strong> (添加属性设置). Enter its value and add further settings
+for the same or other types. For example, set every imported SBend’s <code class="docutils literal notranslate"><span class="pre">Model</span></code>
+to <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code> and every Quadrupole’s <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> to <code class="docutils literal notranslate"><span class="pre">20</span></code>.
+Only selected properties of matching newly imported elements are replaced;
+unselected properties and existing sequence entries retain their values.
+<code class="docutils literal notranslate"><span class="pre">Command</span></code>, position and length come from the source.</p>
+<p>Preview validates the resulting elements and lists the batch settings before
+import. Invalid settings prevent insertion. Explicit <code class="docutils literal notranslate"><span class="pre">Order</span></code> settings must
+still be complete and distinct at each shared position. Settings are retained
+in drafts and saved import recipes. Add <strong>Aperture type</strong> before <strong>Aperture value</strong>
+when changing aperture shape, so the value editor uses the selected geometry.</p>
+<p>The ordinary SBend property editor also offers <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code> alongside
+<code class="docutils literal notranslate"><span class="pre">adaptive</span></code> and <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code>. Quadrupole instead offers
+<code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code> for its matrix-based map.</p>
+</section>
 <section id="mad-x-sampling">
 <h3>MAD-X sampling<a class="headerlink" href="#mad-x-sampling" title="Link to this heading"></a></h3>
 <p><strong>Sampling mode</strong> defaults to <strong>Keep original positions</strong>. Selecting <strong>Uniform
@@ -947,7 +1002,7 @@ copies the PASS, Python and PySide6 versions, operating system and architecture.
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="input_validation.html" class="btn btn-neutral float-left" title="JSON input validation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="project_files.html" class="btn btn-neutral float-right" title="Single-file projects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="project_files.html" class="btn btn-neutral float-right" title="Editable projects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automatic plotting &mdash; PASS 0.6.2 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=1c28bd9a"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="StatMonitor" href="statmonitor.html" />
+    <link rel="prev" title="Table output formats" href="table_output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.6.2</span>
+    
+      
+      
+    
+    <a href="../../zh/monitor/plotting.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">Slow extraction (SlowExtraction)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transverse_feedback.html">Bunch-by-bunch transverse feedback</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Automatic plotting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plot-an-existing-run">Plot an existing run</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#figure-layouts">Figure layouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#coordinates-and-appearance">Coordinates and appearance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#files-and-diagnostics">Files and diagnostics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../spectral_analysis.html">Spectral analysis and frequency maps</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamic_aperture.html">Dynamic-aperture scans</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Monitors and output</a></li>
+      <li class="breadcrumb-item active">Automatic plotting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="automatic-plotting">
+<h1>Automatic plotting<a class="headerlink" href="#automatic-plotting" title="Link to this heading"></a></h1>
+<p>Set the top-level <code class="docutils literal notranslate"><span class="pre">&quot;Is</span> <span class="pre">plot</span> <span class="pre">figure&quot;:</span> <span class="pre">true</span></code> (Python <code class="docutils literal notranslate"><span class="pre">is_plot=True</span></code>) to
+generate monitor figures after a successful tracking run. PASS finishes writing
+the monitor files before reading them for plotting. The default is <code class="docutils literal notranslate"><span class="pre">false</span></code>.
+Stopped or failed runs do not start automatic plotting.</p>
+<p>The plots use saved data, so the same plotting entry point can process an earlier
+run without repeating tracking. No GUI, Qt or GPU is required for this step.</p>
+<section id="plot-an-existing-run">
+<h2>Plot an existing run<a class="headerlink" href="#plot-an-existing-run" title="Link to this heading"></a></h2>
+<p>Pass the individual result directory containing the statistic files and the
+<code class="docutils literal notranslate"><span class="pre">distribution/</span></code> and <code class="docutils literal notranslate"><span class="pre">particle/</span></code> subdirectories, rather than the output root:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.plot output/2026_1029/1036_59</span>
+<span class="go">python -m PASS.plot output/2026_1029/1036_59 --format png pdf --dpi 300 --bins 80</span>
+<span class="go">python -m PASS.plot output/2026_1029/1036_59 --output figures/review</span>
+</pre></div>
+</div>
+<p>Relative paths resolve against the terminal’s working directory. Quote paths
+containing spaces. The default destination is <code class="docutils literal notranslate"><span class="pre">plot/</span></code> within the selected run;
+<code class="docutils literal notranslate"><span class="pre">--output</span></code> changes the figure destination only.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Command-line options</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">png</span></code></p></td>
+<td><p>One or more of <code class="docutils literal notranslate"><span class="pre">png</span></code> and <code class="docutils literal notranslate"><span class="pre">pdf</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dpi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
+<td><p>PNG resolution and resolution of dense rasterized layers in PDF.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--bins</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">80</span></code></p></td>
+<td><p>Number of bins per axis in distribution projections.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--output</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;run&gt;/plot</span></code></p></td>
+<td><p>Destination directory for figures and the plotting manifest.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The equivalent Python call returns the plotting manifest:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.plot.plot_main</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_run</span>
+
+<span class="n">manifest</span> <span class="o">=</span> <span class="n">plot_run</span><span class="p">(</span>
+    <span class="s2">"output/2026_1029/1036_59"</span><span class="p">,</span>
+    <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">formats</span><span class="o">=</span><span class="p">(</span><span class="s2">"png"</span><span class="p">,</span> <span class="s2">"pdf"</span><span class="p">),</span>
+    <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">bins</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="figure-layouts">
+<h2>Figure layouts<a class="headerlink" href="#figure-layouts" title="Link to this heading"></a></h2>
+<p>Each <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a> history produces one 3-by-3 figure for its beam,
+bunch and monitor. This includes every saved BPM history; BPMs are not merged
+into a single crowded curve plot. All nine panels have their own <code class="docutils literal notranslate"><span class="pre">Turn</span></code>
+axis label and horizontal tick labels.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">StatMonitor panels, in row order</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Left</p></th>
+<th class="head"><p>Centre</p></th>
+<th class="head"><p>Right</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\langle x\rangle,\langle y\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_x,\sigma_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\varepsilon_x,\varepsilon_y\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\langle p_x\rangle,\langle p_y\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle z_{\mathrm{fold}}\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_{z,\mathrm{fold}}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\langle\delta\rangle\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\sigma_\delta\)</span></p></td>
+<td><p>Loss percentage</p></td>
+</tr>
+</tbody>
+</table>
+<p>The figure uses the saved moments and loss percentage rather than recomputing
+them from a particle subset. Vertical ranges adapt to each monitor’s data.
+A zero loss history is still plotted.</p>
+<p>Each <a class="reference internal" href="distmonitor.html"><span class="doc">DistMonitor</span></a> snapshot produces one 2-by-3 figure per beam, bunch,
+monitor and saved turn. Saved injection distributions are also supported.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Distribution panels, in row order</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Left</p></th>
+<th class="head"><p>Centre</p></th>
+<th class="head"><p>Right</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x-p_x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(y-p_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-\delta\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(x-y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-y\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>The six projections are two-dimensional histograms of live particles
+(<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>). Their shared colour bar gives the number of macro-particles per
+bin, not a physical charge density. Within each figure, all six panels share
+one count scale, whose upper limit is the largest bin count in those panels.
+Each saved turn has its own colour scale. Snapshots belonging to the same beam,
+bunch and monitor still share coordinate ranges and bin edges across saved
+turns. Injection distributions form separate comparison groups.
+Empty snapshots and snapshots without live particles are recorded as skipped.</p>
+<p>Each <a class="reference internal" href="particlemonitor.html"><span class="doc">ParticleMonitor</span></a> file produces one 4-by-3 figure:</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">ParticleMonitor panels, in row order</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 33.0%" />
+<col style="width: 33.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Left</p></th>
+<th class="head"><p>Centre</p></th>
+<th class="head"><p>Right</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x\)</span> versus turn</p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span> versus turn</p></td>
+<td><p><span class="math notranslate nohighlight">\(z\)</span> versus turn</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(p_x\)</span> versus turn</p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span> versus turn</p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span> versus turn</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(x-p_x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(y-p_y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-\delta\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(x-y\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z-y\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>All recorded particle IDs and all valid trajectory samples participate; plotting
+does not impose a particle cap or downsample the history. The first two rows
+use thin lines and the projection rows use small points. Pending and lost
+records are excluded using <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>; invalid samples break the time traces.
+There is no long per-particle legend. These projections accumulate trajectories
+over saved turns, whereas a DistMonitor projection is an instantaneous snapshot.</p>
+</section>
+<section id="coordinates-and-appearance">
+<h2>Coordinates and appearance<a class="headerlink" href="#coordinates-and-appearance" title="Link to this heading"></a></h2>
+<p>Figures have a white background, inward ticks, axis labels and units, short
+legends where needed, and a colour bar for distribution counts. There are no
+titles, parameter text boxes or automatic Twiss-ellipse/RF-bucket overlays.
+Paired horizontal/vertical statistic curves use blue/orange; distribution
+counts use the <code class="docutils literal notranslate"><span class="pre">jet</span></code> colour map with empty bins left white.</p>
+<p>Transverse positions are shown in mm, longitudinal positions in m and RMS
+emittances in mm mrad. The saved transverse momenta are
+<span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span> and <span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>, and <code class="docutils literal notranslate"><span class="pre">dp</span></code> is
+<span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>. Their displayed scale is <span class="math notranslate nohighlight">\(10^{-3}\)</span>;
+they are not labelled as slopes or physical longitudinal momentum.</p>
+<p>StatMonitor’s saved <code class="docutils literal notranslate"><span class="pre">zAverage</span></code> and <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> use the ring-folded coordinate.
+When the source metadata identifies this convention, the axis labels include
+<code class="docutils literal notranslate"><span class="pre">fold</span></code>; a standalone CSV without that metadata uses a generic <code class="docutils literal notranslate"><span class="pre">z</span></code> label.
+Distribution and particle plots
+retain the continuous saved bunch-relative <span class="math notranslate nohighlight">\(z\)</span>; plotting does not add
+<code class="docutils literal notranslate"><span class="pre">zCenter</span></code> or fold these coordinates. See <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>
+for the coordinate convention.</p>
+<p>The full valid coordinate range is retained without smoothing or percentile
+clipping. Dense artists are rasterized in PDF while axis labels and ticks
+remain vector elements. Rasterization controls file size without reducing the
+data included in the figure.</p>
+</section>
+<section id="files-and-diagnostics">
+<h2>Files and diagnostics<a class="headerlink" href="#files-and-diagnostics" title="Link to this heading"></a></h2>
+<p>The default output layout is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;run&gt;/plot/
+    statistics/
+    distribution/
+    particle/
+    manifest.json
+</pre></div>
+</div>
+<p>Figure filenames preserve the source identity, including beam, bunch,
+monitor and turn information where present. Existing figures are preserved;
+repeated plotting chooses unused filename suffixes, including for the manifest
+(<code class="docutils literal notranslate"><span class="pre">manifest_2.json</span></code>, etc.). The plotting manifest
+records the sources, generated files, settings, skipped inputs and failures.</p>
+<p>Saved HDF5 and TFS tables are supported, with CSV also available for statistics.
+Matching file stems are processed once, preferring HDF5 over text copies.
+Plotting reads the original results without changing them or rerunning the
+simulation. A failure for one input is reported and does not prevent processing
+other inputs. Automatic plotting failures are reported separately from tracking
+success; inspect the plotting manifest and log for incomplete figure output.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="table_output.html" class="btn btn-neutral float-left" title="Table output formats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="statmonitor.html" class="btn btn-neutral float-right" title="StatMonitor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

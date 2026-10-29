@@ -115,6 +115,10 @@ and all turns in the configured recording interval. Choose ``hdf5-gzip1``,
   ``Layout="single_file"``, ``FormatVersion=2``, monitor position, beam ID,
   particle tag bound and requested recording interval.
 
+``monitor_name`` uses the simplified filename label described in :doc:`table_output`;
+imported occurrence numbers and duplicate position labels are omitted. The
+``Monitor`` metadata retains the complete command name.
+
 The PM readers require this current version-2 format. Output configuration
 contains only the format and buffering settings; it has no layout field.
 

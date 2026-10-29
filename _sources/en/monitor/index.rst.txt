@@ -30,11 +30,29 @@ Select a monitor by the data needed for analysis. Monitor positions use the same
    :maxdepth: 1
 
    table_output
+   plotting
    statmonitor
    distmonitor
    particlemonitor
    phaseadvancemonitor
    slow_extraction_monitor
+
+Empty slots and particle records
+--------------------------------
+
+The beam retains all harmonic slots. A slot with no allocated particle records
+is skipped by bunch monitors and produces no bunch-specific output file.
+This decision uses the allocated particle range, not the number of live particles.
+Reserved records for later injection remain active; a bunch whose particles
+have all been lost also keeps its loss diagnostics and zero-survival statistics.
+If regrouping later fills an empty slot, monitors include it at their next
+scheduled sample. ParticleMonitor and SlowExtractionMonitor keep their
+beam-wide trajectory and extraction summaries; empty slots do not add files.
+
+Once injected, a particle retains its identity ``abs(tag)`` through loss and
+regrouping. Loss uses ``tag=-particle_id``, including at magnet fringes, so
+trajectory records and injection snapshots remain associated with the original
+particle.
 
 .. _en-reference-state:
 

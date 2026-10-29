@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">可编辑项目</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
 </ul>
 
@@ -495,10 +495,13 @@ t_{\mathrm{end}}=t_0-\frac{z_{\min}}{\beta_0c},\qquad
 端点舍入容限不超过八个绝对时间 ULP 与较短切片时长的 <span class="math notranslate nohighlight">\(10^{-12}\)</span> 倍中的较小值。
 若绝对端点相减得到的时长相对保存值 <span class="math notranslate nohighlight">\(\Delta z/(\beta_0c)\)</span> 的误差超过
 <span class="math notranslate nohighlight">\(10^{-6}\)</span>，则拒绝执行，避免很大的绝对时钟悄悄吞掉短束流脉冲。
-第一个区间起点建立初始云时钟，允许负时间，不凭空补算未定义的过去。
-每次调用在最后一个保存切片的后沿结束，不自动推进至环周期末端；
-下次调用首先推进中间间隙。显式声明的空束团贡献其保存的空区间，
-缺失桶位不会被隐式补造。</p>
+第一个区间起点或观测点建立初始云时钟，允许负时间，不凭空补算未定义的过去。
+每次调用在最后一个保存切片的后沿或更晚的观测点结束，不自动推进至环周期末端；
+下次调用首先推进中间间隙。没有存活源粒子的槽保留显式空区间；使用 <code class="docutils literal notranslate"><span class="pre">auto</span></code> 时，
+仅在 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 提供零电荷观测点，不把空切片的极小回退宽度当作物理脉冲。
+这也适用于已分配记录全部损失或尚待注入的情况：这些记录及其统计仍保留，
+但它们不能定义自动束流脉冲宽度。已经被真实区间覆盖的观测点不会再次推进时钟。
+含已丢失或预留粒子记录的槽仍按通常流程切片；此规则只改变其零电荷电子云时间投影。</p>
 <p>参考时间由输运命令推进，不由执行器的圈计数推进，因此多圈输入需要真实闭合输运路径。
 必须使用 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 与保存区间构造时间，不能用名义 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 或
 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 替代物理到达时间。</p>

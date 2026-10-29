@@ -61,7 +61,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -91,6 +91,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">DistMonitor</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#turn-selection">Turn selection</a></li>
@@ -103,6 +104,7 @@
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">Slow-extraction spill monitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -247,6 +249,9 @@ schema object can be used directly:</p>
 contains the run time, beam and bunch identifiers, monitor position, monitor
 name, and turn number. All born particles in the bunch are written, including
 lost particles. Reserved slots with <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> are omitted.</p>
+<p>The filename label follows <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>: imported occurrence numbers
+and duplicate position labels are omitted; the current position appears once.
+<code class="docutils literal notranslate"><span class="pre">Monitor</span></code> metadata retains the complete command name.</p>
 <p>The nine default data columns are:</p>
 <table class="docutils align-default">
 <colgroup>

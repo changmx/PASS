@@ -62,7 +62,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Editable projects</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
 </ul>
 
@@ -92,6 +92,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotting.html">Automatic plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
@@ -103,6 +104,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#output-tables">Output tables</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#empty-slots-and-particle-records">Empty slots and particle records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
@@ -298,9 +300,14 @@ API’s monitor list. Use <code class="docutils literal notranslate"><span class
 <section id="output-tables">
 <h2>Output tables<a class="headerlink" href="#output-tables" title="Link to this heading"></a></h2>
 <p>Tables are written under <code class="docutils literal notranslate"><span class="pre">slow_extraction/</span></code> in the run output directory;
-flat-output mode omits the <code class="docutils literal notranslate"><span class="pre">slow_extraction</span></code> subdirectory. Source and monitor
-names, a digest, run identity and beam identifier form the filename stem.
-Suffixes <code class="docutils literal notranslate"><span class="pre">_turn.h5</span></code> and <code class="docutils literal notranslate"><span class="pre">_time.h5</span></code> identify the selected histogram types.
+flat-output mode omits the <code class="docutils literal notranslate"><span class="pre">slow_extraction</span></code> subdirectory. Filenames use
+<code class="docutils literal notranslate"><span class="pre">{run_id}_spill_beam{beam}_cmd_{monitor_name}_s_{s:.4f}_{kind}.h5</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">kind</span></code> is <code class="docutils literal notranslate"><span class="pre">turn</span></code> or <code class="docutils literal notranslate"><span class="pre">time</span></code>. The source run identity separates independent
+runs. The simplified monitor name follows <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>: imported
+occurrence numbers and position labels are omitted, the current position appears
+once, and only actual collisions add a number. Full monitor/source names, source
+run identity and event-file path remain in the metadata. Existing files retain
+their names.
 Completed turn bins are appended once at each write interval; the active
 partial turn bin is appended only at finalization. The in-memory
 <code class="docutils literal notranslate"><span class="pre">get_histogram(&quot;turn&quot;)</span></code> result also includes the current partial bin.
