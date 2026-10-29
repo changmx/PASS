@@ -182,7 +182,8 @@ class Solenoid(Command):
             body.run(lambda ds, on_center: transport_with_center(lambda length: launch(length, 3), ds, on_center))
 
     def _track_solenoid_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-
+        if bunch.end_idx <= bunch.start_idx:
+            return
         beta0 = bunch.beta
         start = bunch.start_idx
         end = bunch.end_idx

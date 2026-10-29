@@ -101,6 +101,9 @@ class Bump(Command):
         h_ref, v_ref = (tuple(np.interp(reference_time, self.waveform[:, 0], self.waveform[:, j])
                               for j in (1, 2)) if self.time_mode == "reference" and self.enabled else (0., 0.))
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                bunch.t0 += self.length / (bunch.beta * const.c)
+                continue
             offset_s = 0.0
             count = bunch.end_idx - bunch.start_idx
 
@@ -159,6 +162,9 @@ class Bump(Command):
             table = self._tables[xp] = xp.asarray(self.waveform)
         check_aperture = check_aperture_cpu if xp is np else check_aperture_gpu
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                bunch.t0 += self.length / (bunch.beta * const.c)
+                continue
             bunch_slice = slice(bunch.start_idx, bunch.end_idx)
             reference_time = (beam.reference_program.inverse_integral(float(turn)) if self.time_mode == "reference" and self.enabled else 0.0)
             offset_s = 0.0

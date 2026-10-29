@@ -165,6 +165,10 @@ class RFCavity(Command):
         return True
 
     def _track(self, beam, bunch, turn):
+        if bunch.end_idx <= bunch.start_idx:
+            # Keep the slot reference usable if later regrouping fills it.
+            set_reference_energy(bunch, self._reference_kick(bunch).energy)
+            return
         if beam.particles.xp is not np:
             return self._track_gpu(beam, bunch, turn)
         p, xp = beam.particles, beam.particles.xp

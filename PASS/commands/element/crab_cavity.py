@@ -133,6 +133,8 @@ class _IPEquivalent(Command):
     def _execute(self, sim):
         beam = sim.beams[self.beam_id]
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             if getattr(bunch, 'collision_frame', None) is not None:
                 raise ValueError(f'{self.cmd_type} requires the ordinary IP frame')
             if not 0 < bunch.beta <= 1:

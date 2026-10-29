@@ -734,6 +734,8 @@ class ElectronCooler(Command):
         rngs = {}
         records = []
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             indices = xp.flatnonzero(p.tag[bunch.start_idx:bunch.end_idx] > 0) + bunch.start_idx
             indices = indices[xp.argsort(p.tag[indices])]
             coordinates = xp.column_stack([getattr(p, name)[indices] for name in ("x", "px", "y", "py", "z", "dp")]).astype(xp.float64)
@@ -768,6 +770,7 @@ class ElectronCooler(Command):
             p.tag[lost] = -xp.abs(p.tag[lost])
             p.lost_position[lost] = loss[~active]
             p.lost_turn[lost] = int(sim.state.turn)
+        for bunch in beam.bunches:
             bunch.t0 += self.length / (bunch.beta * const.c)
         self._rngs.update(rngs)
         self._calls += 1

@@ -93,6 +93,8 @@ def regroup_particles(beam, new_harmonic: int | None = None, *, location=0.):
     source_p0 = xp.empty(n_particles, dtype=xp.float64)
     keys = xp.empty(n_particles, dtype=xp.float64)
     for b in old_bunches:
+        if b.end_idx <= b.start_idx:
+            continue
         bunch_slice = slice(b.start_idx, b.end_idx)
         dt = -p.z[bunch_slice].astype(xp.float64) / (b.beta * const.c)
         # t_i - epoch stays unwrapped; the phase integral alone is reduced.
@@ -144,6 +146,8 @@ def regroup_particles(beam, new_harmonic: int | None = None, *, location=0.):
         # Np includes live, lost and pending records; Nrp is diagnostic only.
         # The common macro-particle weight is unchanged since initialization.
         b.Nrp = int(round(b.ratio * b.Np))
+        if start == end:
+            continue
         live = p.tag[bunch_slice] > 0
         # z' = beta'*c*(T' - t_i), with no periodic reduction of stored z.
         p.z[bunch_slice] = xp.where(live, b.beta * const.c * ((b.t0 - epoch) - arrival_time_from_epoch[bunch_slice]), p.z[bunch_slice])

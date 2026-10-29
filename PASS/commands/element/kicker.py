@@ -174,7 +174,8 @@ class Kicker(Command):
             _launch_multipole_bunch(self, beam, bunch, turn, kn, ks, inv_fact, int(self.is_thick))
 
     def _track_kicker_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-
+        if bunch.end_idx <= bunch.start_idx:
+            return
         inv_gamma_sq = 1.0 / bunch.gamma**2
         start = bunch.start_idx
         end = bunch.end_idx

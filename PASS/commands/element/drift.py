@@ -82,6 +82,8 @@ class Drift(Command):
         return True
 
     def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
+        if bunch.end_idx <= bunch.start_idx:
+            return
         if self._sc_nodes or self.num_slice > 1:
             offset = 0.0
 

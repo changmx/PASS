@@ -382,7 +382,7 @@ def check_aperture_cpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
     resolves its grid-dependent default before calling this function.
     """
 
-    if aperture_type.lower() == "off":
+    if bunch.end_idx <= bunch.start_idx or aperture_type.lower() == "off":
         return
     geometry = build_aperture({"Type": aperture_type, "Value": aperture_value})
     start, end = bunch.start_idx, bunch.end_idx
@@ -685,6 +685,8 @@ def _launch_gpu(kernel, beam, bunch, *args):
 
 def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, aperture_value: list, s_position: float, turn: int):
     """Lose wall/outside particles on GPU, preserving earlier loss records."""
+    if bunch.end_idx <= bunch.start_idx:
+        return
     aperture_type = aperture_type.lower()
 
     if aperture_type == "off":

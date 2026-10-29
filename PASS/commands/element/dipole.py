@@ -166,7 +166,8 @@ class SBend(Command):
         launch(0.0, 4)
 
     def _track_bend_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-
+        if bunch.end_idx <= bunch.start_idx:
+            return
         if not self.is_thick:
             # Thin lens: only apply k0l kick (no body, no edge)
             self._thin_kick_cpu(self.k0l, beam, bunch)

@@ -537,6 +537,9 @@ class ElSeparator(Command):
         kernel = self._kernel(p) if gpu and self.length == 0 else None
         thick_kernel = self._thick_kernel(p) if gpu and self.length > 0 else None
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                bunch.t0 += self.length / (bunch.beta * const.c)
+                continue
             total_kick = self._integrated_kick(bunch)
             field_k = (np.sign(bunch.num_charge) * (self.integrated_field / self.length) / (const.c * bunch.brho) if self.length > 0 else 0.)
             if not np.isfinite(field_k):

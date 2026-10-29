@@ -201,6 +201,8 @@ class Exciter(Command):
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
         for bunch in bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             self._exciter_kick_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
         return True
@@ -213,6 +215,8 @@ class Exciter(Command):
             return False
         beam = sim.beams[self.beam_id]
         for bunch in beam.bunches:
+            if bunch.end_idx <= bunch.start_idx:
+                continue
             launch_exciter(self, sim, bunch)
         return True
 

@@ -221,6 +221,8 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
     length = self.s - self.s_previous
     if abs(length) >= const.eps:
         bunch.t0 += length / (bunch.beta * const.c)
+    if bunch.end_idx <= bunch.start_idx:
+        return
 
     if self.longitudinal_transfer == "drift":
         gammat = bunch.gamma_t

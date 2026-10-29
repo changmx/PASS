@@ -38,8 +38,10 @@ class AlignmentErrors:
         self.prepare(element)
         p = beam.particles
         transform = self.transform_gpu if gpu else self.transform_cpu
-        masks = [p.tag[bunch.start_idx:bunch.end_idx] > 0 for bunch in beam.bunches]
+        masks = [p.tag[bunch.start_idx:bunch.end_idx] > 0 if bunch.end_idx > bunch.start_idx else None for bunch in beam.bunches]
         for bunch, mask in zip(beam.bunches, masks):
+            if mask is None:
+                continue
             transform(p, bunch, mask, 0.0, turn=turn)
         return masks
 
@@ -49,6 +51,8 @@ class AlignmentErrors:
             return
         transform = self.transform_gpu if gpu else self.transform_cpu
         for bunch, mask in zip(beam.bunches, masks):
+            if mask is None:
+                continue
             transform(beam.particles, bunch, mask, element.length, inverse=True, restore_losses=True, turn=turn)
 
     def _frame(self, offset, inverse):
