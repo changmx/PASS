@@ -6,7 +6,9 @@ To install from a GitHub clone or extracted source archive, run
 ``python -m pip install --editable ".[gui]"`` from the directory containing ``pyproject.toml``.
 Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
-1. Open a PASS input JSON or a ``.passproj`` project, or configure a new input.
+1. Open a PASS input JSON, a ``.passproj`` project, or a project folder, or configure
+   a new input. Folder selection prefers ``project.passproj``, otherwise it requires
+   exactly one ``.passproj`` file directly in that folder.
 2. Edit the global parameters, injection, and execution sequence. Select **Apply**
    to commit each property form; unapplied forms and JSON text are drafts.
 3. Select **Validate** in the sequence toolbar and resolve errors. See
@@ -15,7 +17,8 @@ Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 5. Open the result directory or load outputs on **Plot**.
 
 The configuration page edits the same input used by the tracking engine.
-For project packaging, run snapshots, stopping, and rerunning, see :doc:`project_files`.
+For editable project files, old-project conversion, run snapshots, stopping, and
+rerunning, see :doc:`project_files`.
 Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
 The **Analysis** workspace uses the same icon-and-text sidebar as **Tools**,
 with three entries: **Spectrum**, **Frequency map analysis** and **Dynamic aperture**.
@@ -88,7 +91,7 @@ message instead of waiting for imports on the interface thread; retry these
 actions after loading completes. File reading and actual calculations still take
 time, and creating a tool on its first visit can cause a short pause.
 
-Drop one local ``.passproj`` or PASS input JSON onto the window, including child
+Drop one local ``.passproj``, a project folder, or PASS input JSON onto the window, including child
 editors. File contents are checked before replacing the current document. A
 replacement requires confirmation; unsaved changes offer Save/Discard/Cancel.
 Invalid files or cancellation keep the current document. With a project open,

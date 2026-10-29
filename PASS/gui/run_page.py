@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 from uuid import uuid4
 
 from PySide6.QtCore import QProcess, QSettings, QThread, QTimer, Qt, Signal, QUrl
@@ -28,7 +29,7 @@ from PASS import __version__
 from PASS.gui.appearance import code_font
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import read_json
-from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, create_run_directory, json_bytes, resolved_file
+from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, create_run_directory, file_references, json_bytes, resolved_file
 from PASS.gui.runner import RunExitCode
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 
@@ -54,14 +55,22 @@ class RunPreparation(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, documents, output_root, parent=None, *, previous_record=None):
+    def __init__(self, documents, output_root, parent=None, *, previous_record=None, project=None):
         super().__init__(parent)
         self.documents = documents
         self.output_root = Path(output_root).resolve()
         self.previous_record = previous_record
+        self.project = project
         self.record_path = None
         self.record = None
         self._comparison_documents = None
+        self._project_assets = {}
+        self._project_disk_files = dict(project._disk_files) if project is not None else {}
+        if project is not None and project.path is not None and not project.legacy:
+            self._project_assets = {
+                (project.path.parent / name).resolve(): project.root / project.assets[identifier].path
+                for identifier, name in project._asset_paths.items() if identifier in project.assets
+            }
 
     def _check(self):
         if self.isInterruptionRequested():
@@ -100,6 +109,21 @@ class RunPreparation(QThread):
 
     def _prepare(self):
         from PASS.validation.rules import validate_documents
+        if self.project is not None:
+            self.progress.emit("检查项目是否被外部修改…")
+            context = SimpleNamespace(check=self._check, report=self.progress.emit)
+            self.project.check_external_changes(context=context, expected_files=self._project_disk_files)
+            # Editor paths point at editable files; this run uses the retained cache.
+            self._comparison_documents = [deepcopy(data) for _name, data, _base in self.documents]
+            documents = []
+            for name, data, base in self.documents:
+                data = deepcopy(data)
+                for mapping, key, _pointer in file_references(data):
+                    cached = self._project_assets.get(resolved_file(mapping[key], base))
+                    if cached is not None:
+                        mapping[key] = str(cached)
+                documents.append((name, data, base))
+            self.documents = documents
         previous = self._verify_record() if self.previous_record else None
         self._check()
         self.progress.emit("全面校验输入和文件依赖…")
@@ -486,7 +510,7 @@ class RunPage(QWidget):
             for entry in project.configs.values():
                 self.beam0.addItem(entry.name + ".json", entry.id)
                 self.beam1.addItem(entry.name + ".json", entry.id)
-            first = settings.get("beam0", project.active_config_id)
+            first = settings.get("beam0") or project.active_config_id
             self.beam0.setCurrentIndex(max(0, self.beam0.findData(first)))
             self.beam1.setCurrentIndex(max(0, self.beam1.findData(settings.get("beam1", ""))))
         else:
@@ -494,7 +518,7 @@ class RunPage(QWidget):
         self.beam0.setEnabled(project is not None)
         self.beam1.setEnabled(project is not None)
         if changed or not self.output_directory.text():
-            self.output_directory.setText(settings.get("output_directory", "output"))
+            self.output_directory.setText(settings.get("output_directory") or "output")
         self._input_project = project.id if project else None
         self._refreshing = False
 
@@ -539,8 +563,11 @@ class RunPage(QWidget):
                 for cid in ids:
                     active = cid == owner._active_input_id
                     entry = project.configs[cid]
-                    documents.append((entry.name, deepcopy(self.config.data if active else entry.data),
-                                      Path(self.config.base_dir if active else project.config_base)))
+                    if active:
+                        data, input_base = deepcopy(self.config.data), Path(self.config.base_dir)
+                    else:
+                        data, input_base = project.editable_input(cid)
+                    documents.append((entry.name, data, input_base))
                 base = project.path.parent if project.path else Path.cwd()
             else:
                 documents = [(Path(self.config.path).name if self.config.path else "beam0", deepcopy(self.config.data), Path(self.config.base_dir))]
@@ -549,7 +576,7 @@ class RunPage(QWidget):
             if not output.is_absolute():
                 output = base / output
             sources = ([project] if project else []) + list(getattr(owner, "_standalone_sources", []))
-            self._start_preparation(documents, output, sources)
+            self._start_preparation(documents, output, sources, project=project)
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "无法运行", str(exc))
 
@@ -565,21 +592,21 @@ class RunPage(QWidget):
             return False
         return True
 
-    def _start_preparation(self, documents, output, sources, *, previous_record=None):
+    def _start_preparation(self, documents, output, sources, *, previous_record=None, project=None):
         self._previous_state = self.state.text()
         self._preparation_result = self._preparation_error = None
         self._cancel_preparation_requested = False
         self._leased_projects = []
         try:
-            for project in dict.fromkeys(sources):
-                project.retain()
-                self._leased_projects.append(project)
+            for source_project in dict.fromkeys(sources):
+                source_project.retain()
+                self._leased_projects.append(source_project)
         except Exception:
-            for project in self._leased_projects:
-                project.release()
+            for source_project in self._leased_projects:
+                source_project.release()
             self._leased_projects = []
             raise
-        worker = RunPreparation(documents, output, self, previous_record=previous_record)
+        worker = RunPreparation(documents, output, self, previous_record=previous_record, project=project)
         self.preparation = worker
         worker.progress.connect(self.state.setText)
         worker.prepared.connect(self._prepared)

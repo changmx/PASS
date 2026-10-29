@@ -124,6 +124,7 @@ class RecoveryManager(QObject):
                 self._restored_from = previous_source
             if candidate is not None:
                 self.owner.project = candidate
+                self.owner.run._input_project = None
                 self.owner._active_input_id = candidate.active_config_id
                 self.owner._changing_input = True
                 try:

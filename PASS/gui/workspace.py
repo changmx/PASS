@@ -48,11 +48,19 @@ def display_json(value) -> str:
 def _rebase_project_history(history, base, original, candidate):
     """Keep undo/redo references valid when publishing a staged project cache."""
     relocated = deepcopy(history)
+    disk_assets = {}
+    if original.path is not None and not original.legacy:
+        disk_assets = {
+            (original.path.parent / name).resolve(): candidate.root / candidate.assets[identifier].path
+            for identifier, name in original._asset_paths.items() if identifier in candidate.assets
+        }
     for state in relocated:
         for mapping, key, _ in file_references(state):
             source = resolved_file(mapping[key], base)
             if source.is_relative_to(original.root):
                 source = candidate.root / source.relative_to(original.root)
+            else:
+                source = disk_assets.get(source, source)
             try:
                 mapping[key] = Path(os.path.relpath(source, candidate.config_base)).as_posix()
             except ValueError:
@@ -229,7 +237,7 @@ class ResourceDialog(QDialog):
             return
         kind, identifier = self.selection
         if kind == "config":
-            data = self.project.configs[identifier].data
+            data, _base = self.project.editable_input(identifier)
             name = self.location.currentData()
             self.value = ({
                 k: v
@@ -360,7 +368,11 @@ class ResourceDialog(QDialog):
             if kind == "asset":
                 shutil.copyfile(self.project.root / self.project.assets[identifier].path, path)
             else:
-                value = self.project.configs[identifier].data if kind == "config" else self.project.recipes[identifier]
+                if kind == "config":
+                    value, base = self.project.editable_input(identifier)
+                    value = _relocate_standalone_inputs([value], base, Path(path), [])[0]
+                else:
+                    value = self.project.recipes[identifier]
                 atomic_write(Path(path), json_bytes(value))
             self.info.setText("已导出文件。JSON 中引用的资产需一同导出才能运行。" if kind == "config" else "已导出文件。")
         except OSError as exc:
@@ -413,6 +425,8 @@ class DocumentWindowMixin:
         menu.addSection("项目")
         action("new_project", "从当前输入创建项目…", self.new_project)
         action("open_project", "打开项目…", self.open_project)
+        action("open_project_directory", "打开项目文件夹…", self.open_project_directory)
+        action("reload_project", "重新加载项目", self.reload_project)
         action("save_project", "保存项目", self.save_document)
         action("save_project_as", "项目另存为…", lambda: self.save_document(True))
         action("import_json", "导入 JSON 到项目…", self.import_json)
@@ -615,10 +629,22 @@ class DocumentWindowMixin:
             return
         self.open_project_path(path)
 
-    def open_project_path(self, path):
+    def open_project_directory(self):
+        path = QFileDialog.getExistingDirectory(self, "打开 PASS 项目文件夹", file_dialog_directory(self))
+        if path:
+            self.open_project_path(path)
+
+    def reload_project(self):
+        if not self.project or not self.project.path or not self._confirm_replace():
+            return
+        self.open_project_path(self.project.path, confirm=False)
+
+    def open_project_path(self, path, *, confirm=True):
         from PASS.gui.jobs import TaskCancelled
 
         if self._document_busy:
+            return
+        if confirm and not self._confirm_replace(force=True, target=f"当前文档为项目 {Path(path).name}"):
             return
         try:
             candidate = self._load_project_task(path)
@@ -627,11 +653,9 @@ class DocumentWindowMixin:
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
-        if not self._confirm_replace(force=True, target=f"当前文档为项目 {Path(path).name}"):
-            candidate.close()
-            return
         self._release_project()
         self.project = candidate
+        self.run._input_project = None
         self._activate_project_input(candidate.active_config_id)
         self.run.refresh_inputs()
 
@@ -652,7 +676,6 @@ class DocumentWindowMixin:
     def _activate_project_input(self, cid):
         self._active_input_id = cid
         self.project.active_config_id = cid
-        config = self.project.configs[cid]
         recipes = [r for r in self.project.recipes if r["config_id"] == cid]
         self._changing_input = True
         self.config.input_selector.clear()
@@ -660,7 +683,8 @@ class DocumentWindowMixin:
             self.config.input_selector.addItem(entry.name + ".json", entry.id)
         self.config.input_selector.setCurrentIndex(self.config.input_selector.findData(cid))
         self._changing_input = False
-        self._set_input(config.data, recipes=recipes, base=self.project.config_base)
+        data, base = self.project.editable_input(cid)
+        self._set_input(data, recipes=recipes, base=base)
         self.run.refresh_inputs()
 
     def _switch_input(self, index):
@@ -732,13 +756,12 @@ class DocumentWindowMixin:
             return False
         if self.project:
             path = self.project.path
-            if not path or save_as:
-                value, _ = QFileDialog.getSaveFileName(self, "保存完整 PASS 项目", str(path or "beam.passproj"), "PASS project (*.passproj)")
+            if not path or save_as or self.project.legacy:
+                title = "将旧工程另存为目录工程（原文件保留）" if self.project.legacy else "选择新工程文件夹（保存 project.passproj）"
+                value = QFileDialog.getExistingDirectory(self, title, str(path.parent if path else file_dialog_directory(self)))
                 if not value:
                     return False
-                path = Path(value)
-                if path.suffix.lower() != ".passproj":
-                    path = path.with_suffix(".passproj")
+                path = Path(value) / "project.passproj"
             original = self.project
             data = deepcopy(self.config.data)
             history = deepcopy(self.config._history)
@@ -749,6 +772,7 @@ class DocumentWindowMixin:
             base = self.config.base_dir
 
             def save_project(context):
+                original.check_external_changes(context=context)
                 candidate = original.clone(context=context)
                 try:
                     candidate.update_config(active_id, data, base, context=context)
@@ -760,6 +784,7 @@ class DocumentWindowMixin:
                     history[:] = _rebase_project_history(history, base, original, candidate)
                     history[history_index] = deepcopy(candidate.configs[active_id].data)
                     candidate.save(path, context=context)
+                    history[:] = [candidate.editable_input(active_id, data=state)[0] for state in history]
                     return candidate
                 except Exception:
                     candidate.close()
@@ -774,8 +799,7 @@ class DocumentWindowMixin:
                 QMessageBox.warning(self, "保存项目失败", str(exc))
                 return False
             self.project = candidate
-            self.config.data = deepcopy(candidate.configs[active_id].data)
-            self.config.base_dir = candidate.config_base
+            self.config.data, self.config.base_dir = candidate.editable_input(active_id)
             self.config._history = history
             original.close()
         else:
@@ -837,7 +861,8 @@ class DocumentWindowMixin:
         path, _ = QFileDialog.getSaveFileName(self, title, "beam.json", "JSON (*.json)")
         if path:
             try:
-                atomic_write(Path(path), json_bytes(self.config.data))
+                value = _relocate_standalone_inputs([self.config.data], self.config.base_dir, Path(path), [])[0]
+                atomic_write(Path(path), json_bytes(value))
                 self.statusBar().showMessage("已导出 JSON 副本；需要携带依赖时请选择“导出可运行输入包”。", 10000)
             except (OSError, ValueError) as exc:
                 QMessageBox.warning(self, "导出失败", str(exc))
@@ -939,8 +964,9 @@ class DocumentWindowMixin:
             if original:
                 history = _rebase_project_history(self.config._history, base, original, target)
                 history[self.config._history_index] = before_copy
+                history = [target.editable_input(target_id, data=state)[0] for state in history]
+                data, self.config.base_dir = target.editable_input(target_id)
                 self.project = target
-                self.config.base_dir = target.config_base
                 self.config._history = history
                 self.config.recipes = deepcopy([recipe for recipe in target.recipes if recipe["config_id"] == target_id])
             else:
@@ -1037,13 +1063,14 @@ class DocumentWindowMixin:
             self.actions[key].setEnabled(project is None)
         for key in ("save_project", "save_project_as", "contents", "import_json"):
             self.actions[key].setEnabled(project is not None)
+        self.actions["reload_project"].setEnabled(project is not None and project.path is not None)
         self.actions["save_json"].setText("保存 JSON" + ("\tCtrl+S" if project is None else ""))
         self.actions["save_project"].setText("保存项目" + ("\tCtrl+S" if project else ""))
         if self._document_busy:
             for action in self.actions.values():
                 action.setEnabled(False)
         else:
-            for key in ("new_json", "open_json", "new_project", "open_project", "browse_project", "export_json", "export_bundle", "undo", "redo",
-                        "recover"):
+            for key in ("new_json", "open_json", "new_project", "open_project", "open_project_directory", "browse_project", "export_json",
+                        "export_bundle", "undo", "redo", "recover"):
                 self.actions[key].setEnabled(True)
         self.save_action.setEnabled(not self._document_busy)

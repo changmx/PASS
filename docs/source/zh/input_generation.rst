@@ -69,7 +69,7 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
 安装后，``python -m PASS`` 接受完全相同的参数，并明确使用所选 Python 解释器。
 两种入口都不需要 Qt 或 PySide6。安装后执行 ``pass-run --version`` 或
 ``python -m PASS --version`` 查看版本号并退出，无需提供输入文件。
-程序根据文件后缀识别输入类型：
+可以指定 JSON 输入、``.passproj`` 文件或工程目录：
 
 .. code-block:: console
 
@@ -77,6 +77,8 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
    pass-run input/beam0.json input/beam1.json
    pass-run example.passproj
    python -m PASS example.passproj
+   pass-run path/to/project-directory
+   pass-run .
 
 命名输入选项也支持相同的三种运行方式：
 
@@ -88,12 +90,14 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
 
 位置参数和命名输入选项只能选择其中一种，不能混用。
 ``--beam0`` 和 ``--beam1`` 要求 JSON 文件，``--beam1`` 必须与 ``--beam0`` 一起使用。
-``--passproj`` 要求 ``.passproj`` 文件，不能与任何束流选项组合使用。
+``--passproj`` 接受 ``.passproj`` 文件或工程目录，不能与任何束流选项组合使用。
 相对输入路径以终端当前工作目录为基准，包含空格的路径需要加引号。
 
-一个或两个 JSON 分别用于单束流或双束流运行。单个 ``.passproj`` 文件使用已保存的
+一个或两个 JSON 分别用于单束流或双束流运行。``.passproj`` 文件或工程目录使用已保存的
 Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
-不会依次执行项目中的全部配置。已保存的选择失效或两束选择重复时会报错。
+不会依次执行项目中的全部配置。目录入口优先打开 ``project.passproj``，没有该文件时
+打开其中唯一的 ``.passproj``；存在多个候选时需要显式指定文件。同时支持读取
+新明文 JSON 工程和旧 ZIP 工程。已保存的选择失效或两束选择重复时会报错。
 项目选择和输出路径规则见 :doc:`project_files`。
 
 使用 ``--output DIR`` 指定本次运行的输出根目录，优先于 JSON 或项目保存的设置，

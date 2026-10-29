@@ -70,7 +70,7 @@ installation, ``python -m PASS`` accepts exactly the same arguments
 and explicitly uses the selected Python interpreter. Neither entry point requires
 Qt or PySide6. After installation, use ``pass-run --version`` or
 ``python -m PASS --version`` to print the version and exit without an input file.
-Input type is selected by the file extension:
+Pass JSON inputs, a ``.passproj`` file, or a project directory:
 
 .. code-block:: console
 
@@ -78,6 +78,8 @@ Input type is selected by the file extension:
    pass-run input/beam0.json input/beam1.json
    pass-run example.passproj
    python -m PASS example.passproj
+   pass-run path/to/project-directory
+   pass-run .
 
 Named input options provide the same three modes:
 
@@ -89,14 +91,18 @@ Named input options provide the same three modes:
 
 Use either positional inputs or named input options; do not mix them.
 ``--beam0`` and ``--beam1`` require JSON files, and ``--beam1`` requires
-``--beam0``. ``--passproj`` requires a ``.passproj`` file and cannot be combined
-with either beam option. Relative input paths use the terminal's working
+``--beam0``. ``--passproj`` accepts a ``.passproj`` file or a project directory
+and cannot be combined with either beam option. Relative input paths use the terminal's working
 directory; quote paths containing spaces.
 
-One or two JSON files run the corresponding beams. A single ``.passproj`` file
-runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
+One or two JSON files run the corresponding beams. A ``.passproj`` file or project
+directory runs its saved Beam 0 and optional Beam 1 selections; if Beam 0 has not been
 saved, it uses the active configuration. It does not execute every configuration
-in the project. Invalid saved selections or duplicate beams are errors. See
+in the project. A directory prefers ``project.passproj``, otherwise it opens its
+only ``.passproj`` file; multiple candidates require an explicit file path.
+New plain JSON and
+old ZIP project descriptions are both readable. Invalid saved selections or
+duplicate beams are errors. See
 :doc:`project_files` for project selection and output paths.
 
 Use ``--output DIR`` to choose the output root for this run. It takes precedence

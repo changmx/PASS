@@ -82,62 +82,132 @@ pass-run --version
 
 ## 运行模拟
 
-**图形界面：**安装 `gui` 组件后启动：
+### 示例工程
 
-```bash
-pass-gui
+以下示例假定 `/home/myprojpath` 中已有有效的 PASS 输入 `beam0.json`，并保存了下面的工程描述：
+
+```text
+/home/myprojpath/
+├── myproject.passproj
+├── beam0.json
+├── quadrupole_ramp.tfs    # 可选：beam0.json 引用它时才需要
+└── output/               # 运行模拟时创建
 ```
 
-`python -m PASS.gui` 会使用所选 Python 解释器启动同一个界面。
+`myproject.passproj` 是普通 JSON 文本。单束流工程可以写成：
 
-打开或创建输入配置，应用参数修改，执行 **校验**，然后在 **运行** 页面启动模拟。计算结果可在 **绘图** 页面查看。`.passproj` 工程文件保存配置及其依赖的输入文件。具体操作见[图形界面](https://changmx.github.io/PASS/zh/gui.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
-
-**命令行：**安装 PASS 后，可直接运行 JSON 输入或已保存项目，无需 GUI 或 Qt：
-
-```bash
-# 使用已有 JSON 输入运行单束流。
-pass-run path/to/beam0.json
-# 使用两份 JSON 输入一起运行双束流。
-pass-run path/to/beam0.json path/to/beam1.json
-# 运行项目中保存的束流选择。
-pass-run path/to/example.passproj
-# 也可使用命名选项明确指定输入。
-pass-run --beam0 path/to/beam0.json
-pass-run --beam0 path/to/beam0.json --beam1 path/to/beam1.json
-pass-run --passproj path/to/example.passproj
-# 仅为本次运行指定其他输出根目录。
-pass-run path/to/beam0.json --output results
-pass-run path/to/example.passproj --output "results/project run"
+```json
+{
+  "format": "pass-project",
+  "format_version": 3,
+  "name": "我的模拟",
+  "configs": ["beam0.json"],
+  "active_config": "beam0.json",
+  "run": {
+    "beam0": "beam0.json",
+    "beam1": null,
+    "output_directory": "output"
+  }
+}
 ```
 
-命令接收输入文件路径；相对参数路径以终端当前工作目录为基准，路径包含空格时需要加引号。程序根据后缀选择 JSON 或项目读取方式。项目使用已保存的 Beam 0/Beam 1 选择，未保存 Beam 0 时使用当前活动输入，不会运行其中的全部配置，也不能再附加第二个输入参数。跟踪前会自动校验并归档所选输入及其依赖文件。
+工程描述中的路径相对于 `/home/myprojpath`；`beam0.json` 内部的文件引用相对于该 JSON 所在目录。例如，`"Ramping file": "quadrupole_ramp.tfs"` 指向 `/home/myprojpath/quadrupole_ramp.tfs`。不需要建立 `configs/` 文件夹。实际使用时，将 `/home/myprojpath` 替换为你的工程路径。
 
-每条命令选择位置参数或命名输入选项中的一种，不能混用。`--beam0` 和 `--beam1` 接收 JSON 文件，`--beam1` 必须与 `--beam0` 一起使用。`--passproj` 接收一个 `.passproj` 文件，不能与两个束流选项中的任意一个组合使用。
+### 命令行执行
 
-`python -m PASS` 接受相同参数，并使用所选 Python 解释器执行同一套运行逻辑：
+支持 **三种输入方式**：单份 JSON 运行单束流、两份 JSON 运行双束流，以及按工程保存的选择运行。工程可以通过 `.passproj` 文件或所在文件夹指定。命令行执行不需要 GUI 或 Qt。
+
+对于上述目录，以下每条命令都可以在 **任意工作目录** 执行：
 
 ```bash
-python -m PASS path/to/beam0.json
-python -m PASS "path with spaces/example.passproj"
-pass-run --help
-pass-run -h
+# 直接运行 beam0.json，使用该 JSON 内的设置。
+pass-run /home/myprojpath/beam0.json
+
+# 使用 myproject.passproj 保存的束流选择及输出设置运行。
+pass-run /home/myprojpath/myproject.passproj
+
+# 打开该目录中的工程描述，再按工程保存的选择运行。
+pass-run /home/myprojpath
 ```
 
-**输出目录：**通常默认文件夹仍为 `output`，其位置取决于输入和启动方式：
+指定文件夹时，PASS 优先读取其中的 `project.passproj`；若不存在，则读取该目录下唯一的 `.passproj` 文件。因此，上述示例会选中 `myproject.passproj`。如果没有 `project.passproj`，但存在多个 `.passproj` 文件，必须明确指定要运行的工程文件。程序不会递归搜索子目录。
+
+先进入工程目录后，也可以使用等价的相对路径命令：
+
+```bash
+cd /home/myprojpath
+pass-run beam0.json
+pass-run myproject.passproj
+pass-run .
+```
+
+这些命令是不同的启动选择，每次运行任选一条。工程根据 `run.beam0` 和可选的 `run.beam1` 选择输入；未设置 Beam 0 时使用 `active_config`，不会运行 `configs` 中的全部配置。跟踪前会自动校验并归档所选输入及其依赖文件。
+
+命名选项提供同样功能的另一种写法：
+
+```bash
+pass-run --beam0 /home/myprojpath/beam0.json
+pass-run --passproj /home/myprojpath/myproject.passproj
+pass-run --passproj /home/myprojpath
+```
+
+如需 **双束流执行**，先准备第二份有效输入 `/home/myprojpath/beam1.json`，然后选择以下等价命令中的一条：
+
+```bash
+pass-run /home/myprojpath/beam0.json /home/myprojpath/beam1.json
+pass-run --beam0 /home/myprojpath/beam0.json --beam1 /home/myprojpath/beam1.json
+```
+
+若要通过工程运行双束流，将 `"beam1.json"` 加入工程的 `configs` 列表，并把 `run.beam1` 改成 `"beam1.json"`，再执行 `pass-run /home/myprojpath/myproject.passproj`。工程自带束流选择，不能再附加第二个输入参数。每条命令选择位置参数或命名输入选项中的一种，不能混用；`--beam1` 必须与 `--beam0` 一起使用，`--passproj` 不能与两个束流选项中的任意一个组合使用。
+
+`pass-run` 和 `python -m PASS` 是 **同一套执行逻辑的两个启动入口**，接受相同参数。需要明确使用某个 Python 环境时，可以用模块入口：
+
+```bash
+python -m PASS /home/myprojpath/beam0.json
+python -m PASS /home/myprojpath/myproject.passproj
+python -m PASS /home/myprojpath
+```
+
+命令行中的相对路径以终端当前工作目录为基准，路径包含空格时需要加引号。执行 `pass-run --help` 或 `python -m PASS --help` 可查看全部选项。
+
+### 输出与编辑
+
+按上述工程描述运行时，无论从哪个目录启动，结果都保存在 `/home/myprojpath/output/<YYYY_MMDD>/<HHMM_SS>/` 下。直接运行 `beam0.json` 时使用它自己的 `Output directory` 设置；如果缺省或值为 `default`（不区分大小写），输出根目录同样为 `/home/myprojpath/output`。
 
 | 启动方式 | 输出根目录 | 根目录下的结果位置 |
 | --- | --- | --- |
 | 通过 `pass-run`、`python -m PASS` 或 Python API 运行 JSON | 第一份 JSON 的 `Output directory`，相对于该 JSON 所在目录；缺省或值为 `default`（不区分大小写）时，使用该 JSON 旁的 `output` | `<YYYY_MMDD>/<HHMM_SS>/` |
-| 通过命令行运行已保存的 `.passproj` | 项目保存的运行输出目录，未设置时为 `output`；相对路径以项目所在目录为基准 | `<YYYY_MMDD>/<HHMM_SS>/` |
+| 通过命令行指定工程文件或工程目录 | 工程的 `run.output_directory`，未设置时为 `output`；相对路径以工程描述所在目录为基准 | `<YYYY_MMDD>/<HHMM_SS>/` |
 | GUI | **运行** 页的输出目录，初始值为 `output`；相对路径以 JSON／项目所在目录为基准，未保存项目使用当前工作目录 | `<YYYY_MMDD>/<HHMM_SS>/` |
 
-`--output DIR` 可覆盖单份 JSON、双份 JSON 和 `.passproj` 的输出根目录，优先于输入配置或项目保存的设置，且仅对本次运行有效；相对路径以启动命令时终端的工作目录为基准。原始 JSON 或项目文件保持不变。`python -m PASS` 支持相同选项。
+`--output DIR` 可以覆盖任意输入方式的输出根目录，且仅对本次运行有效。使用绝对路径时，可以从任意工作目录执行：
 
-每次普通运行将输入快照保存在本次结果目录内，即 `<output>/<YYYY_MMDD>/<HHMM_SS>/input/`。其中包含原始配置值、执行 JSON、复制的输入依赖和 `run.json` 运行记录。JSON、项目和 GUI 运行统一使用按日期组织的结果目录，必要时添加后缀以避免复用已有目录。生成的 JSON 仍默认使用 `./output`。缺少 `Output directory` 或将其设为 `default` 的 JSON，现在统一使用第一份 JSON 旁的 `output`，不再使用仓库或安装目录。完整输出规则见[输入指南](https://changmx.github.io/PASS/zh/input_generation.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
+```bash
+pass-run /home/myprojpath/myproject.passproj --output /home/myprojpath/results
+```
 
-**查看项目内容：**`.passproj` 是标准 ZIP 容器，可以用支持 ZIP 的压缩软件打开；也可以复制一份，把副本后缀改为 `.zip`，再解压。`manifest.json` 保存项目清单和运行设置，`configs/*.json` 是仿真输入，`assets/` 是依赖文件，`recipes/` 是生成设置。GUI 的 **项目内容** 也支持直接预览。修改后应通过 PASS 保存，以同步更新校验和与依赖索引。
+此时输出根目录为 `/home/myprojpath/results`。相对的覆盖路径以终端当前工作目录为基准，例如：
 
-**Python 工作流：**[输入配置指南](https://changmx.github.io/PASS/zh/input_generation.html)说明输入生成、校验、执行和输出。示例脚本位于源码仓库中。若通过 PyPI 安装，先下载或克隆仓库以获取示例，然后从仓库根目录运行分布生成示例：
+```bash
+cd /home/myprojpath
+pass-run myproject.passproj --output "results/test run"
+```
+
+这会将结果写入 `/home/myprojpath/results/test run/<YYYY_MMDD>/<HHMM_SS>/`。`--output` 优先于 JSON／工程中的设置，不会修改它们的文件内容。`python -m PASS` 支持相同选项。
+
+每次普通运行都在本次结果目录的 `input/` 子目录保存输入快照，其中包含原始配置值、执行 JSON、复制的依赖文件和 `run.json` 运行记录。JSON、工程和 GUI 运行共用按日期组织的结果布局，必要时添加后缀以避免复用已有目录。完整规则见[输入指南](https://changmx.github.io/PASS/zh/input_generation.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
+
+可以用文本编辑器直接修改 `myproject.passproj`、`beam0.json` 和文本依赖文件。在 GUI 中，外部修改后应先使用 **文件 → 重新加载项目**，再保存或运行；外部修改检查会避免覆盖修改或使用过期输入。移动或分享工程时，需要携带整个目录及其引用文件，单个 `.passproj` 描述文件并不包含完整工程。**导出可运行输入包** 可以将所选输入及依赖打包分享。
+
+### 图形界面
+
+安装 `gui` 组件后，使用 `pass-gui` 或 `python -m PASS.gui` 启动界面。对于上述示例，可以通过 **文件 → 打开项目** 选择 `/home/myprojpath/myproject.passproj`，或通过 **文件 → 打开项目文件夹** 选择 `/home/myprojpath`。如果只编辑单份束流输入，使用 **文件 → 打开 JSON** 选择 `/home/myprojpath/beam0.json`。
+
+应用参数修改，执行 **校验**，然后在 **运行** 页面启动模拟。计算结果可在 **绘图** 页面查看。具体操作见[图形界面](https://changmx.github.io/PASS/zh/gui.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
+
+### Python 工作流
+
+[输入配置指南](https://changmx.github.io/PASS/zh/input_generation.html)说明输入生成、校验、执行和输出。示例脚本位于源码仓库中。若通过 PyPI 安装，先下载或克隆仓库以获取示例，然后从仓库根目录运行分布生成示例：
 
 ```bash
 cd example/01_generate_distribution
@@ -151,7 +221,7 @@ python analyze_results.py --case longi-gaussian
 已有输入也可以先单独校验：
 
 ```bash
-python -m PASS.validation path/to/beam.json --report validation-report.json
+python -m PASS.validation /home/myprojpath/beam0.json --report /home/myprojpath/validation-report.json
 ```
 
 ## 查阅手册

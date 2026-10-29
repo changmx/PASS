@@ -29,18 +29,28 @@ def _utc_now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _is_project_input(path):
+    """Project paths accept an entry file or a directory resolved by Project.open."""
+    path = Path(path).expanduser()
+    return path.is_dir() or path.suffix.lower() == ".passproj"
+
+
 @contextmanager
-def _load_run_inputs(paths, *, output_dir=None):
-    """Keep project assets alive until the selected inputs have been archived."""
+def _load_run_inputs(paths, *, output_dir=None, comparison_documents=None):
+    """Keep project assets alive until the selected runtime inputs are archived.
+
+    The optional comparison_documents list receives editable project values;
+    runtime documents keep referencing immutable cached dependencies.
+    """
     from PASS.validation import parse_json
 
     # Command-line overrides belong to the invoking directory, unlike saved paths.
     output = Path(output_dir).expanduser().resolve() if output_dir is not None else None
-    if Path(paths[0]).suffix.lower() == ".passproj":
+    if _is_project_input(paths[0]):
         from PASS.gui.project import Project
 
         if len(paths) != 1:
-            raise ValueError("A .passproj project must be run on its own; it already selects its beam inputs")
+            raise ValueError("A project must be run on its own; it already selects its beam inputs")
         project = Project.open(Path(paths[0]).expanduser())
         try:
             settings = project.run_settings
@@ -54,6 +64,8 @@ def _load_run_inputs(paths, *, output_dir=None):
             if len(set(identifiers)) != len(identifiers):
                 raise ValueError("Project Beam 0 and Beam 1 must select different inputs")
             documents = [(project.configs[identifier].name, project.configs[identifier].data, project.config_base) for identifier in identifiers]
+            if comparison_documents is not None:
+                comparison_documents.extend(project.editable_input(identifier)[0] for identifier in identifiers)
             if output is None:
                 value = settings.get("output_directory", "output")
                 if value in (None, ""):
@@ -68,8 +80,8 @@ def _load_run_inputs(paths, *, output_dir=None):
             project.close()
         return
 
-    if any(Path(value).suffix.lower() == ".passproj" for value in paths[1:]):
-        raise ValueError("A .passproj project cannot be combined with JSON inputs")
+    if any(_is_project_input(value) for value in paths[1:]):
+        raise ValueError("A project cannot be combined with JSON inputs")
     documents = []
     for value in paths:
         path = Path(value).expanduser().resolve()
@@ -83,7 +95,7 @@ def _load_run_inputs(paths, *, output_dir=None):
     yield documents, output, None
 
 
-def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requested, project_path):
+def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requested, project_path, comparison_documents=None):
     from PASS import __version__
     from PASS.validation import parse_json
     from PASS.validation.rules import validate_documents
@@ -138,7 +150,7 @@ def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requeste
 
     try:
         check()
-        archived = archive_input_documents(documents, snapshot, output, check=check, record=record)
+        archived = archive_input_documents(documents, snapshot, output, comparison_documents=comparison_documents, check=check, record=record)
         checked = validate_documents([(str(path), parse_json(path.read_bytes())[0], path.parent) for path in archived])
         check()
         if not checked.ok:
@@ -169,7 +181,7 @@ def main(beam0_path: str,
          archive_inputs: bool = True,
          output_dir: str | Path | None = None,
          _run_directory: str | Path | None = None):
-    """Run one/two JSON inputs or the saved selection in a .passproj project.
+    """Run one/two JSON inputs or the saved selection in a project file/directory.
 
     GUI-managed runs pass archive_inputs=False because their input files already
     belong to a verified snapshot. Low-level Config.load_input does not archive dependencies.
@@ -193,7 +205,8 @@ def main(beam0_path: str,
     paths = [beam0_path] + ([beam1_path] if beam1_path is not None else [])
     record_path, record = None, None
     run_directory = _run_directory
-    with _load_run_inputs(paths, output_dir=output_dir) as (documents, output, project_path):
+    comparison_documents = []
+    with _load_run_inputs(paths, output_dir=output_dir, comparison_documents=comparison_documents) as (documents, output, project_path):
         if project_path is not None and not archive_inputs:
             raise ValueError("Project runs require archive_inputs=True to preserve their input dependencies")
         validation_documents = []
@@ -216,7 +229,8 @@ def main(beam0_path: str,
                                                                  output,
                                                                  flat_output=flat_output,
                                                                  stop_requested=stop_requested,
-                                                                 project_path=project_path)
+                                                                 project_path=project_path,
+                                                                 comparison_documents=comparison_documents or None)
             except _SnapshotStopped:
                 return False
             if not flat_output:
@@ -308,33 +322,40 @@ def cli_main(argv: list[str] | None = None, *, on_completed=None) -> int:
     """Run JSON inputs or a project's saved selection without loading Qt."""
     from PASS import __version__
 
-    parser = argparse.ArgumentParser(
-        prog="pass-run",
-        description="Run one or two PASS JSON inputs, or the saved beam selection in a .passproj project, without loading Qt.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
+    parser = argparse.ArgumentParser(prog="pass-run",
+                                     description="Run one or two PASS JSON inputs, or a .passproj file/project directory, without loading Qt.",
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog="""Examples:
   pass-run beam0.json
   pass-run beam0.json beam1.json
   pass-run project.passproj
+  pass-run path/to/project
+  pass-run .
   pass-run --beam0 beam0.json
   pass-run --beam0 beam0.json --beam1 beam1.json
   pass-run --passproj project.passproj --output ./output
+  pass-run --passproj path/to/project
   pass-run --version
 
 Choose positional inputs or named input options; do not mix them.
 --beam1 requires --beam0. --passproj uses the project's saved beam selection.
+Directories prefer project.passproj, otherwise they require exactly one .passproj file.
+If multiple project files exist without project.passproj, specify the file explicitly.
+Project files may be editable JSON descriptors or legacy ZIP projects (read only).
 The default output root is output beside the first JSON input or project;
 saved output settings or --output can change it. Both input formats write
 results to <output>/YYYY_MMDD/HHMM_SS, with input snapshots in its input/ folder.
 Relative --output paths use the current working directory.
 """)
     parser.add_argument("--version", action="version", version=f"PASS {__version__}", help="Show the PASS version and exit")
-    parser.add_argument("input", nargs="?", metavar="INPUT", help="Beam 0 JSON input or .passproj project")
+    parser.add_argument("input", nargs="?", metavar="INPUT", help="Beam 0 JSON input, .passproj file or project directory")
     parser.add_argument("second_input", nargs="?", metavar="BEAM1", help="Optional Beam 1 JSON input (positional JSON mode only)")
     named = parser.add_argument_group("named inputs", "Use these options instead of positional inputs")
     modes = named.add_mutually_exclusive_group()
     modes.add_argument("--beam0", metavar="JSON", help="Beam 0 JSON input; optionally combine with --beam1")
-    modes.add_argument("--passproj", metavar="FILE", help="Run a .passproj project using its saved beam selection; cannot combine with --beam1")
+    modes.add_argument("--passproj",
+                       metavar="PATH",
+                       help="Run a .passproj file or project directory using its saved beam selection; cannot combine with --beam1")
     named.add_argument("--beam1", metavar="JSON", help="Beam 1 JSON input; requires --beam0")
     parser.add_argument("--output", metavar="DIR", help="Override the output root for this run; relative paths use the current working directory")
     parser.add_argument("--stop-file", help="Stop before initialization or at a turn boundary when this file exists")
@@ -347,23 +368,28 @@ Relative --output paths use the current working directory.
         if args.passproj is not None:
             if args.beam1 is not None:
                 parser.error("--passproj cannot be combined with --beam1; use the project's saved beam selection")
-            if Path(args.passproj).suffix.lower() != ".passproj":
-                parser.error("--passproj requires a .passproj project")
+            if not _is_project_input(args.passproj):
+                if not Path(args.passproj).expanduser().exists():
+                    parser.error(f"Project path does not exist: {args.passproj}")
+                parser.error("--passproj requires a .passproj file or project directory")
             paths = [args.passproj]
         else:
             if args.beam0 is None:
                 parser.error("--beam1 requires --beam0")
             paths = [args.beam0] + ([args.beam1] if args.beam1 is not None else [])
-            if any(Path(path).suffix.lower() != ".json" for path in paths):
-                parser.error("--beam0 and --beam1 require .json inputs")
+            if any(Path(path).suffix.lower() != ".json" or Path(path).expanduser().is_dir() for path in paths):
+                parser.error("--beam0 and --beam1 require .json input files")
     else:
         if args.input is None:
-            parser.error("Provide a JSON input or .passproj project, or use --beam0 or --passproj")
+            parser.error("Provide a JSON input, .passproj file or project directory, or use --beam0 or --passproj")
         paths = [args.input] + ([args.second_input] if args.second_input is not None else [])
-    if any(Path(path).suffix.lower() not in {".json", ".passproj"} for path in paths):
-        parser.error("Expected a .json input or a .passproj project")
-    if len(paths) == 2 and any(Path(path).suffix.lower() == ".passproj" for path in paths):
-        parser.error("A .passproj project must be run on its own; use its saved beam selection")
+    for path in paths:
+        if not _is_project_input(path) and Path(path).suffix.lower() != ".json":
+            if not Path(path).expanduser().exists():
+                parser.error(f"Input path does not exist: {path}")
+            parser.error("Expected a .json input file, .passproj file or project directory")
+    if len(paths) == 2 and any(_is_project_input(path) for path in paths):
+        parser.error("A project must be run on its own; use its saved beam selection")
     stop_path = Path(args.stop_file).expanduser() if args.stop_file else None
     try:
         completed = main(paths[0],

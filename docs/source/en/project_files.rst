@@ -1,17 +1,22 @@
-Single-file projects
-====================
+Editable projects
+=================
 
-PASS supports ordinary standalone JSON inputs and single-file ``.passproj``
-projects through the GUI and command line. The GUI **File** menu separates JSON,
-project, and export actions.
+PASS supports ordinary standalone JSON inputs and directory projects through the
+GUI and command line. A new ``.passproj`` is a plain JSON project description;
+input JSON and dependency files are stored beside it and can be edited directly.
+The GUI **File** menu separates JSON, project, and export actions. Existing ZIP
+``.passproj`` projects remain readable, but all project saves use the new format.
 
 Saving and opening
 ------------------
 
 In standalone mode, **Save JSON** and **JSON Save as** write an ordinary PASS input.
-In project mode, **Save project** writes all input JSON files, input dependencies,
-sources, and generation settings into one container. ``Ctrl+S`` follows the active
-mode. **Open JSON** opens an independent document; it does not silently import
+In project mode, **Save project** writes the project description, input JSON,
+dependencies, sources, and generation settings as ordinary files. ``Ctrl+S``
+follows the active mode. The first save of an old ZIP project selects a new
+project directory and preserves the original archive. Subsequent saves update
+the new project files; PASS no longer writes old-format project archives.
+**Open JSON** opens an independent document; it does not silently import
 into a project. Use **Import JSON into project** for that operation. Replacing a
 document or closing the window offers to save unsaved changes.
 
@@ -28,13 +33,21 @@ wait for an in-progress read or write to finish; a completed save is reported as
 successful. Saving JSON in another directory updates relative input references,
 including those used by undo/redo, so they still identify the same source files.
 
-**Create project from current input** packages the current configuration. Import
+**Create project from current input** creates a project from the current configuration. Import
 additional JSON files and use the input selector to switch between them. Projects
 copy referenced particle distributions, offset tables, RF component programs,
 Bump waveforms, WakeField model files, and magnet ramping files. Original imported JSON and MAD-X TFS files and generator settings
 are retained as sources. Missing inputs identify their JSON location and prevent
 an incomplete project from being saved. Additional source files can be added from
 **Project contents**.
+
+Use **Open project folder** to open a directory containing a ``.passproj`` file.
+Individual ``.passproj`` files can also be opened directly. After editing project
+files in another editor, use **Reload project** to read the saved files again.
+Saving or starting a GUI run checks whether the project files have changed on
+disk; reload and resolve any unsaved GUI edits before continuing. Editable
+project files do not require manually maintained checksums. Run snapshots still
+record and verify checksums independently.
 
 Inspecting and reusing parameters
 ---------------------------------
@@ -80,11 +93,19 @@ After installing PASS, a saved project can also be run without Qt:
    pass-run example.passproj
    pass-run --passproj example.passproj
    python -m PASS example.passproj
+   pass-run path/to/project-directory
+   pass-run --passproj path/to/project-directory
+   pass-run .
 
-These commands are equivalent. The ``.passproj`` extension selects project
-loading, including archive and checksum validation. The command line uses
-``run_settings.beam0`` and the optional ``run_settings.beam1`` saved by the GUI.
-When no Beam 0 selection has been saved, ``active_config_id`` supplies Beam 0;
+The file forms open the specified project. Directory forms prefer
+``project.passproj``; otherwise they open the only ``.passproj`` file directly
+in that directory, such as ``myproject.passproj``. If several exist without
+``project.passproj``, specify the desired file explicitly. Subdirectories are
+not searched. New plain JSON and old ZIP project files
+are distinguished by their contents. Old archives retain their checksum and
+dependency-index checks. The new project description uses ``run.beam0`` and the
+optional ``run.beam1`` to name the selected configuration files.
+When no Beam 0 selection has been saved, ``active_config`` supplies Beam 0;
 Beam 1 is omitted unless selected. A saved selection that no longer exists, or
 selecting the same configuration for both beams, is an error. Other configurations
 are not run automatically. A project file cannot be combined with a second input
@@ -92,7 +113,7 @@ argument. Do not mix positional inputs with named input options. ``--passproj``
 cannot be combined with ``--beam0`` or ``--beam1``; those options select standalone
 JSON inputs instead. See :doc:`input_generation` for the JSON command forms.
 
-Without an override, command-line project runs use ``run_settings.output_directory``, defaulting to
+Without an override, command-line project runs use ``run.output_directory``, defaulting to
 ``output``. Relative paths are resolved beside the saved project, regardless of
 the shell's working directory or output directories inside the selected JSON
 configurations. Absolute output paths remain absolute. Results and input snapshots
@@ -215,6 +236,9 @@ Exporting
 
 **Export current JSON** writes a copy of the configuration only. It does not
 include referenced files and does not change which document is being edited.
+Relative dependency paths are adjusted for the export directory so they still
+refer to the original files. Move those files with a runnable input bundle when
+sharing a self-contained input.
 **Export runnable input bundle** writes the run page's selected inputs and their
 dependencies as ZIP, together with ``run.py`` and an English usage note. Extract
 the entire bundle, install PASS, and execute ``python run.py``. The launcher
@@ -240,46 +264,93 @@ does not resolve the source recovery record. That record remains pending until
 the recovered document is saved or explicitly discarded. Normal closing marks
 handled records as resolved without deleting the recovery files.
 
-Container format
-----------------
+Project format and migration
+----------------------------
 
-Version 2 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
+Version 3 uses a UTF-8 JSON ``.passproj`` description and ordinary files in the
+same project directory. New projects and legacy conversions do not create
+``configs/`` or ``assets/`` directories:
 
 .. code-block:: text
 
-   manifest.json                     # format/PASS versions, input and asset index
-   configs/<configuration-name>.json  # ordinary PASS input JSON
-   assets/<filename>                 # original input/source bytes
-   recipes/<index>.json               # generation settings and source references
+   my-project/
+       project.passproj              # plain JSON project description
+       beam0.json                    # editable PASS input
+       beam1.json                    # optional second input or candidate
+       quadrupole_ramp.tfs            # referenced input dependency
+       distribution.tfs
+       output/                       # run results, created when running
 
-To inspect the contents outside PASS, open the file with a ZIP-compatible archive
-application, or copy it, rename the copy to ``.zip``, and extract it. Read
-``manifest.json`` and ``configs/*.json`` with an ordinary text editor. In the GUI,
-**Project contents** provides configuration and source previews without manual
-extraction. Save project changes through the GUI so the dependency index and
-checksums are updated together; editing archive members by hand can invalidate
-the project.
+An example description selecting only Beam 0 is:
 
-Files are stored directly in ``configs/`` and ``assets/``, without UUID
-subdirectories. Configurations use their display names and assets retain their
-original filenames. Chinese characters and spaces are preserved; characters
-unsafe in filenames are replaced. If a name already exists in the same directory,
-PASS adds ``1``, ``2``, ``3``, and so on before the extension, for example
-``rf.tfs``, ``rf1.tfs``, and ``rf2.tfs``. Configuration names follow the same rule,
-for example ``beam.json`` and ``beam1.json``.
+.. code-block:: json
 
-Stable IDs remain internal manifest references and do not determine filenames.
-Configurations refer to assets by relative paths. The manifest records SHA-256
-checksums, the dependency index, the active configuration, and run settings. Copying the project requires
-only one file; the temporary editing cache
-does not need to be transferred. The runtime input does not depend on paths on
-the original computer. Source files are snapshots and are not silently refreshed
-when an external file changes.
+   {
+     "format": "pass-project",
+     "format_version": 3,
+     "name": "My simulation",
+     "configs": ["beam0.json", "beam1.json"],
+     "active_config": "beam0.json",
+     "run": {
+       "beam0": "beam0.json",
+       "beam1": null,
+       "output_directory": "output"
+     }
+   }
 
-Saving writes and verifies a new archive before replacing the old one. Version 2
-rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
-or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
-and 64 MiB per JSON member. A large project requires time and additional disk
-space to write a complete new archive. Large simulation outputs are not archived
-automatically; files explicitly added as inputs or sources are embedded regardless
-of their type, including results reused as input.
+``configs`` lists all candidate inputs, while ``run`` selects the inputs for one
+run. Set ``run.beam1`` to ``"beam1.json"`` to select a second, distinct input.
+The optional ``name`` is the project title. A minimal description may omit
+``configs``; its inputs are then derived from ``active_config`` and the saved
+beam selections. Optional ``sources`` entries contain ``path`` and ``kind``;
+optional ``recipes`` lists generation-setting JSON files. These retain imported
+source files and generator settings when converting an old project.
+
+Newly imported auxiliary files ending in ``.passproj`` are saved under
+``sources/`` (or a numbered alternative if that name is occupied). This keeps
+directory execution from mistaking them for project entries; beam JSON and
+ordinary ramping files remain beside the description. If a custom-named project
+already has auxiliary ``.passproj`` files at its top level, save it into a new
+directory, or move those auxiliaries into a subdirectory, update their references,
+and reload before saving. Existing files are preserved.
+
+Project-description paths are relative to its directory. Input dependencies are
+resolved relative to the JSON that references them, so ``beam0.json`` remains
+independently runnable with ``pass-run beam0.json``. For example, a magnet can
+refer to ``"Ramping file": "quadrupole_ramp.tfs"``. A shared file may be referenced
+by multiple commands or inputs. Dependencies are collected from input references;
+there is no separate ramping registry to maintain in the project description.
+Existing relative subdirectories are supported and preserved when a project is
+loaded and saved. Referenced project files must remain within the project
+directory. Dependency paths differing only in letter case must identify the same
+physical file; distinct files are rejected to keep the project portable.
+Referenced member paths cannot contain symbolic links or Windows junctions,
+including components followed by ``..``.
+
+Edit the description, input JSON, and text dependencies with an ordinary editor.
+There are no stored content hashes or UUID-based references to update manually.
+Reopen or reload after external edits. Move or share the project directory with
+all its referenced files; copying only the ``.passproj`` description is not enough.
+The GUI's **Project contents** provides read-only previews of configurations and
+sources. Unrelated files in a destination directory are not overwritten; choose
+a separate destination if a filename conflicts. Saved project files are not
+automatically deleted when a reference is removed.
+Saving into another directory never overwrites existing destination files,
+including original project members when the source and destination directories
+overlap.
+
+Version 2 ZIP/ZIP64 ``.passproj`` archives are read-only compatibility inputs.
+Their original checksum, dependency-index, path, and size checks remain in force.
+Opening or running one does not modify it. Its first save must target a different
+directory from the original archive's directory and produces a version 3 project.
+Conversion preserves all candidate inputs, sources, generation settings, and
+beam selections, rewrites dependency paths, and resolves filename conflicts.
+The original archive remains intact. New project saves never produce version 2
+archives, and there is no old-format project export. **Export runnable input
+bundle** remains available as a separate ZIP export of selected runtime inputs.
+
+Older PASS versions cannot open version 3 descriptions. Run snapshots continue
+to copy inputs and dependencies and record SHA-256 hashes for reproduction;
+their immutable-input rules are separate from editable project files. Large
+simulation outputs are not automatically included in a project. They become
+project dependencies only when explicitly added as inputs or sources.

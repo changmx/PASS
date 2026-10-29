@@ -1,5 +1,4 @@
 """One file-opening route for shell drops, including child text/table widgets."""
-import json
 from pathlib import Path
 import zipfile
 
@@ -9,8 +8,11 @@ from PySide6.QtWidgets import QInputDialog, QMessageBox, QWidget
 
 def identify_file(path):
     path = Path(path)
+    if path.is_dir():
+        from PASS.gui.project import Project
+        path = Project.resolve_path(path)
     if not path.is_file():
-        raise ValueError("请拖入一个本地文件。")
+        raise ValueError("请选择本地文件或含 .passproj 文件的项目文件夹。")
     with path.open("rb") as stream:
         head = stream.read(512)
         if head.startswith(b"SDDS"):
@@ -25,13 +27,23 @@ def identify_file(path):
     if suffix in {".npy", ".npz", ".tsv", ".txt", ".dat"}:
         return "analysis_data"
     if suffix == ".passproj" or head.startswith(b"PK\x03\x04"):
-        with zipfile.ZipFile(path) as archive:
-            info = archive.getinfo("manifest.json")
-            if info.file_size > 64 * 1024 * 1024:
+        from PASS.gui.project import FORMAT_VERSION, JSON_LIMIT, read_json
+
+        if zipfile.is_zipfile(path):
+            with zipfile.ZipFile(path) as archive:
+                info = archive.getinfo("manifest.json")
+                if info.file_size > JSON_LIMIT:
+                    raise ValueError("项目清单过大。")
+                manifest = read_json(archive.read(info))
+            expected_version = 2
+        else:
+            if path.stat().st_size > JSON_LIMIT:
                 raise ValueError("项目清单过大。")
-            manifest = json.loads(archive.read(info))
-            if manifest.get("format") != "pass-project":
-                raise ValueError("不是 PASS 项目文件。")
+            manifest = read_json(path.read_bytes())
+            expected_version = FORMAT_VERSION
+        if manifest.get("format") != "pass-project" or type(
+                manifest.get("format_version")) is not int or manifest["format_version"] != expected_version:
+            raise ValueError("不支持的 PASS 项目格式或版本。")
         return "project"
     if suffix == ".json":
         from PASS.gui.project import JSON_LIMIT, read_json
