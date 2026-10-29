@@ -110,6 +110,8 @@ class Injection(Command):
                                  f"declared; harmonic number {self.harmonic_number} "
                                  f"requires {self.harmonic_number} bunch dicts (one per "
                                  f"group).")
+            if sim.beams[self.beam_id].bunches[bunch_id].Np == 0:
+                continue
             b_kwargs = copy.deepcopy(b_kwargs)
             b_kwargs["harmonic number"] = self.harmonic_number
             inj_bunch = InjectionBunchInfo(self.beam_id, bunch_id, sim, **b_kwargs)
@@ -222,8 +224,12 @@ class Injection(Command):
                 # The incoming beam keeps its specified energy while the circulating
                 # reference may have accelerated. Convert momentum exactly once.
                 for bunch in beam.bunches:
+                    if bunch.end_idx <= bunch.start_idx:
+                        continue
                     selected = (destination >= bunch.start_idx) & (destination < bunch.end_idx)
                     dest = destination[selected]
+                    if not len(dest):
+                        continue
                     rows = np.asarray(selected) if xp is np else selected.get()
                     factor = source.p0 / bunch.p0
                     for name in ("x", "y"):
@@ -237,9 +243,8 @@ class Injection(Command):
                     p.dp[dest] = xp.asarray(incoming_delta * factor + reference_delta)
                     p.z[dest] = xp.asarray(batch_particles.z[rows].astype(np.float64) * (bunch.beta / source.beta) + bunch.beta * const.c *
                                            (bunch.t0 - injection_time))
-                    if len(dest):
-                        for observer in tuple(getattr(beam, "_bunch_injection_observers", ())):
-                            observer(bunch.harmonic_id, turn)
+                    for observer in tuple(getattr(beam, "_bunch_injection_observers", ())):
+                        observer(bunch.harmonic_id, turn)
                 p.tag[destination] = state.reserved_ids[destination]
                 p.lost_turn[destination], p.lost_position[destination] = -1, -1
                 state.record_batch(first, count, turn, batch)
@@ -257,8 +262,7 @@ class Injection(Command):
         # final batches, and a failed save remains independently retryable.
         for source in self.inj_bunchs:
             if (source.planned_count and turn == source.inj_turns[-1] and source.is_save_init_dist and not source._saved_init_dist):
-                self._save_init_dist(source, beam.bunches[source.bunch_id], beam, sim.cfg)
-                source._saved_init_dist = True
+                self._save_initial_snapshots(source, beam, sim.cfg)
                 did_execute = True
         self._executed.add(turn)
         self._finished = all(
@@ -960,10 +964,47 @@ class Injection(Command):
 
         logger.info(f"Generate successfully")
 
-    def _save_init_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, cfg: Config):
+    def _save_initial_snapshots(self, source: InjectionBunchInfo, beam: Beam, cfg: Config):
+        """Snapshot each current reference group containing this source's IDs."""
+        if source._snapshot_bunches is None:
+            p = beam.particles
+            first, end = source.first_id, source.first_id + source.planned_count
+            groups = []
+            for bunch in beam.bunches:
+                if bunch.end_idx <= bunch.start_idx:
+                    continue
+                ids = p.xp.abs(p.tag[bunch.start_idx:bunch.end_idx])
+                if bool(p.xp.any((ids >= first) & (ids < end))):
+                    # Retain only event scalars, never SliceSet/GPU caches. Particle
+                    # storage stays at this interrupted injection event for retries.
+                    fields = ("start_idx", "end_idx", "Np", "bunch_id", "harmonic_id", "harmonic_number", "Ek", "m0", "t0", "beta", "p0", "circum")
+                    groups.append(SimpleNamespace(**{name: getattr(bunch, name) for name in fields}))
+            if not groups:
+                raise ValueError(f"Injection source {source.bunch_id} has no particle records in any current bunch at its final event")
+            source._snapshot_bunches = tuple(groups)
+            source._snapshot_group_suffix = (len(groups) != 1 or groups[0].bunch_id != source.bunch_id or groups[0].harmonic_id != source.harmonic_id
+                                             or groups[0].harmonic_number != source.harmonic_number)
+        for bunch in source._snapshot_bunches:
+            if bunch.bunch_id in source._saved_init_dist_groups:
+                continue
+            self._save_init_dist(source, bunch, beam, cfg)
+
+    @staticmethod
+    def _mark_initial_snapshot_saved(source, bunch):
+        if source._snapshot_bunches is None:
+            source._saved_init_dist = True
+            return
+        source._saved_init_dist_groups.add(bunch.bunch_id)
+        source._saved_init_dist = all(group.bunch_id in source._saved_init_dist_groups for group in source._snapshot_bunches)
+        if source._saved_init_dist:
+            source._snapshot_bunches = None
+
+    def _save_init_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo | SimpleNamespace, beam: Beam, cfg: Config):
 
         output_dir = cfg.output_dir_dist
-        file_name = f"{cfg.output_hms}_beam{self.beam_id}_bunch{inj_bunch.bunch_id}_{bunch_info.Np}_hor_{inj_bunch.dist_trans}_longi_{inj_bunch.dist_longi}_Dx_{inj_bunch.dx}_injection.tfs"
+        group_suffix = f"_group{bunch_info.bunch_id}" if inj_bunch._snapshot_group_suffix else ""
+        file_name = (f"{cfg.output_hms}_beam{self.beam_id}_bunch{inj_bunch.bunch_id}_{bunch_info.Np}_hor_{inj_bunch.dist_trans}"
+                     f"_longi_{inj_bunch.dist_longi}_Dx_{inj_bunch.dx}{group_suffix}_injection.tfs")
         file_path = table_path(Path(output_dir) / file_name, inj_bunch.output_format)
         if file_path.exists():
             raise FileExistsError(f"Injection snapshot already exists; refusing to overwrite: {file_path}")
@@ -1002,6 +1043,10 @@ class Injection(Command):
         headers["m0"] = bunch_info.m0
         headers["Harmonic num"] = bunch_info.harmonic_number
         headers["InjectionKineticEnergy"] = inj_bunch.Ek
+        headers["SourceBunchId"] = int(inj_bunch.bunch_id)
+        headers["SourceHarmonicId"] = int(inj_bunch.harmonic_id)
+        headers["SourceHarmonicNumber"] = int(inj_bunch.harmonic_number)
+        headers["BunchId"] = int(bunch_info.bunch_id)
         headers["HarmonicId"] = int(bunch_info.harmonic_id)
         headers["HarmonicNumber"] = int(bunch_info.harmonic_number)
         headers["ReferenceArrivalTime"] = float(bunch_info.t0)
@@ -1029,14 +1074,14 @@ class Injection(Command):
             # Publish only a closed complete file, without replacing an existing
             # snapshot or a distribution source selected as this destination.
             os.link(temporary_path, file_path)
-            inj_bunch._saved_init_dist = True
+            self._mark_initial_snapshot_saved(inj_bunch, bunch_info)
         except BaseException:
             # An interruption can occur after the link succeeded. Record only
             # provably owned output before removing its staging name, so a retry
             # cannot mistake this complete snapshot for a foreign destination.
             try:
                 if file_path.samefile(temporary_path):
-                    inj_bunch._saved_init_dist = True
+                    self._mark_initial_snapshot_saved(inj_bunch, bunch_info)
             except OSError:
                 pass
             raise
@@ -1210,6 +1255,9 @@ class InjectionBunchInfo:
         self.is_save_init_dist = kwargs.get("is save initial distribution", True)
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5"))
         self._saved_init_dist = False
+        self._snapshot_bunches = None
+        self._snapshot_group_suffix = False
+        self._saved_init_dist_groups = set()
 
         manual = kwargs.get("insert particle coordinate", [])
         insert_file = kwargs.get("insert particle file")

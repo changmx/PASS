@@ -1104,10 +1104,20 @@ Bunch filling scheme
 
    The bunch ID ( ``bunch_id`` ) is strictly numbered starting from 0 with a step of 1, determined by the key names ``bunch0`` , ``bunch1`` , ... in the input file. The number of bunches is determined by the number of ``bunch`` keys in the input file.
 
-   ``harmonic_id`` values must be unique and cover :math:`0,1,\ldots,h_{\mathrm{group}}-1` exactly. The number of declared bunches therefore equals ``Harmonic Number``. An unfilled slot is represented by a declared bunch with zero macro particles.
+   ``harmonic_id`` values must be unique and cover :math:`0,1,\ldots,h_{\mathrm{group}}-1` exactly. The number of declared bunches therefore equals ``Harmonic Number``. An unfilled slot is represented by a declared bunch with zero macro particles. The GUI fills missing slots with these empty declarations automatically.
 
    - **Full filling**: every group contains particles, with centers at :math:`0,C/h_{\mathrm{group}},\ldots,(h_{\mathrm{group}}-1)C/h_{\mathrm{group}}`
    - **Partial filling**: retain the complete group-index set and assign zero macro particles to the unfilled slots
+
+A runtime slot is empty only when its allocated particle interval has zero
+length (``start_idx == end_idx``). Particle calculations and per-bunch monitor
+files are skipped for such slots. Pending injection reservations and lost
+particles remain allocated records: zero surviving particles does not make a
+bunch empty, and its loss statistics continue to be recorded. A later
+``SortBunch`` or ``ReorganizeBunch`` can fill an empty slot, which then participates
+normally. Lightweight reference-time/energy updates and shared effect timing
+remain active for empty slots so that subsequent regrouping retains valid
+reference states.
 
 The figure below illustrates bunch grouping around a ring of circumference :math:`C`. The marked points are nominal slots :math:`z_{\mathrm{center}}`, and group indices increase clockwise. The upper figure shows full filling for :math:`h_{\mathrm{group}}=4`; the lower figure shows partial filling for :math:`h_{\mathrm{group}}=5`, with groups 1, 3, and 4 represented by empty bunches:
 
@@ -1587,11 +1597,16 @@ When ``save_init_dist`` is enabled, each ``BunchConfig`` accepts
 This selects the initial-distribution output only; loading detects the
 input format from its extension. See :doc:`monitor/table_output`.
 
-The saved file is a snapshot of the current bunch at that source's last scheduled
-injection event, after all sources scheduled at the same event have been injected.
-It is not delayed until other sources finish on future turns. After sorting,
-the current bunch may contain particles from multiple sources, including zero-tag
-reservations for future batches; the snapshot is not filtered by original source.
+At each source's last scheduled injection event, after all sources scheduled at
+that event have been injected, snapshots are saved for the current bunches that
+contain this source's particle IDs, including its lost records. Saving is not
+delayed until other sources finish on future turns. A source split across several
+current bunches produces one file per bunch, so each file has one consistent
+current reference. Each snapshot contains the entire current bunch, including
+other sources and zero-tag reservations for their future batches; rows are not
+filtered by original source. Empty former slots do not produce snapshots.
+The ordinary unchanged-group filename is retained. After a source moves, splits,
+or changes grouping grid, ``_groupN`` identifies the current bunch in each filename.
 With multi-turn injection, earlier batches may already have
 been transported or lost; this file does not preserve each particle's birth
 coordinates. ParticleMonitor captures those coordinates separately at each
@@ -1602,9 +1617,12 @@ metadata are not a beam-state restore operation.
 Saving first writes a complete private temporary file and then publishes it
 without overwriting an existing destination. An existing snapshot or input
 distribution at that path is preserved and reported as an error. A failed save
-can be retried without injecting the same batch again. If publication succeeds
-before an exception is delivered, file identity confirms the owned complete
-snapshot so a retry does not mistake it for an unrelated existing file.
+can be retried at the interrupted injection event without injecting the same
+batch again. Successfully published group files are retained and skipped on
+retry; the source is complete only after every required group has been saved.
+If publication succeeds before an exception is delivered, file identity confirms
+the owned complete snapshot so a retry does not mistake it for an unrelated
+existing file. Tracking must remain paused at that event until the save succeeds.
 
 Snapshot headers ``Ek`` and ``m0`` describe the current bunch reference;
 ``InjectionKineticEnergy`` retains the incoming source energy used for generation.
@@ -1613,7 +1631,9 @@ Snapshot headers ``Ek`` and ``m0`` describe the current bunch reference;
 event. Thus live-particle momentum is ``ReferenceMomentum * (1 + dp)`` and
 arrival time is ``ReferenceArrivalTime - z / (ReferenceBeta * c)``.
 ``HarmonicId``, ``HarmonicNumber`` and ``ZCenter`` (m) record the current grouping;
-the saved ``z`` remains ``z_rel``. These reference values apply only to live
+``BunchId`` identifies the current bunch, while ``SourceBunchId``,
+``SourceHarmonicId`` and ``SourceHarmonicNumber`` retain the original injection
+source identity. The saved ``z`` remains ``z_rel``. These reference values apply only to live
 particles: lost rows retain coordinates from their loss event. Other generation
 settings such as emittance and Twiss parameters are not measured snapshot moments.
 
