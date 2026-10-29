@@ -1,4 +1,4 @@
-"""Check or format embedded CUDA with clang-format 23 and unchanged C++ tokens."""
+"""Format embedded CUDA in a PASS source checkout with clang-format 23 and unchanged C++ tokens."""
 
 import argparse
 import ast
@@ -242,7 +242,7 @@ def main(argv=None):
     mode.add_argument("--write", action="store_true", help="write changes after validating all selected files")
     parser.add_argument("--clang-format", help="path or command for clang-format 23.x")
     args = parser.parse_args(argv)
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     try:
         executable, version = _find_clang_format(args.clang_format)
         files = _collect_files(args.paths or [root / "PASS"])

@@ -119,16 +119,12 @@ reader requires importing the full PASS package.
 
 ## Updating the portable file inside PASS
 
-This file is generated from the same reader, classification, and plotting source
-used by PASS. Do not maintain a separate copy of the algorithms by hand. From
-the repository root, run:
+This file is an independent copy of the reader, classification, and plotting
+code used by PASS. When changing `PASS/utils/particle_monitor_read.py`,
+`PASS/analysis/dynamic_aperture.py`, or `PASS/plot/plot_dynamic_aperture.py`, apply
+the corresponding changes here and verify that both implementations give the
+same results. Keep the portable file free of PASS imports so it can still be
+used without installing the package.
 
-```console
-python tools/export_dynamic_aperture.py
-python tools/export_dynamic_aperture.py --check
-```
-
-The exporter itself uses only Python's standard library. Source hashes in the
-generated module record its provenance. Regenerate and recopy the portable file
-after changing the maintained implementation; an already copied file does not
-update automatically.
+The portable file is not regenerated automatically. Replace any copies in other
+locations after updating it; an already copied file does not update itself.

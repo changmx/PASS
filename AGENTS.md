@@ -29,7 +29,7 @@ API/schema compatibility > testing, documentation, and style.
 - In embedded CUDA/C++, put each function declaration/definition parameter on its
   own line, with four-space indentation. Keep calls compact and declare precision
   types explicitly instead of relying on whitespace-sensitive source replacement.
-- Check embedded CUDA with `python tools/format_cuda.py --check`; use `--write`
+- Check embedded CUDA with `python PASS/tool/format_cuda.py --check`; use `--write`
   to apply `.clang-format` with clang-format 23.x. Review reported dynamic fragments
   manually; YAPF does not format string contents.
 - Use `snake_case` for variables and functions, `PascalCase` for classes, and

@@ -258,6 +258,6 @@ Open `docs/build/html/index.html` after a successful build.
 
 ## Contributing
 
-Follow [AGENTS.md](AGENTS.md) for physics, documentation, and formatting conventions. Install `.[dev]` and use YAPF 0.43.0 with `pyproject.toml`; embedded CUDA is checked with `python tools/format_cuda.py --check`. The `tests/` directory is maintained locally and excluded from Git, so a fresh clone does not contain the test suite.
+Follow [AGENTS.md](AGENTS.md) for physics, documentation, and formatting conventions. Install `.[dev]` and use YAPF 0.43.0 with `pyproject.toml`; embedded CUDA is checked with `python PASS/tool/format_cuda.py --check` from the source checkout. The `tests/` directory is maintained locally and excluded from Git, so a fresh clone does not contain the test suite.
 
 PASS is distributed under the [Apache License 2.0](LICENSE).

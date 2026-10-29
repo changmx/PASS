@@ -269,10 +269,9 @@ not select a Matplotlib backend. For a single initial dp, call
 
    python dynamic_aperture.py run_particles.h5 --overlay --output da_overlay.png
 
-The distributed file is generated from the same reader, analysis and plotting
-sources used by the GUI. After changing these sources, maintainers regenerate
-it with ``python tools/export_dynamic_aperture.py`` and verify it with
-``python tools/export_dynamic_aperture.py --check``. Copies already taken to
+This file is an independent copy of the reader, analysis and plotting code used
+by PASS. Changes to the package implementation must also be applied and verified
+in this file; it is not regenerated automatically. Copies already taken to
 another location remain snapshots until replaced.
 
 Numerical convergence

@@ -258,6 +258,6 @@ python -m sphinx -b html -W --keep-going docs/source docs/build/html
 
 ## 参与开发
 
-物理约定、文档及格式要求见 [AGENTS.md](AGENTS.md)。安装 `.[dev]` 后，使用 YAPF 0.43.0 和 `pyproject.toml` 格式化 Python；嵌入的 CUDA 代码通过 `python tools/format_cuda.py --check` 检查。`tests/` 在本地维护且不纳入 Git，重新克隆的仓库不包含测试集。
+物理约定、文档及格式要求见 [AGENTS.md](AGENTS.md)。安装 `.[dev]` 后，使用 YAPF 0.43.0 和 `pyproject.toml` 格式化 Python；在源码仓库中运行 `python PASS/tool/format_cuda.py --check` 检查嵌入的 CUDA 代码。`tests/` 在本地维护且不纳入 Git，重新克隆的仓库不包含测试集。
 
 PASS 使用 [Apache License 2.0](LICENSE) 许可证。
