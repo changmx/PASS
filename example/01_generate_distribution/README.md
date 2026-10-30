@@ -293,6 +293,9 @@ accept current HDF5 and TFS output. Set `output_format="tfs"` on the monitor
 (or initial-distribution `BunchConfig`) for text output, or
 `output_format="hdf5-gzip1"` to enable gzip level 1 and shuffle.
 Both HDF5 settings use `.h5` files.
-StatMonitor also writes every recorded row to CSV in batches of 100 turns
-by default, configurable with `write_interval_turns`. Slicer slice summaries
-remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).
+StatMonitor writes every recorded row to HDF5 in batches of 100 turns by default,
+configurable with `write_interval_turns`, without generating CSV. With TFS
+selected, it writes uncompressed HDF5 during tracking and exports TFS at
+finalization, retaining the HDF5 file.
+Slicer slice summaries remain TFS/CSV.
+See [table output formats](../../docs/source/en/monitor/table_output.rst).

@@ -1,7 +1,7 @@
 StatMonitor
 ======================
 
-``StatMonitor`` records each bunch's centroid, standard deviations, RMS emittances, derived Twiss parameters and particle losses once per turn at a specified lattice position. Moments use live particles (``tag > 0``). Each monitor writes a per-bunch history in CSV and the selected table format.
+``StatMonitor`` records each bunch's centroid, standard deviations, RMS emittances, derived Twiss parameters and particle losses once per turn at a specified lattice position. Moments use live particles (``tag > 0``). Each monitor writes a per-bunch history in HDF5 during tracking. TFS output additionally exports that history at finalization. No CSV file is generated.
 
 Configuration example
 ------------------------------------------
@@ -43,7 +43,7 @@ Interface Parameters
     - ``"Output format"``
     - str
     - ``"hdf5-gzip1"``
-    - ``"hdf5-gzip1"`` (gzip-1 + shuffle), ``"hdf5"`` (uncompressed), or ``"tfs"``; CSV is always provided
+    - ``"hdf5-gzip1"`` (gzip-1 + shuffle), ``"hdf5"`` (uncompressed), or ``"tfs"`` (uncompressed HDF5 during tracking, then TFS export); no CSV
   * - ``write_interval_turns``
     - ``"Write interval (turns)"``
     - positive int
@@ -58,11 +58,10 @@ Interface Parameters
 Output Files
 ------------
 
-A pair of files is generated for each bunch and each monitor command:
+Each bunch and monitor command writes an HDF5 history. Selecting TFS also generates a text export at finalization; the HDF5 file is retained:
 
-- **CSV** (appended in batches): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv``
-- **HDF5** (default, appended with CSV): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
-- **TFS** (instead of HDF5 when selected, generated at finalization): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
+- **HDF5** (appended in batches; uncompressed when TFS is selected): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
+- **TFS** (when selected, generated from HDF5 at finalization): ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
 
 The output directory is ``output_dir_stat``.
 
@@ -236,7 +235,7 @@ lossPercent uses the injected population as its denominator. An allocated
 population with no survivors produces zero moments and explicit zero-survival
 counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.
 
-Batching, final partial batches, live CSV inspection and HDF5 layout are
+Batching, final partial batches, live inspection and HDF5 layout are
 described in :doc:`table_output`.
 Working Principle
 -----------------

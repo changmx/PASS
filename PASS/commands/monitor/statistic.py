@@ -4,7 +4,7 @@ from functools import lru_cache
 import logging
 from pathlib import Path
 import os
-import csv
+# import csv  # Retained for the disabled CSV output block below.
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from PASS.core.state import SimulationState
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-from PASS.utils.table_io import _make_monitor_output_name, append_table, normalize_output_format, table_path, write_table
+from PASS.utils.table_io import _make_monitor_output_name, append_table, normalize_output_format, read_table, table_path, write_table
 
 logger = logging.getLogger(__name__)
 
@@ -186,18 +186,18 @@ class StatMonitor(Command):
             return
         # The only device-to-host transfer made by StatMonitor, once per batch.
         records = self._gpu_buffer[:len(self._gpu_pending)].get()
-        for record, (csv_path, output_path, reference) in zip(records, self._gpu_pending):
+        for record, (storage_path, output_path, reference) in zip(records, self._gpu_pending):
             n_alive, injected = int(record[23]), int(record[24])
             moments = record[:23] / max(n_alive, 1)
             stat = _statistics_from_centered_moments(moments, record[25:31])
             sigma_time = np.sqrt(max(moments[22] - moments[21]**2, 0.0)) / (reference["referenceBeta"] * const.c)
             row = _make_stat_row(stat, reference, n_alive, injected, sigma_time)
-            self._record_row(csv_path, output_path, row)
+            self._record_row(storage_path, output_path, row)
         self._gpu_pending.clear()
 
-    def _record_row(self, output_path_csv, output_path_table, row_dict):
-        self._pending_rows.setdefault(output_path_csv, []).append(row_dict)
-        self._table_paths[output_path_csv] = table_path(output_path_table, self.output_format)
+    def _record_row(self, storage_path, output_path_table, row_dict):
+        self._pending_rows.setdefault(storage_path, []).append(row_dict)
+        self._table_paths[storage_path] = table_path(output_path_table, self.output_format)
 
     def _flush_rows(self, final=False):
         if self._output_failed:
@@ -214,34 +214,35 @@ class StatMonitor(Command):
         }
         try:
             self._collect_gpu_rows()
-            for csv_path, rows in self._pending_rows.items():
+            storage_format = "hdf5" if self.output_format == "tfs" else self.output_format
+            for storage_path, rows in self._pending_rows.items():
                 if not rows:
                     continue
-                Path(csv_path).parent.mkdir(parents=True, exist_ok=True)
-                if self.output_format != "tfs":
-                    # Columns use one batch per chunk to avoid recompressing earlier batches.
-                    append_table(self._table_paths[csv_path],
-                                 pd.DataFrame(rows),
-                                 headers,
-                                 chunk_rows=self.write_interval_turns,
-                                 output_format=self.output_format)
-                first_write = not Path(csv_path).is_file() or Path(csv_path).stat().st_size == 0
-                with open(csv_path, "a", newline="", encoding="utf-8") as stream:
-                    writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
-                    if first_write:
-                        writer.writeheader()
-                    writer.writerows(rows)
+                Path(storage_path).parent.mkdir(parents=True, exist_ok=True)
+                # TFS uses an uncompressed HDF5 backing table until finalization.
+                # Columns use one batch per chunk to avoid recompressing earlier batches.
+                append_table(storage_path, pd.DataFrame(rows), headers, chunk_rows=self.write_interval_turns, output_format=storage_format)
+                # CSV mirroring is disabled; retain the original writer for reference.
+                # csv_path = str(Path(storage_path).with_suffix(".csv"))
+                # first_write = not Path(csv_path).is_file() or Path(csv_path).stat().st_size == 0
+                # with open(csv_path, "a", newline="", encoding="utf-8") as stream:
+                #     writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+                #     if first_write:
+                #         writer.writeheader()
+                #     writer.writerows(rows)
                 rows.clear()
                 if self.output_format == "tfs":
-                    self._tfs_dirty.add(csv_path)
+                    self._tfs_dirty.add(storage_path)
             if final:
-                for csv_path in tuple(self._tfs_dirty):
-                    write_table(self._table_paths[csv_path],
-                                pd.read_csv(csv_path, float_precision="round_trip"),
-                                headers,
-                                colwidth=25,
-                                headerswidth=25)
-                    self._tfs_dirty.remove(csv_path)
+                for storage_path in tuple(self._tfs_dirty):
+                    write_table(
+                        self._table_paths[storage_path],
+                        # pd.read_csv(csv_path, float_precision="round_trip"),
+                        read_table(storage_path),
+                        headers,
+                        colwidth=25,
+                        headerswidth=25)
+                    self._tfs_dirty.remove(storage_path)
         except BaseException:
             # A keyboard interruption during a write can also leave a partial batch.
             self._output_failed = True
@@ -320,10 +321,10 @@ class StatMonitor(Command):
             output_dir = cfg.output_dir_stat
             filename = (f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch_id}_Np_{bunch.Np}"
                         f"_cmd_{self._output_name}_s_{self.s:.4f}")
-            output_path_csv = os.path.join(output_dir, filename + ".csv")
+            storage_path = os.path.join(output_dir, filename + ".h5")
             output_path_table = os.path.join(output_dir, filename + ".tfs")
 
-            self._record_row(output_path_csv, output_path_table, row_dict)
+            self._record_row(storage_path, output_path_table, row_dict)
             did_execute = True
 
         if (turn + 1) % self.write_interval_turns == 0 or turn == total_turn - 1:
@@ -373,9 +374,9 @@ class StatMonitor(Command):
 
             filename = (f"{cfg.output_hms}_stat_beam{self.beam_id}_bunch{bunch.bunch_id}_Np_{bunch.Np}"
                         f"_cmd_{self._output_name}_s_{self.s:.4f}")
-            csv_path = os.path.join(cfg.output_dir_stat, filename + ".csv")
+            storage_path = os.path.join(cfg.output_dir_stat, filename + ".h5")
             output_path = os.path.join(cfg.output_dir_stat, filename + ".tfs")
-            self._gpu_pending.append((csv_path, output_path, self._reference_row(bunch, turn)))
+            self._gpu_pending.append((storage_path, output_path, self._reference_row(bunch, turn)))
             did_execute = True
 
         if (turn + 1) % self.write_interval_turns == 0 or turn == cfg.num_turn - 1:

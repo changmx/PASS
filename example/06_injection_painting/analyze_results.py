@@ -221,8 +221,9 @@ def analyse(directory, output=None, max_points_per_batch=2500, beam_id=0, bunch_
 
 
 def compare_statistics(pass_csv, cisp_csv, output, note="Verify that the two runs use the same physical settings"):
-    """Compare only caller-selected runs at the same physical monitor."""
-    measured, reference = pd.read_csv(pass_csv), pd.read_csv(cisp_csv)
+    """Compare PASS HDF5/TFS or legacy CSV with CISP CSV at the same monitor."""
+    measured = pd.read_csv(pass_csv) if Path(pass_csv).suffix.lower() == ".csv" else read_table(pass_csv)
+    reference = pd.read_csv(cisp_csv)
     mapping = {
         "numAlive": ("particle_num", 1.),
         "xAverage": ("x_center(m)", 1.),
@@ -311,7 +312,8 @@ if __name__ == "__main__":
     output = analyse(args.directory, args.output, args.max_points_per_batch, args.beam_id, args.bunch_id)
     for label, position, reference in (("pm2", "0.0000", args.cisp_pm2), ("pm1", "1.9000", args.cisp_pm1)):
         if reference:
-            paths = list(args.directory.glob(f"*_stat_beam{args.beam_id}_bunch{args.bunch_id}_*_s_{position}.csv"))
+            pattern = f"*_stat_beam{args.beam_id}_bunch{args.bunch_id}_*_s_{position}"
+            paths = find_table_files(args.directory, pattern) or sorted(args.directory.glob(pattern + ".csv"))
             if len(paths) != 1:
                 raise ValueError(f"Expected one PASS statistics file at s={position}, found {len(paths)}")
             compare_statistics(paths[0], reference, output / f"statistics_comparison_{label}.csv", args.comparison_note)

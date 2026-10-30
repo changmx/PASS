@@ -86,9 +86,12 @@ buffering and retains every turn. HDF5 appends blocks during tracking;
 TFS uses private HDF5 storage during tracking and exports a standard text table
 at finalization. The trajectory reader selects individual IDs from one current
 PM file with `Layout="single_file"` and `FormatVersion=2`.
-StatMonitor also writes every recorded row to CSV in batches of 100 turns
-by default, configurable with `write_interval_turns`. Slicer slice summaries
-remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).
+StatMonitor writes every recorded row to HDF5 in batches of 100 turns by default,
+configurable with `write_interval_turns`, without generating CSV. With TFS
+selected, it writes uncompressed HDF5 during tracking and exports TFS at
+finalization, retaining the HDF5 file.
+Slicer slice summaries remain TFS/CSV.
+See [table output formats](../../docs/source/en/monitor/table_output.rst).
 
 ## Method
 
