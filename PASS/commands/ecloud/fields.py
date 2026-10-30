@@ -335,28 +335,32 @@ class RoundPICResult:
 
 
 class RoundPICFields:
-    """Reusable Poisson solve for a dynamic source in a grounded round chamber.
+    """Reusable Poisson solve for a dynamic source in a grounded chamber.
 
     Near a conductor, deposition and field gathering use the same normalized
     active-node CIC/TSC weights. This preserves deposited charge, but modifies
     the particle shape within one stencil of the wall. It is not a discrete
     energy-conserving scheme; wall fields require spatial convergence checks.
     The existing Shortley-Weller solver imposes zero potential at the actual
-    circular boundary and supplies its boundary-aware nodal field gradients.
+    analytic boundary and supplies its boundary-aware nodal field gradients.
+    The historical class name is retained for existing Python callers.
     """
 
     def __init__(self, configuration, backend="cpu", dtype="float64"):
         if backend not in {"cpu", "gpu"} or np.dtype(dtype) not in (np.dtype("float32"), np.dtype("float64")):
             raise ValueError("RoundPICFields requires a CPU/GPU backend and float32/float64 beam precision")
-        if configuration.mode != "coupled" or configuration.solver != "fd_dirichlet":
-            raise ValueError("RoundPICFields requires Mode=coupled and Solver=fd_dirichlet")
+        if configuration.mode not in {"coupled", "build_up"}:
+            raise ValueError("RoundPICFields requires a dynamic electron-cloud mode")
         self.configuration, self.backend, self.dtype, self.xp = configuration, backend, np.dtype("float64"), np
         if backend == "gpu":
             import cupy as cp
             if cp.cuda.runtime.getDeviceCount() < 1:
                 raise RuntimeError("RoundPICFields requires an available CUDA device")
             self.xp = cp
-        self.radius = float(configuration.buildup.chamber_radius)
+        from .chamber import Chamber
+        self.chamber = Chamber(configuration)
+        self.radius = self.chamber.radius
+        self._native_gpu = backend == "gpu"
         if self.radius <= 0 or not np.isfinite(self.radius * self.radius) or self.radius * self.radius <= 0:
             raise ValueError("round PIC chamber radius squared must be positive and representable")
         if any(
@@ -368,9 +372,10 @@ class RoundPICFields:
                                             grid_width_x=configuration.grid_width_x,
                                             grid_width_y=configuration.grid_width_y)
         grid = self.geometry
-        if min(grid.x_max, grid.y_max) < self.radius:
-            raise ValueError("round PIC grid widths must cover the entire circular chamber")
-        if max(grid.dx, grid.dy) > self.radius / 2:
+        xmin, xmax, ymin, ymax = self.chamber.bounds
+        if grid.x_min > xmin or grid.x_max < xmax or grid.y_min > ymin or grid.y_max < ymax:
+            raise ValueError("round PIC grid widths must cover the entire conducting chamber")
+        if max(grid.dx, grid.dy) > min(xmax - xmin, ymax - ymin) / 4:
             raise ValueError("round PIC grid spacing must not exceed half the chamber radius; refine the grid")
         self._cell_area = grid.dx * grid.dy
         if not np.isfinite(self._cell_area) or self._cell_area <= 0:
@@ -380,9 +385,9 @@ class RoundPICFields:
             raise ValueError("round PIC deposition_method must be CIC or TSC")
         builder = build_pic_resources if backend == "cpu" else build_pic_resources_gpu
         kwargs = {"deterministic": True} if backend == "gpu" else {}
-        self.resources = builder(grid, aperture={"Type": "circle", "Aperture Value": [self.radius]}, field_solver="fd", dtype=self.dtype, **kwargs)
+        self.resources = builder(grid, aperture=self.chamber.specification, field_solver="fd", dtype=self.dtype, **kwargs)
         self._active = self.xp.asarray(self.resources.field_solver.interior_mask)
-        if backend == "gpu":
+        if self._native_gpu:
             self._initialize_gpu_kernels()
 
     def _initialize_gpu_kernels(self):
@@ -462,6 +467,8 @@ extern "C" __global__ void prepare_charge(
     long long* keys,
     double* contributions,
     int* status,
+    const bool* inside,
+    int use_inside,
     long long n_particles,
     int nx,
     int ny,
@@ -476,6 +483,10 @@ extern "C" __global__ void prepare_charge(
     if (particle >= n_particles)
         return;
     keys[particle] = 9223372036854775807LL;
+    if (use_inside && !inside[particle]) {
+        atomicOr(status, (!isfinite(x[particle]) || !isfinite(y[particle])) ? 1 : 2);
+        return;
+    }
     if (!isfinite(charge[particle])) {
         atomicOr(status, 8);
         return;
@@ -648,6 +659,8 @@ extern "C" __global__ void gather_fields(
     const double* ey_b,
     double* sampled,
     int* status,
+    const bool* inside,
+    int use_inside,
     long long n_particles,
     int nx,
     int ny,
@@ -666,6 +679,10 @@ extern "C" __global__ void gather_fields(
     }
     if (particle >= n_particles)
         return;
+    if (use_inside && !inside[particle]) {
+        atomicOr(status, (!isfinite(x[particle]) || !isfinite(y[particle])) ? 1 : 2);
+        return;
+    }
     int center_x, center_y;
     long long nodes[9];
     double weights[9];
@@ -729,7 +746,7 @@ extern "C" __global__ void gather_fields(
         x, y = xp.asarray(x), xp.asarray(y)
         if x.dtype.kind not in "fiu" or y.dtype.kind not in "fiu":
             raise ValueError("round PIC coordinates must be real numeric arrays")
-        if self.backend == "gpu":
+        if self._native_gpu:
             self.resources.field_solver._check_context()
             original_x, original_y = x, y
             x, y = xp.broadcast_arrays(x.astype(xp.float64, copy=False), y.astype(xp.float64, copy=False))
@@ -742,7 +759,7 @@ extern "C" __global__ void gather_fields(
         x, y = xp.broadcast_arrays(x.astype(xp.float64, copy=False), y.astype(xp.float64, copy=False))
         if not bool(xp.all(xp.isfinite(x) & xp.isfinite(y))):
             raise ValueError("round PIC coordinates must be finite")
-        if not bool(xp.all(xp.hypot(x, y) < self.radius)):
+        if not bool(xp.all(self.chamber.contains(x, y, xp))):
             raise ValueError("round PIC coordinates must lie strictly inside the circular chamber")
         return x, y
 
@@ -777,6 +794,19 @@ extern "C" __global__ void gather_fields(
             raise ValueError("round PIC particle has no resolved active stencil; refine the grid without discarding its charge")
         return [(indices, weight / normalizer) for indices, weight in entries]
 
+    def solve_density(self, density):
+        """Solve a prescribed C/m^3 nodal density, using the physical conductor."""
+        xp, grid = self.xp, self.geometry
+        density = xp.asarray(density, dtype=xp.float64)
+        if density.shape != (grid.ny, grid.nx) or not bool(xp.all(xp.isfinite(density))):
+            raise ValueError("electron-cloud density must be finite and match the grid")
+        if bool(xp.any(density[~self._active] != 0)):
+            raise ValueError("electron-cloud prescribed density must vanish outside active nodes")
+        if not bool(xp.any(density)):
+            return RoundPICResult(density.copy(), xp.zeros_like(density), xp.zeros_like(density), xp.zeros_like(density), grid)
+        result = self.resources.field_solver.solve(density)
+        return RoundPICResult(density.copy(), result.potential, result.integrated_ex, result.integrated_ey, grid)
+
     def solve(self, x, y, charge_per_length):
         """Deposit signed macro line charges in C/m and return independent SI grids."""
         x, y = self._coordinates(x, y)
@@ -784,7 +814,7 @@ extern "C" __global__ void gather_fields(
         charge = xp.asarray(charge_per_length)
         if charge.dtype.kind not in "fiu":
             raise ValueError("round PIC charge_per_length must be real numeric")
-        if self.backend == "gpu":
+        if self._native_gpu:
             return self._solve_gpu(x, y, charge)
         if not bool(xp.all(xp.isfinite(charge))):
             raise ValueError("round PIC charge_per_length must be finite")
@@ -824,8 +854,11 @@ extern "C" __global__ void gather_fields(
         # At most K nodes per overfull cell, and disjoint cells partition N.
         max_dense_nodes = min(n_nodes, contributions.shape[0] * (n_particles // (self._dense_limit + 1)))
         dense_nodes = xp.empty(max_dense_nodes, dtype=xp.int64)
-        self._prepare_charge(((n_particles + 127) // 128, ), (128, ),
-                             (x, y, charge, self._active, keys, contributions, status, np.int64(n_particles), *self._gpu_geometry))
+        use_inside = self.chamber.kind != "circle"
+        inside = self.chamber.contains(x, y, xp) if use_inside else self._active
+        self._prepare_charge(
+            ((n_particles + 127) // 128, ), (128, ),
+            (x, y, charge, self._active, keys, contributions, status, inside, np.int32(use_inside), np.int64(n_particles), *self._gpu_geometry))
         sorted_keys = xp.sort(keys)
         self._sum_charge(((n_nodes + 127) // 128, ), (128, ),
                          (sorted_keys, contributions, self._active, density, status, dense_nodes, np.int32(
@@ -846,27 +879,36 @@ extern "C" __global__ void gather_fields(
     def sample(self, result, x, y):
         """Gather the boundary-aware nodal Ex/Ey in V/m at interior particles."""
         x, y = self._coordinates(x, y)
-        if self.backend == "gpu":
+        if self._native_gpu:
             return self._sample_gpu((result, ), x, y)[0]
-        if not isinstance(result, RoundPICResult) or result.geometry != self.geometry:
-            raise ValueError("round PIC result must belong to the same grid geometry")
+        return self._sample_cpu((result, ), x, y)[0]
+
+    def _sample_cpu(self, results, x, y):
+        """Reuse the normalized particle stencil across independently summed fields."""
         xp, grid = self.xp, self.geometry
-        ex, ey = xp.asarray(result.ex, dtype=xp.float64), xp.asarray(result.ey, dtype=xp.float64)
-        if ex.shape != (grid.ny, grid.nx) or ey.shape != ex.shape or not bool(xp.all(xp.isfinite(ex) & xp.isfinite(ey))):
-            raise ValueError("round PIC result fields must be finite and match the grid")
-        sampled_x, sampled_y = xp.zeros(x.size, dtype=xp.float64), xp.zeros(x.size, dtype=xp.float64)
+        fields, sampled = [], []
+        for result in results:
+            if not isinstance(result, RoundPICResult) or result.geometry != grid:
+                raise ValueError("round PIC result must belong to the same grid geometry")
+            ex, ey = xp.asarray(result.ex, dtype=xp.float64), xp.asarray(result.ey, dtype=xp.float64)
+            if ex.shape != (grid.ny, grid.nx) or ey.shape != ex.shape or not bool(xp.all(xp.isfinite(ex) & xp.isfinite(ey))):
+                raise ValueError("round PIC result fields must be finite and match the grid")
+            fields.append((ex.ravel(), ey.ravel()))
+            sampled.append((xp.zeros(x.size, dtype=xp.float64), xp.zeros(x.size, dtype=xp.float64)))
         for indices, weight in self._stencil(x, y):
-            sampled_x += ex.ravel()[indices] * weight
-            sampled_y += ey.ravel()[indices] * weight
-        if not bool(xp.all(xp.isfinite(sampled_x) & xp.isfinite(sampled_y))):
-            raise ValueError("round PIC sampled fields are not representable")
-        return sampled_x.reshape(x.shape), sampled_y.reshape(y.shape)
+            for (ex, ey), (sampled_x, sampled_y) in zip(fields, sampled):
+                sampled_x += ex[indices] * weight
+                sampled_y += ey[indices] * weight
+        for sampled_x, sampled_y in sampled:
+            if not bool(xp.all(xp.isfinite(sampled_x) & xp.isfinite(sampled_y))):
+                raise ValueError("round PIC sampled fields are not representable")
+        return tuple((sampled_x.reshape(x.shape), sampled_y.reshape(y.shape)) for sampled_x, sampled_y in sampled)
 
     def sample_pair(self, first, second, x, y):
         """Gather two sources with one shared particle stencil and validation."""
-        if self.backend == "cpu":
-            return self.sample(first, x, y), self.sample(second, x, y)
         x, y = self._coordinates(x, y)
+        if not self._native_gpu:
+            return self._sample_cpu((first, second), x, y)
         return self._sample_gpu((first, second), x, y)
 
     def _sample_gpu(self, results, x, y):
@@ -884,9 +926,11 @@ extern "C" __global__ void gather_fields(
         sampled = xp.empty((2 * len(results), x.size), dtype=xp.float64)
         status = xp.zeros(1, dtype=xp.int32)
         size = max(x.size, grid.nx * grid.ny)
+        use_inside = self.chamber.kind != "circle"
+        inside = xp.ascontiguousarray(self.chamber.contains(x, y, xp)).ravel() if use_inside else self._active
         self._gather_fields(((size + 127) // 128, ), (128, ),
-                            (xp.ascontiguousarray(x).ravel(), xp.ascontiguousarray(y).ravel(), self._active, *fields, sampled, status, np.int64(
-                                x.size), *self._gpu_geometry, np.int32(len(results))))
+                            (xp.ascontiguousarray(x).ravel(), xp.ascontiguousarray(y).ravel(), self._active, *fields, sampled, status, inside,
+                             np.int32(use_inside), np.int64(x.size), *self._gpu_geometry, np.int32(len(results))))
         self._check_gpu_status(status)
         return tuple((sampled[2 * index].reshape(x.shape), sampled[2 * index + 1].reshape(y.shape)) for index in range(len(results)))
 
@@ -896,3 +940,53 @@ extern "C" __global__ void gather_fields(
             if hasattr(self.resources, "close"):
                 self.resources.close()
             self.resources = None
+
+
+def requires_pic(configuration):
+    if configuration.mode == "coupled":
+        return True
+    parameters = configuration.buildup
+    return (configuration.mode == "coupled" or getattr(parameters, "self_fields", False) or getattr(parameters, "beam_driver", None) is not None
+            or getattr(configuration, "aperture_type", "default") not in {"default", "off", "circle"})
+
+
+def prescribed_beam_field(cloud, line_charge):
+    """Normalize a resolved rigid profile to the signed charge inside the chamber."""
+    pic, xp = cloud.pic, cloud.xp
+    if not np.isfinite(line_charge):
+        raise ValueError("prescribed beam line charge must be finite")
+    driver = getattr(cloud.parameters, "beam_driver", None)
+    key = ("round", cloud.parameters.beam_sigma) if driver is None else (driver.model, driver.sigma_x, driver.sigma_y, driver.center_x,
+                                                                         driver.center_y, tuple(driver.x), tuple(driver.y),
+                                                                         tuple(tuple(row) for row in driver.density))
+    if getattr(pic, "_prescribed_key", None) == key:
+        return _scale_prescribed_field(pic, line_charge)
+    grid = pic.geometry
+    x, y = xp.meshgrid(xp.asarray(grid.x), xp.asarray(grid.y))
+    if driver is None or driver.model == "gaussian":
+        sigma_x = cloud.parameters.beam_sigma if driver is None else driver.sigma_x
+        sigma_y = cloud.parameters.beam_sigma if driver is None else driver.sigma_y
+        center_x, center_y = (0., 0.) if driver is None else (driver.center_x, driver.center_y)
+        density = xp.exp(-.5 * ((x - center_x) / sigma_x)**2 - .5 * ((y - center_y) / sigma_y)**2)
+    else:
+        map_x, map_y = xp.asarray(driver.x), xp.asarray(driver.y)
+        values = xp.asarray(driver.density)
+        rows = xp.stack([xp.interp(xp.asarray(grid.x), map_x, row, left=0., right=0.) for row in values])
+        density = xp.stack([xp.interp(xp.asarray(grid.y), map_y, rows[:, column], left=0., right=0.) for column in range(grid.nx)], axis=1)
+    density = xp.where(pic._active, density, 0.)
+    normalization = float(xp.sum(density)) * grid.dx * grid.dy
+    if not np.isfinite(normalization) or normalization <= 0:
+        raise ValueError("prescribed electron-cloud beam profile has no resolved interior charge")
+    unit = pic.solve_density(density / normalization)
+    # Solver workspaces can be reused by cloud self-field solves.
+    pic._prescribed_unit = RoundPICResult(*(getattr(unit, name).copy() for name in ("density", "potential", "ex", "ey")), unit.geometry)
+    pic._prescribed_key, pic._prescribed_charge = key, None
+    return _scale_prescribed_field(pic, line_charge)
+
+
+def _scale_prescribed_field(pic, line_charge):
+    if getattr(pic, "_prescribed_charge", None) != line_charge:
+        unit = pic._prescribed_unit
+        pic._prescribed_scaled = RoundPICResult(*(getattr(unit, name) * line_charge for name in ("density", "potential", "ex", "ey")), unit.geometry)
+        pic._prescribed_charge = line_charge
+    return pic._prescribed_scaled

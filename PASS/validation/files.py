@@ -103,6 +103,8 @@ def _inspect_distribution(file, chunk_rows=65536):
 
 INPUT_FILE_FIELDS = frozenset({
     "waveform file",
+    "response file",
+    "response_file",
     "distribution file path",
     "insert particle file",
     "file path",

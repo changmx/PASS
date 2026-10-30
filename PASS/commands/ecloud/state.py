@@ -124,6 +124,7 @@ class DynamicElectronCloudState:
     rng_state: dict
     last_turn: int | None = None
     counters: dict = field(default_factory=dict)
+    wall_histograms: dict = field(default_factory=dict)
 
     def __post_init__(self):
         for name in ("x", "y", "ux", "uy", "uz", "weight"):
@@ -161,6 +162,24 @@ class DynamicElectronCloudState:
             _finite_scalar(value, f"counter {name!r}")
             counters[name] = int(value) if isinstance(value, (int, np.integer)) else float(value)
         object.__setattr__(self, "counters", counters)
+        histograms = {}
+        if not isinstance(self.wall_histograms, Mapping):
+            raise ValueError("dynamic electron wall histograms must be a mapping")
+        for name, histogram in self.wall_histograms.items():
+            if not isinstance(name, str) or not isinstance(histogram, Mapping):
+                raise ValueError("invalid dynamic electron wall histogram")
+            edges, centers, values = (np.asarray(histogram[key], dtype=float) for key in ("edges", "centers", "values"))
+            if (edges.ndim != 1 or centers.ndim != 1 or values.ndim != 1 or edges.size != values.size + 1 or centers.size != values.size
+                    or not np.all(np.diff(edges) > 0) or not all(np.all(np.isfinite(array)) for array in (edges, centers, values))
+                    or ("deposited_energy" not in name and np.any(values < 0))):
+                raise ValueError("dynamic electron wall histogram arrays must be finite, ordered and nonnegative")
+            histograms[name] = deepcopy(dict(histogram))
+            histograms[name].update(edges=edges.tolist(),
+                                    centers=centers.tolist(),
+                                    values=values.tolist(),
+                                    axis_unit=str(histogram["axis_unit"]),
+                                    value_unit=str(histogram["value_unit"]))
+        object.__setattr__(self, "wall_histograms", histograms)
 
     @property
     def n_macroparticles(self):
@@ -175,14 +194,16 @@ class DynamicElectronCloudState:
                       last_turn=self.last_turn,
                       rng_state=deepcopy(self.rng_state),
                       counters=deepcopy(self.counters))
+        if self.wall_histograms:
+            values["wall_histograms"] = deepcopy(self.wall_histograms)
         return values
 
     @classmethod
     def from_state_dict(cls, values):
         """Validate all checkpoint fields without fixing population or total weight."""
         fields = {"x", "y", "ux", "uy", "uz", "weight", "source_length", "time", "rng_state", "last_turn", "counters"}
-        if not isinstance(values, Mapping) or set(values) != {"format", *fields}:
+        if not isinstance(values, Mapping) or set(values) not in ({"format", *fields}, {"format", *fields, "wall_histograms"}):
             raise ValueError("invalid dynamic electron-cloud state fields")
         if values["format"] != "PASS-dynamic-electrons-1":
             raise ValueError("unsupported dynamic electron-cloud state format")
-        return cls(**{name: values[name] for name in fields})
+        return cls(**{name: values[name] for name in fields}, wall_histograms=values.get("wall_histograms", {}))

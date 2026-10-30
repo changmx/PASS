@@ -36,6 +36,7 @@ COMMAND_PRIORITY = {
     "WakeField": 500,
     "BeamBeam": 600,
     "ElectronCloud": 700,
+    "ElectronCloudResponse": 700,
     "TransversePickup": 750,
     "TransverseFeedback": 760,
     "LumiMonitor": 800,

@@ -1,7 +1,7 @@
 """Grouped electron-cloud diagnostics with physical SI fields and number weights."""
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 
 import numpy as np
@@ -14,6 +14,7 @@ class ElectronCloudResult:
     source: dict
     history: dict
     metadata: dict
+    spectra: dict = field(default_factory=dict)
 
     @property
     def columns(self):
@@ -21,11 +22,14 @@ class ElectronCloudResult:
 
     @property
     def nbytes(self):
-        return sum(value.nbytes for group in (self.grid, self.fields, self.source, self.history) for value in group.values())
+        return sum(value.nbytes for group in (self.grid, self.fields, self.source, self.history, *self.spectra.values()) for value in group.values())
 
     @property
     def views(self):
-        return [name for name, values in (("fields", self.fields), ("source", self.source), ("history", self.history)) if values]
+        return [
+            name for name, values in (("fields", self.fields), ("source", self.source), ("history", self.history), ("spectra", self.spectra))
+            if values
+        ]
 
     def unit(self, group, name):
         return self.metadata.get("dataset_definitions", {}).get(group, {}).get(name, {}).get("units", "")
@@ -38,7 +42,13 @@ class ElectronCloudResult:
                 arrays[name] = np.asarray(value).view()
                 arrays[name].flags.writeable = False
             groups.append(arrays)
-        return ElectronCloudResult(*groups, deepcopy(self.metadata))
+        spectra = {}
+        for name, spectrum in self.spectra.items():
+            spectra[name] = {}
+            for key, value in spectrum.items():
+                spectra[name][key] = np.asarray(value).view()
+                spectra[name][key].flags.writeable = False
+        return ElectronCloudResult(*groups, deepcopy(self.metadata), spectra)
 
 
 def _json_attribute(group, name, default):
@@ -49,15 +59,28 @@ def _json_attribute(group, name, default):
 
 
 def _history_unit(name):
-    if name in {"time_start", "time_end"}:
+    if name.endswith("energy_ev") or name == "field_work_ev":
+        return "eV"
+    if name == "wall_energy_j":
+        return "J"
+    if name == "wall_power_per_m":
+        return "W/m"
+    if name == "mean_wall_power_per_area":
+        return "W/m^2"
+    if name.endswith("density"):
+        return "1/m" if name == "line_density" else "1/m^3"
+    if name in {"time_start", "time_end", "dt"}:
         return "s"
+    if name in {"mean_x", "mean_y", "rms_x", "rms_y"}:
+        return "m"
     if name == "line_charge":
         return "C/m"
     if name == "max_electric_field":
         return "V/m"
     if name in {
             "max_kick", "n_alive", "bunch_id", "slice_index", "steps", "n_real_particles", "primary_electrons", "n_electrons_before",
-            "n_electrons_after", "incident_electrons", "emitted_electrons"
+            "n_electrons_after", "incident_electrons", "emitted_electrons", "n_electrons", "n_macroparticles", "effective_macroparticles",
+            "maximum_weight", "primary_macroparticles", "wall_hits", "core_electrons", "mean_ux", "mean_uy", "mean_uz", "rms_ux", "rms_uy", "rms_uz"
     }:
         return "1"
     return ""
@@ -127,20 +150,55 @@ def read_electron_cloud_result(stream, *, cancelled=lambda: False, progress=lamb
         definitions["history"][name] = {"units": _history_unit(name)}
     if history and ("time_end" not in history or history["time_end"].dtype.kind not in "biuf" or not np.isfinite(history["time_end"]).all()):
         raise ValueError("电子云历史必须包含有限的物理 time_end。")
-    if not any((fields, source, history)):
+    spectra, definitions["spectra"] = {}, {}
+    if "diagnostics" in stream:
+        for name, group in stream["diagnostics"].items():
+            if cancelled():
+                raise InterruptedError("读取已取消")
+            if not hasattr(group, "keys") or not {"edges", "centers", "values"} <= set(group):
+                raise ValueError(f"电子云诊断 {name} 缺少谱轴或数据。")
+            arrays = {key: np.asarray(group[key]) for key in ("edges", "centers", "values")}
+            if any(value.ndim != 1 or value.dtype.kind not in "biuf" or not np.isfinite(value).all() for value in arrays.values()):
+                raise ValueError(f"电子云诊断 {name} 必须为有限一维数值数组。")
+            if (arrays["edges"].size != arrays["values"].size + 1 or arrays["centers"].size != arrays["values"].size
+                    or not np.all(np.diff(arrays["edges"]) > 0)):
+                raise ValueError(f"电子云诊断 {name} 谱轴长度或顺序错误。")
+            spectra[name] = arrays
+            definitions["spectra"][name] = {
+                "units": str(group["values"].attrs.get("unit", "")),
+                "axis_units": str(group["centers"].attrs.get("unit", ""))
+            }
+            definitions["spectra"][name]["attributes"] = {
+                key: value.item() if isinstance(value, np.generic) else value
+                for key, value in group.attrs.items()
+            }
+    if not any((fields, source, history, spectra)):
         raise ValueError("电子云诊断没有可显示的场、源或历史数据。")
     if cancelled():
         raise InterruptedError("读取已取消")
-    return ElectronCloudResult(grid, fields, source, history, metadata)
+    return ElectronCloudResult(grid, fields, source, history, metadata, spectra)
 
 
-def electron_cloud_export_columns(result, view):
+def electron_cloud_export_columns(result, view, quantity=None):
     """Export complete selected groups; source weights and event strings survive."""
     definitions = deepcopy(result.metadata["dataset_definitions"].get(view, {}))
     if view == "fields":
         x, y = np.meshgrid(result.grid["x"], result.grid["y"])
         columns = {"x": x.ravel(), "y": y.ravel(), **{name: value.ravel() for name, value in result.fields.items()}}
         definitions.update(deepcopy(result.metadata["dataset_definitions"]["grid"]))
+    elif view == "spectra":
+        if quantity not in result.spectra:
+            raise ValueError("请选择要导出的电子云诊断谱。")
+        spectrum = result.spectra[quantity]
+        definition = definitions[quantity]
+        columns = {
+            "center": spectrum["centers"],
+            "lower_edge": spectrum["edges"][:-1],
+            "upper_edge": spectrum["edges"][1:],
+            quantity: spectrum["values"]
+        }
+        definitions = {key: {"units": definition["axis_units"]} for key in ("center", "lower_edge", "upper_edge")}
+        definitions[quantity] = {"units": definition["units"], "attributes": definition.get("attributes", {})}
     elif view in {"source", "history"}:
         columns = getattr(result, view)
     else:
@@ -149,6 +207,15 @@ def electron_cloud_export_columns(result, view):
 
 
 def electron_cloud_figure_spec(result, view, quantity="", x_name="x", y_name="y", bins=80):
+    if view == "spectra":
+        spectrum = result.spectra[quantity]
+        definition = result.metadata["dataset_definitions"]["spectra"][quantity]
+        return "series", {
+            "series": [(quantity, spectrum["centers"], spectrum["values"], "line")],
+            "x_label": f"{quantity} [{definition['axis_units']}]",
+            "y_label": definition["units"],
+            "title": "Electron cloud diagnostic spectrum"
+        }
     if view == "fields":
         # Export workers transfer the chosen map without unrelated particle arrays.
         selected = ElectronCloudResult(result.grid, {quantity: result.fields[quantity]}, {}, {}, result.metadata)

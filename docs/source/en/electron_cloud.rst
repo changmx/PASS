@@ -7,17 +7,18 @@ Electron Cloud (ElectronCloud)
   uniform electron disk. Its field is analytic in free space or calculated
   once from sampled macro electrons with a PIC solver.
 * ``build_up`` tracks electrons driven by prescribed beam slices and external
-  magnetic fields in a circular chamber, including primary wall emission,
-  absorption and simplified true-secondary emission. It applies no beam kick.
+  magnetic fields. Electron self-fields, multiple primary sources, multichannel
+  surface emission and additional chamber geometries are optional. It applies no beam kick.
 * ``coupled`` adds electron-cloud PIC self-fields and a transverse beam kick.
   The actual saved beam-slice particles drive the electrons in a grounded
-  circular chamber.
+  chamber with a common geometry for wall events and field boundaries.
 
-The ``build_up`` model is an externally driven, low-density approximation. It
-does not include electron-cloud self-fields, beam feedback or physical
-space-charge saturation. ``coupled`` is a first quasistatic, transverse thin-lens
-coupling model; it has not been validated for instability thresholds or
-equilibrium cloud densities. These modes are selected explicitly.
+The default ``build_up`` model retains the externally driven, dilute-cloud
+approximation. Set ``Build up.Electron self fields=true`` to include cloud
+space charge. ``coupled`` always includes it. These are quasistatic transverse
+models; numerical convergence alone does not validate measured instability
+thresholds or equilibrium densities. See :ref:`electron-cloud-models-en` for the
+optional physical models, response extraction, replay and analysis.
 
 Configuration and execution
 ---------------------------
@@ -36,7 +37,8 @@ reference energy unchanged. In ``build_up``, the command requires a current
 ``coupled`` also requires that SliceSet and changes only ``px`` and ``py``.
 See :doc:`injection` for the coordinate convention.
 The configured density prescribes the frozen cloud or initializes the dynamic
-cloud; it is not inferred from beam intensity or bunch grouping.
+cloud; dynamic modes also accept an explicit initial electron line density.
+Neither intensity is inferred from beam intensity or bunch grouping.
 
 The following is an input fragment; injection and transport must also be
 supplied:
@@ -100,10 +102,10 @@ Disabling the block skips its configurations and all electron-cloud actions.
      - Frozen: analytic free space or ``fft_free_space``, ``fd_dirichlet``, ``dst_dirichlet`` PIC. Build-up requires ``round_gaussian_beam``; coupled requires ``fd_dirichlet``.
    * - ``Electron density (1/m^3)`` / ``electron_density``
      - Required
-     - Nonnegative physical electron number density inside the disk. In dynamic modes this initializes the cloud only.
+     - Nonnegative physical electron number density inside the disk. Dynamic non-disk distributions use it as the equivalent reference-disk density; set it to zero when specifying an initial electron line density.
    * - ``Radius (m)`` / ``radius``
      - Required
-     - Positive uniform-disk radius; for dynamic modes, the initial disk radius. This is not an RMS beam size.
+     - Positive uniform-disk radius, or reference radius for the default dynamic total-electron normalization. It is not a Gaussian RMS size; it remains required but does not set the size of non-disk distributions.
    * - ``Center X (m)``, ``Center Y (m)`` / ``center_x``, ``center_y``
      - ``0``, ``0``
      - Transverse cloud center, in metres.
@@ -115,7 +117,7 @@ Disabling the block skips its configurations and all electron-cloud actions.
      - Integer or ``null`` for cloud initialization and emission randomness.
    * - ``Nx``, ``Ny`` / ``nx``, ``ny``
      - ``65``, ``65``
-     - Grid point counts, integers at least 3; coupled requires odd counts of at least 5.
+     - Grid point counts, integers at least 3; dynamic PIC requires odd counts of at least 5.
    * - ``Grid Width X (m)``, ``Grid Width Y (m)`` / ``grid_width_x``, ``grid_width_y``
      - ``0.1``, ``0.1``
      - Full positive widths of the grid, centered at the origin.
@@ -124,17 +126,18 @@ Disabling the block skips its configurations and all electron-cloud actions.
      - ``CIC`` or ``TSC`` for PIC deposition and interpolation.
    * - ``Aperture type``, ``Aperture value`` / ``aperture_type``, ``aperture_value``
      - ``default``, ``[]``
-     - Frozen field-domain geometry. Dynamic modes require ``default`` or ``off`` and an empty value; their circular wall comes from ``Build up``.
+     - Field and wall geometry. Dynamic modes accept circle, ellipse, rectangle, racetrack and polygon; ``default``/``off`` retain the legacy ``Build up.Chamber radius (m)`` circle.
    * - ``Build up`` / ``buildup``
      - ``null``
      - Required nested ``ElectronCloudBuildUpConfiguration`` in both dynamic modes; forbidden in frozen mode.
 
-The grid and deposition fields apply to frozen PIC, frozen field diagnostics
-and coupled PIC. ``build_up`` does not use the PIC grid. In coupled mode,
-both grid widths must cover the complete chamber diameter and each grid
-spacing must be at most half the chamber radius. This is a minimum
-resolvability check, not a convergence criterion. The circular Dirichlet
-wall is defined by ``Build up.Chamber radius (m)``.
+The grid and deposition fields apply to frozen PIC, frozen field diagnostics,
+coupled PIC and build-up with self-fields, a prescribed ``Beam driver`` or a
+noncircular chamber. The mesh must cover and resolve the complete chamber.
+For a legacy circular chamber, each spacing must be at most half its radius.
+This is a minimum resolvability check, not a convergence criterion. Explicit
+``Aperture type/value`` defines the wall; ``default``/``off`` uses
+``Build up.Chamber radius (m)``.
 
 .. list-table:: Sequence command
    :header-rows: 1
@@ -273,10 +276,11 @@ Dynamic models and physical time
 Set ``Mode="build_up"``, ``Solver="round_gaussian_beam"`` and provide a
 ``Build up`` object. For coupled PIC instead select ``Mode="coupled"`` and
 ``Solver="fd_dirichlet"`` with the same nested object.
-The top-level electron density, disk radius and center
-describe the initial electron cloud; the entire disk must lie strictly inside
-the circular chamber. Initial directions are isotropic in three dimensions,
-with the specified monoenergetic kinetic energy. A zero initial density is
+By default the top-level electron density, disk radius and center describe a
+uniform initial disk that must lie strictly inside the selected chamber.
+Initial directions are isotropic in three dimensions, with the specified
+monoenergetic kinetic energy. The optional initial position and velocity
+distributions below apply to both dynamic modes. Zero initial intensity is
 allowed; primary sources can subsequently create electrons.
 
 .. code-block:: python
@@ -304,11 +308,11 @@ allowed; primary sources can subsequently create electrons.
      - Default
      - Meaning
    * - ``Chamber radius (m)`` / ``chamber_radius``
-     - Required
-     - Positive circular wall radius, centered on the beam axis.
+     - ``null``
+     - Positive circular wall radius for default/off aperture. Required in that case; omit for explicit noncircular geometry.
    * - ``Beam sigma (m)`` / ``beam_sigma``
-     - Required
-     - Positive fixed transverse Gaussian sigma for build-up. Still required for schema compatibility in coupled mode, but unused by its fields and time-step controls.
+     - ``null``
+     - Positive round Gaussian sigma, required in build-up without Beam driver. Optional and unused in coupled mode.
    * - ``Max time step (s)`` / ``max_time_step``
      - Required
      - Positive integration-step ceiling; the pusher may shorten it further.
@@ -320,7 +324,22 @@ allowed; primary sources can subsequently create electrons.
      - Signed finite normal-quadrupole gradient; Boolean values are rejected.
    * - ``Initial electron energy (eV)`` / ``initial_energy_ev``
      - ``0``
-     - Nonnegative initial kinetic energy per electron.
+     - Nonnegative kinetic energy per electron for the default monoenergetic velocity distribution; must be zero for uniform/Gaussian velocities.
+   * - ``Initial distribution`` / ``initial_distribution``
+     - ``uniform_disk``
+     - ``uniform_disk``, ``uniform_chamber``, ``uniform_rectangle`` or ``gaussian``. Position and velocity distributions are selected independently.
+   * - ``Initial position spread (m)`` / ``initial_position_spread``
+     - ``null``
+     - Required positive ``[x, y]`` half-widths for uniform_rectangle or pre-truncation standard deviations for gaussian; omit for disk/chamber distributions.
+   * - ``Initial electron line density (1/m)`` / ``initial_line_density``
+     - ``null``
+     - Optional nonnegative total real electrons per metre, after chamber truncation. Requires top-level Electron density = 0; null retains the reference-disk normalization.
+   * - ``Initial velocity distribution`` / ``initial_velocity_distribution``
+     - ``monoenergetic``
+     - Isotropic fixed-energy directions, independent uniform components, or independent Gaussian components: ``monoenergetic``, ``uniform``, ``gaussian``.
+   * - ``Initial velocity spread (m/s)`` / ``initial_velocity_spread``
+     - ``null``
+     - Required nonnegative ``[vx, vy, vz]`` half-widths for uniform or pre-truncation standard deviations for Gaussian velocities; omit for monoenergetic velocities. Zero components remain zero.
    * - ``Primary electrons per beam particle (1/m)`` / ``primary_electrons_per_particle_per_m``
      - ``0``
      - Nonnegative prescribed primary yield per real beam particle per metre.
@@ -348,6 +367,67 @@ allowed; primary sources can subsequently create electrons.
    * - ``Max wall hits per step`` / ``max_wall_hits_per_step``
      - ``32``
      - Positive integer per-particle wall-event limit within one integration step.
+
+Initial distributions and normalization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``uniform_chamber`` samples the full selected chamber uniformly in area and
+requires zero top-level center coordinates. ``uniform_rectangle`` samples the
+intersection of the rectangle centered at ``Center X/Y`` and the chamber.
+``gaussian`` samples independent normal coordinates around that center,
+conditioned on lying inside the chamber. Rejection sampling retains the requested
+number of macro electrons and total weight: it does not discard charge in the
+tails. Consequently the mean and RMS of a clipped Gaussian can differ from its
+input center and spread. Only ``uniform_disk`` uses ``Radius`` as a spatial size.
+Sampling is bounded: a zero-area intersection or insufficient acceptance within
+the sampling limit raises an error rather than hanging or dropping particles.
+
+Let :math:`a` be the top-level reference radius and :math:`n_e` its electron
+density. Unless ``Initial electron line density`` is specified, all four
+distributions retain :math:`N_e/L_s=n_e\pi a^2`. For non-disk distributions,
+:math:`n_e` is an equivalent reference-disk density, not the local or peak density.
+Specifying the line density directly decouples total charge from :math:`a` and
+requires :math:`n_e=0` to avoid two conflicting intensity inputs. The initial
+source length is :math:`L_s=1\,\mathrm m`, and every macro electron has weight
+:math:`N_e/N_{\mathrm{macro}}`. Zero total intensity creates an empty state.
+
+Uniform velocities have independent zero-mean components in
+:math:`[-w_i,w_i]`, hence :math:`\langle v_i^2\rangle=w_i^2/3`, and their maximum
+combined speed must be strictly below :math:`c`. Gaussian velocities have
+zero-mean components with configured standard deviations, conditioned on
+:math:`|\boldsymbol v|<c`. This is a specified velocity distribution, not a
+relativistic thermal equilibrium distribution. Both are converted exactly to
+:math:`\boldsymbol u=\gamma\boldsymbol v/c`; the initial energy ledger uses the
+actual sampled relativistic kinetic energies. No sample-mean subtraction or RMS
+rescaling is applied. Set a spread component to zero to obtain, for example,
+zero longitudinal velocity.
+Gaussian velocity configurations with too little subluminal probability are
+likewise rejected when the bounded sampler cannot fill the requested population.
+
+For an elliptical Gaussian cloud with independent transverse Gaussian velocities:
+
+.. code-block:: python
+
+   model = ElectronCloudConfiguration(
+       mode="build_up", solver="round_gaussian_beam",
+       electron_density=0, radius=0.01, n_macroparticles=10000,
+       center_x=0.001, random_seed=42,
+       buildup=ElectronCloudBuildUpConfiguration(
+           chamber_radius=0.02, beam_sigma=0.002, max_time_step=5e-11,
+           initial_distribution="gaussian",
+           initial_position_spread=[0.003, 0.002],
+           initial_line_density=1e6,
+           initial_velocity_distribution="gaussian",
+           initial_velocity_spread=[2e5, 1e5, 0.0],
+       ),
+   )
+
+Initialization uses the same host PCG64 sampling on CPU and GPU before the
+one-time transfer to the selected backend. The legacy disk/monoenergetic defaults
+retain their existing random sequence. This adds no work to the tracking loop.
+
+Slice timing
+~~~~~~~~~~~~
 
 Execute the selected ``Slicer`` at the same position and turn before the
 cloud. Only continuous ``z_rel`` intervals are supported; complete live-particle
@@ -392,7 +472,7 @@ Use ``bunch.t0`` and saved intervals for timing, never nominal ``z_center`` or
 Prescribed drive and electron integration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In ``build_up``, during each slice the transverse source is a fixed, axis-centered round
+In legacy ``build_up`` without ``Beam driver``, during each slice the transverse source is a fixed, axis-centered round
 Gaussian truncated at chamber radius :math:`R`, with configured sigma
 :math:`\sigma_b`. The current slice population sets its signed line charge;
 tracked transverse beam coordinates do not change its center or size.
@@ -458,7 +538,7 @@ particle ratio. Its transverse source distribution is held fixed throughout
 the saved physical slice interval. It is not replaced by the Gaussian profile;
 ``beam_sigma`` has no physical effect in this mode.
 
-The grounded circular FD solver separately solves the beam field and cloud
+The grounded FD solver separately solves the beam field and cloud
 field. Dynamic cloud particles deposit line charges
 :math:`q_{\ell,e,j}=-e w_j/L_s` in C/m, with source length :math:`L_s`
 initially 1 m. Dividing by cell area gives density in C/m\ :sup:`3`;
@@ -501,8 +581,8 @@ These controls are safeguards, not a convergence proof. Independently vary
 grid size, macro-electron/primary sample counts, random seeds, slice widths
 and time steps before drawing physical conclusions.
 
-Primary and secondary emission
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Legacy primary and secondary emission
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 At a slice's leading edge, a prescribed primary source creates
 :math:`N_{\mathrm{primary}}=Y_p N_{\mathrm{slice}}L_s` electrons, represented
@@ -529,7 +609,7 @@ Zero weight means absorption. This enforces both the per-electron and weighted
 aggregate incident-energy bound, conservatively suppressing low-energy emission.
 The curve uses the true-secondary shape of
 `Furman and Pivi, Eqs. 31-32 <https://www.classe.cornell.edu/~critten/cesrta/ecloud/doc/furmanpivi.pdf>`_.
-It is not their full probabilistic model: elastic/reflected and rediffused
+It is not their full probabilistic model: this legacy option omits elastic/reflected and rediffused
 components, angle-dependent material yield and a joint secondary energy
 spectrum are absent. Macro-particle multiplication is represented by weights,
 not integer branching.
@@ -538,7 +618,8 @@ Primary and secondary directions obey a three-dimensional cosine distribution
 about the inward normal: :math:`\mu=\cos\theta=\sqrt U` and
 :math:`\phi=2\pi V`, for independent uniform random values :math:`U,V`.
 All three momentum components are retained although only x and y are tracked.
-Initial cloud directions instead use an isotropic full sphere.
+The default monoenergetic initial cloud uses an isotropic full sphere; the
+optional initial velocity distributions are independent of wall emission.
 
 Output and state
 ----------------
@@ -587,8 +668,8 @@ PIC sampling noise and conducting-wall image fields should be distinguished
 from force-normalization errors when interpreting these plots.
 
 Both dynamic modes use the same output-directory and selection rules and save
-``source/x,y,ux,uy,uz,weight`` arrays and source metadata. ``build_up`` saves no
-cloud self-field maps. Coupled output additionally stores the actual final
+``source/x,y,ux,uy,uz,weight`` arrays and source metadata. Default dilute ``build_up`` saves no
+cloud self-field maps. Dynamic PIC output additionally stores the actual final
 cloud ``grid`` and ``fields`` datasets with the SI units above, plus history
 and maximum-kick diagnostics. The momentum components
 ``ux, uy, uz`` are dimensionless. Source metadata
@@ -637,9 +718,9 @@ configuration identity, and rebuild field resources rather than saving caches.
 During tracking, dynamic electron arrays remain on the selected CPU or GPU
 backend. Staged states own detached particle data; coupled mode reuses the fixed
 grid, field factorization and numerical workspace through serial calls. Reading a
-public cloud state, writing source/field snapshots or capturing a checkpoint materializes
+public cloud state, writing source/field snapshots or capturing a component snapshot materializes
 a validated host snapshot; on GPU this adds a device-to-host transfer.
-Input fields and checkpoint formats are unchanged. Scalar diagnostics and
+Input fields and component snapshot formats are unchanged. Scalar diagnostics and
 emission sampling can still synchronize the host and device.
 When comparing CPU/GPU performance, warm compilation and solver setup first,
 measure synchronized tracking separately from setup and snapshot output,
@@ -656,24 +737,284 @@ Loading a cloud snapshot changes only this command's source. The tracking
 entry starts a new run from turn 0; these component APIs do not provide a
 machine-restart workflow.
 
-Runnable example
-----------------
+Runnable examples
+-----------------
 
-``example/07_electron_cloud`` contains an English walkthrough and six serial
-one-kick cases: zero density, analytic density and doubled density, free-space
-PIC, rectangular FD and rectangular DST. Explicit probe particles sample the
-interior and exterior fields. Analysis reads before/after distribution
-snapshots, compares with Gauss's law, checks density proportionality and
-unchanged coordinates/reference time, and compares FD/DST under identical
-boundary conditions. It writes JSON, CSV and a scientific PNG figure under
-the Git-ignored ``tests/codex/electron_cloud/example_output`` directory.
+``example/09_electron_cloud_models`` contains an English walkthrough and two
+serial workflows. ``run_models.py`` covers five chambers, optional self-fields,
+elliptical/off-axis and tabulated drivers, four primary sources, three-channel
+surface emission, population control and a measured time-step comparison.
+The five geometry cases and the half-step ellipse case disable population
+control. Two additional ellipse cases compare coarse and finer merge cells
+against the same unmerged half-step reference. All eight histories are saved;
+the report separates integration-step changes from merge effects and includes
+effective macro count, merge count and whether the soft target was reached.
+Conservation of weight and kinetic energy does not by itself bound subsequent
+trajectory, spectrum or wall-load errors introduced by merging.
+``run_response.py`` extracts G and all four K components from real coupled PIC,
+then compares independent direct kicks with response reconstruction.
+Both scripts accept CPU/GPU selection and write new HDF5/JSON artifacts under
+``tests/codex/ecloud_examples``. The model workflow also writes CSV and PNG.
+See :ref:`electron-cloud-models-en` for assumptions, units and validation scope.
 
-``example/08_electron_cloud_buildup`` adds four serial bunch-train cases:
-initial-cloud absorption, primary production with absorption, primary plus
-true-secondary emission, and a halved time-step comparison. A real one-turn
-Drift advances the reference clocks while the prescribed driver distribution
-stays fixed. Its analysis verifies number/energy bookkeeping, timeline
-continuity and unchanged beam coordinates, and writes JSON, CSV and population
-histories under ``tests/codex/electron_cloud/buildup_example_output``.
-Changes under time-step halving are reported as a resolution comparison,
-not as proof of physical saturation or statistical convergence.
+.. _electron-cloud-models-en:
+
+Electron-cloud models and response workflows
+--------------------------------------------
+
+All options below are explicit extensions of :doc:`electron_cloud`. Existing
+inputs retain the dilute round-driver and simplified secondary defaults.
+Electron coordinates remain 2D3V: x/y move, all three mechanical momentum
+components are retained, and there is no longitudinal electron transport.
+
+Prescribed drive, self-fields and chamber
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Build up.Electron self fields`` is a boolean, default ``false``. Enabling it
+in ``build_up`` solves the electron space-charge field during driven intervals
+and empty gaps. ``coupled`` always includes this field. Both use a grounded
+transverse electrostatic mesh; check mesh spacing and time-step convergence.
+
+``Build up.Beam driver`` optionally defines ``ElectronCloudBeamDriver``:
+
+.. list-table:: Prescribed transverse driver
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Fields
+     - Meaning
+   * - ``Model``
+     - ``gaussian`` or ``density_map``.
+   * - ``Sigma X (m)``, ``Sigma Y (m)``
+     - Positive Gaussian RMS widths, allowing unequal sizes.
+   * - ``Center X (m)``, ``Center Y (m)``
+     - Prescribed beam center; independent of the initial cloud center.
+   * - ``X (m)``, ``Y (m)``, ``Relative density``
+     - Increasing map axes and nonnegative relative density in (y, x) order.
+
+The driver is normalized to the signed physical charge of each saved slice.
+It is forbidden in ``coupled``, whose source is the actual beam distribution.
+The historical solver label ``round_gaussian_beam`` remains the build-up mode
+selector even when the optional driver uses the finite-domain PIC solver.
+
+Dynamic ``Aperture type/value`` selects circle, ellipse, rectangle, racetrack
+or a simple polygon using the same dimensions as :doc:`space_charge`.
+Collision intersections, inward normals, source placement and the grounded
+Poisson domain share this geometry. ``default``/``off`` retain the legacy
+``Chamber radius (m)`` circle. A complete initial uniform disk must fit inside;
+the other initial spatial distributions are conditioned on the chamber interior.
+Noncircular shapes automatically use the finite-domain beam field. Without
+``Beam driver``, ``Beam sigma (m)`` supplies the axis-centered round Gaussian
+density projected onto that domain. For explicit noncircular apertures, omit
+``Chamber radius (m)`` to avoid conflicting geometry definitions.
+
+Primary production
+~~~~~~~~~~~~~~~~~~
+
+``Build up.Primary sources`` is a list of ``PrimarySourceConfiguration``.
+It cannot be combined with a nonzero legacy primary yield. Each source has
+``Macro electrons`` (default 64), ``Mean energy (eV)`` (default 2),
+``Energy distribution`` (``monoenergetic`` or ``gamma``), and
+``Energy shape`` (positive Gamma shape, default 2). Weights represent physical
+electron number. Birth times are sampled within the finite source interval;
+electrons are advanced only after birth.
+
+.. list-table:: Source normalizations over source length L and duration dt
+   :header-rows: 1
+   :widths: 25 40 35
+
+   * - ``Kind``
+     - Physical number
+     - Parameters
+   * - ``gas_ionization``
+     - N_b P sigma L / (k_B T)
+     - ``Gas pressure (Pa)``, ``Gas temperature (K)``, ``Ionization cross section (m^2)``; birth positions follow the beam volume.
+   * - ``prescribed_wall``
+     - N_b Y L
+     - ``Electrons per beam particle (1/m)``.
+   * - ``beam_loss``
+     - N_b f_loss Y_loss L
+     - ``Beam loss fraction (1/m)``, ``Electrons per lost particle``; a prescribed loss rate, not an inferred tracking loss.
+   * - ``photoelectric``
+     - photon_rate QE L dt
+     - ``Photon rate (1/m/s)``, ``Quantum efficiency``; prescribed illumination, without photon ray tracing.
+
+Wall sources also accept ``Wall angle min (rad)`` and ``Wall angle max (rad)``
+to restrict the emitting region by polar angle about the chamber origin.
+Sampling is uniform in wall arclength conditional on that region; it is not
+uniform in polar angle on an ellipse. The photon source also operates in
+empty gaps. N_b is the number of real beam particles passing in the interval.
+Gas pressure, cross sections, losses and
+illumination must come from the intended operating conditions.
+
+Surface emission
+~~~~~~~~~~~~~~~~
+
+``Build up.Surface emission`` selects ``SurfaceEmissionConfiguration`` and
+cannot be combined with a nonzero legacy ``Secondary yield max``. This is a
+three-channel phenomenological model, not a complete Furman-Pivi material fit.
+
+* True secondaries use ``True yield max``, ``True peak energy (eV)``,
+  ``True shape``, ``Yield angle coefficient`` and ``Peak angle coefficient``.
+* ``True energy distribution`` selects ``gamma`` or ``monoenergetic``;
+  ``True mean energy (eV)`` and ``True energy shape`` define the unconditioned
+  spectrum. Finite incident energy changes the conditioned outgoing mean.
+* ``Elastic probability at zero energy`` and ``Elastic energy scale (eV)``
+  define the elastic branch. ``Rediffused probability`` and
+  ``Rediffused energy shape`` define the rediffused branch.
+* ``Sampling`` selects ``stochastic_event`` or ``weighted_channels``.
+  ``Max secondaries per impact`` bounds the event multiplicity.
+
+``True yield energy table (eV)`` and ``True yield table`` replace the analytic
+true-yield curve with linear interpolation. ``Yield table outside`` is
+``zero`` (default) or ``constant``. The angle coefficients still shift the
+energy axis and scale the yield.
+
+The channels share an incident-energy budget. The stochastic true-secondary
+branch samples a conditioned total energy and a joint energy partition;
+independent samples are not clipped afterward into a spurious peak at the
+incident energy. Cosine emission uses both signs of longitudinal momentum.
+For monoenergetic stochastic emission, the Poisson multiplicity is conditioned
+on N times emission energy not exceeding incident energy; the low-energy
+mean yield can therefore differ from the requested unconstrained curve.
+The probabilities and spectra require experimental calibration for a real
+surface, conditioning history and incident-energy range.
+
+Population control and diagnostics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Build up.Population control`` selects ``PopulationControlConfiguration``.
+It uses local phase-space cells and two representative momenta to preserve
+total weight, weighted momentum and relativistic kinetic energy during
+merging. Heavy representatives may be split. The options are
+``Target macro electrons``, ``Spatial cell size (m)``,
+``Normalized momentum cell size``, ``Max weight to mean ratio`` and
+``Max split children``. The target is a soft reduction goal: separated cells
+cannot be merged arbitrarily just to hit a particle count. The independent
+``Max macro electrons`` remains a hard resource limit.
+
+Moment conservation does not preserve every spatial feature or higher moment.
+Compare the charge density and field with a larger population and smaller
+cells. The effective count is :math:`N_\mathrm{eff}=(\sum w)^2/\sum w^2`.
+Identical-state splitting increases this weight-based count without creating
+independent phase-space samples.
+The analysis helpers in ``PASS.commands.ecloud.diagnostics`` compute weighted
+counts, line density, kinetic energy, core density and RMS quantities.
+HDF5 ``diagnostics`` spectra contain independent ``edges``, ``centers`` and
+``values`` arrays with units. Cloud spectra use electrons/bin at the saved
+observation time. Wall spectra additionally use J/bin for net kinetic
+deposition and accumulate over the recorded history identified by ``scope``. Their
+wall-position axis is atan2(y,x), not arclength. The last wall-energy bin
+includes every energy at or above 1 MeV; its finite 10 MeV plotting edge is
+not an upper cutoff. The GUI preserves these attributes, reads, plots
+and exports these spectra alongside fields, particles and histories.
+
+Wall energy deposition is incident kinetic energy minus outgoing kinetic
+energy. The helper ``wall_power`` reports W/m after dividing by the observation
+duration and represented source length. An optional perimeter gives mean
+W/m2; it does not resolve local hot spots.
+
+CPU and GPU execute the same physical distributions and energy constraints.
+The GPU material sampler uses device Philox draws seeded once per emission
+call from the component's saved PCG64 generator. Cloning and restoring a state
+reproduces draws on the same backend and software stack; individual CPU and
+GPU draws need not match. Reproducible random draws do not imply bitwise-identical
+GPU wall spectra: double-precision atomic reductions with variable weights can
+differ in their last bits, without feeding back into particle trajectories or RNG.
+Rare conditional-CDF underflow or extreme Dirichlet
+parameters use a host fallback for only the affected samples. Primary-source
+sampling retains the host generator but gathers only selected beam coordinates
+from the device. Population control and wall-spectrum reductions run on GPU;
+only small diagnostics are transferred.
+
+The Sequence command collects wall spectra only when ``Save fields`` is
+enabled. Continuous collection uses ``scope=cumulative_since_state_origin``. Scalar number
+and energy accounting remains active regardless of output selection. This
+avoids paying for unused spectra in tracking runs. The low-level
+``BuildUpCloud`` API retains wall-spectrum collection by default; passing
+``record_wall_spectra=False`` disables it and drops previously collected
+spectra on restore, without changing the physical particles or RNG.
+
+If a snapshot contains earlier wall impacts without recorded wall spectra,
+restoring it with collection enabled starts a new recorded history with
+``scope=cumulative_since_recording_restart``. Later accumulation and subsequent
+save/restore retain this scope. Scalar number and energy ledgers still include
+the complete physical history, so these restarted spectra must not be treated
+as the full-history wall energy.
+
+Response extraction and replay
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``PASS.commands.ecloud.response`` supplies ``ResponseSlice``,
+``extract_response``, ``write_response``, ``read_response`` and
+``make_periodic_response``. The extractor drives the actual ``BuildUpCloud``
+solver from a cloned physical state and RNG state. It measures a spatial
+background kick G and all four source-to-witness response components K.
+Only the source centroid is perturbed; witness probes stay fixed. Central
+differences at epsilon and epsilon/2 must agree within the requested
+tolerance; an even-residual check against the baseline also detects quadratic
+response that central differences alone would miss. A finite slice can respond within its own duration, so the
+diagonal of the causal matrix is not forced to zero.
+
+.. math::
+
+   \Delta \mathbf p_{\perp,i}(x,y)
+   = \mathbf G_i(x,y) + \sum_{j\le i}\mathbf K_{ij}\Delta\mathbf r_j.
+
+Here p_perp is mechanical transverse momentum divided by reference momentum.
+G is dimensionless and K has units 1/m. Charge, interaction length and signed
+witness reference factors are already incorporated. G supplies the baseline
+focusing; do not add it a second time through a separate frozen-cloud kick.
+The approximation retains the calibrated witness profile and its coherent
+response, not arbitrary nonlinear evolution of a changing beam distribution.
+
+``ElectronCloudResponseItem`` adds a Sequence command with the following fields:
+
+.. list-table:: Response station
+   :header-rows: 1
+   :widths: 40 20 40
+
+   * - JSON key
+     - Default
+     - Meaning
+   * - ``Response file``, ``Slice set``
+     - Required
+     - Calibrated HDF5 and current general/z_rel slices, produced at this position.
+   * - ``Timeline mode``
+     - ``finite``
+     - Complete measured causal history, or verified ``periodic`` reuse.
+   * - ``Maximum centroid displacement (m)``
+     - ``null``
+     - Use the file calibration limit or a stricter limit.
+   * - ``Profile tolerance``
+     - ``null``
+     - Relative Frobenius tolerance of the centered transverse covariance; use the recorded value or a stricter one.
+   * - ``S (m)``, ``Order``, ``Is enabled``
+     - 0, null, true
+     - Standard station location, ordering and enable switch.
+
+Finite timelines may include multiple bunches and turns without assuming a
+stationary kernel. Periodic replay requires multiple recorded periods and
+agreement of G, lag-dependent K and a checked omitted-memory tail. A local
+cloud snapshot is not a whole-simulation restart. Every tracking run starts
+fresh; response files describe calibrated physics and do not restore clocks
+or other commands.
+
+Use ``capture_response_slices`` to capture the production saved-slice timeline.
+Automatic empty bunches can yield zero-width observation points, which are
+not finite response intervals. For empty groups, use an explicit finite
+Slicer range instead; capture rejects zero-width observations.
+The covariance check does not detect every change in higher moments or fine
+structure. Calibrate again when the distribution changes beyond the rigid
+profile assumption, even if its covariance happens to remain unchanged.
+
+Numerical and physical validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use direct coupled runs to test reconstruction in the stated displacement
+domain. Independently refine electron time step, mesh spacing, macro count,
+response probe grid and the measured memory duration. Tune and exponential
+growth estimates need an explicit fitting interval; a fitted threshold is
+conditional on the scanned parameters and growth model. Numerical agreement
+does not substitute for measured material and machine inputs, nor establish
+full three-dimensional, electromagnetic or fringe-field validity.

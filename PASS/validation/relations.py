@@ -82,6 +82,8 @@ def find_slice_usage_conflicts(data, *, beam_id=0, beam_beam_configurations=None
             configuration = _configuration(electron_cloud, command)
             if _value(configuration, "Mode", "frozen") in {"build_up", "coupled"}:
                 record(_value(command, "Slice set"), "ElectronCloud", name)
+        elif kind == "electroncloudresponse":
+            record(_value(command, "Slice set"), "ElectronCloudResponse", name)
         elif kind == "ibs" and _value(intrabeam_scattering, "Enabled", False):
             raw_length = _value(command, "Interaction length (m)", _value(command, "Interaction length", 0.))
             try:
@@ -177,6 +179,14 @@ def check_relations(check):
                     check.add(p, "wake.quasistatic_coordinate", "quasistatic_fft 需要 arrival_phase 全环均匀切片")
                 if slice_name in valid_slices and slice_positions.get(slice_name) != v.get("S (m)"):
                     check.add(p, "wake.quasistatic_location", "quasistatic_fft 之前必须在同一位置运行对应 Slicer")
+        if kind == "ElectronCloudResponse" and v.get("Is enabled", True):
+            slice_name = v.get("Slice set")
+            if slice_name not in check.slice_sets:
+                check.add((*p, "Slice set"), "electron_cloud.response_slicer_missing", "ElectronCloudResponse 需要已定义的 Slice set")
+            elif slice_name not in valid_slices or slice_positions.get(slice_name) != v.get("S (m)"):
+                check.add(p, "electron_cloud.response_slicer_order", "ElectronCloudResponse 之前必须在同一位置运行对应 Slicer")
+            elif check.slice_sets[slice_name][4] != "z_rel" or check.slice_sets[slice_name][6] != "general":
+                check.add(p, "electron_cloud.response_slice_coordinate", "ElectronCloudResponse 只接受 general / z_rel 切片")
         cloud_config = check.electron_cloud_config
         if kind == "ElectronCloud" and cloud_config is not None and cloud_config.enabled and v.get("Is enabled", True):
             cloud = cloud_config.configurations.get(v.get("Configuration"))

@@ -1233,7 +1233,7 @@ class Project:
                     visit(item)
 
         visit(command)
-        if command.get("Command") == "WakeField":
+        if command.get("Command") in {"WakeField", "ElectronCloudResponse"}:
             command["Slice set"] = copy_slice(command["Slice set"])
         elif command.get("Command") == "ElectronCloud":
             _, block = _electron_cloud_block(result)

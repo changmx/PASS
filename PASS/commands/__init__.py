@@ -28,7 +28,7 @@ from .beam_beam import BeamBeam
 from .space_charge import SpaceCharge
 from .wake_field import WakeField
 from .transverse_feedback import TransversePickup, TransverseFeedback
-from .electron_cloud import ElectronCloud
+from .electron_cloud import ElectronCloud, ElectronCloudResponse
 from .ibs import IBS
 from .slow_extraction import SlowExtraction
 from .monitor.statistic import StatMonitor
@@ -71,6 +71,7 @@ __all__ = [
     "TransversePickup",
     "TransverseFeedback",
     "ElectronCloud",
+    "ElectronCloudResponse",
     "IBS",
     "SlowExtraction",
     "StatMonitor",

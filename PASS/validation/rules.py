@@ -23,6 +23,7 @@ from PASS.para.schema.slow_extraction import SlowExtractionItem, SlowExtractionM
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
 from PASS.para.schema.electron_cloud import ElectronCloudConfig, ElectronCloudItem, load_electron_cloud
+from PASS.para.schema.electron_cloud import ElectronCloudResponseItem
 from PASS.para.schema.ibs import IBSConfig, IBSItem, IBSOpticsConfig, load_intrabeam_scattering
 from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamItem, load_beam_beam
@@ -56,6 +57,7 @@ MODELS.update(Injection=InjectionItem,
               TransverseFeedback=TransverseFeedbackItem,
               SpaceCharge=SpaceChargeItem,
               ElectronCloud=ElectronCloudItem,
+              ElectronCloudResponse=ElectronCloudResponseItem,
               IBS=IBSItem,
               BeamBeam=BeamBeamItem,
               WakeField=WakeFieldItem)
@@ -571,8 +573,13 @@ class Validator:
             self.add(p, "command.object", "command 必须是对象")
             return
         cloud_kind = next((value for key, value in raw.items() if str(key).casefold() == "command"), "")
-        if str(cloud_kind).casefold() in {"electroncloud", "ibs", "electroncooler"}:
-            command_model = {"ibs": IBSItem, "electroncloud": ElectronCloudItem, "electroncooler": ElectronCoolerItem}[str(cloud_kind).casefold()]
+        if str(cloud_kind).casefold() in {"electroncloud", "electroncloudresponse", "ibs", "electroncooler"}:
+            command_model = {
+                "ibs": IBSItem,
+                "electroncloud": ElectronCloudItem,
+                "electroncloudresponse": ElectronCloudResponseItem,
+                "electroncooler": ElectronCoolerItem
+            }[str(cloud_kind).casefold()]
             try:
                 normalized = command_model._normalize_fields(raw)
                 raw = {
@@ -681,6 +688,22 @@ class Validator:
                     read_bump_waveform(values["Waveform file"])
                 except (ValueError, OSError, KeyError, TypeError, TfsFormatError) as exc:
                     self.add((*p, "Waveform file"), "bump.waveform", str(exc))
+        if kind == "ElectronCloudResponse" and v.get("Is enabled", True) and self.check_files:
+            from .files import resolve_input_paths
+            from PASS.commands.ecloud.response import read_response
+            values = {"Response file": v.get("Response file", "")}
+            resolve_input_paths(values, self.base)
+            try:
+                response = read_response(values["Response file"])
+                for field_name, metadata_name in (("Maximum centroid displacement (m)", "maximum_centroid_displacement"), ("Profile tolerance",
+                                                                                                                           "profile_tolerance")):
+                    if v.get(field_name) is not None and v[field_name] > response.metadata[metadata_name]:
+                        self.add((*p, field_name), "electron_cloud.response_validity", "不能放宽响应文件中已标定的有效范围")
+                if v.get("Timeline mode") == "periodic" and not response.metadata.get("periodic"):
+                    self.add((*p, "Timeline mode"), "electron_cloud.response_periodic", "周期回放需要通过周期一致性验证的响应文件")
+                self.report.checked_files.append(values["Response file"])
+            except (ValueError, OSError, KeyError, TypeError) as exc:
+                self.add((*p, "Response file"), "electron_cloud.response_file", str(exc))
         if kind in {"Twiss", "PhaseAdvanceMonitor"}:
             for field in v:
                 if field.startswith("Beta "):

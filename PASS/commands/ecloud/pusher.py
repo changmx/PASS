@@ -103,6 +103,7 @@ class _GpuElectronPusher:
         self._scratch = self._remaining = None
         self._wall_mask = self._wall_diagnostics = None
         self._status = cp.empty(1, dtype=cp.int32)
+        self._chamber_key = self._chamber_segments = self._chamber_ellipses = None
         self._closed = False
 
     def _vectors(self, arrays, names):
@@ -223,11 +224,36 @@ class _GpuElectronPusher:
         self._launch(self._drift_kernel, x.size, (x, y, ux, uy, uz, output, duration, radius, np.float64(const.c), np.int64(x.size)))
         return output
 
+    def prepare_chamber_drift(self, arrays, duration, chamber):
+        """Fuse drifts proven wall-free by convexity or a distance lower bound.
+
+        Candidate collisions retain their original coordinates for the exact
+        common event solver. The bound is valid for concave polygons as well.
+        """
+        values = self._vectors(arrays, ("x", "y", "ux", "uy", "uz", "weight"))
+        duration = self._scalar(duration, "duration", nonnegative=True)
+        if self._chamber_key is not chamber:
+            self._chamber_segments = self.xp.asarray(chamber._segments, dtype=self.xp.float64).reshape(-1, 6)
+            self._chamber_ellipses = self.xp.asarray(chamber._ellipses, dtype=self.xp.float64).reshape(-1, 5)
+            self._chamber_convex_kind = {"circle": 1, "ellipse": 1, "rectangle": 2}.get(chamber.kind, 0)
+            if chamber.kind == "racetrack" and chamber.values[1] == chamber.values[3]:
+                self._chamber_convex_kind = 3
+            self._chamber_key = chamber
+        remaining = self._buffer("_remaining", values[0].size)
+        self._status.fill(0)
+        self._launch(self._chamber_drift_kernel, values[0].size,
+                     (*values, remaining, self._status, duration, self._chamber_segments, np.int32(len(
+                         chamber._segments)), self._chamber_ellipses, np.int32(len(chamber._ellipses)), np.int32(
+                             self._chamber_convex_kind), np.float64(chamber.margin), np.float64(const.c), np.int64(values[0].size)))
+        status = int(self._status.get()[0])
+        return remaining, bool(status & 1), bool(status & 2)
+
     def close(self):
         """Drop workspace buffers; no physical particle state is owned here."""
         self._scratch = self._remaining = None
         self._wall_mask = self._wall_diagnostics = None
         self._status = None
+        self._chamber_key = self._chamber_segments = self._chamber_ellipses = None
         self._closed = True
 
     def drift_wall(self, arrays, remaining, hits, radius, max_hits):
@@ -272,8 +298,8 @@ class _GpuElectronPusher:
                           np.log(shape)), np.float64(np.log(shape - 1)), np.float64(emission_energy_ev), np.float64(const.m_e_eV), np.int64(count)))
         return output
 
-    def validate(self, arrays, radius):
-        """Check finite state, nonnegative weights and the circular wall in one sync."""
+    def validate(self, arrays, radius, *, inside=None):
+        """Check finite state, nonnegative weights and chamber membership in one sync."""
         values = self._vectors(arrays, ("x", "y", "ux", "uy", "uz", "weight"))
         radius = self._scalar(radius, "radius")
         if radius <= 0:
@@ -281,15 +307,19 @@ class _GpuElectronPusher:
         count = values[0].size
         if not count:
             return
+        if inside is not None and (not isinstance(inside, self.xp.ndarray) or inside.dtype != self.xp.bool_ or inside.shape != values[0].shape
+                                   or not inside.flags.c_contiguous):
+            raise TypeError("electron chamber mask must be a matching contiguous GPU boolean vector")
         self._status.fill(0)
-        self._launch(self._validate_kernel, count, (*values, self._status, radius, np.int64(count)))
+        self._launch(self._validate_kernel, count,
+                     (*values, self._status, radius, inside if inside is not None else values[0], np.int32(inside is not None), np.int64(count)))
         status = int(self._status.get()[0])
         if status & 1:
             raise ValueError("electron cloud integration produced nonfinite particle state (GPU status 1)")
         if status & 2:
             raise ValueError("electron cloud weights must be nonnegative (GPU status 2)")
         if status & 4:
-            raise ValueError("dynamic electrons must lie strictly inside the round chamber (GPU status 4)")
+            raise ValueError("dynamic electrons must lie strictly inside the conducting chamber (GPU status 4)")
 
     def _initialize_gpu_kernels(self):
         self._module = self.xp.RawModule(code=r"""
@@ -402,6 +432,90 @@ extern "C" __global__ void electron_quantity(
         mode == 0 ? speed_of_light * (hypot(x, y) / electron_gamma_value(x, y, z)) : weight[index] * electron_energy_value(x, y, z, mass_energy_ev);
 }
 
+extern "C" __global__ void prepare_chamber_drift(
+    double* x,
+    double* y,
+    const double* ux,
+    const double* uy,
+    const double* uz,
+    const double* weight,
+    double* remaining,
+    int* status,
+    double duration,
+    const double* segments,
+    int n_segments,
+    const double* ellipses,
+    int n_ellipses,
+    int convex_kind,
+    double margin,
+    double speed_of_light,
+    long long count
+) {
+    long long index = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= count) {
+        return;
+    }
+    double px = x[index];
+    double py = y[index];
+    double gamma = electron_gamma_value(ux[index], uy[index], uz[index]);
+    double vx = speed_of_light * (ux[index] / gamma);
+    double vy = speed_of_light * (uy[index] / gamma);
+    double end_x = px + vx * duration;
+    double end_y = py + vy * duration;
+    int flags = weight[index] == 0.0 ? 2 : 0;
+    bool clear_chord = false;
+    if (convex_kind != 0) {
+        // An interior chord cannot cross a convex boundary. The smaller start
+        // inset admits particles just emitted one full margin inside the wall.
+        double a = convex_kind == 2 ? fabs(segments[0]) : ellipses[1];
+        double b = convex_kind == 2 ? fabs(segments[1]) : ellipses[2];
+        if (convex_kind == 2) {
+            clear_chord = fabs(px) < a - margin * 0.25 && fabs(py) < b - margin * 0.25 && fabs(end_x) < a - margin && fabs(end_y) < b - margin;
+        } else {
+            double offset = convex_kind == 3 ? ellipses[0] : 0.0;
+            double start_norm = hypot(fmax(fabs(px) - offset, 0.0) / a, py / b);
+            double end_norm = hypot(fmax(fabs(end_x) - offset, 0.0) / a, end_y / b);
+            double inset = margin / fmin(a, b);
+            clear_chord = start_norm < 1.0 - inset * 0.25 && end_norm < 1.0 - inset;
+        }
+    }
+    if (clear_chord) {
+        x[index] = end_x;
+        y[index] = end_y;
+        remaining[index] = 0.0;
+        if (flags) {
+            atomicOr(status, flags);
+        }
+        return;
+    }
+    double distance = 1.7976931348623157e308;
+    for (int edge = 0; edge < n_segments; ++edge) {
+        const double* segment = segments + 6 * edge;
+        double dx = segment[2] - segment[0];
+        double dy = segment[3] - segment[1];
+        double fraction = fmin(1.0, fmax(0.0, ((px - segment[0]) * dx + (py - segment[1]) * dy) / (dx * dx + dy * dy)));
+        distance = fmin(distance, hypot(px - segment[0] - fraction * dx, py - segment[1] - fraction * dy));
+    }
+    for (int arc = 0; arc < n_ellipses; ++arc) {
+        const double* ellipse = ellipses + 5 * arc;
+        // The ellipse norm is 1/min(a,b)-Lipschitz; using the full ellipse
+        // instead of its arc can only make this distance bound smaller.
+        double norm = hypot((px - ellipse[0]) / ellipse[1], py / ellipse[2]);
+        distance = fmin(distance, fabs(norm - 1.0) * fmin(ellipse[1], ellipse[2]));
+    }
+    if (duration == 0.0 || hypot(vx, vy) * duration < fmax(distance - margin, 0.0)) {
+        x[index] = px + vx * duration;
+        y[index] = py + vy * duration;
+        remaining[index] = 0.0;
+    } else {
+        remaining[index] = duration;
+        flags |= 1;
+    }
+    if (flags) {
+        atomicOr(status, flags);
+    }
+}
+
 extern "C" __global__ void prepare_electron_drift(
     double* x,
     double* y,
@@ -437,7 +551,16 @@ extern "C" __global__ void prepare_electron_drift(
     double inward = discriminant - radial_velocity;
     double distance = radius * (radial_velocity >= 0.0 ? outgoing : inward);
     double hit_time = speed > 0.0 ? distance / safe_speed : __longlong_as_double(0x7ff0000000000000LL);
-    if (hit_time <= duration) {
+    double time_tolerance = 32.0 * 2.2204460492503131e-16 * duration + (32.0 * 2.2204460492503131e-16 * radius) / safe_speed;
+    bool crossing = hit_time <= duration;
+    if (!crossing && isfinite(hit_time) && hit_time <= duration + time_tolerance) {
+        double end_x = x[index] + vx * duration;
+        double end_y = y[index] + vy * duration;
+        double normalized_x = end_x / radius;
+        double normalized_y = end_y / radius;
+        crossing = (end_x != x[index] || end_y != y[index]) && normalized_x * normalized_x + normalized_y * normalized_y >= 1.0;
+    }
+    if (crossing) {
         remaining[index] = duration;
     } else {
         x[index] += vx * duration;
@@ -493,11 +616,19 @@ extern "C" __global__ void drift_wall_round(
     double inward = discriminant - radial_velocity;
     double distance = radius * (radial_velocity >= 0.0 ? outgoing : inward);
     double hit_time = speed > 0.0 ? distance / safe_speed : __longlong_as_double(0x7ff0000000000000LL);
+    double time_tolerance = 32.0 * 2.2204460492503131e-16 * duration + (32.0 * 2.2204460492503131e-16 * radius) / safe_speed;
     bool crossing = hit_time <= duration;
+    if (!crossing && isfinite(hit_time) && hit_time <= duration + time_tolerance) {
+        double end_x = x[index] + vx * duration;
+        double end_y = y[index] + vy * duration;
+        double normalized_x = end_x / radius;
+        double normalized_y = end_y / radius;
+        crossing = (end_x != x[index] || end_y != y[index]) && normalized_x * normalized_x + normalized_y * normalized_y >= 1.0;
+    }
     double elapsed = crossing ? hit_time : duration;
     x[index] = x[index] + vx * elapsed;
     y[index] = y[index] + vy * elapsed;
-    remaining[index] = crossing ? duration - elapsed : 0.0;
+    remaining[index] = crossing ? fmax(duration - elapsed, 0.0) : 0.0;
     if (crossing) {
         impacted[index] = true;
         hits[index] += 1;
@@ -579,6 +710,8 @@ extern "C" __global__ void validate_electrons(
     const double* weight,
     int* status,
     double radius,
+    const bool* inside,
+    int use_inside,
     long long count
 ) {
     long long index = (long long)blockIdx.x * blockDim.x + threadIdx.x;
@@ -593,7 +726,7 @@ extern "C" __global__ void validate_electrons(
     if (weight[index] < 0.0) {
         flags |= 2;
     }
-    if (!(hypot(x[index], y[index]) < radius)) {
+    if (use_inside ? !inside[index] : !(hypot(x[index], y[index]) < radius)) {
         flags |= 4;
     }
     if (flags) {
@@ -605,6 +738,7 @@ extern "C" __global__ void validate_electrons(
         self._kick_kernel = self._module.get_function("push_electrons")
         self._quantity_kernel = self._module.get_function("electron_quantity")
         self._drift_kernel = self._module.get_function("prepare_electron_drift")
+        self._chamber_drift_kernel = self._module.get_function("prepare_chamber_drift")
         self._wall_drift_kernel = self._module.get_function("drift_wall_round")
         self._wall_emission_kernel = self._module.get_function("emit_wall_electrons")
         self._validate_kernel = self._module.get_function("validate_electrons")

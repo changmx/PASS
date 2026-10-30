@@ -13,10 +13,10 @@ from PASS.para.schema.space_charge import validate_loss_aperture
 
 def _field_help():
     return {
-        "Electron density (1/m^3)": ("电子数密度 / m⁻³", "非负真实电子数密度；动态模式中描述初始圆盘，可取零。"),
-        "Radius (m)": ("电子云圆盘半径 / m", "必须为正；动态模式要求整个初始圆盘严格位于圆形真空室内。"),
-        "Center X (m)": ("圆盘中心 x / m", "初始电子云圆盘相对束流轴的水平偏移。"),
-        "Center Y (m)": ("圆盘中心 y / m", "初始电子云圆盘相对束流轴的垂直偏移。"),
+        "Electron density (1/m^3)": ("电子数密度 / m⁻³", "圆盘真实密度。动态模式未指定初始线密度时，总线密度为此值 × π × Radius²；非圆盘模式以此定义参考圆盘强度。指定初始线密度时必须填 0。"),
+        "Radius (m)": ("圆盘或参考半径 / m", "必须为正；uniform_disk 要求完整圆盘严格在腔内。其他初态仅在未指定线密度时用此半径确定总电子数，不限制空间范围。"),
+        "Center X (m)": ("初始云中心 x / m", "初始圆盘、矩形或高斯分布相对束流轴的水平偏移；uniform_chamber 必须为 0。"),
+        "Center Y (m)": ("初始云中心 y / m", "初始圆盘、矩形或高斯分布相对束流轴的垂直偏移；uniform_chamber 必须为 0。"),
         "Number of macro electrons": ("初始宏电子数", "用于电子云采样的正整数样本数；每个宏电子携带相应真实电子权重。"),
         "Random seed": ("随机种子", "不指定时写入 JSON null，保持非确定性；指定整数时可复现初始采样和发射抽样。"),
         "Nx": ("水平网格点数 Nx", "一般至少 3；coupled 要求不小于 5 的奇数。"),
@@ -27,11 +27,18 @@ def _field_help():
         "Aperture type": ("边界形状", "Dirichlet 模式使用接地导体边界；自由空间求解器只允许 default/off，网格不代表导体壁面。"),
         "Aperture value": ("边界尺寸 / m", "尺寸采用半宽、半轴或半径；polygon 顶点按边界顺序填写。"),
         "Chamber radius (m)": ("圆形真空室半径 / m", "必须为正，圆心位于束流轴；初始圆盘中心距加半径必须严格小于此值。"),
-        "Beam sigma (m)": ("束流高斯 sigma / m", "build_up 使用的固定圆高斯横向 sigma，必须为正。coupled 使用实际切片粒子，此值不参与计算，但当前输入格式仍要求填写正值。"),
+        "Beam sigma (m)": ("束流高斯 sigma / m", "没有 Beam driver 时，build_up 使用的固定圆高斯横向 sigma，必须为正。coupled 使用实际切片粒子，可省略此值。"),
         "Max time step (s)": ("最大积分时间步长 / s", "必须为正；电子推进器可根据动力学限制进一步缩短。"),
         "Magnetic field (T)": ("均匀磁场 [Bx, By, Bz] / T", "按束流局部坐标 x、y、z 顺序填写 3 个分量。"),
         "Magnetic gradient (T/m)": ("正规四极磁场梯度 / (T/m)", "带符号的有限正规四极磁场梯度。"),
-        "Initial electron energy (eV)": ("初始电子动能 / eV", "每电子的非负初始动能；初始方向在三维空间中各向同性。"),
+        "Initial distribution": ("初始空间分布", "uniform_disk：均匀圆盘；uniform_chamber：全腔均匀；uniform_rectangle：矩形均匀；gaussian：椭圆高斯。矩形及高斯在腔内重采样，保留总电子数。"),
+        "Initial position spread (m)": ("初始空间尺度 [x, y] / m", "仅矩形和高斯必填，均须为正；矩形使用半宽，高斯使用截断前的标准差。圆盘和全腔均匀分布不填写。"),
+        "Initial electron line density (1/m)":
+        ("初始电子线密度 / m⁻¹", "可直接指定非负真实电子数/米；此时顶层 Electron density 必须为 0。不填写则沿用 Electron density × π × Radius²。改变分布和截断不改变该总线密度。"),
+        "Initial velocity distribution": ("初始速度分布", "monoenergetic：三维各向同性单能；uniform/gaussian：各方向独立、零均值，使用指定速度尺度。高斯尾部按 |v| < c 截断并重采样。"),
+        "Initial velocity spread (m/s)":
+        ("初始速度尺度 [vx, vy, vz] / (m/s)", "仅 uniform/gaussian 必填，均须非负；uniform 为各方向半宽，其速度盒须严格低于光速；gaussian 为截断前标准差。任一分量可为 0。"),
+        "Initial electron energy (eV)": ("初始电子动能 / eV", "monoenergetic 的非负每电子动能，方向三维各向同性；uniform/gaussian 初始速度分布要求此值为 0，由抽样速度确定动能。"),
         "Primary electrons per beam particle (1/m)": ("每束流粒子每米的初级电子产额 / m⁻¹", "非负预设初级电子源强度，按真实束流粒子数计。"),
         "Primary macro electrons": ("每次初级发射的宏电子数", "每个非零初级发射事件产生的正整数宏电子样本数。"),
         "Secondary yield max": ("二次电子产额峰值", "非负的未截断真二次产额曲线峰值；零表示吸收壁。"),
@@ -41,6 +48,11 @@ def _field_help():
         "Max macro electrons": ("最大宏电子数", "正整数资源上限；超限时报错，不通过丢弃电荷继续运行。"),
         "Max steps": ("每时间区间的最大积分步数", "每个物理时间区间内允许的积分步数，必须为正整数。"),
         "Max wall hits per step": ("单步最大壁面碰撞次数", "每个电子在单个积分步内允许的壁面事件数，必须为正整数。"),
+        "Electron self fields": ("电子云自场", "积累模式可显式打开电子云自场；耦合模式始终包含自场。旧积累输入默认关闭。"),
+        "Beam driver": ("规定束流分布", "积累模式使用的横向高斯或密度图。耦合模式使用实际切片粒子，不能另设规定分布。"),
+        "Primary sources": ("初级电子源", "按物理机制设置气体电离、束损或给定照射源。不能与非零旧初级产额重复使用。"),
+        "Surface emission": ("壁面材料模型", "可选多通道产额及能谱；未指定时保持原简化真二次模型。参数须与实际表面数据核对。"),
+        "Population control": ("宏电子管理", "受控拆分和局域重采样；监测有效样本量和数值误差。"),
     }
 
 
@@ -115,8 +127,8 @@ class ElectronCloudBuildUpEditor(SchemaEditor):
             self.form.takeRow(0)
         self.form.setSizeConstraint(QLayout.SetMinimumSize)
         for key, field in self.fields.items():
-            label, help_text = _field_help()[key]
-            self.labels[key].setText(label + (" *" if key in {"Chamber radius (m)", "Beam sigma (m)", "Max time step (s)"} else ""))
+            label, help_text = _field_help().get(key, (key, field.toolTip() or key))
+            self.labels[key].setText(label + (" *" if key == "Max time step (s)" else ""))
             self.labels[key].setMaximumWidth(16777215)
             self.labels[key].setToolTip(help_text)
             field.setToolTip(help_text)
@@ -175,7 +187,7 @@ class ElectronCloudSettingsEditor(StructuredField):
                 field = ElectronCloudApertureEditor(self.original["Aperture type"], self.original[key], base_dir)
             else:
                 field = make_editor(info.annotation, self.original[key], key, base_dir)
-            title, help_text = _field_help()[key]
+            title, help_text = _field_help().get(key, (key, info.description or key))
             label = QLabel(title + (" *" if info.is_required() else ""))
             label.setWordWrap(True)
             label.setToolTip(help_text)
@@ -223,7 +235,8 @@ class ElectronCloudSettingsEditor(StructuredField):
         if self._selection:
             self._aperture_preferences[self._selection] = aperture.currentData()
         self._selection = (mode, solver)
-        shapes = (["default", "off"] if mode != "frozen" or solver in {"uniform_round_free_space", "fft_free_space"} else
+        shapes = ([kind
+                   for kind in APERTURES] if mode != "frozen" else ["default", "off"] if solver in {"uniform_round_free_space", "fft_free_space"} else
                   ["default", "rectangle"] if solver == "dst_dirichlet" else [kind for kind in APERTURES if kind != "off"])
         preferred = preferred_aperture or self._aperture_preferences.get(self._selection, "default")
         aperture.blockSignals(True)
@@ -236,7 +249,7 @@ class ElectronCloudSettingsEditor(StructuredField):
         aperture.blockSignals(False)
         self._aperture_changed()
         active = {"Mode", "Solver", "Electron density (1/m^3)", "Radius (m)", "Center X (m)", "Center Y (m)", "Aperture type", "Aperture value"}
-        numerical = mode == "coupled" or mode == "frozen" and solver != "uniform_round_free_space"
+        numerical = mode != "frozen" or solver != "uniform_round_free_space"
         if mode != "frozen" or numerical:
             active.update({"Number of macro electrons", "Random seed"})
         if mode == "frozen" or numerical:
@@ -253,8 +266,8 @@ class ElectronCloudSettingsEditor(StructuredField):
         self.tabs.setTabText(1, "诊断网格" if analytic else "网格/边界")
         hint = {
             "frozen": "冻结模式只施加给定电子云的场；解析均匀圆云不需要宏电子采样。FD 支持有限导体边界；DST 限定为整个网格矩形；FFT 和解析模型为自由空间。",
-            "build_up": "积累模式由固定圆高斯束流驱动电子运动与壁面发射，不反踢束流，也不计电子自场。边界采用 Build up 中的圆形真空室。",
-            "coupled": "耦合模式计算电子云 PIC 自场与横向束流踢角。Nx/Ny 必须为 ≥5 的奇数，网格全宽 ≥ 真空室直径，网格间距 ≤ 真空室半径的一半。边界采用圆形真空室。",
+            "build_up": "积累模式由规定束流驱动电子运动与壁面发射，不反踢束流。可显式启用电子自场及规定横向分布。有限腔室使用所选边界；default/off 使用旧圆管半径。",
+            "coupled": "耦合模式使用真实切片粒子计算电子云自场与横向束流踢角。网格必须覆盖并解析所选有限腔室。各作用点独立保存云状态。",
         }[mode]
         if analytic:
             hint += " Nx/Ny 和网格全宽仅控制 Save fields 的诊断采样，不影响解析踢角。"

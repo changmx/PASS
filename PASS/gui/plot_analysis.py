@@ -286,11 +286,11 @@ def export_selection_data(selection, path, *, context=None):
     if isinstance(result, ElectronCloudResult):
         from PASS.gui.electron_cloud_results import electron_cloud_export_columns
 
-        columns, definitions = electron_cloud_export_columns(result, selection.electron_cloud_view)
+        columns, definitions = electron_cloud_export_columns(result, selection.electron_cloud_view, selection.electron_cloud_quantity)
         metadata.update(view=selection.electron_cloud_view,
                         quantity=selection.electron_cloud_quantity,
-                        axis_order="y,x",
-                        weighting="saved electron-number weights; no interaction-length rescaling")
+                        axis_order="y,x" if selection.electron_cloud_view == "fields" else None,
+                        weighting="saved physical dataset weights and units; no interaction-length rescaling")
     elif isinstance(result, FieldResult):
         index = selection.index
         x, y = np.meshgrid(result.x, result.y)

@@ -673,6 +673,7 @@ class ConfigPage(QWidget):
             ("全局配置", "管理冻结云、电子累积和耦合模式的命名配置。", self.configure_electron_cloud),
             ("插入电子云切片", "动态模式需要在作用点之前、同一位置执行 general / z_rel 切片。", lambda: self.select_slicer("electron_cloud")),
             ("电子云作用点", "引用命名配置；每个作用点保留独立电子云状态。", lambda: self.select_command("ElectronCloud")),
+            ("电子云响应回放", "读取已标定的 G/K 响应，跟踪有限时间线或经过验证的周期响应。", lambda: self.select_command("ElectronCloudResponse")),
         ):
             item = button(text)
             item.setToolTip(tip)
@@ -1281,6 +1282,9 @@ class ConfigPage(QWidget):
             configurations = self._electron_cloud_block().get("configurations", {})
             name = next(iter(configurations), None) if isinstance(configurations, dict) else None
             return model_draft(ElectronCloudItem, {"S (m)": position, "Configuration": name})
+        if command == "ElectronCloudResponse":
+            from PASS.para.schema.electron_cloud import ElectronCloudResponseItem
+            return model_draft(ElectronCloudResponseItem, {"S (m)": position, "Slice set": "electron_cloud"})
         if command == "SpaceCharge":
             from PASS.para.schema.space_charge import SpaceChargeItem
 
@@ -1319,6 +1323,9 @@ class ConfigPage(QWidget):
         elif command == "ElectronCloud":
             self.form_title.setText("电子云 · 插入作用点")
             self._update_electron_cloud_point()
+        elif command == "ElectronCloudResponse":
+            self.form_title.setText("电子云 · 响应回放")
+            self.form_hint.setText("读取响应 HDF5；之前须在同一位置运行 general / z_rel Slicer。响应文件已包含束流电荷与作用长度；有限时间线默认不可重复。")
 
     def select_slicer(self, purpose):
         if not self._confirm_form_navigation():

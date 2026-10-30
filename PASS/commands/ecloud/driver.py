@@ -64,7 +64,7 @@ def build_slice_intervals(beam, slice_set_name, turn, s, xp, *, include_particle
         if not (math.isfinite(ratio) and ratio >= 0 and math.isfinite(charge) and charge != 0):
             raise ValueError("ElectronCloud beam particle weight and signed charge must be finite and physical")
         start, end = bunch.start_idx, bunch.end_idx
-        if end <= start and slices.z_range_mode == "auto":
+        if end <= start and getattr(slices, "z_range_mode", "explicit") == "auto":
             # An unoccupied automatic range has no physical pulse width.
             # Retain only its reference-time observation of the evolving cloud.
             events.append(BeamSliceInterval(t0, t0, int(bunch.bunch_id), -1, 0., 0., beta, bunch_index))
@@ -74,7 +74,7 @@ def build_slice_intervals(beam, slice_set_name, turn, s, xp, *, include_particle
         if ids.shape != (end - start, ) or ids.dtype.kind not in "iu":
             raise ValueError("ElectronCloud saved slice memberships do not match the bunch particle range")
         alive = p.tag[start:end] > 0 if end > start else None
-        if slices.z_range_mode == "auto" and not bool(xp.any(alive)):
+        if getattr(slices, "z_range_mode", "explicit") == "auto" and not bool(xp.any(alive)):
             # Lost/pending records stay allocated, but their synthetic empty
             # Slicer range does not define a physical beam pulse either.
             events.append(BeamSliceInterval(t0, t0, int(bunch.bunch_id), -1, 0., 0., beta, bunch_index))
@@ -145,21 +145,26 @@ def evolve_buildup(cloud, events, turn, *, beam=None, interaction_length=0.0):
     def advance(end_time, event=None):
         before = candidate.n_electrons
         time_start = candidate.time
-        primary = candidate.inject_primary(event.n_real_particles)["primary_electrons"] if event is not None else 0.0
-        beam_field, witness = None, None
-        if candidate.pic is not None and event is not None:
+        witness = None
+        if candidate.configuration.mode == "coupled" and event is not None:
             if event.particle_indices is None:
                 raise ValueError("coupled electron clouds require actual saved beam slice memberships")
             indices = event.particle_indices
             if indices.size:
                 p = beam.particles
                 witness = (p.x[indices], p.y[indices])
-                beam_field = candidate.pic.solve(*witness, event.charge_per_length)
-        diagnostics = candidate.advance_to(end_time,
-                                           line_charge=event.line_charge if event is not None else 0.0,
-                                           beam_beta=event.beam_beta if event is not None else 0.0,
-                                           beam_field=beam_field,
-                                           witness=witness)
+        if event is None:
+            diagnostics = candidate.advance_gap(end_time, _owned=True)
+        else:
+            diagnostics = candidate._advance_slice(end_time,
+                                                   n_real_particles=event.n_real_particles,
+                                                   line_charge=event.line_charge,
+                                                   beam_beta=event.beam_beta,
+                                                   beam_x=None if witness is None else witness[0],
+                                                   beam_y=None if witness is None else witness[1],
+                                                   charge_per_length=event.charge_per_length,
+                                                   witness=witness)
+        primary = diagnostics.get("primary_electrons", 0.)
         kick_summary = {}
         if witness is not None and event.particle_indices.size and interaction_length > 0:
 
@@ -185,6 +190,15 @@ def evolve_buildup(cloud, events, turn, *, beam=None, interaction_length=0.0):
                  emitted_electrons=diagnostics["emitted_electrons"],
                  steps=diagnostics["steps"],
                  **kick_summary))
+        history[-1].update({
+            name: float(value)
+            for name, value in diagnostics.items() if name not in history[-1] and name not in {"mean_ex", "mean_ey"} and np.isscalar(value)
+        })
+        history[-1].update(candidate.population_statistics())
+        if diagnostics.get("dt", 0.) > 0:
+            from .diagnostics import wall_power
+            history[-1].update(
+                wall_power(diagnostics["incident_energy_ev"], diagnostics["emitted_energy_ev"], diagnostics["dt"], candidate.source_length))
 
     try:
         if candidate.time is None:

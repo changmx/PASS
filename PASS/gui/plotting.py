@@ -422,6 +422,8 @@ class PlotPage(QWidget):
         cloud_layout.setContentsMargins(0, 0, 0, 0)
         self.electron_cloud_view = QComboBox()
         self.electron_cloud_quantity = QComboBox()
+        self.electron_cloud_quantity.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.electron_cloud_quantity.setMinimumContentsLength(24)
         self.electron_cloud_x = QComboBox()
         self.electron_cloud_y = QComboBox()
         self.electron_cloud_bins = QSpinBox()
@@ -651,7 +653,7 @@ class PlotPage(QWidget):
         if cloud_result:
             self.electron_cloud_view.blockSignals(True)
             self.electron_cloud_view.clear()
-            for name, label in (("fields", "瞬时场图"), ("source", "带权电子分布"), ("history", "时间历史")):
+            for name, label in (("fields", "瞬时场图"), ("source", "带权电子分布"), ("history", "时间历史"), ("spectra", "带权诊断谱")):
                 if name in result.views:
                     self.electron_cloud_view.addItem(label, name)
             self.electron_cloud_view.blockSignals(False)
@@ -912,6 +914,8 @@ class PlotPage(QWidget):
             names = list(result.fields)
         elif view == "history":
             names = [name for name, values in result.history.items() if values.dtype.kind in "biuf" and name not in {"time_start", "time_end"}]
+        elif view == "spectra":
+            names = list(result.spectra)
         else:
             names = []
         for name in names:
@@ -947,6 +951,8 @@ class PlotPage(QWidget):
                 explanation = "二维 (y, x) 瞬时 SI 场：ρ [C/m³]、nₑ [1/m³]、φ [V]、E [V/m]；不除以 Δz。"
                 if configuration.get("mode") == "coupled":
                     explanation += " 场图对应最终观测时刻的电子源。"
+            elif view == "spectra":
+                explanation = "诊断谱按电子数权重统计；横轴和分箱边界使用各谱保存的物理单位，每箱数值为代表电子数。"
             else:
                 detail += f" · source_length={source_metadata.get('source_length', '?')} m · time={source_metadata.get('time', '?')} s"
                 explanation = ("直方图与投影按保存的 weight 求和：每箱电子数，不是宏电子行数或体密度；ux, uy, uz = p/(mₑc)。"

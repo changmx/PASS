@@ -94,8 +94,9 @@ def read_cloud_state(path):
 
 
 def write_buildup_snapshot(path, cloud, metadata, history):
-    """Save dynamic sources/history and, for coupled mode, the final cloud field."""
-    state = getattr(cloud, "state", cloud).state_dict()
+    """Save dynamic sources, diagnostics, history and any available cloud field."""
+    physical_state = getattr(cloud, "state", cloud)
+    state = physical_state.state_dict()
     if state.get("format") != "PASS-dynamic-electrons-1":
         raise ValueError("ElectronCloud build-up snapshots require a dynamic electron state")
     if not isinstance(history, list) or any(not isinstance(row, dict) for row in history):
@@ -109,6 +110,15 @@ def write_buildup_snapshot(path, cloud, metadata, history):
         output.attrs["metadata_json"] = metadata_json
         output.attrs["history_json"] = history_json
         _write_source(output.create_group("source"), state)
+        from .diagnostics import diagnostic_histograms, write_diagnostic_histograms
+        histograms = diagnostic_histograms(physical_state)
+        histograms.update(physical_state.wall_histograms)
+        diagnostic_group = output.create_group("diagnostics")
+        write_diagnostic_histograms(diagnostic_group, histograms)
+        for name, histogram in physical_state.wall_histograms.items():
+            for key, value in histogram.items():
+                if key not in {"edges", "centers", "values", "axis_unit", "value_unit"}:
+                    diagnostic_group[name].attrs[key] = value
         pic = getattr(cloud, "pic", None)
         if pic is not None:
             result = pic.solve(cloud.state.x, cloud.state.y, -const.e * cloud.state.weight / cloud.state.source_length)

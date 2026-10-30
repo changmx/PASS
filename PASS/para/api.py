@@ -71,7 +71,9 @@ from PASS.para.schema.wake_field import (
     WakeResourceConfig,
 )
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
-from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
+from PASS.para.schema.electron_cloud import (ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem,
+                                             ElectronCloudResponseItem, ElectronCloudBeamDriver, SurfaceEmissionConfiguration,
+                                             PrimarySourceConfiguration, PopulationControlConfiguration)
 from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
 from PASS.para.schema.beam_beam import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem, ElectronBeamConfig, ElectronCoolerItem
@@ -461,11 +463,12 @@ def _build_monitors(monitors: list[dict]) -> list:
 
 
 __all__ = [
-    'generate_input', 'load_input', 'generate_from_tfs', 'build_sequence', 'MainConfig', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig',
-    'SpaceChargeItem', 'WakeFieldItem', 'WakeFieldConfig', 'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake',
-    'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
-    'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
-    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem', 'SlowExtractionItem', 'SlowExtractionMonitorItem',
-    'TransversePickupItem', 'TransverseFeedbackItem', 'design_feedback_fir'
+    'ElectronCloudBeamDriver', 'ElectronCloudResponseItem', 'SurfaceEmissionConfiguration', 'PrimarySourceConfiguration',
+    'PopulationControlConfiguration', 'generate_input', 'load_input', 'generate_from_tfs', 'build_sequence', 'MainConfig', 'Sequence',
+    'SpaceChargeConfig', 'SpaceChargeResourceConfig', 'SpaceChargeItem', 'WakeFieldItem', 'WakeFieldConfig', 'WakeResourceConfig',
+    'WakeComponentConfig', 'ConstantWake', 'ResonatorWake', 'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake',
+    'FittedImpedanceWake', 'ModalWake', 'WakeVelocity', 'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake',
+    'WakeFileConvention', 'SlicerItem', 'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration',
+    'IBSConfig', 'IBSConfiguration', 'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem', 'SlowExtractionItem',
+    'SlowExtractionMonitorItem', 'TransversePickupItem', 'TransverseFeedbackItem', 'design_feedback_fir'
 ]

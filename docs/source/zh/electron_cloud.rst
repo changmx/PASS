@@ -5,12 +5,14 @@
 
 * ``frozen`` 对束流施加预设静止均匀电子圆盘产生的横向薄透镜踢角，
   场采用自由空间解析式，或对宏电子采样后通过 PIC 求解一次。
-* ``build_up`` 在圆形真空室中跟踪受预设束流切片及外加磁场驱动的电子，
+* ``build_up`` 跟踪受预设束流切片及外加磁场驱动的电子，可选自场、多种初级源、多通道材料及不同真空室几何，
   包括壁面初级电子产生、吸收及简化真二次发射；不对束流施加踢角。
 * ``coupled`` 加入电子云 PIC 自场和横向束流踢角，
-  在接地圆形真空室内使用已保存束流切片的真实粒子分布驱动电子。
+  在接地真空室内使用已保存束流切片的真实粒子分布驱动电子，壁面事件和场边界使用同一几何。
 
-``build_up`` 属于外驱动低密度近似，不包含电子云自场、束流反作用或物理空间电荷饱和机制。
+``build_up`` 默认保留外驱动低密度近似；设置 ``Build up.Electron self fields=true`` 可加入云自场。
+``coupled`` 始终计算自场。新增物理模型、响应提取、回放和分析见 :ref:`electron-cloud-models-zh`。
+
 ``coupled`` 是首个准静态横向薄透镜耦合模型，尚未完成不稳定性阈值或平衡电子云密度的验证。
 这三种模式需显式选择。
 
@@ -28,7 +30,8 @@
 ``build_up`` 要求当前 ``z_rel`` SliceSet，并保持全部束流粒子坐标不变。
 ``coupled`` 同样要求该 SliceSet，且只改变 ``px`` 和 ``py``。
 坐标约定见 :doc:`injection`。
-给定密度确定静态云或初始化动态云，不从束流强度或束团分组推算。
+给定密度确定静态云或初始化动态云，动态模式也可直接指定初始电子线密度；
+两种强度均不从束流强度或束团分组推算。
 
 以下为输入片段，还需另行提供注入与输运：
 
@@ -88,10 +91,10 @@ Python 输入生成使用 ``PASS.para.schema.electron_cloud`` 中的
      - 静态：自由空间解析场或 ``fft_free_space``、``fd_dirichlet``、``dst_dirichlet`` PIC；积累模式要求 ``round_gaussian_beam``，耦合模式要求 ``fd_dirichlet``。
    * - ``Electron density (1/m^3)`` / ``electron_density``
      - 必填
-     - 圆盘内非负物理电子数密度；动态模式仅用其初始化云。
+     - 圆盘内非负物理电子数密度；动态非圆盘初态将其作为等效参考圆盘密度。直接指定初始电子线密度时须设为零。
    * - ``Radius (m)`` / ``radius``
      - 必填
-     - 均匀圆盘的正半径，动态模式为初始云半径；不是束流 RMS 尺寸。
+     - 均匀圆盘正半径，或动态初态默认总电子数归一化的参考半径；不是高斯 RMS 尺寸。非圆盘分布仍须填写，但不以此确定空间尺寸。
    * - ``Center X (m)``、``Center Y (m)`` / ``center_x``、``center_y``
      - ``0``、``0``
      - 电子云横向中心，单位为米。
@@ -103,7 +106,7 @@ Python 输入生成使用 ``PASS.para.schema.electron_cloud`` 中的
      - 云初始化和发射随机数的整数种子或 ``null``。
    * - ``Nx``、``Ny`` / ``nx``、``ny``
      - ``65``、``65``
-     - 网格点数，均为至少 3 的整数；耦合模式要求至少 5 的奇数。
+     - 网格点数，均为至少 3 的整数；动态 PIC 要求至少 5 的奇数。
    * - ``Grid Width X (m)``、``Grid Width Y (m)`` / ``grid_width_x``、``grid_width_y``
      - ``0.1``、``0.1``
      - 以原点为中心的网格完整宽度，须为正值。
@@ -112,15 +115,15 @@ Python 输入生成使用 ``PASS.para.schema.electron_cloud`` 中的
      - PIC 沉积和插值采用 ``CIC`` 或 ``TSC``。
    * - ``Aperture type``、``Aperture value`` / ``aperture_type``、``aperture_value``
      - ``default``、``[]``
-     - 静态场计算区域的几何；动态模式要求 ``default`` 或 ``off`` 且参数为空，其圆形壁面由 ``Build up`` 定义。
+     - 场与壁面共用的几何；动态模式支持 circle、ellipse、rectangle、racetrack、polygon；default/off 保留 Build up.Chamber radius (m) 定义的圆壁面。
    * - ``Build up`` / ``buildup``
      - ``null``
      - 两种动态模式均必填的嵌套 ``ElectronCloudBuildUpConfiguration``；静态模式不允许设置。
 
-网格和沉积参数用于静态 PIC、静态场诊断和耦合 PIC；``build_up`` 不使用 PIC 网格。
-耦合模式要求两个网格宽度均覆盖完整真空室直径，每轴网格间距不超过真空室半径的一半。
+网格和沉积参数用于静态 PIC、静态场诊断、耦合 PIC，以及启用自场、规定 Beam driver 或非圆真空室的 build_up。
+网格须覆盖并解析完整真空室；旧圆室每轴网格间距不超过半径的一半。
 这是最低可分辨性检查，不是充分收敛条件。
-圆形 Dirichlet 壁面由 ``Build up.Chamber radius (m)`` 定义。
+显式 Aperture type/value 定义壁面；default/off 使用 ``Build up.Chamber radius (m)``。
 
 .. list-table:: 序列命令
    :header-rows: 1
@@ -241,10 +244,10 @@ PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权�
 选择 ``Mode="build_up"``、``Solver="round_gaussian_beam"`` 并提供
 ``Build up`` 对象。耦合 PIC 则选择 ``Mode="coupled"``、
 ``Solver="fd_dirichlet"``，使用相同嵌套对象。
-顶层电子密度、圆盘半径与中心描述初始电子云，
-整个初始圆盘必须严格位于圆形真空室内。
-初始方向在三维空间各向同性，动能为给定单能值。
-初始密度可以为零，之后由初级源产生电子。
+默认情况下，顶层电子密度、圆盘半径与中心描述均匀初始圆盘，
+整个圆盘必须严格位于所选真空室内。初始方向在三维空间各向同性，
+动能为给定单能值。下述可选位置与速度分布适用于两种动态模式。
+初始强度可以为零，之后由初级源产生电子。
 
 .. code-block:: python
 
@@ -271,11 +274,11 @@ PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权�
      - 默认值
      - 含义
    * - ``Chamber radius (m)`` / ``chamber_radius``
-     - 必填
-     - 以束流轴为中心的正圆形壁面半径。
+     - null
+     - default/off 孔径所用正圆壁面半径，此时必填；显式非圆几何省略。
    * - ``Beam sigma (m)`` / ``beam_sigma``
-     - 必填
-     - 积累模式的正固定横向高斯 sigma；耦合模式为保持 schema 兼容仍要求填写，但其场与步长控制不使用此值。
+     - null
+     - 未设 Beam driver 的积累模式必填正圆高斯 sigma；耦合模式可省略且不使用。
    * - ``Max time step (s)`` / ``max_time_step``
      - 必填
      - 正积分步长上限；推进器还可进一步缩短。
@@ -287,7 +290,22 @@ PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权�
      - 带符号有限正规四极磁场梯度；拒绝布尔值。
    * - ``Initial electron energy (eV)`` / ``initial_energy_ev``
      - ``0``
-     - 每电子的非负初始动能。
+     - 默认单能速度分布下，每电子的非负初始动能；均匀或高斯速度分布要求设为零。
+   * - ``Initial distribution`` / ``initial_distribution``
+     - ``uniform_disk``
+     - ``uniform_disk``、``uniform_chamber``、``uniform_rectangle`` 或 ``gaussian``。位置与速度分布独立选择。
+   * - ``Initial position spread (m)`` / ``initial_position_spread``
+     - ``null``
+     - uniform_rectangle 必填正 ``[x, y]`` 半宽；gaussian 必填截断前标准差；圆盘或全腔分布不填写。
+   * - ``Initial electron line density (1/m)`` / ``initial_line_density``
+     - ``null``
+     - 可选非负真实电子总线密度，指腔室截断后每米的总电子数。要求顶层 Electron density = 0；null 保留参考圆盘归一化。
+   * - ``Initial velocity distribution`` / ``initial_velocity_distribution``
+     - ``monoenergetic``
+     - ``monoenergetic`` 为各向同性固定动能，``uniform`` 为独立均匀速度分量，``gaussian`` 为独立高斯速度分量。
+   * - ``Initial velocity spread (m/s)`` / ``initial_velocity_spread``
+     - ``null``
+     - uniform 必填非负 ``[vx, vy, vz]`` 半宽，gaussian 必填截断前标准差；单能分布不填写。零宽度分量保持为零。
    * - ``Primary electrons per beam particle (1/m)`` / ``primary_electrons_per_particle_per_m``
      - ``0``
      - 每真实束流粒子、每米的非负预设初级电子产额。
@@ -315,6 +333,58 @@ PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权�
    * - ``Max wall hits per step`` / ``max_wall_hits_per_step``
      - ``32``
      - 每粒子在单个积分步内允许的壁面事件数，须为正整数。
+
+初态分布与归一化
+~~~~~~~~~~~~~~~~
+
+``uniform_chamber`` 在所选完整腔室内按面积均匀采样，要求顶层中心坐标为零。
+``uniform_rectangle`` 在以 ``Center X/Y`` 为中心的矩形与腔室的交集中均匀采样。
+``gaussian`` 先定义以该中心为均值、两轴独立的高斯分布，再取腔室内的条件分布。
+拒绝采样保留指定宏电子数和总权重，不丢弃尾部电荷；因此截断后高斯分布的
+实际均值和 RMS 可以不同于输入中心和宽度。只有 ``uniform_disk`` 使用 Radius 定义空间尺寸。
+采样次数有上限：交集面积为零或达到采样上限仍未获得足够粒子时会报错，
+不会无限循环或丢弃粒子后继续运行。
+
+设顶层参考半径为 :math:`a`，电子密度为 :math:`n_e`。
+未指定 Initial electron line density 时，四种分布均保留
+:math:`N_e/L_s=n_e\pi a^2`。对于非圆盘分布，:math:`n_e` 是等效参考圆盘密度，
+不代表局部密度或峰值密度。直接指定线密度后，总电子数与 :math:`a` 无关，
+且须设置 :math:`n_e=0`，避免两套强度输入冲突。初始源长度为
+:math:`L_s=1\,\mathrm m`，每个宏电子的权重均为
+:math:`N_e/N_{\mathrm{macro}}`。总强度为零时创建空状态。
+
+均匀速度的各分量独立、零均值，范围为 :math:`[-w_i,w_i]`，因此
+:math:`\langle v_i^2\rangle=w_i^2/3`，其最大合成速度必须严格小于 :math:`c`。
+高斯速度的各分量以零为均值、输入值为标准差，取满足
+:math:`|\boldsymbol v|<c` 的条件分布；它是规定的速度分布，不是相对论热平衡分布。
+两者均按 :math:`\boldsymbol u=\gamma\boldsymbol v/c` 精确转换为归一化机械动量，
+初始能量账本使用实际样本的相对论动能。不进行样本均值扣除或 RMS 重缩放。
+将某个宽度设为零即可保持对应速度为零，例如纵向速度为零。
+高斯速度中亚光速概率过低、在有限采样预算内无法填满指定粒子数时，同样会报错。
+
+椭圆高斯云配合独立横向高斯速度的示例：
+
+.. code-block:: python
+
+   model = ElectronCloudConfiguration(
+       mode="build_up", solver="round_gaussian_beam",
+       electron_density=0, radius=0.01, n_macroparticles=10000,
+       center_x=0.001, random_seed=42,
+       buildup=ElectronCloudBuildUpConfiguration(
+           chamber_radius=0.02, beam_sigma=0.002, max_time_step=5e-11,
+           initial_distribution="gaussian",
+           initial_position_spread=[0.003, 0.002],
+           initial_line_density=1e6,
+           initial_velocity_distribution="gaussian",
+           initial_velocity_spread=[2e5, 1e5, 0.0],
+       ),
+   )
+
+CPU 与 GPU 初始化均使用相同的主机 PCG64 采样，再一次性复制到所选后端。
+旧圆盘/单能默认配置保持原有随机序列；这些选项不增加推进循环中的工作。
+
+切片时序
+~~~~~~~~
 
 在同一圈、同一位置执行指定 ``Slicer``，再调用云命令。
 只支持连续 ``z_rel`` 区间，要求覆盖全部存活粒子且含粒子切片宽度为正；
@@ -349,7 +419,7 @@ PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权�
 预设驱动与电子推进
 ~~~~~~~~~~~~~~~~~~
 
-在 ``build_up`` 的每个切片内，横向源是位于轴心、在壁面半径 :math:`R` 截断的圆高斯，
+在未设 Beam driver 的旧圆室 ``build_up`` 的每个切片内，横向源是位于轴心、在壁面半径 :math:`R` 截断的圆高斯，
 sigma 为给定 :math:`\sigma_b`。当前切片粒子数确定带符号线电荷；
 跟踪束流的横向坐标不会改变源中心和尺寸。
 在 :math:`0<r<R` 内，
@@ -404,7 +474,7 @@ Boris 方法参见
 在保存的物理切片时间区间内，横向源分布保持固定，不再用高斯轮廓替代；
 ``beam_sigma`` 对本模式的物理计算没有影响。
 
-接地圆形 FD 求解器分别求束流场和云场。动态云粒子先沉积
+接地 FD 求解器分别求束流场和云场。动态云粒子先沉积
 :math:`q_{\ell,e,j}=-e w_j/L_s`（C/m），其中源长度 :math:`L_s` 初始为 1 m。
 除以网格面积后得到 C/m\ :sup:`3` 的密度，Poisson 直接给出 V 的电势与 V/m 的电场，
 不再额外除以源长度。恢复的快照可以包含其他源长度；电子权重随该长度同比缩放时，物理场不变。
@@ -464,13 +534,14 @@ Boris 方法参见
 并在低能端保守地抑制发射。
 曲线使用
 `Furman 与 Pivi 式 31–32 <https://www.classe.cornell.edu/~critten/cesrta/ecloud/doc/furmanpivi.pdf>`_
-的真二次形状，并非完整概率模型：未实现弹性反射、再扩散、角度相关材料产额及联合二次能谱。
+的真二次形状，并非完整概率模型：这一旧选项不含弹性反射、再扩散、角度相关材料产额及联合二次能谱；这些能力由可选的 Surface emission 提供。
 宏粒子通过权重表示倍增，不采用整数分支。
 
 初级和二次发射方向均服从相对于朝内法向的三维余弦分布：
 :math:`\mu=\cos\theta=\sqrt U`、:math:`\phi=2\pi V`，
 其中 :math:`U,V` 为独立均匀随机数。
-尽管只跟踪 x、y 位置，三个动量分量均保留；初始电子云方向则使用各向同性完整球面。
+尽管只跟踪 x、y 位置，三个动量分量均保留；默认单能初态使用各向同性完整球面，
+可选初态速度分布独立于壁面发射模型。
 
 输出与状态
 ----------
@@ -516,7 +587,7 @@ PIC 源元数据含所代表的源长度与随机数状态。
 解析势采用上文给出的势参考。解释结果时，应区分 PIC 采样噪声、导体壁面像场与力归一化误差。
 
 两种动态模式采用相同的输出目录与选圈规则，保存
-``source/x,y,ux,uy,uz,weight`` 数组和源元数据；``build_up`` 不保存云自场图。
+``source/x,y,ux,uy,uz,weight`` 数组和源元数据；默认稀薄近似的 ``build_up`` 不保存云自场图。
 耦合输出还包含最终真实云场的 ``grid`` 和 ``fields`` 数据集，
 采用上表 SI 单位，并保存历史与最大踢角诊断。
 ``ux,uy,uz`` 为无量纲动量。源元数据包含 ``source_length``、物理 ``time``、
@@ -551,8 +622,8 @@ PIC 源元数据含所代表的源长度与随机数状态。
 
 跟踪期间，动态电子数组驻留于所选 CPU 或 GPU 后端。
 暂存状态拥有独立粒子数据；耦合模式通过串行调用复用固定网格、场分解和数值工作区。
-读取公开云状态、写入源/场快照或捕获检查点时才构造经过校验的主机快照；
-GPU 上这会增加设备到主机的数据传输。输入字段与检查点格式保持不变。
+读取公开云状态、写入源/场快照或捕获组件快照时才构造经过校验的主机快照；
+GPU 上这会增加设备到主机的数据传输。输入字段与组件快照格式保持不变。
 标量诊断和发射采样仍可能引发主机与设备同步。
 比较 CPU/GPU 性能时，应先完成编译和求解器初始化预热，
 分别测量同步后的跟踪、初始化与快照输出耗时，并覆盖无碰壁和壁面发射负载；
@@ -569,16 +640,222 @@ GPU 上这会增加设备到主机的数据传输。输入字段与检查点格�
 可运行示例
 ----------
 
-``example/07_electron_cloud`` 提供英文入门说明和六个串行单踢角算例：零密度、
-解析密度与双倍密度、自由空间 PIC、矩形 FD 和矩形 DST。
-显式探针粒子覆盖云内外区域。分析从作用前后分布快照读取踢角，与高斯定律比较，
-检查密度正比关系、坐标和参考时间不变，并在相同边界条件下比较 FD/DST。
-JSON、CSV 和科学绘图 PNG 输出位于 Git 忽略的
-``tests/codex/electron_cloud/example_output`` 目录。
+``example/09_electron_cloud_models`` 提供英文入门说明和两个串行工作流。
+``run_models.py`` 覆盖五种真空室、自场开关、椭圆偏轴与密度图驱动、
+四种初级源、三通道表面发射、宏粒子管理以及时间步长比较。
+五种几何主例及椭圆半步长例均禁用宏粒子管理；另外两个椭圆例以同一个
+无合并半步长结果为基线，分别比较粗、细相空间单元的合并影响。
+全部八条历史均保存；报告将积分步长变化与合并近似分开，并给出有效宏粒子数、
+合并次数和是否达到软目标。权重与动能守恒本身不能约束合并导致的后续轨道、
+能谱及壁面热负载误差。
+``run_response.py`` 从真实 coupled PIC 提取 G 和四个 K 分量，
+并以独立直接跟踪检验响应重建。两者均支持 CPU/GPU，
+在 ``tests/codex/ecloud_examples`` 新建目录保存 HDF5/JSON；
+模型示例还生成 CSV 和 PNG。假设、单位与验证范围见 :ref:`electron-cloud-models-zh`。
 
-``example/08_electron_cloud_buildup`` 提供四个串行束团列算例：初始云吸收、
-初级产生与吸收、初级产生与真二次发射，以及时间步长减半比较。
-真实单圈 Drift 推进参考时钟，同时保持预设驱动束流分布不变。
-分析检查粒子数/能量收支、时间连续性和束流坐标不变，
-在 ``tests/codex/electron_cloud/buildup_example_output`` 保存 JSON、CSV 和电子数历史图。
-时间步减半的差异作为分辨率比较报告，不表示物理饱和或统计收敛已被证明。
+.. _electron-cloud-models-zh:
+
+电子云模型与响应工作流
+----------------------
+
+以下选项扩展 :doc:`electron_cloud`，旧输入仍使用稀薄云、圆高斯驱动和简化二次发射默认值。
+电子运动仍为 2D3V：推进 x/y 并保留三个机械动量分量，不包含纵向电子输运。
+
+规定驱动、自场与真空室
+~~~~~~~~~~~~~~~~~~~~~~
+
+``Build up.Electron self fields`` 为布尔值，默认 ``false``。在 ``build_up`` 中打开后，
+受驱动区间和无束流间隙都计算电子空间电荷场；``coupled`` 始终包含自场。
+求场使用接地横向静电网格，应分别检查网格和时间步长收敛。
+
+``Build up.Beam driver`` 可选 ``ElectronCloudBeamDriver``：
+
+.. list-table:: 规定横向驱动
+   :header-rows: 1
+   :widths: 35 65
+
+   * - 参数
+     - 含义
+   * - ``Model``
+     - ``gaussian`` 或 ``density_map``。
+   * - ``Sigma X (m)``、``Sigma Y (m)``
+     - 高斯 RMS 尺寸，均为正数，可以不相等。
+   * - ``Center X (m)``、``Center Y (m)``
+     - 规定束流中心，独立于初始电子云中心。
+   * - ``X (m)``、``Y (m)``、``Relative density``
+     - 严格递增坐标轴和 (y, x) 排列的非负相对密度图。
+
+驱动按每个已保存切片的带符号物理电荷归一化。``coupled`` 使用实际束流分布，不允许另设该驱动。
+为兼容旧输入，``round_gaussian_beam`` 仍是 build_up 模式的求解器标签，
+即使可选驱动实际使用有限区域 PIC 求场。
+
+动态 ``Aperture type/value`` 支持 circle、ellipse、rectangle、racetrack 和简单 polygon，
+尺寸约定与 :doc:`space_charge` 一致。碰壁交点、内法向、源位置与接地 Poisson 区域共用该几何。
+``default``/``off`` 保留 ``Chamber radius (m)`` 定义的圆壁面。
+整个初始均匀圆盘必须严格位于真空室内，其他初始空间分布取腔室内部的条件分布。
+非圆几何自动使用有限区域束流场；未设置 ``Beam driver`` 时，
+将 ``Beam sigma (m)`` 定义的轴心圆高斯密度投影至该区域。
+显式非圆孔径须省略 ``Chamber radius (m)``，避免冲突的几何定义。
+
+初级电子产生
+~~~~~~~~~~~~
+
+``Build up.Primary sources`` 是 ``PrimarySourceConfiguration`` 列表，
+不能与非零旧初级产额同时使用。每个源可设 ``Macro electrons`` （默认 64）、
+``Mean energy (eV)`` （默认 2）、``Energy distribution`` （monoenergetic 或 gamma）
+及 ``Energy shape`` （正 Gamma 形状参数，默认 2）。宏粒子权重表示真实电子数。
+出生时间在有限源区间内采样，仅推进出生后的运动。
+
+.. list-table:: 源长度 L、持续时间 dt 下的物理电子数
+   :header-rows: 1
+   :widths: 25 40 35
+
+   * - ``Kind``
+     - 物理电子数
+     - 参数
+   * - ``gas_ionization``
+     - N_b P sigma L / (k_B T)
+     - ``Gas pressure (Pa)``、``Gas temperature (K)``、``Ionization cross section (m^2)``；位置跟随束流体分布。
+   * - ``prescribed_wall``
+     - N_b Y L
+     - ``Electrons per beam particle (1/m)``。
+   * - ``beam_loss``
+     - N_b f_loss Y_loss L
+     - ``Beam loss fraction (1/m)``、``Electrons per lost particle``；使用给定损失率，不自动从跟踪丢粒子推断。
+   * - ``photoelectric``
+     - photon_rate QE L dt
+     - ``Photon rate (1/m/s)``、``Quantum efficiency``；输入规定照射，不追踪光子路径。
+
+壁面源的 ``Wall angle min (rad)`` 和 ``Wall angle max (rad)`` 限定发射区域。
+这里是相对于真空室原点的极角范围；在该区域内按壁面弧长均匀采样，椭圆上并非极角均匀。
+光照源在无束流间隙也持续产生电子；N_b 为当前区间通过的真实束流粒子数。
+气压、电离截面、损失率与照射量须来自目标运行工况。
+
+壁面发射
+~~~~~~~~
+
+``Build up.Surface emission`` 选择 ``SurfaceEmissionConfiguration``，
+不能与非零旧 ``Secondary yield max`` 同时使用。这是三通道经验模型，不是完整的 Furman-Pivi 材料拟合。
+
+* 真二次通道参数为 ``True yield max``、``True peak energy (eV)``、``True shape``、
+  ``Yield angle coefficient`` 和 ``Peak angle coefficient``。
+* ``True energy distribution`` 选择 gamma 或 monoenergetic；
+  ``True mean energy (eV)`` 与 ``True energy shape`` 定义未加能量条件的谱。
+  有限入射能量会改变加条件后的实际平均出射能量。
+* ``Elastic probability at zero energy`` 和 ``Elastic energy scale (eV)`` 定义弹性支路；
+  ``Rediffused probability`` 与 ``Rediffused energy shape`` 定义再扩散支路。
+* ``Sampling`` 为 stochastic_event 或 weighted_channels；
+  ``Max secondaries per impact`` 限制单次事件多重性。
+
+``True yield energy table (eV)`` 和 ``True yield table`` 可替代解析真次级产额曲线，
+使用线性插值；``Yield table outside`` 指定区间外为 zero（默认）或 constant。
+角度系数仍作用于能轴与产额。
+
+各通道共享入射能量预算。随机真二次支路先采样有条件总能量，再采样联合能量分配；
+不把独立谱样本事后裁剪到入射能量，避免产生非物理尖峰。余弦发射保留正负两种纵向动量。
+单能随机发射的 Poisson 多重性以 N 乘发射能量不超过入射能量为条件，
+因此低能区实际平均产额可能不同于未加此条件的输入曲线。
+实际材料、表面处理历史及能区仍需实验标定。
+
+宏粒子管理与诊断
+~~~~~~~~~~~~~~~~
+
+``Build up.Population control`` 选择 ``PopulationControlConfiguration``。
+局域相空间单元内使用两个代表动量合并，保持总权重、加权动量与相对论动能；
+过重代表粒子可以拆分。参数为 ``Target macro electrons``、``Spatial cell size (m)``、
+``Normalized momentum cell size``、``Max weight to mean ratio`` 和 ``Max split children``。
+目标数量为软目标：不会为凑数量任意合并相隔较远的单元。
+独立的 ``Max macro electrons`` 仍是硬资源上限。
+
+守恒低阶矩不等于保持所有空间结构和高阶矩。应与更多宏粒子、更细单元下的密度及电场比较。
+有效宏粒子数为 :math:`N_\mathrm{eff}=(\sum w)^2/\sum w^2`。
+同状态粒子的拆分会增大这个权重指标，但不会创造统计独立的相空间样本。
+``PASS.commands.ecloud.diagnostics`` 提供带权粒子数、线密度、动能、核心密度及 RMS 统计。
+HDF5 ``diagnostics`` 谱各自包含带单位的 ``edges``、``centers`` 和 ``values``。
+云谱以 electrons/bin 描述快照时刻；壁面谱另提供净动能沉积的 J/bin 权重，按 ``scope`` 标识的记录范围累计。
+壁面位置轴为 atan2(y,x) 极角而非弧长。壁面能谱末 bin 包含全部不低于 1 MeV 的事件，
+有限的 10 MeV 绘图边界不是能量上限。GUI 保留这些属性，支持读取、绘制和导出。
+
+壁面净沉积能量为入射动能减去出射动能。``wall_power`` 再除以观测持续时间与源长度得到 W/m。
+可选周长用于计算平均 W/m2，不表示已解析局部热点。
+
+CPU/GPU 使用相同物理分布与能量约束。GPU 材料采样在设备上使用 Philox，
+每次发射调用从组件已保存的 PCG64 状态取得一个种子。
+同一后端与软件栈上的克隆、恢复可以重现抽样，但不要求 CPU/GPU 的具体样本相同。
+随机样本可复现并不意味着 GPU 墙谱逐位一致：双精度原子加归约在权重不同时可能产生末位舍入差异，
+但不会反馈到粒子轨迹或 RNG。
+仅条件 CDF 下溢或极端 Dirichlet 参数下的少量样本进入 host 退路。
+初级源保留 host 随机发生器，但从 GPU 仅提取被抽中的束流坐标；
+宏粒子管理和壁面谱归约留在 GPU，只传回小规模诊断结果。
+
+Sequence 命令只在启用 ``Save fields`` 时累计墙谱；始终启用时为 ``scope=cumulative_since_state_origin``。
+无论是否保存输出，标量粒子数与能量收支始终保留，避免跟踪为未使用的谱付出代价。
+低层 ``BuildUpCloud`` API 默认保留墙谱；显式传入 ``record_wall_spectra=False``
+可关闭，恢复状态时也丢弃旧谱，不改变物理粒子与 RNG。
+
+若快照中已经发生过碰壁但未记录墙谱，恢复时重新启用记录会开始新的累计范围，
+标记为 ``scope=cumulative_since_recording_restart``。后续累计及再次保存、恢复均保留此范围。
+标量粒子数与能量账本仍包含完整物理历史，因此不能将重新记录的墙谱当作全历史壁面能量。
+
+响应提取与回放
+~~~~~~~~~~~~~~
+
+``PASS.commands.ecloud.response`` 提供 ``ResponseSlice``、``extract_response``、
+``write_response``、``read_response`` 和 ``make_periodic_response``。
+提取器从克隆的物理云及 RNG 状态驱动真实 ``BuildUpCloud`` 求解器，
+测量空间背景踢角 G 和四个源到见证束片横向响应分量 K。
+只扰动源质心，见证探针保持不变。epsilon 与 epsilon/2 的中心差分须在指定容差内一致，
+并相对基准检查偶对称残差，捕获仅用中心差分可能漏掉的二次响应。
+有限宽度切片在自身持续时间内可以已有响应，因此不强制因果矩阵对角元为零。
+
+.. math::
+
+   \Delta \mathbf p_{\perp,i}(x,y)
+   = \mathbf G_i(x,y) + \sum_{j\le i}\mathbf K_{ij}\Delta\mathbf r_j.
+
+p_perp 为横向机械动量除以参考动量；G 无量纲，K 单位为 1/m。
+束流电荷、作用长度和带符号见证束参考因子已包含在文件中。
+G 已给出背景聚焦，不应再另加相同冻结云踢角。
+该近似描述已标定见证束分布的相干响应，不覆盖任意变化的束流分布及非线性运动。
+
+``ElectronCloudResponseItem`` 可加入 Sequence：
+
+.. list-table:: 响应作用点
+   :header-rows: 1
+   :widths: 40 20 40
+
+   * - JSON 键
+     - 默认
+     - 含义
+   * - ``Response file``、``Slice set``
+     - 必填
+     - 标定 HDF5 和在本位置刚执行的 general/z_rel 切片。
+   * - ``Timeline mode``
+     - finite
+     - 完整已测因果历史，或经过验证的 periodic 复用。
+   * - ``Maximum centroid displacement (m)``
+     - null
+     - 使用文件中的标定范围，或设定更严格范围。
+   * - ``Profile tolerance``
+     - null
+     - 中心化横向协方差的相对 Frobenius 容差；使用文件值或更严格值。
+   * - ``S (m)``、``Order``、``Is enabled``
+     - 0、null、true
+     - 标准位置、执行顺序和开关。
+
+有限时间线可以包含多个束团与多个圈，不要求平稳核。
+周期回放要求记录多个周期，并验证 G、各滞后 K 及被截断记忆尾部的一致性。
+局部云状态不是整个模拟检查点；每次跟踪仍从新初始条件开始，响应文件不会恢复其他命令或时钟。
+
+``capture_response_slices`` 可捕获实际保存切片的时间线。自动空束团可能产生零宽观测点，
+这种点不是有限响应区间；含空组时应使用有限 explicit Slicer 范围，捕获器会拒绝零宽观测点。
+协方差检查不能检测所有高阶矩或细结构变化；束流超出固定分布假设时须重新标定，
+即使协方差恰好保持不变也不例外。
+
+数值与物理验证
+~~~~~~~~~~~~~~
+
+应在指定小位移范围内用直接 coupled 跟踪检查响应重建。
+分别细化电子时间步、网格、宏粒子数、响应探针网格和记忆长度。
+工作点与指数增长率需要明确拟合区间，阈值结论取决于实际扫描参数和增长模型。
+数值一致性不能替代材料与机器实测输入，也不能证明完整三维、电磁或边缘场有效性。
