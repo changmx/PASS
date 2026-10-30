@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import logging
 import math
 import re
@@ -808,6 +809,84 @@ class Injection(Command):
 
         logger.info(f"Generate successfully")
 
+    @contextmanager
+    def _matched_random_generator(self):
+        """Batch the existing MT19937 stream, falling back for other RNGs."""
+        numpy_rng = None
+        if type(self.rng) is random.Random:
+            state = self.rng.getstate()
+            if state[0] == 3 and len(state[1]) == 625 and 0 <= state[1][-1] <= 624:
+                try:
+                    candidate = np.random.RandomState(0)
+                    numpy_state = ('MT19937', np.asarray(state[1][:-1], dtype=np.uint32), state[1][-1], 0, 0.0)
+                    candidate.set_state(numpy_state)
+                    probe = random.Random(0)
+                    probe.setstate(state)
+                    expected = np.fromiter((probe.random() for _ in range(32)), dtype=np.float64, count=32)
+                    measured = candidate.random_sample(32)
+                    algorithm, words, index, _, _ = candidate.get_state()
+                    probe_state = probe.getstate()
+                    if (algorithm == 'MT19937' and np.array_equal(expected, measured) and index == probe_state[1][-1]
+                            and np.array_equal(words, probe_state[1][:-1])):
+                        candidate.set_state(numpy_state)
+                        numpy_rng = candidate
+                except (TypeError, ValueError, OverflowError):
+                    # An incompatible state representation keeps the scalar stream.
+                    pass
+        try:
+            yield numpy_rng
+        finally:
+            if numpy_rng is not None:
+                _, words, index, _, _ = numpy_rng.get_state()
+                self.rng.setstate((3, tuple(int(word) for word in words) + (int(index), ), state[2]))
+
+    def _sample_matched_distribution(self, inj_bunch, n_particles, zmin, zmax, dp_max, H0, Hmax):
+        """Sample the existing single-RF density without consuming surplus draws."""
+        z_arr = np.empty(n_particles, dtype=np.float64)
+        dp_arr = np.empty(n_particles, dtype=np.float64)
+        boundary = Hmax / H0
+        denominator = -np.expm1(boundary)
+        epsilon = np.finfo(float).eps
+        probability_tolerance = 64 * epsilon / max(denominator, np.sqrt(epsilon))
+        hamiltonian_tolerance = 64 * epsilon * abs(Hmax)
+        prefilter = np.isfinite(boundary) and boundary < 0 and denominator > np.sqrt(epsilon)
+        start = 0
+        with self._matched_random_generator() as numpy_rng:
+            while start < n_particles:
+                # At most the remaining count: even full acceptance cannot overdraw.
+                count = min(n_particles - start, 65536)
+                if numpy_rng is None:
+                    values = np.fromiter((self.rng.uniform(0, 1) for _ in range(3 * count)), dtype=np.float64, count=3 * count).reshape(count, 3)
+                else:
+                    values = numpy_rng.random_sample((count, 3))
+                z = values[:, 0] * (zmax - zmin) + zmin
+                dp = values[:, 1] * 2 * dp_max - dp_max
+                possible = np.abs(z) <= 2 * inj_bunch.sigmaz
+                if prefilter:
+                    # U(z) >= 0 in this single-RF well: psi <= exp(-K*dp**2/T).
+                    upper_density = np.exp(inj_bunch.compute_hamiltonian_from_z(0.0, dp) / H0)
+                    possible &= ~np.isfinite(upper_density) | (values[:, 2] <= upper_density + probability_tolerance)
+                candidates = np.flatnonzero(possible)
+                if not len(candidates):
+                    continue
+                hamiltonian = inj_bunch.compute_hamiltonian_from_z(z[candidates], dp[candidates])
+                exponent = hamiltonian / H0
+                difference = exponent - boundary
+                density = np.exp(np.maximum(exponent, boundary)) * np.sign(difference) * (-np.expm1(-np.abs(difference))) / denominator
+                accepted = (values[candidates, 2] <= density) & (np.abs(hamiltonian) <= 0.9 * abs(Hmax))
+                # SIMD rounding near either decision boundary must use the scalar rule.
+                near_boundary = ((np.abs(values[candidates, 2] - density) <= probability_tolerance)
+                                 | (np.abs(np.abs(hamiltonian) - 0.9 * abs(Hmax)) <= hamiltonian_tolerance))
+                for index in np.flatnonzero(near_boundary):
+                    candidate = candidates[index]
+                    accepted[index] = (values[candidate, 2] <= inj_bunch.psi(z[candidate], dp[candidate], H0, Hmax)
+                                       and abs(inj_bunch.compute_hamiltonian_from_z(z[candidate], dp[candidate])) <= 0.9 * abs(Hmax))
+                selected = candidates[accepted]
+                end = start + len(selected)
+                z_arr[start:end], dp_arr[start:end] = z[selected], dp[selected]
+                start = end
+        return z_arr, dp_arr
+
     def _generate_longi_matched_z_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         # Generate particle's z position and momentum.
         # Use the method in PyHEADTAIL.
@@ -818,16 +897,10 @@ class Injection(Command):
         injection_count = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
-        sigma_dp = inj_bunch.dp
-
         zmax = inj_bunch.compute_bucket_z_max()
         zmin = inj_bunch.compute_bucket_z_min()
         dp = inj_bunch.compute_bucket_dp_max()
         Hmax = inj_bunch._get_rf_bucket().hamiltonian
-        H0 = 0.0
-
-        z_arr = np.zeros(injection_count, dtype=np.float64)
-        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Check the sigmaz whether the sigmaz > sigma_max
         sigma_max = inj_bunch.compute_sigma_z(zmax)
@@ -850,32 +923,7 @@ class Injection(Command):
         root = brentq(func, x1, x2)
         H0 = inj_bunch.compute_hamiltonian_scale_from_z(root)
 
-        i = 0
-        while i < injection_count:
-
-            u = 0.0
-            v = 0.0
-            s = 0.0
-
-            while True:
-                u = self.rng.uniform(0, 1) * (zmax - zmin) + zmin
-                v = self.rng.uniform(0, 1) * 2 * dp - dp
-                s = self.rng.uniform(0, 1)
-
-                # for stability, limit particles in the 0.9 times bucket
-                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.compute_hamiltonian_from_z(u, v)) <= 0.9 * np.abs(Hmax):
-                    break
-
-            sample_z = u
-            sample_dp = v
-
-            if (sample_z >= (-0.5 * 4 * sigma_z) and sample_z <= (0.5 * 4 * sigma_z)):
-                z_arr[i] = sample_z
-                dp_arr[i] = sample_dp
-
-                i += 1
-            else:
-                pass
+        z_arr, dp_arr = self._sample_matched_distribution(inj_bunch, injection_count, zmin, zmax, dp, H0, Hmax)
 
         # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
@@ -895,17 +943,12 @@ class Injection(Command):
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
         injection_count = inj_bunch.Np_inj_curTurn
 
-        sigma_z = inj_bunch.sigmaz
         sigma_dp = inj_bunch.dp
 
         zmax = inj_bunch.compute_bucket_z_max()
         zmin = inj_bunch.compute_bucket_z_min()
         dp = inj_bunch.compute_bucket_dp_max()
         Hmax = inj_bunch._get_rf_bucket().hamiltonian
-        H0 = 0.0
-
-        z_arr = np.zeros(injection_count, dtype=np.float64)
-        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Check the sigmaz whether the sigmadp > sigma_max
         sigma_max = inj_bunch.compute_sigma_dp(dp)
@@ -928,32 +971,7 @@ class Injection(Command):
         root = brentq(func, x1, x2)
         H0 = inj_bunch.compute_hamiltonian_scale_from_dp(root)
 
-        i = 0
-        while i < injection_count:
-
-            u = 0.0
-            v = 0.0
-            s = 0.0
-
-            while True:
-                u = self.rng.uniform(0, 1) * (zmax - zmin) + zmin
-                v = self.rng.uniform(0, 1) * 2 * dp - dp
-                s = self.rng.uniform(0, 1)
-
-                # for stability, limit particles in the 0.9 times bucket
-                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.compute_hamiltonian_from_z(u, v)) <= 0.9 * np.abs(Hmax):
-                    break
-
-            sample_z = u
-            sample_dp = v
-
-            if (sample_z >= (-0.5 * 4 * sigma_z) and sample_z <= (0.5 * 4 * sigma_z)):
-                z_arr[i] = sample_z
-                dp_arr[i] = sample_dp
-
-                i += 1
-            else:
-                pass
+        z_arr, dp_arr = self._sample_matched_distribution(inj_bunch, injection_count, zmin, zmax, dp, H0, Hmax)
 
         # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)

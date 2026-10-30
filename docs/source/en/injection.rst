@@ -1028,6 +1028,42 @@ Matching solves for the normalized central moments of the continuous distributio
 
 RF-matched sampling also enforces a 0.9 bucket-Hamiltonian acceptance bound. Requested scales above the model maximum are reduced to 0.99 of that maximum. Together with the z cut, these restrictions mean the measured sample RMS need not equal the requested matching target.
 
+Both matched distributions generate candidates in batches, uniformly over the
+same RF-bucket bounding rectangle. Each candidate consumes the same three
+uniform random draws, in the same order, for z, momentum deviation and the
+acceptance threshold. A batch never exceeds the number of particles still
+needed, so it cannot consume surplus candidates after filling the bunch.
+Where compatible, a checked MT19937 state transfer enables NumPy to generate
+the existing Python random stream in bulk and then restores the advanced state,
+including the cached Gaussian value. Otherwise, sampling uses the Python random
+generator directly. The seed semantics and subsequent random stream are retained.
+
+A momentum-only upper bound avoids evaluating the RF potential for candidates
+that must be rejected. In the stable single-harmonic bucket, write the positive
+Hamiltonian as
+
+.. math::
+
+   \mathcal{E}=\operatorname{sgn}(H_{\max})H
+      =U(z)+K\delta^2,\qquad U(z)\ge0,\qquad
+   K=\pi h f_0|\eta|>0,
+
+where :math:`\delta=(P-P_0)/P_0` and :math:`f_0=\beta c/C`. With
+:math:`T=|H_0|>0` and :math:`B=|H_{\max}|>0`, the existing acceptance density obeys
+
+.. math::
+
+   \psi(z,\delta)=
+   \frac{e^{-\mathcal{E}/T}-e^{-B/T}}{1-e^{-B/T}}
+   \le e^{-\mathcal{E}/T}\le e^{-K\delta^2/T}.
+
+A candidate whose existing random threshold exceeds this upper bound is already
+ineligible under the full density. The implementation allows a conservative
+roundoff margin and falls back to the full check when the numerical conditions
+for the bound are unsuitable. Remaining candidates undergo the original density
+and Hamiltonian checks; the existing z cut can also be checked early. This changes
+the evaluation cost, while retaining the matching target, density and cutoffs.
+
 .. _en-injection-matching-phase:
 
 RF phase and charge sign in matching
