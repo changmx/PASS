@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout
                                QVBoxLayout, QWidget)
 
 from PASS.gui.widgets import file_dialog_directory
+from PASS.utils.file_publication import publish_file
 
 
 class AnalysisWorker(QThread):
@@ -147,7 +148,7 @@ def _export_numeric(payload, path, check):
                                 writer.writerow(
                                     (identities[i], "peak", peaks[i, j], peak_amplitude[i, j], peak_phase[i, j], "", "", valid[i, j], quality[i, j]))
         check()
-        temporary.replace(path)
+        publish_file(temporary, path, check=check)
     finally:
         temporary.unlink(missing_ok=True)
     return str(path)
@@ -461,7 +462,7 @@ class AnalysisPage(QWidget):
             os.close(fd)
             temporary = Path(name)
             self.view.figure.savefig(temporary, dpi=160, facecolor=self.view.figure.get_facecolor())
-            temporary.replace(destination)
+            publish_file(temporary, destination)
             self.status.setText("已导出图形：" + str(path))
         except Exception as exc:
             self._failed(exc)

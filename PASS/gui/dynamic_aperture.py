@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDia
 
 from PASS.gui.analysis import AnalysisWorker
 from PASS.gui.widgets import file_dialog_directory
+from PASS.utils.file_publication import publish_file
 
 
 def _integer(value, maximum=2147483647, minimum=1):
@@ -428,7 +429,7 @@ class DynamicAperturePage(QWidget):
             os.close(descriptor)
             temporary = Path(name)
             self.figure.savefig(temporary, dpi=180)
-            temporary.replace(destination)
+            publish_file(temporary, destination)
             self.status.setText("已导出：" + str(destination))
         except (OSError, ValueError) as exc:
             self.status.setText(str(exc))

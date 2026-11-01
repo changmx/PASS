@@ -21,6 +21,7 @@ from PASS.commands.wake.wake_models import TabulatedWakeModel
 from PASS.commands.wake.wake_spectrum import ImpedanceSpectrum, SpectrumWakeModel
 from PASS.para.schema.wake_field import WakeFileConvention, WakeSpatialTerm
 from PASS.utils.constants import const
+from PASS.utils.file_publication import publish_file
 
 
 def _value_scale(unit, kind, order):
@@ -370,11 +371,7 @@ def convert_wake_file(source, destination, *, expected_sha256=None, overwrite=Fa
             raise ValueError("Source changed during conversion; output was not published")
         if destination.exists() and os.path.samefile(source, destination):
             raise ValueError("The destination aliases the source file")
-        if overwrite:
-            os.replace(staged, destination)
-        else:
-            # Exclusive publication also protects files created after the first check.
-            os.link(staged, destination)
+        publish_file(staged, destination, overwrite=overwrite)
     return {
         "outputs": [str(destination)],
         "row_counts": [len(next(iter(columns.values())))],

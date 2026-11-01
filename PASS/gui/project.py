@@ -43,6 +43,77 @@ class ProjectError(ValueError):
     """An incomplete, unsupported or malformed project."""
 
 
+def _copy_windows_dacl(source: Path, target: Path) -> None:
+    """Apply only access rules and inheritance state, without requesting SACL privileges."""
+    import ctypes
+    from ctypes import wintypes
+
+    security = ctypes.WinDLL("advapi32", use_last_error=True)
+    get_security = security.GetFileSecurityW
+    get_security.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    get_security.restype = wintypes.BOOL
+    get_control = security.GetSecurityDescriptorControl
+    get_control.argtypes = [wintypes.LPVOID, ctypes.POINTER(wintypes.WORD), ctypes.POINTER(wintypes.DWORD)]
+    get_control.restype = wintypes.BOOL
+    set_security = security.SetFileSecurityW
+    set_security.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.LPVOID]
+    set_security.restype = wintypes.BOOL
+    needed = wintypes.DWORD()
+    if not get_security(str(source.resolve()), 4, None, 0, ctypes.byref(needed)) and ctypes.get_last_error() != 122:
+        raise ctypes.WinError(ctypes.get_last_error())
+    descriptor = ctypes.create_string_buffer(needed.value)
+    if not get_security(str(source.resolve()), 4, descriptor, needed, ctypes.byref(needed)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    control, revision = wintypes.WORD(), wintypes.DWORD()
+    if not get_control(descriptor, ctypes.byref(control), ctypes.byref(revision)):
+        raise ctypes.WinError(ctypes.get_last_error())
+    # DACL_SECURITY_INFORMATION plus the original protected/unprotected state.
+    information = 4 | (0x80000000 if control.value & 0x1000 else 0x20000000)
+    if not set_security(str(target.resolve()), information, descriptor):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _replace_existing_file(source: Path, target: Path) -> None:
+    """Publish staged bytes without replacing an existing Windows file's DACL."""
+    if os.name != "nt":
+        os.replace(source, target)
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    replace = ctypes.WinDLL("kernel32", use_last_error=True).ReplaceFileW
+    replace.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD, wintypes.LPVOID, wintypes.LPVOID]
+    replace.restype = wintypes.BOOL
+    # Keep recovery data outside TemporaryDirectory, including if restoration fails.
+    backup = target.parent / f".pass-replace-{uuid4().hex}.bak"
+    fd, temporary = tempfile.mkstemp(prefix=".pass-publish-", suffix=".tmp", dir=target.parent)
+    publication = Path(temporary)
+    try:
+        # Unprotected DACLs are inherited during ReplaceFileW's merge. Its source
+        # must share the destination parent, not the private staging directory.
+        with os.fdopen(fd, "wb") as output, source.open("rb") as stream:
+            # Restrict the still-empty publication file before writing private data.
+            _copy_windows_dacl(target, publication)
+            shutil.copyfileobj(stream, output, 1024 * 1024)
+            output.flush()
+            os.fsync(output.fileno())
+        # No IGNORE_ACL_ERRORS flag: publication must preserve the original permissions.
+        if not replace(str(target.resolve()), str(publication.resolve()), str(backup.resolve()), 0, None, None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        backup.unlink()
+    except OSError:
+        # ReplaceFileW errors 1176/1177 may occur after moving the original file.
+        if backup.exists():
+            try:
+                os.replace(backup, target)
+            except OSError as error:
+                raise ProjectError(f"Could not restore {target}; its original file is preserved at {backup}") from error
+        raise
+    finally:
+        if publication.exists():
+            publication.unlink()
+
+
 def read_json(content: bytes) -> dict:
     from PASS.validation.report import parse_json
     value, report = parse_json(content)
@@ -757,7 +828,7 @@ class Project:
                             raise ProjectError(f"Project file changed while saving: {target}. Reload the project.")
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if name in backups:
-                        os.replace(staging / str(index), target)
+                        _replace_existing_file(staging / str(index), target)
                     else:
                         # Exclusive creation also protects files appearing after the check.
                         with (staging / str(index)).open("rb") as source, target.open("xb") as output:
@@ -770,7 +841,7 @@ class Project:
                 for name in reversed(written):
                     target = root / name
                     if name in backups and target.is_file() and digest_file(target) == expected_files[str(target)]:
-                        os.replace(backups[name], root / name)
+                        _replace_existing_file(backups[name], root / name)
                 raise
         return expected_files
 

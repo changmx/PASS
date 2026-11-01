@@ -10,6 +10,8 @@ import tempfile
 
 import numpy as np
 
+from PASS.utils.file_publication import publish_file
+
 
 def _integer_values(value, name, *, minimum=None):
     """Accept exact numeric integers without truncating them."""
@@ -362,8 +364,8 @@ def export_dynamic_aperture(result, path):
                     # interruption is delivered to the caller.
                     backups[target] = backup
                     target.replace(backup)
+                publish_file(directory / target.name, target, overwrite=False, permissions_from=backups.get(target))
                 published.append(target)
-                (directory / target.name).replace(target)
         except BaseException:
             # Keep old data recoverable even if restoration itself is blocked.
             recovery_failed = False
@@ -371,7 +373,11 @@ def export_dynamic_aperture(result, path):
                 try:
                     if target in backups:
                         if backups[target].exists() or backups[target].is_symlink():
-                            backups[target].replace(target)
+                            if target not in published and (target.exists() or target.is_symlink()):
+                                # Exclusive publication lost a race; retain both writers.
+                                recovery_failed = True
+                            else:
+                                backups[target].replace(target)
                     elif target in published:
                         target.unlink(missing_ok=True)
                 except OSError:

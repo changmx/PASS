@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 
-from PySide6.QtCore import QProcess, QTemporaryDir, Qt, Signal
+from PySide6.QtCore import QProcess, QSignalBlocker, QTemporaryDir, Qt, Signal
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QMessageBox, QPlainTextEdit, QPushButton, QSplitter, QTabWidget, QTableWidget,
                                QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QScrollArea, QSizePolicy)
@@ -506,7 +506,10 @@ class ConversionPage(QWidget):
             columns = [
                 self.output_fields.item(i).text() for i in range(self.output_fields.count()) if self.output_fields.item(i).checkState() == Qt.Checked
             ]
-        params = [self.parameters.item(i).text() for i in range(self.parameters.count()) if self.parameters.item(i).checkState() == Qt.Checked]
+        params = [
+            self.parameters.item(i).data(Qt.UserRole) or self.parameters.item(i).text() for i in range(self.parameters.count())
+            if self.parameters.item(i).checkState() == Qt.Checked
+        ]
         bpms, bunch_ids, turns = None, None, (0, None)
         if self.info["format"] == "sdds":
             bpms = [f["bpm_name"] for f in checked if f["kind"] == "bpm"]
@@ -537,9 +540,18 @@ class ConversionPage(QWidget):
                              column_types=dict(self._column_types))
 
     def preview(self):
+        if self.busy:
+            return
+        # A failed or cancelled refresh must not advertise an older snapshot.
+        self._selection_changed()
+        self._preview_signature = None
+        self.table.clear()
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+        self.metadata.clear()
         try:
             selection = asdict(self.selection())
-            self._start_job("preview", selection=selection)
+            self._start_job("preview", selection=selection, inspection_signature=self.info.get("signature"))
         except (ValueError, TypeError) as exc:
             QMessageBox.warning(self, "选择无效", str(exc))
 
@@ -640,6 +652,12 @@ class ConversionPage(QWidget):
         if action == "inspect":
             self._show_structure(result)
         elif action == "preview":
+            if "inspection" in result:
+                self._show_structure(result["inspection"], preserve_options=True)
+            if "preview_error" in result:
+                self.status.setText(result["preview_error"])
+                QMessageBox.warning(self, "读取 / 转换失败", result["preview_error"])
+                return
             self._show_preview(result)
         elif action == "plan":
             details = "\n".join(result["paths"][:15])
@@ -662,17 +680,53 @@ class ConversionPage(QWidget):
             self.metadata.setPlainText("输出文件：\n" + "\n".join(result["outputs"]) + "\n\n说明：\n" + "\n".join(result["notices"]))
             self.tabs.setCurrentIndex(1)
 
-    def _show_structure(self, info):
+    def _show_structure(self, info, *, preserve_options=False):
+        previous_fields = {}
+        previous_expanded = {}
+
+        def remember(item):
+            field = item.data(0, Qt.UserRole)
+            if field:
+                previous_fields[(field["kind"], field["name"])] = field, item.checkState(0)
+                previous_expanded[field["name"]] = item.isExpanded()
+            for index in range(item.childCount()):
+                remember(item.child(index))
+
+        if preserve_options:
+            for index in range(self.structure.topLevelItemCount()):
+                remember(self.structure.topLevelItem(index))
+        previous_parameters = {
+            self.parameters.item(i).data(Qt.UserRole) or self.parameters.item(i).text(): self.parameters.item(i).checkState()
+            for i in range(self.parameters.count())
+        } if preserve_options else {}
+        previous_bunches = {
+            self.bunches.item(i).data(Qt.UserRole): self.bunches.item(i).checkState()
+            for i in range(self.bunches.count())
+        } if preserve_options else {}
+        previous_mapping = {name: widget.currentData() for name, widget in self.tbt_columns.items()} if preserve_options else {}
+        blockers = [QSignalBlocker(widget) for widget in (self.structure, self.parameters, self.bunches, *self.tbt_columns.values())]
         self._updating = True
         self.info = info
         self.structure.clear()
         self.parameters.clear()
         self.bunches.clear()
         parents = {}
-        for field in info["fields"]:
+        fields = list(info["fields"])
+        current_fields = {(field["kind"], field["name"]) for field in fields}
+        # Retain a visible invalid choice until the user explicitly deselects it.
+        fields.extend({
+            **field, "missing": True
+        } for key, (field, checked) in previous_fields.items()
+                      if key not in current_fields and checked == Qt.Checked and field["kind"] in {"column", "dataset", "bpm"})
+        for field in fields:
             name = field["name"]
             parent_path = name.rsplit("/", 1)[0] if "/" in name else ""
-            item = QTreeWidgetItem([name.rsplit("/", 1)[-1] or name, f"{field.get('dtype', '')} {field.get('shape', '')}"])
+            label = name.rsplit("/", 1)[-1] or name
+            description = f"{field.get('dtype', '')} {field.get('shape', '')}"
+            if field.get("missing"):
+                label += "（已删除，请取消选择）"
+                description = "来源中不存在"
+            item = QTreeWidgetItem([label, description])
             item.setData(0, Qt.UserRole, field)
             item.setToolTip(0, name)
             item.setToolTip(1, item.text(1))
@@ -685,46 +739,71 @@ class ConversionPage(QWidget):
             elif field["kind"] in {"column", "dataset", "bpm"}:
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
                 # HDF5 datasets require explicit selection, even when lengths match.
-                item.setCheckState(0, Qt.Unchecked if field["kind"] == "dataset" else Qt.Checked)
-                if field.get("required"):
+                default = Qt.Unchecked if preserve_options or field["kind"] == "dataset" else Qt.Checked
+                item.setCheckState(0, previous_fields.get((field["kind"], name), (None, default))[1])
+                if field.get("required") and not field.get("missing"):
+                    item.setCheckState(0, Qt.Checked)
                     item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
                 if info["format"] == "sdds" and field["kind"] == "column":
                     item.setHidden(True)
             if field["kind"] == "parameter":
                 p = QListWidgetItem(name, self.parameters)
-                p.setCheckState(Qt.Checked)
+                p.setData(Qt.UserRole, name)
+                p.setCheckState(previous_parameters.get(name, Qt.Unchecked if preserve_options else Qt.Checked))
         for name in info.get("metadata", {}).get("parameters", {}):
             p = QListWidgetItem(name, self.parameters)
-            p.setCheckState(Qt.Checked)
+            p.setData(Qt.UserRole, name)
+            p.setCheckState(previous_parameters.get(name, Qt.Unchecked if preserve_options else Qt.Checked))
+        current_parameters = {self.parameters.item(i).data(Qt.UserRole) for i in range(self.parameters.count())}
+        for name, checked in previous_parameters.items():
+            if name not in current_parameters and checked == Qt.Checked:
+                p = QListWidgetItem(name + "（已删除，请取消选择）", self.parameters)
+                p.setData(Qt.UserRole, name)
+                p.setCheckState(checked)
         self.structure.expandAll()
-        self.mode.setCurrentIndex(0)
-        self.plane_x.setChecked(True)
-        self.plane_y.setChecked(True)
-        self.advanced_toggle.setChecked(False)
+        for name, item in parents.items():
+            item.setExpanded(previous_expanded.get(name, True))
+        if not preserve_options:
+            self.mode.setCurrentIndex(0)
+            self.plane_x.setChecked(True)
+            self.plane_y.setChecked(True)
+            self.advanced_toggle.setChecked(False)
         for bunch_id in info.get("bunch_ids", []):
             item = QListWidgetItem(str(bunch_id), self.bunches)
             item.setData(Qt.UserRole, bunch_id)
-            item.setCheckState(Qt.Checked)
+            item.setCheckState(previous_bunches.get(bunch_id, Qt.Unchecked if preserve_options else Qt.Checked))
+        for bunch_id, checked in previous_bunches.items():
+            if bunch_id not in info.get("bunch_ids", []) and checked == Qt.Checked:
+                item = QListWidgetItem(f"{bunch_id}（已删除，请取消选择）", self.bunches)
+                item.setData(Qt.UserRole, bunch_id)
+                item.setCheckState(checked)
         source_columns = [field["name"] for field in info["fields"] if field["kind"] == "column"]
         for name, widget in self.tbt_columns.items():
             widget.clear()
             widget.addItem("请选择源数据列", "")
             for column in source_columns:
                 widget.addItem(column, column)
-                if column.casefold() == name.casefold():
+                if not preserve_options and column.casefold() == name.casefold():
                     widget.setCurrentIndex(widget.count() - 1)
-        self.turn_start.setText("0")
+            if preserve_options:
+                selected = previous_mapping[name]
+                if selected and widget.findData(selected) < 0:
+                    widget.addItem(selected + "（已删除）", selected)
+                widget.setCurrentIndex(max(0, widget.findData(selected)))
         self.turn_stop.setPlaceholderText(str(info.get("n_turns", "")))
-        for widget in (self.indices, self.axes, self.output_columns, self.filter_column, self.filter_value, self.row_stop, self.turn_stop):
-            widget.clear()
-        self.row_start.setText("0")
-        self.row_step.setText("1")
-        self.format.setCurrentIndex(0)
+        if not preserve_options:
+            self.turn_start.setText("0")
+            for widget in (self.indices, self.axes, self.output_columns, self.filter_column, self.filter_value, self.row_stop, self.turn_stop):
+                widget.clear()
+            self.row_start.setText("0")
+            self.row_step.setText("1")
+            self.format.setCurrentIndex(0)
         for i in range(self.format.count()):
             self.format.model().item(i).setEnabled(info["format"] in {"csv", "tfs"} or self.format.itemData(i) in {"csv", "tfs"})
         self.metadata.setPlainText(json.dumps(info.get("metadata", {}), ensure_ascii=False, indent=2))
         self.status.setText("；".join(info.get("notices", [])) or "已读取结构，请选择数据并预览。")
         self._updating = False
+        del blockers
         self._set_busy(False)
         self._filter_bpms()
 
@@ -746,6 +825,10 @@ class ConversionPage(QWidget):
             self.type_column.clear()
             self.type_column.addItems([name for name in table["columns"] if self.info["format"] != "sdds" or name in {"X", "Y"}])
             self._updating = False
+        for index in range(self.output_fields.count()):
+            item = self.output_fields.item(index)
+            if item.text() in table["dtypes"]:
+                item.setToolTip(table["dtypes"][item.text()])
         self.table.clear()
         self.table.setColumnCount(len(table["columns"]))
         self.table.setHorizontalHeaderLabels(table["columns"])

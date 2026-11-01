@@ -16,6 +16,7 @@ import tempfile
 import numpy as np
 
 from PASS.gui.electron_cloud_results import ElectronCloudResult
+from PASS.utils.file_publication import publish_file
 
 
 @dataclass
@@ -397,11 +398,11 @@ def _publish_pair(staged, destinations, context):
             backups.append(None)
     context.report("发布数据和元数据…")
     context.check()
-    # No cancellation inside this short boundary: either publish both or restore.
+    # No cancellation inside publication: either publish both or restore.
     committed = []
     try:
         for source, target in zip(staged, destinations):
-            os.replace(source, target)
+            publish_file(source, target)
             committed.append(target)
     except OSError as publish_error:
         restore_errors = []
@@ -412,7 +413,7 @@ def _publish_pair(staged, destinations, context):
                 if backups[index] is None:
                     target.unlink(missing_ok=True)
                 else:
-                    os.replace(backups[index], target)
+                    publish_file(backups[index], target)
             except OSError as exc:
                 restore_errors.append(str(exc))
         if restore_errors:
@@ -536,7 +537,7 @@ def export_selection_image(selection, path, *, context=None, isolated=False):
             os.fsync(stream.fileno())
         context.report("发布图像…")
         context.check()
-        os.replace(temporary, path)
+        publish_file(temporary, path, check=context.check)
 
 
 def _prepare_density(payload, check):

@@ -14,10 +14,13 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import tempfile
 from typing import Callable
 
 import numpy as np
+
+from PASS.utils.file_publication import FilePublicationRecoveryError, publish_file
 
 
 @dataclass
@@ -539,6 +542,43 @@ def _write_container_chunks(source, destination, selection, kind, csv_metadata, 
     return total, extra, notices
 
 
+def _publish_outputs(staged, overwrite):
+    """Restore ordinary multi-file failures; separate filenames are not crash-atomic."""
+    recovery = Path(tempfile.mkdtemp(prefix=".pass-conversion-recovery-", dir=staged[0][1].parent))
+    backups, committed = {}, []
+    preserve = False
+    try:
+        for index, (_, target) in enumerate(staged):
+            if target.exists():
+                if not overwrite:
+                    raise FileExistsError(f"Output already exists: {target}")
+                backup = recovery / str(index)
+                shutil.copyfile(target, backup)
+                backups[target] = backup
+        try:
+            for source, target in staged:
+                publish_file(source, target, overwrite=overwrite)
+                committed.append(target)
+        except BaseException:
+            errors = []
+            for target in reversed(committed):
+                try:
+                    if target in backups:
+                        publish_file(backups[target], target)
+                    else:
+                        target.unlink(missing_ok=True)
+                except OSError as error:
+                    errors.append(str(error))
+            if errors:
+                preserve = True
+                raise FilePublicationRecoveryError(
+                    f"Conversion publication and recovery failed; original files retained in {recovery}: {'; '.join(errors)}")
+            raise
+    finally:
+        if not preserve:
+            shutil.rmtree(recovery)
+
+
 def convert_file(source,
                  destination,
                  selection=None,
@@ -613,12 +653,7 @@ def convert_file(source,
             for _, target in staged:
                 if Path(str(target) + ".metadata.json").exists():
                     raise FileExistsError("A previous metadata sidecar exists; choose a new output name or keep metadata enabled")
-        for path, target in staged:
-            if overwrite:
-                os.replace(path, target)
-            else:
-                # Exclusive publication avoids overwriting a file created after the check.
-                os.link(path, target)
+        _publish_outputs(staged, overwrite)
     return ConversionReport([str(p) for p in targets], counts, list(dict.fromkeys(notices)))
 
 
