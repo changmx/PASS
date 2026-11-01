@@ -298,7 +298,12 @@ particles. Configure it and the sequence through the existing editors.
 Preparing a grid does not launch tracking.
 
 For results, open **Analysis → Dynamic aperture** and select one current
-ParticleMonitor file. **End turn (-1 automatic)** chooses the
+ParticleMonitor file, or drop one or more files onto the active analysis window.
+Each dropped file opens in an independent tab and starts cancellable reading and
+analysis with the current end turn. File selection inside a tab uses that tab's
+end turn. Tabs retain separate end turns, dp selections, figures and results for
+independent comparison, zooming and export,
+without leaving the aperture page. **End turn (-1 automatic)** chooses the
 zero-based simulation turn at this monitor, not a new tracking length. For a
 run recording turns 0 through 999, use 999 to analyze its planned end or 499
 to analyze the earlier monitor event. Automatic mode uses the planned horizon
@@ -320,6 +325,11 @@ coloring. **Show aperture boundary** is on by default and can be disabled.
 Choose **Multiple dp: boundary overlay** under **Plot mode** to compare groups.
 The checkable dp list initially selects all groups and provides Select all/Clear;
 single-dp colour and boundary controls apply only to the single-dp view.
+Thin crosshairs span the active plot area and always follow the pointer. Nearby sampled
+initial conditions receive a separate marker; a label near the crosshair intersection
+reports particle identity, initial x/y in mm, dp, status and loss turn. With no nearby
+point, it reports pointer coordinates. An interpolated boundary is not treated as a
+sampled particle. Crosshairs can be disabled; figure exports omit the cursor and marker.
 Data and figure exports use the
 same analysis and plotting functions as Python scripts. Reading runs in the
 background and supports cancellation.

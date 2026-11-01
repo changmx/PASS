@@ -63,6 +63,14 @@ class PlotCanvas(QWidget):
         self.empty_message = "选择 X / Y 数值列以绘图"
         self.x_label = self.y_label = ""
         self.displayed_points = 0
+        self.cursor_enabled = True
+        self._cursor_position = None
+        self._cursor_data_position = None
+        self._cursor_text = ""
+        self._cursor_data_index = None
+        self._cursor_index_key = None
+        self._cursor_index = None
+        self.setMouseTracking(True)
         # Leave room for controls and reference metadata in the 1000x650 window.
         # A larger child minimum can extend beyond QStackedWidget and hide X labels.
         self.setMinimumHeight(220)
@@ -90,9 +98,12 @@ class PlotCanvas(QWidget):
         self.empty_message = empty_message or "当前 X / Y 列没有可绘制的有限值"
         self._geometry_key = None
         self._geometry = None
+        self._cursor_index_key = None
+        self._cursor_index = None
         self.fit_view()
 
     def fit_view(self) -> None:
+        self._hide_cursor()
         if self._n_valid:
             # Complete finite series need no filtered copies just to find bounds.
             if self._n_valid == len(self._valid):
@@ -120,6 +131,7 @@ class PlotCanvas(QWidget):
         return low, high
 
     def wheelEvent(self, event) -> None:  # noqa: N802 - Qt API
+        self._hide_cursor()
         if self._x_limits is None or self._y_limits is None:
             event.ignore()
             return
@@ -138,6 +150,155 @@ class PlotCanvas(QWidget):
         self._y_limits = (y_anchor - (y_anchor - y_low) * factor, y_anchor + (y_high - y_anchor) * factor)
         self.update()
         event.accept()
+
+    def set_cursor_enabled(self, enabled):
+        self.cursor_enabled = bool(enabled)
+        if not self.cursor_enabled:
+            self._hide_cursor()
+
+    def _hide_cursor(self):
+        self._cursor_position = None
+        self._cursor_data_position = None
+        self._cursor_text = ""
+        self._cursor_data_index = None
+        self.update()
+
+    def leaveEvent(self, event):
+        self._hide_cursor()
+        super().leaveEvent(event)
+
+    def resizeEvent(self, event):
+        self._hide_cursor()
+        super().resizeEvent(event)
+
+    def mousePressEvent(self, event):
+        self._hide_cursor()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        # A stationary click must restore the same cursor state as a free move.
+        self.mouseMoveEvent(event)
+
+    def _nearest_cursor_point(self, position, area):
+        x_low, x_high = self._expanded_range(*self._x_limits)
+        y_low, y_high = self._expanded_range(*self._y_limits)
+        width, height = max(1, area.width() - 1), max(1, area.height() - 1)
+        key = (width, height, x_low, x_high, y_low, y_high, self.mode)
+        cell_size = 16
+        n_columns = width // cell_size + 1
+        if key != self._cursor_index_key:
+            # Index all visible source rows once per view, independently of decimation.
+            visible = self._valid & (self._x_values >= x_low) & (self._x_values <= x_high)
+            visible &= (self._values >= y_low) & (self._values <= y_high)
+            indices = np.flatnonzero(visible)
+            if self.mode == "line":
+                indices = indices[np.argsort(self._x_values[indices], kind="stable")]
+                self._cursor_index = (indices, self._x_values[indices])
+            else:
+                px = (self._x_values[indices] - x_low) / (x_high - x_low) * width
+                py = (y_high - self._values[indices]) / (y_high - y_low) * height
+                codes = (py // cell_size).astype(np.intp) * n_columns + (px // cell_size).astype(np.intp)
+                order = np.argsort(codes, kind="stable")
+                self._cursor_index = (indices[order], codes[order])
+            self._cursor_index_key = key
+        px, py = position.x() - area.left(), position.y() - area.top()
+        if self.mode == "line":
+            indices, values = self._cursor_index
+            if not indices.size:
+                return None
+            mouse_x = x_low + px / width * (x_high - x_low)
+            insertion = int(np.searchsorted(values, mouse_x))
+            candidates = np.clip([insertion - 1, insertion], 0, len(indices) - 1)
+            closest = candidates[np.argmin(np.abs(values[candidates] - mouse_x))]
+            start, end = np.searchsorted(values, values[closest], side="left"), np.searchsorted(values, values[closest], side="right")
+            # Repeated X values retain their rows; screen Y resolves the ambiguity.
+            selected = indices[start:end]
+            y = (y_high - self._values[selected]) / (y_high - y_low) * height
+            nearest = int(np.argmin(np.abs(y - py)))
+            x = (values[closest] - x_low) / (x_high - x_low) * width
+            return int(selected[nearest]), QPointF(float(x + area.left()), float(y[nearest] + area.top()))
+        indices, codes = self._cursor_index
+        column, row = int(px // cell_size), int(py // cell_size)
+        candidates = []
+        for grid_row in range(max(0, row - 1), row + 2):
+            for grid_column in range(max(0, column - 1), min(n_columns, column + 2)):
+                code = grid_row * n_columns + grid_column
+                start, end = np.searchsorted(codes, (code, code + 1))
+                if end > start:
+                    candidates.append(indices[start:end])
+        if not candidates:
+            return None
+        selected = np.concatenate(candidates)
+        x = (self._x_values[selected] - x_low) / (x_high - x_low) * width
+        y = (y_high - self._values[selected]) / (y_high - y_low) * height
+        distances = (x - px)**2 + (y - py)**2
+        nearest = int(np.argmin(distances))
+        if distances[nearest] > 14.**2:
+            return None
+        return int(selected[nearest]), QPointF(float(x[nearest] + area.left()), float(y[nearest] + area.top()))
+
+    def mouseMoveEvent(self, event):
+        area = self._plot_area()
+        position = event.position()
+        if (not self.cursor_enabled or self._x_limits is None or self._y_limits is None or event.buttons() != Qt.NoButton
+                or not area.contains(position.toPoint())):
+            self._hide_cursor()
+            return
+        self._update_cursor(position)
+
+    def _update_cursor(self, position):
+        area = self._plot_area()
+        self._cursor_position = QPointF(position)
+        x_low, x_high = self._expanded_range(*self._x_limits)
+        y_low, y_high = self._expanded_range(*self._y_limits)
+        x = x_low + (position.x() - area.left()) / max(1, area.width() - 1) * (x_high - x_low)
+        y = y_high - (position.y() - area.top()) / max(1, area.height() - 1) * (y_high - y_low)
+        self._cursor_text = f"光标坐标\n{self.x_label or 'X'} = {x:.12g}\n{self.y_label or 'Y'} = {y:.12g}"
+        nearest = self._nearest_cursor_point(position, area)
+        if nearest is None:
+            self._cursor_data_index = None
+            self._cursor_data_position = None
+        else:
+            self._cursor_data_index, self._cursor_data_position = nearest
+            x, y = self._x_values[self._cursor_data_index], self._values[self._cursor_data_index]
+            title = "曲线数据点（最近 X）" if self.mode == "line" else "附近数据点"
+            self._cursor_text = f"{title} · 行索引 {self._cursor_data_index}\n{self.x_label or 'X'} = {x:.12g}\n{self.y_label or 'Y'} = {y:.12g}"
+        self.update()
+
+    def _paint_cursor(self, painter, area):
+        if self._cursor_position is None or not self.cursor_enabled:
+            return
+        position = self._cursor_position
+        if not area.contains(position.toPoint()):
+            return
+        painter.save()
+        painter.setClipRect(area)
+        color = self.palette().color(QPalette.Text)
+        color.setAlpha(180)
+        painter.setPen(QPen(color, .65, Qt.SolidLine))
+        painter.drawLine(QPointF(position.x(), area.top()), QPointF(position.x(), area.bottom()))
+        painter.drawLine(QPointF(area.left(), position.y()), QPointF(area.right(), position.y()))
+        if self._cursor_data_position is not None:
+            painter.setPen(QPen(self.palette().color(QPalette.Link), 1.25))
+            painter.setBrush(self.palette().color(QPalette.Base))
+            painter.drawEllipse(self._cursor_data_position, 5, 5)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(self.palette().color(QPalette.Link))
+            painter.drawEllipse(self._cursor_data_position, 2, 2)
+        metrics = painter.fontMetrics()
+        lines = self._cursor_text.splitlines()
+        width = min(area.width(), max(metrics.horizontalAdvance(line) for line in lines) + 14)
+        height = min(area.height(), metrics.height() * len(lines) + 10)
+        left = min(max(area.left(), position.x() + 12), area.right() - width)
+        top = min(max(area.top(), position.y() + 12), area.bottom() - height)
+        box = QRectF(left, top, width, height)
+        painter.setPen(QPen(self.palette().color(QPalette.Mid), 1))
+        painter.setBrush(self.palette().color(QPalette.ToolTipBase))
+        painter.drawRoundedRect(box, 4, 4)
+        painter.setPen(self.palette().color(QPalette.ToolTipText))
+        painter.drawText(box.adjusted(7, 5, -7, -5), Qt.AlignLeft | Qt.AlignTop, self._cursor_text)
+        painter.restore()
 
     def _prepare_geometry(self, area):
         x_low, x_high = self._expanded_range(*self._x_limits)
@@ -228,6 +389,7 @@ class PlotCanvas(QWidget):
         painter.drawText(area.left(), self.height() - 6, self.x_label)
         if self.mode == "line" and self.displayed_points < self._n_valid:
             painter.drawText(area.adjusted(0, 3, -3, 0), Qt.AlignRight | Qt.AlignTop, "按视图保留极值显示 · 原始数据完整保留")
+        self._paint_cursor(painter, area)
 
 
 class _ResultReader(QThread):
@@ -297,6 +459,7 @@ class PlotPage(QWidget):
         self._closing = False
         self._analysis_canvas = None
         self._analysis_toolbar = None
+        self._analysis_cursor = None
         self._figure_state = {}
         self._figure_spec = None
         self._preview_token = 0
@@ -311,7 +474,13 @@ class PlotPage(QWidget):
         header = QHBoxLayout()
         header.addWidget(QLabel("绘图"))
         header.addStretch()
+        self.cursor_toggle = QCheckBox("十字线 / 数据提示")
+        self.cursor_toggle.setToolTip("十字线跟随鼠标。曲线标记最近 X 的真实数据点；散点显示鼠标附近的真实数据。")
+        self.cursor_toggle.setChecked(True)
+        self.cursor_toggle.toggled.connect(self._set_cursor_enabled)
+        header.addWidget(self.cursor_toggle)
         load = QPushButton("加载 CSV / TFS / HDF5")
+        self.comparison_load_button = load
         load.clicked.connect(self.load_data)
         header.addWidget(load)
         self.unload_button = QPushButton("关闭当前数据")
@@ -455,6 +624,11 @@ class PlotPage(QWidget):
         self.info.setWordWrap(True)
         root.addWidget(self.info)
         QApplication.instance().aboutToQuit.connect(self._wait_reader)
+
+    def _set_cursor_enabled(self, enabled):
+        self.canvas.set_cursor_enabled(enabled)
+        if self._analysis_cursor is not None:
+            self._analysis_cursor.set_enabled(enabled)
 
     def load_data(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(self, "加载结果文件", file_dialog_directory(self), "Data files (*.csv *.tfs *.h5 *.hdf5);;All files (*)")
@@ -727,8 +901,8 @@ class PlotPage(QWidget):
                 else:
                     self._clear_analysis()
                     self.plot_stack.setCurrentWidget(self.canvas)
-                    self.canvas.set_series(x, y, mode="line", empty_message=message, x_label=x_label, y_label=y_label)
-                    self._figure_spec = "series", {"series": [(comparison, x, y, "line")], "x_label": x_label, "y_label": y_label}
+                    self.canvas.set_series(x, y, mode=mode, empty_message=message, x_label=x_label, y_label=y_label)
+                    self._figure_spec = "series", {"series": [(comparison, x, y, mode)], "x_label": x_label, "y_label": y_label}
             elif mode == "density":
                 self._show_figure("density", {"x": x, "y": y, "bins": self.density_bins.value(), "x_label": x_label, "y_label": y_label})
                 explanation = "密度及边缘投影统计全部有限 X/Y 配对；计数为宏粒子行数，未按电荷加权。"
@@ -839,16 +1013,22 @@ class PlotPage(QWidget):
 
     def _render_figure(self, kind, payload):
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
-        from PASS.gui.plot_analysis import _update_figure, create_figure
+        from PASS.gui.data_cursor import FigureDataCursor
+        from PASS.gui.plot_analysis import _configure_cursor, _update_figure, create_figure
 
+        if self._analysis_cursor is not None:
+            self._analysis_cursor.clear()
         if self._analysis_canvas is None:
             figure = create_figure(kind, payload, _state=self._figure_state)
             self._analysis_canvas = FigureCanvasQTAgg(figure)
             self._analysis_toolbar = NavigationToolbar2QT(self._analysis_canvas, self.analysis_view)
+            self._analysis_cursor = FigureDataCursor(self._analysis_canvas, self._analysis_toolbar, add_action=False)
+            self._analysis_cursor.set_enabled(self.cursor_toggle.isChecked())
             self.analysis_layout.addWidget(self._analysis_toolbar)
             self.analysis_layout.addWidget(self._analysis_canvas)
         elif not _update_figure(self._figure_state, kind, payload):
             create_figure(kind, payload, figure=self._analysis_canvas.figure, _state=self._figure_state)
+        _configure_cursor(self._analysis_canvas.figure, kind, payload)
         self._analysis_toolbar.update()
         self.canvas.set_series([], [])
         self.plot_stack.setCurrentWidget(self.analysis_view)
@@ -859,6 +1039,9 @@ class PlotPage(QWidget):
 
     def _clear_analysis(self):
         self._figure_state.clear()
+        if self._analysis_cursor is not None:
+            self._analysis_cursor.disconnect()
+            self._analysis_cursor = None
         for widget in (self._analysis_toolbar, self._analysis_canvas):
             if widget is not None:
                 self.analysis_layout.removeWidget(widget)

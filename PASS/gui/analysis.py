@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 
 import numpy as np
-from PySide6.QtCore import QThread, Qt, Signal
+from PySide6.QtCore import QThread, QTimer, Qt, Signal
 from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSplitter, QStackedWidget,
                                QVBoxLayout, QWidget)
 
@@ -169,7 +169,15 @@ class AnalysisPage(QWidget):
         self._closing = False
         self._cancelled = False
         self._inventory_key = None
+        self._inspection_key = None
+        self._inventory_pending = False
+        self._inspect_timer = QTimer(self)
+        self._inspect_timer.setSingleShot(True)
+        self._inspect_timer.setInterval(350)
+        self._inspect_timer.timeout.connect(self._refresh_source_if_ready)
         self.result = None
+        self._active_task = "spectrum"
+        self._signal_states = {}
         self.dynamic_aperture = None
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(12, 12, 12, 12)
@@ -184,7 +192,8 @@ class AnalysisPage(QWidget):
         from PASS.gui.tools import ToolNavigation
 
         self._activated = True
-        self.navigation = ToolNavigation(items=(("频谱分析", "spectrum"), ("频率图分析", "resonance"), ("动力学孔径", "dynamic_aperture")))
+        self.navigation = ToolNavigation(items=(("统计数据频谱", "spectrum"), ("PM 粒子频谱", "spectrum"), ("频率图分析", "resonance"), ("动力学孔径",
+                                                                                                                          "dynamic_aperture")))
         self._layout.addWidget(self.navigation)
         self.stack = QStackedWidget()
         signal_page = QWidget()
@@ -193,10 +202,11 @@ class AnalysisPage(QWidget):
         self.stack.addWidget(signal_page)
         self.dynamic_aperture = DynamicAperturePage()
         self.dynamic_aperture.shutdown_finished.connect(self._child_shutdown_finished)
+        self.dynamic_aperture.operation_finished.connect(self._child_operation_finished)
         self.stack.addWidget(self.dynamic_aperture)
         self._layout.addWidget(self.stack, 1)
         header = QHBoxLayout()
-        self.analysis_title = QLabel("频谱分析")
+        self.analysis_title = QLabel("统计数据频谱")
         self.analysis_title.setObjectName("formTitle")
         header.addWidget(self.analysis_title)
         header.addStretch()
@@ -210,6 +220,12 @@ class AnalysisPage(QWidget):
         self.export_button.clicked.connect(self.export_data)
         self.image_button.clicked.connect(self.export_image)
         signal_layout.addLayout(header)
+        self.result_notice = QLabel()
+        self.result_notice.setTextFormat(Qt.PlainText)
+        self.result_notice.setWordWrap(True)
+        self.result_notice.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.result_notice.hide()
+        signal_layout.addWidget(self.result_notice)
         splitter = QSplitter()
         splitter.setChildrenCollapsible(False)
         controls = QWidget()
@@ -217,14 +233,20 @@ class AnalysisPage(QWidget):
         self.controls_layout.setContentsMargins(0, 0, 8, 0)
         # Retain programmatic mode selection; the sidebar is the only visible selector.
         self.task = QComboBox(self)
-        self.task.addItem("频谱分析", "spectrum")
+        self.task.addItem("统计数据频谱", "spectrum")
+        self.task.addItem("PM 粒子频谱", "particle_spectrum")
         self.task.addItem("频率图分析 FMA", "fma")
         self.task.hide()
-        self.source = SourceControls()
-        self.controls_layout.addWidget(self.source)
+        self.sources = {"spectrum": SourceControls(mode="statistics"), "particle_spectrum": SourceControls(mode="particle"), "fma": SourceControls()}
+        self.source_stack = QStackedWidget()
+        for source in self.sources.values():
+            self.source_stack.addWidget(source)
+        self.source = self.sources["spectrum"]
+        self.controls_layout.addWidget(self.source_stack)
         self.settings = QStackedWidget()
-        self.spectrum, self.fma = SpectrumControls(), FmaControls()
+        self.spectrum, self.particle_spectrum, self.fma = SpectrumControls(), SpectrumControls(), FmaControls()
         self.settings.addWidget(self.spectrum)
+        self.settings.addWidget(self.particle_spectrum)
         self.settings.addWidget(self.fma)
         self.controls_layout.addWidget(self.settings)
         self.controls_layout.addStretch()
@@ -234,7 +256,12 @@ class AnalysisPage(QWidget):
         self.control_scroll.setMinimumWidth(330)
         splitter.addWidget(self.control_scroll)
         self.view = AnalysisResultView()
-        splitter.addWidget(self.view)
+        # Wrapped result text must not squeeze the canvas into neighbouring rows.
+        self.result_scroll = QScrollArea()
+        self.result_scroll.setWidgetResizable(True)
+        self.result_scroll.setFrameShape(QScrollArea.NoFrame)
+        self.result_scroll.setWidget(self.view)
+        splitter.addWidget(self.result_scroll)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([370, 700])
         signal_layout.addWidget(splitter, 1)
@@ -242,17 +269,20 @@ class AnalysisPage(QWidget):
         self.run_button = QPushButton("运行分析")
         self.cancel_button = QPushButton("取消")
         self.cancel_button.setEnabled(False)
-        self.status = QLabel("选择文件并读取可用列 / 数组。")
+        self.status = QLabel("拖入或选择文件，自动读取可用列 / 数组；确认信号后运行分析。")
         self.status.setWordWrap(True)
         footer.addWidget(self.run_button)
         footer.addWidget(self.cancel_button)
         footer.addWidget(self.status, 1)
         signal_layout.addLayout(footer)
-        self.source.browse.clicked.connect(self.choose_file)
-        self.source.inspect_requested.connect(self.inspect_source)
-        self.source.changed.connect(self._settings_changed)
-        self.source.path.returnPressed.connect(self.inspect_source)
+        for source in self.sources.values():
+            source.browse.clicked.connect(lambda _checked=False, current=source: self._source_event(current, self.choose_file))
+            source.inspect_requested.connect(lambda current=source: self._source_event(current, self.inspect_source))
+            source.file_settings_changed.connect(lambda current=source: self._source_event(current, self._request_inventory))
+            source.changed.connect(lambda current=source: self._source_event(current, self._settings_changed))
+            source.path.returnPressed.connect(lambda current=source: self._source_event(current, self.inspect_source))
         self.spectrum.changed.connect(self._settings_changed)
+        self.particle_spectrum.changed.connect(self._settings_changed)
         self.fma.changed.connect(self._settings_changed)
         self.task.currentIndexChanged.connect(self._task_changed)
         self.navigation.currentRowChanged.connect(self._select_analysis)
@@ -262,30 +292,125 @@ class AnalysisPage(QWidget):
         self.set_theme(self.theme)
 
     def _select_analysis(self, index):
-        if index == 2:
+        if index == 3:
             self.stack.setCurrentWidget(self.dynamic_aperture)
             self.dynamic_aperture.activate()
         else:
             self.stack.setCurrentIndex(0)
             self.analysis_title.setText(self.navigation.buttons[index].text())
             self.task.setCurrentIndex(index)
+            self._update_run_button()
+            if self._inventory_pending:
+                self._inspect_timer.start(0)
+
+    def select_analysis(self, kind):
+        """Select a named analysis entry without relying on sidebar positions."""
+        self.activate()
+        names = ("spectrum", "particle_spectrum", "fma", "dynamic_aperture")
+        if kind not in names:
+            raise ValueError(f"Unknown analysis entry: {kind}")
+        if self._worker is not None:
+            return False
+        self.navigation.setCurrentRow(names.index(kind))
+        return True
+
+    def _source_event(self, source, operation):
+        if source is self.source:
+            operation()
 
     def _child_shutdown_finished(self):
         if self._closing and not self.busy:
             self.shutdown_finished.emit()
 
+    def _child_operation_finished(self):
+        if self._closing:
+            return
+        self._update_run_button()
+        if self._inventory_pending:
+            self._inspect_timer.start(0)
+
     def _task_changed(self):
+        selected = self.task.currentData()
+        if selected != self._active_task:
+            if self._worker is not None:
+                self.task.blockSignals(True)
+                self.task.setCurrentIndex(self.task.findData(self._active_task))
+                self.task.blockSignals(False)
+                return
+            self._signal_states[self._active_task] = dict(inventory_key=self._inventory_key,
+                                                          pending=self._inventory_pending,
+                                                          result=self.result,
+                                                          status=self.status.text())
+            self._inspect_timer.stop()
+            self._active_task = selected
+            self.source = self.sources[selected]
+            self.source_stack.setCurrentWidget(self.source)
+            state = self._signal_states.get(selected, {})
+            self._inventory_key = state.get("inventory_key")
+            self._inventory_pending = state.get("pending", False)
+            if self.source.path.text().strip() and self._inventory_key != self._source_key():
+                self._inventory_pending = True
+            self.result = state.get("result")
+            self.status.setText(state.get("status", "拖入或选择对应的数据文件；扫描后选择信号并运行分析。"))
+            if self.result is None:
+                self.view.cursor.clear()
+                self.view.figure.clear()
+                self.view.set_rows({})
+                self.view.summary.setText("选择数据后运行分析。")
+                self.view.details.clear()
+                self.view.canvas.draw_idle()
+            else:
+                self._display_result()
         self.settings.setCurrentIndex(self.task.currentIndex())
         self.source.set_fma(self.task.currentData() == "fma")
         self.navigation.setCurrentRow(self.task.currentIndex())
-        self._settings_changed()
+        self._set_busy(False)
 
     def _settings_changed(self):
-        if self.result is not None and not self.busy:
+        self._update_run_button()
+        stale = self._update_result_notice()
+        if stale and not self.busy:
             self.status.setText("设置已更改；当前图形、导出及 Python 调用仍对应上次计算。请重新运行以更新结果。")
+
+    def _update_result_notice(self):
+        if self.result is None:
+            self.result_notice.hide()
+            self.result_notice.clear()
+            return False
+        try:
+            snapshot = self._snapshot()
+            stale = any(self.result.get(key) != value for key, value in snapshot.items())
+        except (ValueError, TypeError, OverflowError):
+            stale = True
+        # Keep provenance visible when inspection, cancellation or export replaces the status.
+        text = "当前图形、导出及 Python 调用来自：" + str(self.result["path"])
+        if stale:
+            text += "\n当前文件或设置与本次结果不同；请重新运行分析以更新结果。"
+        self.result_notice.setText(text)
+        self.result_notice.show()
+        return stale
 
     def _source_key(self):
         return (str(Path(self.source.path.text()).expanduser().resolve()), repr(self.source.file_options()))
+
+    def _update_run_button(self):
+        ready = (self._inventory_key is not None and self._inventory_key == self._source_key() and self.source.selection_x.currentData() is not None)
+        if self.task.currentData() == "fma":
+            ready = ready and self.source.selection_y.currentData() is not None
+        self.run_button.setEnabled(bool(ready) and not self.busy and not self._closing)
+
+    def _request_inventory(self):
+        self._inventory_pending = True
+        self._inventory_key = None
+        self._update_run_button()
+        self._inspect_timer.start()
+
+    def _refresh_source_if_ready(self):
+        if self._closing or not self._inventory_pending or self.busy:
+            return
+        self._inventory_pending = False
+        if self.source.path.text().strip():
+            self.inspect_source()
 
     def choose_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "选择分析数据",
@@ -300,20 +425,27 @@ class AnalysisPage(QWidget):
             if self._activated:
                 self.status.setText("请等待当前操作结束后再打开文件。")
             return False
+        if self.stack.currentWidget() is self.dynamic_aperture:
+            return self.dynamic_aperture.open_path(path)
         self.navigation.setCurrentRow(self.task.currentIndex())
         self.source.path.setText(str(Path(path).resolve()))
         self.inspect_source()
         return True
 
     def inspect_source(self):
+        self._inspect_timer.stop()
         if self.busy or self._closing:
             return
+        self._inventory_pending = False
+        self._inventory_key = None
+        self._update_run_button()
         try:
             path = str(Path(self.source.path.text()).expanduser().resolve())
             if not Path(path).is_file():
                 raise ValueError("请选择存在的数据文件。")
             options = self.source.file_options()
             key = self._source_key()
+            self._inspection_key = key
 
             def operation(check):
                 from PASS.analysis.data_io import inspect_data
@@ -329,12 +461,12 @@ class AnalysisPage(QWidget):
 
     def _snapshot(self):
         if self._inventory_key != self._source_key():
-            raise ValueError("文件或文本读取设置已更改；请先重新读取列 / 数组列表。")
+            raise ValueError("文件信息尚未更新；请等待自动扫描完成，或点击“刷新列 / 数组”。")
         selection_x = self.source.selection_x.currentData()
         selection_y = self.source.selection_y.currentData()
         if selection_x is None or (self.task.currentData() == "fma" and selection_y is None):
             raise ValueError("请选择有效信号列 / 数组。")
-        panel = self.fma if self.task.currentData() == "fma" else self.spectrum
+        panel = self.settings.currentWidget()
         method, kwargs = panel.parameters()
         return dict(path=str(Path(self.source.path.text()).expanduser().resolve()),
                     task=self.task.currentData(),
@@ -365,12 +497,13 @@ class AnalysisPage(QWidget):
 
     def _set_busy(self, enabled):
         self.control_scroll.setEnabled(not enabled)
-        for button in self.navigation.buttons[:2]:
+        for button in self.navigation.buttons[:3]:
             button.setEnabled(not enabled)
-        self.run_button.setEnabled(not enabled)
+        self._update_run_button()
         self.cancel_button.setEnabled(enabled)
         for button in (self.copy_button, self.export_button, self.image_button):
             button.setEnabled(not enabled and self.result is not None)
+        self._update_result_notice()
 
     def _finished(self):
         worker, self._worker = self._worker, None
@@ -385,6 +518,12 @@ class AnalysisPage(QWidget):
             self._child_shutdown_finished()
             return
         self._set_busy(False)
+        if self._inventory_pending:
+            self._inspect_timer.start(0)
+        if kind == "inspect" and self._inspection_key != self._source_key():
+            self._request_inventory()
+            self.status.setText("文件读取设置已更新，正在重新扫描列 / 数组…")
+            return
         if (self._cancelled and not (kind == "export" and value is not None)) or isinstance(error, InterruptedError):
             self.status.setText("操作已取消；已完成的上次结果仍可使用。")
             return
@@ -393,8 +532,17 @@ class AnalysisPage(QWidget):
             return
         try:
             if kind == "inspect":
-                self._inventory_key, inventory = value
+                key, inventory = value
+                if key != self._source_key():
+                    self._request_inventory()
+                    self.status.setText("文件读取设置已更新，正在重新扫描列 / 数组…")
+                    return
+                self._inventory_pending = False
+                self._inspect_timer.stop()
                 self.source.set_inventory(inventory)
+                self._inventory_key = key
+                self._update_run_button()
+                self._update_result_notice()
                 self.status.setText("列 / 数组列表已读取；选择信号、采样坐标和分析方法。")
                 self.load_finished.emit()
             elif kind == "compute":
@@ -414,6 +562,7 @@ class AnalysisPage(QWidget):
         self.analysis_failed.emit(message)
 
     def _display_result(self):
+        self.view.cursor.clear()
         if self.result["task"] == "fma":
             from PASS.gui.analysis_fma import display_frequency_map
 
@@ -422,6 +571,7 @@ class AnalysisPage(QWidget):
             from PASS.gui.analysis_spectrum import display_spectrum
 
             display_spectrum(self.view, self.result, self.theme)
+        self._update_result_notice()
 
     def copy_python(self):
         if self.result is not None:
@@ -461,7 +611,8 @@ class AnalysisPage(QWidget):
             fd, name = tempfile.mkstemp(prefix=".pass-analysis-", suffix=destination.suffix, dir=destination.parent)
             os.close(fd)
             temporary = Path(name)
-            self.view.figure.savefig(temporary, dpi=160, facecolor=self.view.figure.get_facecolor())
+            with self.view.cursor.hidden():
+                self.view.figure.savefig(temporary, dpi=160, facecolor=self.view.figure.get_facecolor())
             publish_file(temporary, destination)
             self.status.setText("已导出图形：" + str(path))
         except Exception as exc:
@@ -483,6 +634,7 @@ class AnalysisPage(QWidget):
 
     def shutdown(self):
         self._closing = True
+        self._inspect_timer.stop()
         self.cancel()
         if self.dynamic_aperture is not None:
             self.dynamic_aperture.shutdown()

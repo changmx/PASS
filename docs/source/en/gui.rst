@@ -39,7 +39,11 @@ For editable project files, old-project conversion, run snapshots, stopping, and
 rerunning, see :doc:`project_files`.
 Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
 The **Analysis** workspace uses the same icon-and-text sidebar as **Tools**,
-with three entries: **Spectrum**, **Frequency map analysis** and **Dynamic aperture**.
+with four entries: **Statistical data spectrum**, **PM particle spectrum**,
+**Frequency map analysis** and **Dynamic aperture**. Statistical spectra use
+StatMonitor turn-by-turn quantities such as centroids and beam widths; PM spectra
+use individual ParticleMonitor trajectories. Each entry retains its own file,
+settings and analysis result.
 FFT spectra and frequency maps accept result files or external arrays;
 see :doc:`spectral_analysis` for the shared Python functions, supported files
 and numerical conventions.
@@ -119,11 +123,41 @@ count, and **导入配置…** (Import configuration) adds inputs to the same pr
 These configurations are independent alternatives; **Beam 1** on the run page
 specifically means the optional second beam in a two-beam simulation.
 
-OMC3 SDDS/HDF5 drops open the conversion tool (see :ref:`gui-data-conversion-en`) without replacing beam parameters.
-CSV/TFS drops offer conversion, plotting or spectral analysis; dropping them directly into the
+Outside Plot and Analysis, a single OMC3 SDDS/HDF5 drop opens the conversion tool
+(see :ref:`gui-data-conversion-en`) without replacing beam parameters.
+CSV/TFS drops offer conversion, plotting, statistical spectra or PM particle spectra; dropping them directly into the
 converter selects conversion. NPY/NPZ/TSV/TXT/DAT drops open Analysis. Dropping
-CSV/TFS/HDF5 directly onto Analysis selects analysis. Only one file is accepted per drop. For another
-project window, launch another ``pass-gui`` process from a terminal.
+CSV/TFS/HDF5 onto Analysis, or onto window margins or the tab bar while Analysis is active,
+uses the selected analysis tool. Plot also accepts drops onto its page, tab bar and active window margins.
+Spectrum and FMA automatically scan the available
+columns and arrays; select the signal and settings, then run the calculation.
+Dynamic aperture automatically reads and analyzes a current ParticleMonitor HDF5
+or finalized TFS file with the selected end turn. It remains on the aperture page.
+**Plot** and **Analysis** accept multiple data files per drop and through the top
+**Open files…** dialog. Each file opens in an independent tab with its own data
+selection, settings, figure, zoom state and exports. New analysis tabs inherit
+the current analysis type and can then be configured independently. Dropping the
+same file again creates another tab for a different view. Tabs show filenames,
+with full paths in tooltips, and support reordering and individual closing.
+Closing a busy tab cancels and waits for its work before releasing it; other tabs
+remain usable. New tabs and file opening remain available after all tabs are closed.
+An individual plot tab can still add comparison files for overlays and differences;
+batch drops create independent figures. Projects, input JSON and the conversion
+tool retain single-file entry points; projects or JSON cannot be mixed with data
+files in a batch. For another project window, launch another ``pass-gui`` process.
+
+Plot and analysis views offer thin horizontal and vertical crosshairs spanning the
+active plot area and always following the pointer. Curves separately mark the actual
+sample nearest the vertical line; scatter plots highlight nearby actual data points.
+A label near the crosshair intersection reports the marked point's values, or pointer
+coordinates when no data point is selected. Marking data never moves the crosshair
+and does not create interpolated samples. Point
+lookup uses the underlying data even when the drawing reduces the displayed
+points. Spectrum hints include frequency, amplitude and phase; FMA hints include
+object identity and frequency drift; aperture hints include initial coordinates,
+dp, identity and survival/loss information. Crosshairs can be switched off,
+are hidden outside the axes and while dragging to pan or zoom, and resume on
+release without leaving the toolbar mode. Image exports omit the overlay.
 
 Property ordering and sections
 ------------------------------

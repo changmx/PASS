@@ -5,11 +5,14 @@ from pathlib import Path
 import tempfile
 
 import numpy as np
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRect, Qt, Signal
+from PySide6.QtGui import QPainter, QPalette
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter, QVBoxLayout, QWidget)
+                               QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter, QToolBar, QVBoxLayout,
+                               QWidget)
 
 from PASS.gui.analysis import AnalysisWorker
+from PASS.gui.data_cursor import CursorSeries, FigureDataCursor, set_cursor_sources
 from PASS.gui.widgets import file_dialog_directory
 from PASS.utils.file_publication import publish_file
 
@@ -21,11 +24,26 @@ def _integer(value, maximum=2147483647, minimum=1):
     return field
 
 
+class _StatusLabel(QLabel):
+    """Wrap plain status messages, including unbroken Windows paths."""
+
+    def heightForWidth(self, width):
+        flags = int(Qt.TextWordWrap | Qt.TextWrapAnywhere)
+        return self.fontMetrics().boundingRect(QRect(0, 0, max(1, width), 100000), flags, self.text()).height()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setPen(self.palette().color(QPalette.WindowText))
+        flags = int(self.alignment()) | int(Qt.TextWordWrap | Qt.TextWrapAnywhere)
+        painter.drawText(self.contentsRect(), flags, self.text())
+
+
 class DynamicAperturePage(QWidget):
     """Read, plot and export existing particle-monitor results without editing input."""
 
     shutdown_finished = Signal()
     analysis_finished = Signal(object)
+    operation_finished = Signal()
 
     def __init__(self):
         super().__init__()
@@ -152,8 +170,11 @@ class DynamicAperturePage(QWidget):
         self.cancel_button.clicked.connect(self.cancel)
         self.cancel_button.setEnabled(False)
         layout.addWidget(self.cancel_button)
-        self.status = QLabel("在 Injection 中配置扫描网格；这里读取已有 ParticleMonitor 文件。")
+        self.status = _StatusLabel("在 Injection 中配置扫描网格；这里读取已有 ParticleMonitor 文件。")
+        self.status.setTextFormat(Qt.PlainText)
         self.status.setWordWrap(True)
+        # Long file paths must wrap instead of widening the entire controls pane.
+        self.status.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout.addWidget(self.status)
         scroll.setWidget(controls)
         splitter.addWidget(scroll)
@@ -161,7 +182,12 @@ class DynamicAperturePage(QWidget):
         plot_layout = QVBoxLayout(plot)
         self.figure = Figure(figsize=(7, 5), constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
-        plot_layout.addWidget(NavigationToolbar2QT(self.canvas, self))
+        toolbar = NavigationToolbar2QT(self.canvas, self)
+        plot_layout.addWidget(toolbar)
+        self.cursor_toolbar = QToolBar(plot)
+        self.cursor_toolbar.setMovable(False)
+        self.cursor = FigureDataCursor(self.canvas, toolbar, controls_toolbar=self.cursor_toolbar)
+        plot_layout.addWidget(self.cursor_toolbar)
         plot_layout.addWidget(self.canvas)
         splitter.addWidget(plot)
         splitter.setSizes([360, 750])
@@ -185,7 +211,17 @@ class DynamicAperturePage(QWidget):
         start = file_dialog_directory(self)
         value, _ = QFileDialog.getOpenFileName(self, "选择 ParticleMonitor 文件", start, "PASS data (*.h5 *.hdf5 *.tfs);;All files (*)")
         if value:
-            field.setText(value)
+            self.open_path(value)
+
+    def open_path(self, path):
+        self.activate()
+        if self._closing or self.busy:
+            if self._activated:
+                self.status.setText("请等待当前操作结束后再打开文件。")
+            return False
+        self.source.setText(str(Path(path).expanduser().resolve()))
+        self.analyse()
+        return True
 
     def analyse(self):
         if self.busy or self._closing:
@@ -227,6 +263,12 @@ class DynamicAperturePage(QWidget):
         worker.start()
 
     def _finish(self, worker, kind):
+        try:
+            self._finish_result(worker, kind)
+        finally:
+            self.operation_finished.emit()
+
+    def _finish_result(self, worker, kind):
         self._worker = None
         value, error = worker.result, worker.error
         interrupted = worker.isInterruptionRequested()
@@ -324,6 +366,7 @@ class DynamicAperturePage(QWidget):
             self._plot_cache = _DynamicAperturePlotCache(self.result)
             self._plot_cache_signature = cache_signature
         self._plot_key = None
+        self.cursor.clear()
         # Reused axes must not restore limits belonging to the previous plot.
         self.canvas.toolbar.update()
         if self._plot_axis is None:
@@ -340,6 +383,9 @@ class DynamicAperturePage(QWidget):
             self._plot_axis.clear()
             self._plot_axis.set_subplotspec(self._plot_subplotspec)
         ax = self._plot_axis
+        # Removing a colorbar does not undo its right-hand anchor on equal-aspect axes.
+        ax.set_anchor("C")
+        set_cursor_sources(ax, [])
         if self.dp.currentIndex() < 0:
             ax.set_axis_off()
             ax.text(0.5, 0.5, "No valid initial coordinates are available for plotting.", transform=ax.transAxes, ha="center", va="center", wrap=True)
@@ -361,6 +407,20 @@ class DynamicAperturePage(QWidget):
                                   boundary=self.boundary.isChecked(),
                                   ax=ax,
                                   _cache=self._plot_cache)
+            initial = np.asarray(self.result["initial_coordinates"])
+            indices = np.flatnonzero(np.asarray(self.result["initial_valid"]) & (initial[:, 5] == self.dp.currentData()))
+            particle_ids = np.asarray(self.result["particle_id"])
+            status = np.asarray(self.result["status"])
+            lost_turn = np.asarray(self.result["lost_turn"])
+            labels = dict(survived="存活", lost="丢失", invalid="数值无效", incomplete="记录不完整", unavailable="无可用记录")
+
+            def point_tip(index):
+                row = indices[index]
+                loss = str(lost_turn[row]) if lost_turn[row] >= 0 else "未记录"
+                return (f"数据点 · 粒子 {particle_ids[row]}\nx₀ = {initial[row, 0] * 1e3:.10g} mm\ny₀ = {initial[row, 2] * 1e3:.10g} mm"
+                        f"\ndp = {initial[row, 5]:.10g}\n状态 = {labels.get(str(status[row]), str(status[row]))}\n丢失圈数 = {loss}")
+
+            set_cursor_sources(ax, [CursorSeries(initial[indices, 0] * 1e3, initial[indices, 2] * 1e3, point_tip)])
         self._style()
         self._plot_key = key
 
@@ -428,7 +488,8 @@ class DynamicAperturePage(QWidget):
             descriptor, name = tempfile.mkstemp(prefix=".pass-da-", suffix=destination.suffix, dir=destination.parent)
             os.close(descriptor)
             temporary = Path(name)
-            self.figure.savefig(temporary, dpi=180)
+            with self.cursor.hidden():
+                self.figure.savefig(temporary, dpi=180)
             publish_file(temporary, destination)
             self.status.setText("已导出：" + str(destination))
         except (OSError, ValueError) as exc:
@@ -469,6 +530,8 @@ class DynamicAperturePage(QWidget):
 
     def shutdown(self):
         self._closing = True
+        if self._activated:
+            self.cursor.disconnect()
         self.cancel()
         return not self.busy
 

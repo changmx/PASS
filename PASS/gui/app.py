@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
 
 from PASS import __version__
 from PASS.gui.analysis import AnalysisPage
+from PASS.gui.file_tabs import AnalysisWorkspace, PlotWorkspace
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
 from PASS.gui.help import HelpMenu
 from PASS.gui.widgets import file_dialog_directory
@@ -5720,8 +5721,8 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             layout.addWidget(QLabel(label))
             layout.addStretch()
             self.stack.addWidget(page)
-        self.plot = PlotPage()
-        self.analysis = AnalysisPage()
+        self.plot = PlotWorkspace()
+        self.analysis = AnalysisWorkspace()
         self.tools = ToolsPage()
         self.tools.preloader.wait_for_configuration = defer_configuration
         self.stack.addWidget(self.plot)
@@ -5810,6 +5811,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.settings.setValue("theme", preference)
         apply_application_theme(theme)
         self.tools.set_theme(theme)
+        self.plot.set_theme(theme)
         self.analysis.set_theme(theme)
         self.theme_button.setText({"dark": "深色", "light": "浅色", "system": "跟随系统"}[preference])
         self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))

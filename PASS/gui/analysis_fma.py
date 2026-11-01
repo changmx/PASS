@@ -5,6 +5,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QCheckBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
 from PASS.gui.analysis_data import MethodControls, _integer, _pair, _responsive_form, bounded_indices, object_labels, style_figure
+from PASS.gui.data_cursor import CursorSeries, set_cursor_sources
 
 
 class FmaControls(QWidget):
@@ -81,6 +82,17 @@ def draw_frequency_map(figure, payload, theme):
     drift = np.asarray(result["drift"]).reshape(-1)
     valid = np.asarray(result["valid"]).reshape(-1) & np.isfinite(qx) & np.isfinite(qy) & np.isfinite(drift)
     indices = np.flatnonzero(valid)
+    full_indices = indices
+    object_ids = object_labels(payload["loaded_x"], qx.size)
+    qx_second = np.asarray(result["qx_second"]).reshape(-1)
+    qy_second = np.asarray(result["qy_second"]).reshape(-1)
+
+    def point_tip(index):
+        row = full_indices[index]
+        return (f"数据点 · 对象 {object_ids[row]}\nQx = {qx[row]:.10g}\nQy = {qy[row]:.10g}"
+                f"\n窗口二 Qx = {qx_second[row]:.10g}\n窗口二 Qy = {qy_second[row]:.10g}\n频率漂移 = {drift[row]:.10g}")
+
+    set_cursor_sources(ax, [CursorSeries(qx[full_indices], qy[full_indices], point_tip)])
     indices = indices[bounded_indices(indices.size)]
     if indices.size:
         scatter = ax.scatter(qx[indices], qy[indices], c=drift[indices], cmap="viridis", s=20)

@@ -357,7 +357,7 @@ def selection_figure_spec(selection, *, context=None):
             series = [(Path(selection.source).name + " (A)", x, y, mode), (Path(selection.baseline_path).name + " (B)", x, reference, mode)]
         else:
             y_label = f"({selection.y_name} A−B)/B [1]" if selection.comparison == "relative" else f"Δ {y_label} (A−B)"
-            series = [(selection.comparison, x, y, "line")]
+            series = [(selection.comparison, x, y, mode)]
     elif mode == "density":
         return "density", {"x": x, "y": y, "bins": selection.bins, "x_label": x_label, "y_label": y_label}
     else:
@@ -626,6 +626,52 @@ def _update_figure(state, kind, payload):
     state["image"].set_norm(norm)
     state["colorbar"].set_label(label)
     return True
+
+
+def _configure_cursor(figure, kind, payload):
+    """Register full numeric data only on interactive figures, never exports."""
+    from PASS.gui.data_cursor import CursorSeries, set_cursor_sources
+
+    def series(axis, x, y, label, values=None, *, mode="xy"):
+        x, y = np.asarray(x).reshape(-1), np.asarray(y).reshape(-1)
+        x_label, y_label = axis.get_xlabel() or "X", axis.get_ylabel() or "Y"
+
+        def describe(index):
+            text = f"数据点 · {label}\n{x_label} = {x[index]:.12g}\n{y_label} = {y[index]:.12g}"
+            if values is not None:
+                text += f"\n值 = {values[index]:.12g}"
+            return text
+
+        return CursorSeries(x, y, formatter=describe, label=label, lookup_mode=mode)
+
+    axis = figure.axes[0]
+    if kind == "density":
+        if "weights" in payload and not len(payload["weights"]):
+            set_cursor_sources(axis, [])
+            return
+        prepared = payload.get("_histogram")
+        values, x_edges, y_edges = prepared if prepared is not None else density_histogram(payload["x"], payload["y"], payload.get("bins", 80),
+                                                                                           payload.get("weights"))
+        x = (x_edges[:-1] + x_edges[1:]) * .5
+        y = (y_edges[:-1] + y_edges[1:]) * .5
+        grid_x, grid_y = np.meshgrid(x, y)
+        label = payload.get("weight_label", "Macro-particle rows / bin")
+        set_cursor_sources(axis, [series(axis, grid_x, grid_y, label, values.reshape(-1))])
+        top, right = figure.axes[1:3]
+        set_cursor_sources(top, [series(top, x, values.sum(axis=0), "X 投影 · 每箱总量")])
+        set_cursor_sources(right, [series(right, values.sum(axis=1), y, "Y 投影 · 每箱总量")])
+    elif kind in {"field", "electron_cloud_field"}:
+        result, name = payload["result"], payload["field"]
+        if kind == "field":
+            values, unit = result.plane(name, payload["index"], payload["average"])
+            x, y = result.x, result.y
+        else:
+            values, unit = result.fields[name], result.unit("fields", name)
+            x, y = result.grid["x"], result.grid["y"]
+        grid_x, grid_y = np.meshgrid(x, y)
+        set_cursor_sources(axis, [series(axis, grid_x, grid_y, f"网格数据 · {name} [{unit}]", np.asarray(values).reshape(-1))])
+    else:
+        set_cursor_sources(axis, [series(axis, x, y, label, mode="xy" if mode == "scatter" else "x") for label, x, y, mode in payload["series"]])
 
 
 def create_figure(kind, payload, *, size=(10, 6), dpi=100, figure=None, _state=None):
