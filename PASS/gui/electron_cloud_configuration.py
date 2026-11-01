@@ -1,14 +1,96 @@
 """Named electron-cloud resources with lossless mode and geometry drafts."""
 
 from copy import deepcopy
+import csv
+import io
 
 from pydantic import TypeAdapter
-from PySide6.QtWidgets import QCheckBox, QFormLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QMessageBox, QPushButton, QTabWidget, QVBoxLayout
+from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QMessageBox,
+                               QPlainTextEdit, QPushButton, QSizePolicy, QTabWidget, QVBoxLayout)
 
 from PASS.gui.parameters import Choice, SchemaEditor, make_editor, model_draft
 from PASS.gui.structured import APERTURES, Column, NumericTable, StructuredField
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration
 from PASS.para.schema.space_charge import validate_loss_aperture
+
+
+class ElectronCloudDensityEditor(StructuredField):
+    """A rectangular density map whose column count is part of its editable draft."""
+
+    def __init__(self, value, parent=None):
+        super().__init__()
+        self.setParent(parent)
+        self.root = QVBoxLayout(self)
+        self.root.setContentsMargins(0, 0, 0, 0)
+        self.matrix = None
+        rows = value if isinstance(value, list) else []
+        width = max((len(row) for row in rows if isinstance(row, (list, tuple))), default=0)
+        self._set_table(rows, width)
+        if value is not None and not isinstance(value, list):
+            self.matrix.load_error = "密度矩阵必须是二维数值列表。"
+        self.input_button = QPushButton("输入/替换矩阵…")
+        self.input_button.clicked.connect(self._input_matrix)
+        self.root.addWidget(self.input_button)
+
+    def _set_table(self, rows, width):
+        if self.matrix is not None:
+            self.root.removeWidget(self.matrix)
+            self.matrix.hide()
+            self.matrix.deleteLater()
+        columns = [Column(f"X 点 {index + 1}", minimum=0) for index in range(width)]
+        self.matrix = NumericTable(columns, rows, "行对应 Y 点，列对应 X 点。输入/替换矩阵可用 CSV 或制表符调整整个矩阵的尺寸。")
+        self.matrix.add_button.setEnabled(width > 0)
+        self.matrix.changed.connect(self.changed)
+        self.root.insertWidget(0, self.matrix)
+
+    def _input_matrix(self):
+        from PASS.gui.property_state import capture_field
+        dialog = QDialog(self)
+        dialog.setWindowTitle("电子云束流密度矩阵")
+        dialog.resize(700, 420)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("每行对应一个 Y 点，每列对应一个 X 点；使用逗号、制表符或空格分隔。留空表示空矩阵。"))
+        text = QPlainTextEdit()
+        text.setPlainText("\n".join("\t".join(row) for row in capture_field(self.matrix)["rows"]))
+        layout.addWidget(text)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setText("应用矩阵")
+        buttons.button(QDialogButtonBox.Cancel).setText("取消")
+
+        def accept():
+            try:
+                source = text.toPlainText().strip()
+                lines = source.splitlines()
+                delimiter = "\t" if lines and "\t" in lines[0] else "," if lines and "," in lines[0] else None
+                rows = list(csv.reader(io.StringIO(source), delimiter=delimiter)) if delimiter else [line.split() for line in lines]
+                width = len(rows[0]) if rows else 0
+                if any(len(row) != width for row in rows):
+                    raise ValueError("矩阵每行必须具有相同的列数。")
+                column = Column("相对密度", minimum=0)
+                values = [[column.parse(value) for value in row] for row in rows]
+                self._set_table(values, width)
+                self.changed.emit()
+                dialog.accept()
+            except (ValueError, TypeError, csv.Error) as exc:
+                QMessageBox.warning(dialog, "密度矩阵无效", str(exc) + " 原有矩阵保持不变。")
+
+        buttons.accepted.connect(accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        dialog.exec()
+        dialog.deleteLater()
+
+    def get_value(self):
+        return self.matrix.get_value()
+
+    def capture_draft(self):
+        from PASS.gui.property_state import capture_field
+        return {"columns": len(self.matrix.columns), "matrix": capture_field(self.matrix)}
+
+    def restore_draft(self, state):
+        from PASS.gui.property_state import restore_field
+        self._set_table([], state["columns"])
+        restore_field(self.matrix, state["matrix"])
 
 
 def _field_help():
@@ -61,6 +143,8 @@ class ElectronCloudApertureEditor(StructuredField):
 
     def __init__(self, kind, value, base_dir):
         super().__init__()
+        # Give descriptions the available width without stretching polygon controls vertically.
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         self.base_dir = base_dir
         self.kind, self.fields, self.polygon, self.drafts = None, [], None, {}
         self.form = QFormLayout(self)
@@ -235,8 +319,8 @@ class ElectronCloudSettingsEditor(StructuredField):
         if self._selection:
             self._aperture_preferences[self._selection] = aperture.currentData()
         self._selection = (mode, solver)
-        shapes = ([kind
-                   for kind in APERTURES] if mode != "frozen" else ["default", "off"] if solver in {"uniform_round_free_space", "fft_free_space"} else
+        shapes = ([kind for kind in APERTURES if kind in {"default", "off", "circle", "ellipse", "rectangle", "racetrack", "polygon"}]
+                  if mode != "frozen" else ["default", "off"] if solver in {"uniform_round_free_space", "fft_free_space"} else
                   ["default", "rectangle"] if solver == "dst_dirichlet" else [kind for kind in APERTURES if kind != "off"])
         preferred = preferred_aperture or self._aperture_preferences.get(self._selection, "default")
         aperture.blockSignals(True)

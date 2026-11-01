@@ -173,7 +173,7 @@ class MagnetPage(PhysicsToolPage):
         try:
             brho = self._read_rigidity()
             self.rigidity_result.setText(format_number(brho))
-            self.set_valid(section.calculate(brho))
+            self.set_valid(section.calculate(brho), include_reference=not direct)
         except (ValueError, OverflowError, ZeroDivisionError) as exc:
             section.result = None
             section.results.clear()

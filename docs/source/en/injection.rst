@@ -348,7 +348,9 @@ The horizontal offset ( ``Offset x`` ) and vertical offset ( ``Offset y`` ) have
     - str
     - —
     - ``'turn'``
-    - Time column type, options: ``turn`` , ``time``
+    - Legacy compatibility field; preserved on save. The offset table's
+      ``turn`` or ``time (s)`` column determines its time axis. This value
+      does not override the column; the GUI displays automatic detection.
   * - ``offset_position``
     - ``Offset Position (m)``
     - float

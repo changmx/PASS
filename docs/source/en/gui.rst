@@ -145,6 +145,20 @@ Leave it blank or enter ``null`` to use the default command priority. If any
 command at the same ``s`` has an explicit order, all commands at that position
 must have distinct integer orders.
 
+Inserting or duplicating a command, inserting generated optics, or importing
+MAD-X items also sorts the JSON ``Sequence`` in execution order: position using
+the engine's tolerance bins, then ``Order`` or the default command priority.
+Commands with equal sorting keys keep their relative order. After successful
+sorting, each position group with explicit ``Order`` values is renumbered
+``10, 20, 30, ...`` in its existing execution order; numbering restarts in every
+position tolerance bin. Groups with all orders omitted or ``null`` retain
+their default-priority behavior and are not assigned explicit orders.
+If sorting fields are invalid or incomplete, such as missing or duplicate
+orders at one position, the JSON order and values are retained while validation
+reports the issue. Loading a file or applying raw JSON does not trigger this
+automatic sorting or renumbering. Undo restores both the previous sequence
+order and its ``Order`` values.
+
 For example, ``SBend`` displays name, ``S (m)``, ``Length (m)``, ``K0L``,
 ``E1 (rad)``, ``E2 (rad)``, ``Hgap (m)``, ``Fint``, ``Fintx``, ``Model``,
 ``Integrator``, and ``Num slices``, followed by **Field errors**, **Alignment errors**, **Aperture**,

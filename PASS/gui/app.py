@@ -141,7 +141,7 @@ TIMING_MODE_OPTIONS = ("off", "turn", "command", "synchronized-command")
 _SCHEMA_HELP: dict[str, str] | None = None
 
 FIELD_HELP = {
-    "Order": "同一 s 位置的执行顺序。留空或填写 null 使用默认优先级；若同位置任一命令指定 Order，该位置所有命令均须指定互不重复的整数。",
+    "Order": "同一 s 位置的执行顺序。留空或填写 null 使用默认优先级；若同位置任一命令指定 Order，该位置所有命令均须指定互不重复的整数。插入后按原执行顺序，将各位置的显式 Order 分别整理为 10、20、30……。",
     "Write interval (turns)": "每圈采样，累计这些圈数后一次写入同一文件；不减少记录圈数。结束时写入剩余缓存。",
     "Coverage check": "跟踪前检查 SC 权重和区间：warn 警告，error 停止，off 不检查。",
     "Coverage mode": "full-ring 要求覆盖全环；partial 允许仅覆盖部分区段。",
@@ -525,6 +525,7 @@ class ConfigPage(QWidget):
         self._history: list[dict] = [deepcopy(self.data)]
         self._history_index = 0
         self._history_restoring = False
+        self._saved_data: dict | None = deepcopy(self.data)
         self._field_defaults: dict = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(10, 8, 10, 8)
@@ -849,6 +850,7 @@ class ConfigPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.form_body = CompactFormBody()
+        self.form_body.installEventFilter(self)
         self.form_layout = QFormLayout(self.form_body)
         self.form_layout.setContentsMargins(0, 4, 2, 4)
         self.form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
@@ -1003,7 +1005,12 @@ class ConfigPage(QWidget):
             self._populate_root_configuration()
         else:
             self._clear_form()
-        self.changed.emit()
+        if self._json_dirty:
+            self._set_sync_status("已取消表单修改；源码仍有尚未应用的修改", "warning")
+        elif self._data_dirty:
+            self._set_sync_status("已取消表单修改；已应用参数尚未保存", "warning")
+        else:
+            self._set_sync_status("已取消表单修改", "ok")
 
     def commit_pending(self) -> bool:
         if self._form_dirty and self._json_dirty:
@@ -1042,6 +1049,7 @@ class ConfigPage(QWidget):
             return
         self._json_dirty = False
         self._sync_editor()
+        self._validate_configuration()
         self._set_sync_status("源码与已应用参数一致，尚未保存" if self._data_dirty else "源码与已应用参数一致", "warning" if self._data_dirty else "ok")
         self.changed.emit()
 
@@ -1056,6 +1064,12 @@ class ConfigPage(QWidget):
     def reset_history(self) -> None:
         self._history = [deepcopy(self.data)]
         self._history_index = 0
+        self.mark_saved()
+
+    def mark_saved(self) -> None:
+        """Remember the input loaded or successfully saved, independently of history truncation."""
+        self._saved_data = deepcopy(self.data)
+        self._data_dirty = False
 
     def _record_history(self) -> None:
         if self._history_restoring or self._history[self._history_index] == self.data:
@@ -1076,10 +1090,13 @@ class ConfigPage(QWidget):
         self._sync_editor()
         self._history_restoring = False
         self._form_dirty = False
-        self._data_dirty = True
+        self._data_dirty = self._saved_data is None or self.data != self._saved_data
         self._clear_form()
         self._refresh_tree()
-        self.changed.emit()
+        self._restore_sequence_selection((None, []))
+        self._remember_sequence_selection()
+        action = "重做" if redo else "撤销"
+        self._set_sync_status(f"已{action}参数修改" + ("，尚未保存" if self._data_dirty else ""), "warning" if self._data_dirty else "ok")
 
     def has_unsaved_changes(self) -> bool:
         """Return whether the current project has changes not written to disk."""
@@ -1224,11 +1241,12 @@ class ConfigPage(QWidget):
             if command == "RFCavity":
                 required["Components"] = [{"Voltage (V)": 0.0, "Harmonic": 1, "Phase (rad)": 0.0}]
             if command == "Exciter":
+                turn_count = self.data.get("Number of turns", 100)
                 required.update({
                     "Mode": "single_fm",
                     "Direction": "x",
                     "Start turn": 0,
-                    "End turn": -1,
+                    "End turn": turn_count if type(turn_count) is int and turn_count > 0 else 100,
                     "Kick angle (rad)": 0.0,
                     "Excite tune": 0.47,
                     "Sweep tune": 0.02,
@@ -1351,6 +1369,19 @@ class ConfigPage(QWidget):
             self.form_title.setText("电子云 · 插入切片")
             self.form_hint.setText("动态电子云使用 general / z_rel 切片。在同一位置先执行 Slicer，再执行 ElectronCloud；冻结云不需要切片。")
 
+    def _sort_sequence(self) -> None:
+        """Keep execution order with local explicit numbers and intact form bindings."""
+        from PASS.utils.command_order import renumber_sequence_orders
+
+        sequence = self.data.get("Sequence")
+        if not isinstance(sequence, dict) or not all(isinstance(item, dict) for item in sequence.values()):
+            return
+        try:
+            renumber_sequence_orders(sequence)
+        except (TypeError, ValueError):
+            # Incomplete Order groups remain editable; existing validation reports them.
+            return
+
     def insert_pending_command(self) -> None:
         if not self._guard_json_draft():
             return
@@ -1377,12 +1408,14 @@ class ConfigPage(QWidget):
             sequence.pop(name, None)
             QMessageBox.warning(self, "字段无效", str(exc))
             return
+        self._sort_sequence()
         self._sync_editor()
         self._form_dirty = False
         self._data_dirty = True
         self._refresh_tree()
         self._pending_command = None
         self._select_sequence_item(name)
+        self._set_sync_status("已插入 Sequence，尚未保存", "warning")
 
     def configure_optics_generator(self, mode: str) -> None:
         """Open a non-mutating generator with explicit preview and insertion."""
@@ -1591,6 +1624,7 @@ class ConfigPage(QWidget):
         count = len(preview["items"])
         self._form_dirty = False
         self._data_dirty = True
+        self._sort_sequence()
         self._sync_editor()
         self._refresh_tree()
         self._select_sequence_item(preview["names"][0])
@@ -2400,6 +2434,7 @@ class ConfigPage(QWidget):
             "generated_names": generated_names
         })
         self._form_dirty = False
+        self._sort_sequence()
         self._sync_editor()
         self._data_dirty = True
         self._refresh_tree()
@@ -4355,7 +4390,8 @@ class ConfigPage(QWidget):
             enabled = fields[(offset, "Is Offset")].isChecked()
             from_file = fields[(offset, "Is Load From File")].isChecked()
             for key in ("Is Load From File", "File Path", "File Time Kind", "Offset Position (m)", "Offset Momentum (rad)"):
-                active = enabled and (from_file if key in {"File Path", "File Time Kind"} else not from_file if key.startswith("Offset ") else True)
+                active = enabled and key != "File Time Kind" and (from_file
+                                                                  if key == "File Path" else not from_file if key.startswith("Offset ") else True)
                 fields[(offset, key)].setEnabled(active)
         try:
             values = {
@@ -4714,6 +4750,15 @@ class ConfigPage(QWidget):
             field.setToolTip(self._field_help(key, value))
             self._track_field(field)
             return field
+        if key == "File Time Kind":
+            field = PropertyComboBox()
+            field.setObjectName("choiceField")
+            field.setProperty("usesItemData", True)
+            field.addItem("按文件列自动识别", value)
+            field.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            field.setEnabled(False)
+            field.setToolTip("历史兼容字段保留原值；实际时间轴由偏移文件的 turn 或 time (s) 列确定，不能在此覆盖。")
+            return field
         if key in ENUM_OPTIONS:
             field = PropertyComboBox()
             field.setObjectName("choiceField")
@@ -4806,6 +4851,13 @@ class ConfigPage(QWidget):
         elif isinstance(field, QPlainTextEdit):
             field.textChanged.connect(self._mark_form_dirty)
 
+    def eventFilter(self, watched, event):
+        if watched is self.form_body and event.type() == QEvent.LayoutRequest and not self._property_tools_pending:
+            # Rebuilt children become visible after the initial clear-form refresh.
+            self._property_tools_pending = True
+            QTimer.singleShot(0, self._refresh_property_tools)
+        return super().eventFilter(watched, event)
+
     def _mark_form_dirty(self) -> None:
         if self._selected_mapping is None and self._optics_mode is None and not self._madx_fields:
             return
@@ -4815,7 +4867,7 @@ class ConfigPage(QWidget):
             self._property_tools_pending = True
             QTimer.singleShot(0, self._refresh_property_tools)
 
-    def _property_fields(self):
+    def _property_fields(self, *, for_search=False):
         fields = {(str(key), ): field for key, field in self._form_fields.items() if key != "Command"}
         fields.update({("Timing", key): field for key, field in self._timing_fields.items()})
         if self._active_bunch_key:
@@ -4836,7 +4888,11 @@ class ConfigPage(QWidget):
         if self._selected_path == ("__root__", "Beam beam"):
             fields[("Beam beam", )] = self._beam_beam_configuration_editor
         if self._selected_path == ("__root__", "Electron cloud"):
-            fields[("Electron cloud", )] = self._electron_cloud_configuration_editor
+            editor = self._electron_cloud_configuration_editor
+            if for_search and editor.editor is not None:
+                # Stacked label/field rows need their schema paths, not layout inference.
+                fields[("Electron cloud", "Configurations", editor.active, "Build up")] = editor.editor.buildup
+            fields[("Electron cloud", )] = editor
         return fields
 
     def _property_default(self, path, field):
@@ -4879,7 +4935,7 @@ class ConfigPage(QWidget):
         needle = self.property_search.text().strip().casefold()
         matches = []
         seen = set()
-        for path, field in self._property_fields().items():
+        for path, field in self._property_fields(for_search=True).items():
             for nested_path, nested in named_fields(field, path):
                 if id(nested) in seen or not nested.isVisibleTo(self.form_body):
                     continue
@@ -5120,6 +5176,8 @@ class ConfigPage(QWidget):
         self._editor_stale = bool(state.get("editor_stale"))
         self._form_dirty = bool(state.get("form_dirty"))
         self._data_dirty = bool(state.get("data_dirty"))
+        # Recovery creates an unsaved document, even when its history matches a previous file.
+        self._saved_data = None
         self._history = deepcopy(state.get("history") or [self.data])
         self._history_index = max(0, min(int(state.get("history_index", 0)), len(self._history) - 1))
         self.editor_tabs.setCurrentIndex(int(state.get("editor_tab", 0)))
@@ -5326,7 +5384,9 @@ class ConfigPage(QWidget):
             self.data.update(previous_data)
             self._selected_path = previous_path
             if previous_path and previous_path[1] and self._selected_mapping is not self.data:
-                self._selected_mapping = self.data.get(previous_path[1])
+                # A new global block exists only in its draft until validation succeeds.
+                mapping_source = self._configuration_draft if self._configuration_draft is not None else self.data
+                self._selected_mapping = mapping_source.get(previous_path[1])
             else:
                 # Scalar root fields and Timing edit the complete document.
                 self._selected_mapping = self.data
@@ -5406,11 +5466,13 @@ class ConfigPage(QWidget):
             name = f"{base}{suffix}"
             suffix += 1
         sequence[name] = deepcopy(source)
+        self._sort_sequence()
         self._sync_editor()
         self._data_dirty = True
         self._refresh_tree()
         self._select_sequence_item(name)
         self.file_changed.emit(self.path)
+        self._set_sync_status("已复制 Sequence command，尚未保存", "warning")
 
     def delete_selected(self) -> None:
         if not self._selected_path or self._selected_path[0] != "Sequence" or not self._selected_path[1]:
@@ -5430,6 +5492,7 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         self._clear_form("已删除。")
         self.file_changed.emit(self.path)
+        self._set_sync_status("已删除 Sequence command，尚未保存", "warning")
 
     def delete_selected_sequence_rows(self) -> None:
         """Delete all currently selected visible sequence-table rows."""
@@ -5457,14 +5520,30 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         self._clear_form(f"已删除 {len(names)} 个 command。")
         self.file_changed.emit(self.path)
+        self._set_sync_status(f"已删除 {len(names)} 个 Sequence command，尚未保存", "warning")
 
     def _clear_form(self, hint: str = "在配置概览中选择配置组或 Sequence command。") -> None:
+        self.form_scroll.verticalScrollBar().setValue(0)
         self._property_matches = []
         if hasattr(self, "property_matches"):
             self.property_matches.clear()
             QTimer.singleShot(0, self._refresh_property_tools)
         while self.form_layout.rowCount():
-            self.form_layout.removeRow(0)
+            row = self.form_layout.takeRow(0)
+            items = [row.labelItem, row.fieldItem]
+            while items:
+                item = items.pop()
+                if item is None:
+                    continue
+                widget = item.widget()
+                if widget is not None:
+                    # A selector can rebuild its own form while its popup still handles an event.
+                    widget.hide()
+                    widget.deleteLater()
+                elif (layout := item.layout()) is not None:
+                    while layout.count():
+                        items.append(layout.takeAt(0))
+                    layout.deleteLater()
         self._selected_mapping = None
         self._configuration_draft = None
         self._configuration_base = None

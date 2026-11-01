@@ -310,11 +310,21 @@ class RunHistoryDialog(QDialog):
         owner.run_finished.connect(self.reload)
         self.reload()
 
+    @staticmethod
+    def _read_record(path):
+        record = read_json(Path(path).read_bytes())
+        inputs = record.get("inputs")
+        if (not isinstance(inputs, list) or not 1 <= len(inputs) <= 2
+                or any(not isinstance(item, dict) or not isinstance(item.get("name"), str) for item in inputs)
+                or not isinstance(record.get("results_directory"), str) or not record["results_directory"].strip()):
+            raise ValueError("运行记录缺少有效的输入或结果目录。")
+        return record
+
     def reload(self, *_args):
         self.records = []
         for path in reversed(self.owner.history_paths):
             try:
-                record = read_json(Path(path).read_bytes())
+                record = self._read_record(path)
             except (OSError, ValueError):
                 continue
             self.records.append((Path(path), record))
@@ -338,7 +348,7 @@ class RunHistoryDialog(QDialog):
         if selected:
             path, record = selected[0]
             try:
-                record = read_json(path.read_bytes())
+                record = self._read_record(path)
             except (OSError, ValueError):
                 pass
             self.owner._open_directory(record["results_directory"])

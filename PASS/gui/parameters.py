@@ -209,6 +209,12 @@ class OptionalField(StructuredField):
                     self._editor.input.setValidator(IntegerValidator(self._editor.input, nullable=True))
             self._editor.changed.connect(self.changed)
             self._root.addWidget(self._editor)
+            # Lazy children otherwise join the end of the window's tab chain.
+            previous = self.enabled_box
+            for child in self._editor.findChildren(QWidget):
+                if child.focusPolicy() & Qt.TabFocus:
+                    QWidget.setTabOrder(previous, child)
+                    previous = child
             self._toggle(self.enabled_box.isChecked())
         return self._editor
 
@@ -218,6 +224,9 @@ class OptionalField(StructuredField):
         if self._editor is not None:
             self._editor.setEnabled(enabled)
             self._editor.setVisible(enabled)
+            # Refresh the spanning form row after its lazy content changes.
+            self._root.invalidate()
+            self.updateGeometry()
 
     def reset_editor(self):
         if self._editor is not None:
@@ -649,6 +658,9 @@ def make_editor(annotation, value, label, base_dir, parent=None):
     if isinstance(typ, type) and issubclass(typ, BaseModel):
         return SchemaEditor(typ, value, base_dir, parent)
     if get_origin(typ) in (list, tuple):
+        if label == "Relative density":
+            from PASS.gui.electron_cloud_configuration import ElectronCloudDensityEditor
+            return ElectronCloudDensityEditor(value, parent)
         # These physical matrices have fixed column counts even in an empty draft.
         if label == "Velocity covariance (m2/s2)":
             typ = list[tuple[float, float, float]]
@@ -683,8 +695,9 @@ class SchemaEditor(StructuredField):
             label = QLabel(key + ("\N{NO-BREAK SPACE}*" if info.is_required() else ""))
             label.setWordWrap(True)
             self.labels[key] = label
-            label.setMaximumWidth(150)
             if isinstance(field, ScalarField):
+                # Measure wrapping at the same width used to paint the label.
+                label.setFixedWidth(150)
                 self.form.addRow(label, field)
             else:
                 self.form.addRow(label)

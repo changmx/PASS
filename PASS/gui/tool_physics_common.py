@@ -256,9 +256,9 @@ class PhysicsToolPage(QWidget):
         self.toolbar.update()
         self.canvas.draw_idle()
 
-    def set_valid(self, payload):
+    def set_valid(self, payload, *, include_reference=True):
         self.error.clear()
-        self.copy_payload = {"tool": self.title, "reference": self.reference.snapshot(), **payload}
+        self.copy_payload = {"tool": self.title, "reference": self.reference.snapshot() if include_reference else None, **payload}
         self.copy_button.setEnabled(True)
         if self.plot_enabled:
             self.data_button.setEnabled(True)

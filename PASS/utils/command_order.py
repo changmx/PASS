@@ -106,3 +106,27 @@ def sort_commands(items, *, key=None, eps=None):
         if len(set(orders)) != len(orders):
             raise ValueError(f"Commands at S={position} must have distinct Order values")
     return sorted(items, key=lambda item: command_sort_key(extract(item), eps))
+
+
+def renumber_sequence_orders(sequence: dict, *, eps=None) -> None:
+    """Sort a JSON Sequence in place and number explicit orders locally by tens.
+
+    Keep default-priority groups unchanged and validate every group before any
+    mutation. Position bins and the resulting execution order match the engine.
+    """
+    if not isinstance(sequence, dict) or not all(isinstance(command, dict) for command in sequence.values()):
+        raise TypeError("Sequence must map command names to JSON objects")
+    ordered = sort_commands(sequence.items(), key=lambda item: item[1], eps=eps)
+    counts = {}
+    updates = []
+    for _, command in ordered:
+        if _command_value(command, "order", "Order") is None:
+            continue
+        position = command_position_key(command, eps)
+        counts[position] = counts.get(position, 0) + 10
+        field = "Order" if "Order" in command else "order"
+        updates.append((command, field, counts[position]))
+    for command, field, order in updates:
+        command[field] = order
+    sequence.clear()
+    sequence.update(ordered)

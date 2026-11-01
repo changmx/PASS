@@ -333,17 +333,22 @@ class ResourceDialog(QDialog):
             asset = self.project.assets[identifier]
             self.value = vars(asset)
             path = self.project.root / asset.path
-            with path.open("rb") as stream:
-                content = stream.read(2 * 1024 * 1024)
-            if b"\0" in content[:8192]:
-                text = "二进制文件，可使用“导出此文件”获取原始内容。\n\n" + display_json(self.value)
+            try:
+                with path.open("rb") as stream:
+                    content = stream.read(2 * 1024 * 1024)
+            except OSError as exc:
+                content = None
+                text = f"无法读取文件：{exc}\n\n" + display_json(self.value)
             else:
-                text = content.decode("utf-8-sig", errors="replace")
-                if asset.size_bytes > len(content):
-                    text += "\n\n[预览截断；导出可取得完整文件]"
+                if b"\0" in content[:8192]:
+                    text = "二进制文件，可使用“导出此文件”获取原始内容。\n\n" + display_json(self.value)
+                else:
+                    text = content.decode("utf-8-sig", errors="replace")
+                    if asset.size_bytes > len(content):
+                        text += "\n\n[预览截断；导出可取得完整文件]"
             self.raw.setPlainText(text)
             self.tabs.setCurrentIndex(1)
-            if path.suffix.casefold() in (".tfs", ".csv") and b"\0" not in content[:8192]:
+            if content is not None and path.suffix.casefold() in (".tfs", ".csv") and b"\0" not in content[:8192]:
                 self._preview_table(path.suffix.casefold(), text)
         if kind != "asset":
             text = display_json(self.value)
@@ -474,7 +479,17 @@ class ResourceDialog(QDialog):
 
     def restore_recipe(self):
         if self.selection and self.selection[0] == "recipe":
-            if self.owner.restore_project_recipe(self.project, self.project.recipes[self.selection[1]]):
+            try:
+                restored = self.owner.restore_project_recipe(self.project, self.project.recipes[self.selection[1]])
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                if isinstance(exc, KeyError):
+                    missing = str(exc.args[0]) if exc.args else "未知字段"
+                    message = f"生成设置缺少必要字段或引用：{missing}。\n请重新生成或选择完整的设置。"
+                else:
+                    message = f"无法载入生成设置：{exc}\n请检查设置内容及源文件是否完整、可读取。"
+                QMessageBox.warning(self, "载入生成设置失败", message)
+                return
+            if restored:
                 self.accept()
 
 
@@ -683,28 +698,62 @@ class DocumentWindowMixin:
         return self.project.clone()
 
     def new_project(self):
+        from PASS.gui.jobs import TaskCancelled
+
+        if self._document_busy:
+            return
+        # Selecting a destination must not apply drafts or replace their owner.
+        dialog = ProjectSaveDialog(self, "保存 PASS 项目", file_dialog_directory(self), "PASS_project")
+        try:
+            if dialog.exec() != QDialog.Accepted:
+                return
+            destination = dialog.destination_directory() / "project.passproj"
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "保存项目失败", str(exc))
+            return
+        finally:
+            dialog.deleteLater()
         if not self._commit_current():
             return
-        candidate = Project()
+        if self.project and not self._confirm_replace():
+            return
         try:
-            cid = candidate.add_config(Path(self.config.path).name if self.config.path else "beam0", self.config.data, self.config.base_dir)
-            if self.config.path and Path(self.config.path).is_file():
-                candidate.add_asset(Path(self.config.path), "source-json")
-            for recipe in self.config.recipes:
-                # Re-home source assets when starting from another project.
-                value = self._recipe_with_sources(self.project, recipe) if self.project else recipe
-                candidate.add_recipe(value, cid)
+            data, base = deepcopy(self.config.data), self.config.base_dir
+            source_path = Path(self.config.path) if self.config.path else None
+            recipes = [self._recipe_with_sources(self.project, recipe) if self.project else deepcopy(recipe) for recipe in self.config.recipes]
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            QMessageBox.warning(self, "无法创建完整项目", f"生成设置或源文件引用不完整：{exc}\n请检查源文件及生成设置后重试。")
+            return
+
+        def create_project(context):
+            candidate = Project()
+            try:
+                candidate.name = destination.parent.name
+                cid = candidate.add_config(source_path.name if source_path else "beam0", data, base, context=context)
+                if source_path and source_path.is_file():
+                    candidate.add_asset(source_path, "source-json", context=context)
+                for recipe in recipes:
+                    candidate.add_recipe(recipe, cid, context=context)
+                candidate.run_settings = {"beam0": cid, "beam1": "", "output_directory": "output"}
+                candidate.save(destination, context=context)
+                return candidate, cid
+            except Exception:
+                candidate.close()
+                raise
+
+        try:
+            candidate, cid = self._run_document_task("创建完整 PASS 项目", create_project)
+        except TaskCancelled:
+            self.statusBar().showMessage("已取消创建项目，当前文档未替换。", 5000)
+            return
         except (OSError, ValueError) as exc:
-            candidate.close()
             QMessageBox.warning(self, "无法创建完整项目", str(exc))
             return
-        if self.project and not self._confirm_replace():
-            candidate.close()
-            return
+        # The source cache remains alive until every copied dependency is durable.
         self._release_project()
         self.project = candidate
         self._activate_project_input(cid)
-        self.save_document(True)
+        self.config._set_sync_status("已保存")
 
     def open_project(self):
         path, _ = QFileDialog.getOpenFileName(self, "打开 PASS 项目", file_dialog_directory(self), "PASS project (*.passproj)")
@@ -932,7 +981,8 @@ class DocumentWindowMixin:
             self.config.base_dir = path.resolve().parent
             self.config.data = data
             self.config._history = history
-        self.config._form_dirty = self.config._json_dirty = self.config._data_dirty = False
+        self.config._form_dirty = self.config._json_dirty = False
+        self.config.mark_saved()
         self.config._sync_editor()
         self.config.cancel_form()
         self.config._set_sync_status("已保存")

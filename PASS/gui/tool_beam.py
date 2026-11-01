@@ -130,7 +130,15 @@ class ParticleEditor(QGroupBox):
     def change_species(self):
         key = self.species.currentData()
         if key == "ion":
-            particle = ParticleSpec(*self._ion_values)
+            # Restore even an invalid ion draft so its fields remain editable.
+            self._updating = True
+            for widget, value in zip((self.mass_number, self.charge_state, self.atomic_number), self._ion_values):
+                with QSignalBlocker(widget):
+                    widget.setValue(value or 0)
+                widget.setEnabled(True)
+            self._updating = False
+            self.refresh()
+            return
         else:
             if self.mass_number.isEnabled():
                 self._ion_values = (self.mass_number.value(), self.charge_state.value(), self.atomic_number.value() or None)
@@ -390,7 +398,6 @@ class BeamCalculatorPage(QWidget):
             self.kin_error.clear()
         except (ValueError, OverflowError) as exc:
             self.kinematics = None
-            self.identity.setText("请检查粒子与输入参数")
             self.kin_error.setText(str(exc))
             for widget in self.results.values():
                 widget.setText("—")

@@ -191,6 +191,17 @@ def apply_application_theme(theme: str) -> None:
         app.setPalette(palette)
     if app.styleSheet() != rules:
         app.setStyleSheet(rules)
+    # Matplotlib stores palette-dependent pixmaps in its actions at construction.
+    # Refresh every existing toolbar without importing the lazy plotting backend.
+    backend = sys.modules.get("matplotlib.backends.backend_qt")
+    toolbar_type = getattr(backend, "NavigationToolbar2QT", None)
+    if toolbar_type is not None:
+        for toolbar in app.allWidgets():
+            if isinstance(toolbar, toolbar_type):
+                toolbar.ensurePolished()
+                for _, _, image, callback in toolbar.toolitems:
+                    if callback in toolbar._actions:
+                        toolbar._actions[callback].setIcon(toolbar._icon(image + ".png"))
     for window in app.topLevelWidgets():
         if window.windowHandle() is not None:
             controller.update_window(window)

@@ -42,11 +42,16 @@ class SliceProfilesEditor(StructuredField):
             self.add(str(index), profile)
 
     def add(self, index=None, value=None):
+        if index is None:
+            used = {int(key.text().strip()) for _, key, _ in self.entries if key.text().strip().isdecimal()}
+            index = 0
+            while index in used:
+                index += 1
         group = QGroupBox("切片参数")
         layout = QVBoxLayout(group)
         row = QHBoxLayout()
         row.addWidget(QLabel("切片编号（从 0 开始）"))
-        key = QLineEdit(str(len(self.entries)) if index is None else str(index))
+        key = QLineEdit(str(index))
         row.addWidget(key)
         remove = QPushButton("删除")
         row.addWidget(remove)

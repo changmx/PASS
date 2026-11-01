@@ -257,7 +257,7 @@ class ExciterPage(PhysicsToolPage):
                 frequencies, amplitude = r.spectrum()
                 self.ax.plot(frequencies / 1000, amplitude, color=colors["accent"], lw=.8, label="Hann amplitude spectrum")
                 limit = max(abs(r.dds1_frequency).max(), abs(r.dds2_frequency).max(), 1 / settings.duration)
-                self.ax.set_xlim(0, min(r.sample_rate / 2, 2 * limit))
+                self.ax.set_xlim(0, min(r.sample_rate / 2, 2 * limit) / 1000)
                 ylabel = "Kick amplitude (rad)"
             if kind in {"wave", "spectrum"}:
                 self.ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _position: format_scientific(float(f"{value:.8g}"))))
