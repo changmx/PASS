@@ -165,6 +165,11 @@ def _normalize_fields(value, annotation, source_paths, report, path=(), source_p
         if python_names or hasattr(annotation, "_normalize_fields") or hasattr(annotation, "engine_keys"):
             names.update({name.casefold(): field.alias or name for name, field in annotation.model_fields.items()})
         if annotation is MainConfig:
+            names["output name"] = "Task name"
+            names["output subdirectory"] = "Task name"
+            if python_names:
+                names["output_name"] = "Task name"
+                names["output_subdirectory"] = "Task name"
             fields.update({
                 "Sequence": None,
                 "Space charge": SpaceChargeConfig,

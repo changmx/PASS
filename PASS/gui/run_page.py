@@ -27,9 +27,11 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
 
 from PASS import __version__
 from PASS.gui.appearance import code_font
+from PASS.gui.parameters import format_task_name
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import read_json
-from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, create_run_directory, file_references, json_bytes, resolved_file
+from PASS.utils.input_snapshot import (archive_input_documents, atomic_write, canonicalize_task_name, copy_input_file, create_run_directory,
+                                       file_references, json_bytes, normalize_task_name, read_task_name, resolved_file)
 from PASS.gui.runner import RunExitCode
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 
@@ -55,10 +57,24 @@ class RunPreparation(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, documents, output_root, parent=None, *, previous_record=None, project=None):
+    def __init__(self,
+                 documents,
+                 output_root,
+                 parent=None,
+                 *,
+                 previous_record=None,
+                 project=None,
+                 task_name=None,
+                 output_subdirectory=None,
+                 output_name=None):
         super().__init__(parent)
+        names = [value for value in (task_name, output_subdirectory, output_name) if value is not None]
+        if len(names) > 1:
+            raise ValueError("Specify only task_name, not multiple task-name options")
+        task_name = names[0] if names else None
         self.documents = documents
         self.output_root = Path(output_root).resolve()
+        self.task_name = task_name
         self.previous_record = previous_record
         self.project = project
         self.record_path = None
@@ -125,14 +141,30 @@ class RunPreparation(QThread):
                 documents.append((name, data, base))
             self.documents = documents
         previous = self._verify_record() if self.previous_record else None
+        task_name = self.task_name
+        if previous is not None:
+            previous = canonicalize_task_name(previous, settings=True)
+            task_name = normalize_task_name(previous["task_name"]) if "task_name" in previous else None
+        elif task_name is None and self.project is not None:
+            settings = canonicalize_task_name(self.project.run_settings, settings=True)
+            if "task_name" in settings:
+                task_name = normalize_task_name(settings["task_name"])
+        if task_name is None:
+            task_name = read_task_name(self.documents[0][1])
+        task_name = normalize_task_name(task_name)
         self._check()
         self.progress.emit("全面校验输入和文件依赖…")
-        report = validate_documents(self.documents)
+        validation_documents = []
+        for name, data, base in self.documents:
+            data = canonicalize_task_name(deepcopy(data))
+            data["Task name"] = task_name
+            validation_documents.append((name, data, base))
+        report = validate_documents(validation_documents)
         self._check()
         if not report.ok:
             raise ValueError(report.text())
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid4().hex[:10]
-        output = create_run_directory(self.output_root)
+        output = create_run_directory(self.output_root, task_name)
         snapshot = output / "input"
         snapshot.mkdir(parents=True, exist_ok=False)
         self.record_path = snapshot / "run.json"
@@ -157,6 +189,7 @@ class RunPreparation(QThread):
             "observed_gpu": None,
             "output_root": str(self.output_root),
             "output_directory": str(self.output_root),
+            "task_name": task_name,
             "results_directory": str(output),
             "inputs": [],
             "dependencies": [],
@@ -174,6 +207,7 @@ class RunPreparation(QThread):
         paths = archive_input_documents(self.documents,
                                         snapshot,
                                         self.output_root,
+                                        task_name=task_name,
                                         comparison_documents=self._comparison_documents,
                                         check=self._check,
                                         copy_file=self._copy_file,
@@ -357,6 +391,8 @@ class RunPage(QWidget):
         self.started_at = 0.0
         self._stopped = False
         self._input_project = None
+        self._task_name_source = None
+        self._task_name_override = None
         self._refreshing = False
         self._log_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         self._progress_tail = ""
@@ -422,15 +458,27 @@ class RunPage(QWidget):
         self.beam1.currentIndexChanged.connect(self._settings_changed)
         root.addLayout(inputs)
         output = QHBoxLayout()
-        output.addWidget(QLabel("输出目录"))
+        output.addWidget(QLabel("输出根目录"))
         self.output_directory = QLineEdit()
         self.output_directory.setPlaceholderText("output（相对于 JSON / 项目所在目录）")
+        self.output_directory.setToolTip("所有运行结果的父目录；每次运行在此目录下创建独立的运行文件夹。")
         self.output_directory.textChanged.connect(self._settings_changed)
         output.addWidget(self.output_directory, 1)
         browse = button("选择目录…")
         browse.clicked.connect(self._choose_output)
         output.addWidget(browse)
         root.addLayout(output)
+        task_name = QHBoxLayout()
+        task_name.addWidget(QLabel("任务名称"))
+        self.task_name = QLineEdit()
+        self.output_subdirectory = self.task_name
+        self.output_name = self.task_name
+        self.task_name.setText("default")
+        self.task_name.setToolTip("default 使用“输出根目录 / YYYY_MM_DD_HH_MM”；自定义名称使用“输出根目录 / 任务名称”。内部子目录和文件命名保持不变；重名时追加 _1、_2 等编号。")
+        self.task_name.textChanged.connect(self._task_name_changed)
+        self.task_name.editingFinished.connect(self._refresh_task_name)
+        task_name.addWidget(self.task_name, 1)
+        root.addLayout(task_name)
         hint = QLabel("运行使用当前编辑内容的固定快照；继续编辑不会改变已经启动的任务。")
         hint.setObjectName("muted")
         root.addWidget(hint)
@@ -501,7 +549,7 @@ class RunPage(QWidget):
         project = owner.project if owner and hasattr(owner, "project") else None
         changed = (project.id if project else None) != self._input_project
         previous = self.input_settings()
-        settings = project.run_settings if project and changed else previous
+        settings = canonicalize_task_name(project.run_settings if project and changed else previous, settings=True)
         self._refreshing = True
         self.beam0.clear()
         self.beam1.clear()
@@ -519,12 +567,42 @@ class RunPage(QWidget):
         self.beam1.setEnabled(project is not None)
         if changed or not self.output_directory.text():
             self.output_directory.setText(settings.get("output_directory") or "output")
+        source = ("project", project.id) if project else ("json", str(self.config.path))
+        if changed or source != self._task_name_source:
+            self._task_name_override = normalize_task_name(settings["task_name"]) if project and "task_name" in settings else None
+        self._task_name_source = source
+        self._refresh_task_name()
         self._input_project = project.id if project else None
         self._refreshing = False
+
+    def _refresh_task_name(self):
+        value = self._task_name_override
+        if value is None:
+            owner = self.controller
+            project = getattr(owner, "project", None)
+            identifier = self.beam0.currentData()
+            if project and identifier in project.configs and identifier != getattr(owner, "_active_input_id", None):
+                data = project.configs[identifier].data
+            else:
+                data = self.config.data
+            value = read_task_name(data)
+        refreshing = self._refreshing
+        self._refreshing = True
+        self.task_name.setText(format_task_name(value))
+        self._refreshing = refreshing
+
+    def _task_name_changed(self, value):
+        if not self._refreshing:
+            self._task_name_override = value
+            self._save_run_settings()
 
     def _settings_changed(self, *_args):
         if self._refreshing:
             return
+        self._refresh_task_name()
+        self._save_run_settings()
+
+    def _save_run_settings(self):
         owner = self.controller
         if owner and getattr(owner, "project", None):
             owner.project.run_settings = self.input_settings()
@@ -532,11 +610,14 @@ class RunPage(QWidget):
             owner._update_document_ui()
 
     def input_settings(self) -> dict:
-        return {
+        settings = {
             "beam0": self.beam0.currentData() or "",
             "beam1": self.beam1.currentData() or "",
             "output_directory": self.output_directory.text() or "output"
         }
+        if self._task_name_override is not None:
+            settings["task_name"] = self._task_name_override
+        return settings
 
     def selected_input_ids(self) -> list[str]:
         values = [self.beam0.currentData()]
@@ -547,7 +628,7 @@ class RunPage(QWidget):
         return values
 
     def _choose_output(self):
-        directory = QFileDialog.getExistingDirectory(self, "选择运行输出目录", self.output_directory.text() or file_dialog_directory(self))
+        directory = QFileDialog.getExistingDirectory(self, "选择输出根目录", self.output_directory.text() or file_dialog_directory(self))
         if directory:
             self.output_directory.setText(directory)
 
@@ -576,7 +657,12 @@ class RunPage(QWidget):
             if not output.is_absolute():
                 output = base / output
             sources = ([project] if project else []) + list(getattr(owner, "_standalone_sources", []))
-            self._start_preparation(documents, output, sources, project=project)
+            self._refresh_task_name()
+            task_name = self._task_name_override
+            if task_name is None:
+                task_name = read_task_name(documents[0][1])
+            task_name = normalize_task_name(task_name)
+            self._start_preparation(documents, output, sources, project=project, task_name=task_name)
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "无法运行", str(exc))
 
@@ -592,7 +678,7 @@ class RunPage(QWidget):
             return False
         return True
 
-    def _start_preparation(self, documents, output, sources, *, previous_record=None, project=None):
+    def _start_preparation(self, documents, output, sources, *, previous_record=None, project=None, task_name=None):
         self._previous_state = self.state.text()
         self._preparation_result = self._preparation_error = None
         self._cancel_preparation_requested = False
@@ -606,7 +692,7 @@ class RunPage(QWidget):
                 source_project.release()
             self._leased_projects = []
             raise
-        worker = RunPreparation(documents, output, self, previous_record=previous_record, project=project)
+        worker = RunPreparation(documents, output, self, previous_record=previous_record, project=project, task_name=task_name)
         self.preparation = worker
         worker.progress.connect(self.state.setText)
         worker.prepared.connect(self._prepared)

@@ -8,7 +8,8 @@ import platform
 import sys
 from uuid import uuid4
 
-from PASS.utils.input_snapshot import archive_input_documents, atomic_write, create_run_directory, json_bytes, resolve_output_base
+from PASS.utils.input_snapshot import (archive_input_documents, atomic_write, canonicalize_task_name, create_run_directory, json_bytes,
+                                       normalize_task_name, read_task_name, resolve_output_base)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def _is_project_input(path):
 
 
 @contextmanager
-def _load_run_inputs(paths, *, output_dir=None, comparison_documents=None):
+def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_documents=None):
     """Keep project assets alive until the selected runtime inputs are archived.
 
     The optional comparison_documents list receives editable project values;
@@ -75,7 +76,10 @@ def _load_run_inputs(paths, *, output_dir=None, comparison_documents=None):
                 output = Path(value).expanduser()
                 if not output.is_absolute():
                     output = project.path.parent / output
-            yield documents, output.resolve(), project.path
+            name = task_name
+            if name is None:
+                name = read_task_name(settings, settings=True, default=read_task_name(documents[0][1]))
+            yield documents, output.resolve(), project.path, normalize_task_name(name)
         finally:
             project.close()
         return
@@ -89,18 +93,22 @@ def _load_run_inputs(paths, *, output_dir=None, comparison_documents=None):
         if not parsed.ok:
             raise ValueError(f"{path}: {parsed.text()}")
         documents.append((str(path), data, path.parent))
+    values = {str(key).casefold(): value for key, value in documents[0][1].items()}
     if output is None:
-        values = {str(key).casefold(): value for key, value in documents[0][1].items()}
         output = resolve_output_base(values.get("output directory"), documents[0][0])
-    yield documents, output, None
+    name = read_task_name(documents[0][1]) if task_name is None else task_name
+    yield documents, output, None, normalize_task_name(name)
 
 
-def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requested, project_path, comparison_documents=None):
+def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requested, project_path, task_name=None, comparison_documents=None):
     from PASS import __version__
     from PASS.validation import parse_json
     from PASS.validation.rules import validate_documents
 
     values = {str(key).casefold(): value for key, value in documents[0][1].items()}
+    task_name = normalize_task_name(read_task_name(documents[0][1]) if task_name is None else task_name)
+    if flat_output and task_name:
+        raise ValueError("Task name cannot be combined with flat_output")
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid4().hex[:10]
     if flat_output:
         # Explicit flat verification runs keep their existing external archive.
@@ -110,7 +118,7 @@ def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requeste
             snapshot_root = output.parent / "input_snapshots_archive"
         snapshot = snapshot_root / run_id
     else:
-        results = create_run_directory(output)
+        results = create_run_directory(output, task_name)
         snapshot = results / "input"
     snapshot.mkdir(parents=True, exist_ok=False)
     record_path = snapshot / "run.json"
@@ -132,6 +140,7 @@ def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requeste
         "configured_device_ids": values.get("device id", []),
         "output_root": str(output),
         "output_directory": str(output),
+        "task_name": task_name,
         "results_directory": str(results),
         "snapshot_layout": "flat_external" if flat_output else "results/input",
         "inputs": [],
@@ -150,7 +159,13 @@ def _prepare_run_inputs(documents, report, output, *, flat_output, stop_requeste
 
     try:
         check()
-        archived = archive_input_documents(documents, snapshot, output, comparison_documents=comparison_documents, check=check, record=record)
+        archived = archive_input_documents(documents,
+                                           snapshot,
+                                           output,
+                                           task_name=task_name,
+                                           comparison_documents=comparison_documents,
+                                           check=check,
+                                           record=record)
         checked = validate_documents([(str(path), parse_json(path.read_bytes())[0], path.parent) for path in archived])
         check()
         if not checked.ok:
@@ -180,43 +195,64 @@ def main(beam0_path: str,
          raise_errors: bool = False,
          archive_inputs: bool = True,
          output_dir: str | Path | None = None,
+         task_name: str | None = None,
+         output_subdirectory: str | None = None,
+         output_name: str | None = None,
          _run_directory: str | Path | None = None):
     """Run one/two JSON inputs or the saved selection in a project file/directory.
 
     GUI-managed runs pass archive_inputs=False because their input files already
     belong to a verified snapshot. Low-level Config.load_input does not archive dependencies.
-    Projects require archiving. JSON and project runs share the same dated result
+    Projects require archiving. JSON and project runs share a single task-folder
     layout, with an input/ archive inside each result directory. Explicit flat_output
     keeps results directly in that root and stores snapshots beside it.
     output_dir overrides the output root for this run, relative to the caller's
     working directory. It requires archiving and never changes the original inputs.
+    task_name overrides the result-folder name; an empty string or 'default'
+    (case-insensitive) generates YYYY_MM_DD_HH_MM using local time. None uses the
+    saved setting (Beam 0 for JSON inputs). Both names and timestamps receive
+    _1, _2, ... suffixes when occupied. Internal subdirectories and timestamp
+    filenames are preserved. A custom name cannot combine with flat_output.
+    Legacy output_subdirectory/output_name keywords remain accepted, but only one
+    name option may be supplied. New snapshots use only the Task name field.
     on_completed(sim) runs after successful tracking, while the Simulation is still
     available. Callback failures mark the run failed; stopped runs skip this callback.
     """
     from PASS.validation.rules import validate_documents
 
+    names = [value for value in (task_name, output_subdirectory, output_name) if value is not None]
+    if len(names) > 1:
+        raise ValueError("Use task_name only once; do not combine it with legacy output-name keywords")
+    task_name = names[0] if names else None
     if _run_directory is not None and (archive_inputs or flat_output):
-        raise ValueError("_run_directory is reserved for already archived, dated runs")
+        raise ValueError("_run_directory is reserved for already archived runs")
     if output_dir is not None:
         if not str(output_dir).strip():
             raise ValueError("output_dir must not be empty")
         if not archive_inputs:
             raise ValueError("output_dir requires archive_inputs=True; existing snapshots keep their recorded output paths")
+    if task_name is not None:
+        task_name = normalize_task_name(task_name)
+        if not archive_inputs:
+            raise ValueError("task_name requires archive_inputs=True; existing snapshots keep their recorded output settings")
     paths = [beam0_path] + ([beam1_path] if beam1_path is not None else [])
     record_path, record = None, None
     run_directory = _run_directory
     comparison_documents = []
-    with _load_run_inputs(paths, output_dir=output_dir, comparison_documents=comparison_documents) as (documents, output, project_path):
+    with _load_run_inputs(paths, output_dir=output_dir, task_name=task_name,
+                          comparison_documents=comparison_documents) as (documents, output, project_path, name):
         if project_path is not None and not archive_inputs:
             raise ValueError("Project runs require archive_inputs=True to preserve their input dependencies")
+        if flat_output and name:
+            raise ValueError("Task name cannot be combined with flat_output")
         validation_documents = []
-        for index, (name, data, base) in enumerate(documents):
-            runtime_data = data
+        for index, (label, data, base) in enumerate(documents):
+            runtime_data = canonicalize_task_name(data)
+            runtime_data["Task name"] = name
             if output_dir is not None or project_path is not None or index > 0:
-                runtime_data = dict(data)
                 output_key = next((key for key in runtime_data if key.casefold() == "output directory"), "Output directory")
                 runtime_data[output_key] = str(output)
-            validation_documents.append((name, runtime_data, base))
+            validation_documents.append((label, runtime_data, base))
         report = validate_documents(validation_documents)
         if not report.ok:
             raise ValueError("JSON preflight failed before initialization:\n" + report.text())
@@ -230,6 +266,7 @@ def main(beam0_path: str,
                                                                  flat_output=flat_output,
                                                                  stop_requested=stop_requested,
                                                                  project_path=project_path,
+                                                                 task_name=name,
                                                                  comparison_documents=comparison_documents or None)
             except _SnapshotStopped:
                 return False
@@ -344,7 +381,11 @@ If multiple project files exist without project.passproj, specify the file expli
 Project files may be editable JSON descriptors or legacy ZIP projects (read only).
 The default output root is output beside the first JSON input or project;
 saved output settings or --output can change it. Both input formats write
-results to <output>/YYYY_MMDD/HHMM_SS, with input snapshots in its input/ folder.
+results to <output>/YYYY_MM_DD_HH_MM by default, or <output>/<name> when
+Task name or --task-name specifies a custom name. Empty or 'default'
+(case-insensitive, whitespace trimmed) generates the local date/minute timestamp.
+Input snapshots live in the result directory's input/ folder.
+Existing task folders receive _1, _2, ... suffixes; result filenames stay unchanged.
 Relative --output paths use the current working directory.
 """)
     parser.add_argument("--version", action="version", version=f"PASS {__version__}", help="Show the PASS version and exit")
@@ -358,10 +399,21 @@ Relative --output paths use the current working directory.
                        help="Run a .passproj file or project directory using its saved beam selection; cannot combine with --beam1")
     named.add_argument("--beam1", metavar="JSON", help="Beam 1 JSON input; requires --beam0")
     parser.add_argument("--output", metavar="DIR", help="Override the output root for this run; relative paths use the current working directory")
+    output_options = parser.add_mutually_exclusive_group()
+    output_options.add_argument("--task-name",
+                                metavar="NAME",
+                                help="Name the task folder beneath the output root; empty or 'default' generates YYYY_MM_DD_HH_MM")
+    output_options.add_argument("--output-subdirectory", dest="task_name", metavar="NAME", help=argparse.SUPPRESS)
+    output_options.add_argument("--output-name", dest="task_name", metavar="NAME", help=argparse.SUPPRESS)
     parser.add_argument("--stop-file", help="Stop before initialization or at a turn boundary when this file exists")
     args = parser.parse_args(argv)
     if args.output is not None and not args.output.strip():
         parser.error("--output must not be empty")
+    if args.task_name is not None:
+        try:
+            args.task_name = normalize_task_name(args.task_name)
+        except ValueError as exc:
+            parser.error(str(exc))
     if any(value is not None for value in (args.beam0, args.beam1, args.passproj)):
         if args.input is not None or args.second_input is not None:
             parser.error("Use positional inputs or --beam0/--beam1/--passproj, not both")
@@ -397,7 +449,8 @@ Relative --output paths use the current working directory.
                          stop_requested=stop_path.is_file if stop_path else None,
                          on_completed=on_completed,
                          raise_errors=True,
-                         output_dir=args.output)
+                         output_dir=args.output,
+                         task_name=args.task_name)
     except KeyboardInterrupt:
         logger.warning("Run interrupted; the current turn may be incomplete")
         return RunExitCode.INTERRUPTED

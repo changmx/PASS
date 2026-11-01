@@ -26,9 +26,23 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def latest_run_dir(case_name: str, work_dir: Path = SCRIPT_DIR) -> Path:
-    """Return the most recent output directory for a generated case."""
+    """Find the newest run with required tables, including legacy dated layouts."""
     root = work_dir / "output" / case_name
-    candidates = [path for path in root.glob("*/*") if path.is_dir() and (path / "distribution").is_dir()]
+
+    def _has_output(directory):
+        return bool(find_table_files(directory / "distribution", "*_injection"))
+
+    candidates = []
+    for directory in root.iterdir() if root.is_dir() else ():
+        if not directory.is_dir():
+            continue
+        if _has_output(directory):
+            candidates.append(directory)
+        elif re.fullmatch(r"\d{4}_\d{4}", directory.name):
+            # Only legacy time folders are runs; never descend into diagnostics.
+            for run in directory.iterdir():
+                if run.is_dir() and re.fullmatch(r"\d{4}_\d{2}(?:\.\d{3}(?:_\d+)?)?", run.name) and _has_output(run):
+                    candidates.append(run)
     if not candidates:
         raise FileNotFoundError(f"No completed run found for '{case_name}'. Run "
                                 f"`pass-run --beam0 {CASES[case_name]['input_name']}` first.")

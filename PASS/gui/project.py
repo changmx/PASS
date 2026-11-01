@@ -20,7 +20,8 @@ from uuid import uuid4
 import zipfile
 
 from PASS import __version__
-from PASS.utils.input_snapshot import atomic_write, file_references, json_bytes, resolved_file, unique_filename
+from PASS.utils.input_snapshot import (atomic_write, canonicalize_task_name, file_references, json_bytes, normalize_task_name, resolved_file,
+                                       unique_filename)
 
 FORMAT_VERSION = 3
 JSON_LIMIT = 64 * 1024 * 1024
@@ -86,7 +87,7 @@ def normalize_input(data: dict) -> dict:
     if isinstance(sequence, dict):
         normalized["Sequence"] = {name: normalize_command(command) if isinstance(command, dict) else command for name, command in sequence.items()}
     complete_injection_slots(normalized)
-    return normalized
+    return canonicalize_task_name(normalized)
 
 
 def injection_bunch_keys(target: dict) -> list[str]:
@@ -612,7 +613,7 @@ class Project:
             if context is not None:
                 context.report(f"整理输入：{config.name}")
             self._dependency_records(config)
-            data = deepcopy(config.data)
+            data = canonicalize_task_name(deepcopy(config.data))
             by_path = {(self.root / asset.path).resolve(): identifier for identifier, asset in self.assets.items()}
             base = (root / config_paths[config.id]).parent
             for mapping, key, _ in file_references(data):
@@ -634,7 +635,9 @@ class Project:
             except KeyError as exc:
                 raise ProjectError("Recipe references an unknown input or source") from exc
             entries[recipe_paths[recipe["id"]]] = json_bytes(value)
-        settings = deepcopy(self.run_settings)
+        settings = canonicalize_task_name(deepcopy(self.run_settings), settings=True)
+        if "task_name" in settings:
+            settings["task_name"] = normalize_task_name(settings["task_name"])
         for key in ("beam0", "beam1"):
             identifier = settings.get(key)
             if identifier not in (None, ""):
@@ -974,7 +977,7 @@ class Project:
         if not isinstance(active, str) or active not in identifiers:
             raise ProjectError("Project active_config must name an input in configs")
         self.active_config_id = identifiers[active]
-        self.run_settings = deepcopy(settings)
+        self.run_settings = canonicalize_task_name(deepcopy(settings), settings=True)
         for key in ("beam0", "beam1"):
             name = self.run_settings.get(key)
             if name not in (None, ""):
@@ -983,6 +986,8 @@ class Project:
                 self.run_settings[key] = identifiers[name]
         if "output_directory" in settings and settings["output_directory"] is not None and not isinstance(settings["output_directory"], str):
             raise ProjectError("Project output_directory must be a path string")
+        if "task_name" in self.run_settings:
+            self.run_settings["task_name"] = normalize_task_name(self.run_settings["task_name"])
         if total > 256 * 1024**3 or len(registered) > 100000:
             raise ProjectError("Project exceeds file count or size limits")
         self.path = path
@@ -1084,6 +1089,9 @@ class Project:
             self.run_settings = manifest.get("run_settings", {})
             if not isinstance(self.run_settings, dict):
                 raise ProjectError("Run settings must be an object")
+            self.run_settings = canonicalize_task_name(self.run_settings, settings=True)
+            if "task_name" in self.run_settings:
+                self.run_settings["task_name"] = normalize_task_name(self.run_settings["task_name"])
         self.path = path.resolve()
         self.legacy = True
         self.name = path.stem
@@ -1099,7 +1107,7 @@ class Project:
         for index, identifier in enumerate(config_ids):
             config = self.configs[identifier]
             self._dependency_records(config)
-            data = deepcopy(config.data)
+            data = canonicalize_task_name(deepcopy(config.data))
             for mapping, key, _ in file_references(data):
                 source = resolved_file(mapping[key], self.config_base)
                 relative = source.relative_to(self.root)
@@ -1110,7 +1118,7 @@ class Project:
                 mapping[key] = str(target.resolve())
             data["Output directory"] = str(Path(output).resolve())
             target = destination / f"beam{index}.json"
-            atomic_write(target, json_bytes(data))
+            atomic_write(target, json_bytes(canonicalize_task_name(data)))
             paths.append(target)
         return paths
 
@@ -1121,11 +1129,11 @@ class Project:
         for index, identifier in enumerate(config_ids):
             config = self.configs[identifier]
             dependencies = self._dependency_records(config)
-            data = deepcopy(config.data)
+            data = canonicalize_task_name(deepcopy(config.data))
             for mapping, key, _ in file_references(data):
                 mapping[key] = mapping[key].removeprefix("../")
             data["Output directory"] = "output"
-            entries[f"beam{index}.json"] = json_bytes(data)
+            entries[f"beam{index}.json"] = json_bytes(canonicalize_task_name(data))
             for record in dependencies:
                 asset = self.assets[record["asset_id"]]
                 entries[asset.path] = self.root / asset.path

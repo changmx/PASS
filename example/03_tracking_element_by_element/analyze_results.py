@@ -8,7 +8,7 @@ Usage:
     python analyze_results.py
 
     # Specify output directory
-    python analyze_results.py --output-dir output/2026_0714/2127_48
+    python analyze_results.py --output-dir output/2026_10_30_18_39
 
     # Specify twiss file for reference values
     python analyze_results.py --twiss bring.tfs
@@ -19,6 +19,7 @@ Usage:
 
 import sys
 import argparse
+import re
 from pathlib import Path
 
 import numpy as np
@@ -46,20 +47,24 @@ GROUP_E_COUPLING = (17, 17)  # tag 17:    x=y coupling
 
 
 def find_latest_output(script_dir: Path) -> Path | None:
-    """Find the most recent output/YYYY_MMDD/HHMM_SS directory."""
-    output_root = script_dir / "output"
-    if not output_root.exists():
-        return None
+    """Find the newest run with required tables, including legacy dated layouts."""
+    root = script_dir / "output"
 
-    date_dirs = sorted(output_root.iterdir())
-    for date_dir in reversed(date_dirs):
-        if not date_dir.is_dir():
+    def _has_output(directory):
+        return bool(find_table_files(directory / "particle", "*_beam*"))
+
+    candidates = []
+    for directory in root.iterdir() if root.is_dir() else ():
+        if not directory.is_dir():
             continue
-        time_dirs = sorted(date_dir.iterdir())
-        for time_dir in reversed(time_dirs):
-            if time_dir.is_dir() and (time_dir / "particle").exists():
-                return time_dir
-    return None
+        if _has_output(directory):
+            candidates.append(directory)
+        elif re.fullmatch(r"\d{4}_\d{4}", directory.name):
+            # Only legacy time folders are runs; never descend into diagnostics.
+            for run in directory.iterdir():
+                if run.is_dir() and re.fullmatch(r"\d{4}_\d{2}(?:\.\d{3}(?:_\d+)?)?", run.name) and _has_output(run):
+                    candidates.append(run)
+    return max(candidates, key=lambda path: path.stat().st_mtime, default=None)
 
 
 def read_tbt_data(output_dir: Path, max_tag: int = 17) -> dict:

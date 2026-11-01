@@ -172,13 +172,13 @@ python -m PASS /home/myprojpath
 
 ### 输出与编辑
 
-按上述工程描述运行时，无论从哪个目录启动，结果都保存在 `/home/myprojpath/output/<YYYY_MMDD>/<HHMM_SS>/` 下。直接运行 `beam0.json` 时使用它自己的 `Output directory` 设置；如果缺省或值为 `default`（不区分大小写），输出根目录同样为 `/home/myprojpath/output`。
+按上述工程描述运行时，无论从哪个目录启动，结果默认保存在 `/home/myprojpath/output/<YYYY_MM_DD_HH_MM>/` 下。直接运行 `beam0.json` 时使用它自己的 `Output directory` 设置；如果缺省或值为 `default`（不区分大小写），输出根目录同样为 `/home/myprojpath/output`。
 
-| 启动方式 | 输出根目录 | 根目录下的结果位置 |
+| 启动方式 | 输出根目录 | 根目录下的默认结果位置 |
 | --- | --- | --- |
-| 通过 `pass-run`、`python -m PASS` 或 Python API 运行 JSON | 第一份 JSON 的 `Output directory`，相对于该 JSON 所在目录；缺省或值为 `default`（不区分大小写）时，使用该 JSON 旁的 `output` | `<YYYY_MMDD>/<HHMM_SS>/` |
-| 通过命令行指定工程文件或工程目录 | 工程的 `run.output_directory`，未设置时为 `output`；相对路径以工程描述所在目录为基准 | `<YYYY_MMDD>/<HHMM_SS>/` |
-| GUI | **运行** 页的输出目录，初始值为 `output`；相对路径以 JSON／项目所在目录为基准，未保存项目使用当前工作目录 | `<YYYY_MMDD>/<HHMM_SS>/` |
+| 通过 `pass-run`、`python -m PASS` 或 Python API 运行 JSON | 第一份 JSON 的 `Output directory`，相对于该 JSON 所在目录；缺省或值为 `default`（不区分大小写）时，使用该 JSON 旁的 `output` | `<YYYY_MM_DD_HH_MM>/` |
+| 通过命令行指定工程文件或工程目录 | 工程的 `run.output_directory`，未设置时为 `output`；相对路径以工程描述所在目录为基准 | `<YYYY_MM_DD_HH_MM>/` |
+| GUI | **运行** 页的 **输出根目录**，初始值为 `output`；相对路径以 JSON／项目所在目录为基准，未保存项目使用当前工作目录 | `<YYYY_MM_DD_HH_MM>/` |
 
 `--output DIR` 可以覆盖任意输入方式的输出根目录，且仅对本次运行有效。使用绝对路径时，可以从任意工作目录执行：
 
@@ -193,9 +193,17 @@ cd /home/myprojpath
 pass-run myproject.passproj --output "results/test run"
 ```
 
-这会将结果写入 `/home/myprojpath/results/test run/<YYYY_MMDD>/<HHMM_SS>/`。`--output` 优先于 JSON／工程中的设置，不会修改它们的文件内容。`python -m PASS` 支持相同选项。
+未设置自定义输出名称时，这会将结果写入 `/home/myprojpath/results/test run/<YYYY_MM_DD_HH_MM>/`。`--output` 优先于 JSON／工程中的设置，不会修改它们的文件内容。`python -m PASS` 支持相同选项。
 
-每次普通运行都在本次结果目录的 `input/` 子目录保存输入快照，其中包含原始配置值、执行 JSON、复制的依赖文件和 `run.json` 运行记录。JSON、工程和 GUI 运行共用按日期组织的结果布局，必要时添加后缀以避免复用已有目录。完整规则见[输入指南](https://changmx.github.io/PASS/zh/input_generation.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
+若要用任务名称代替自动时间戳作为运行文件夹名，可在 Beam 0 JSON 中设置 `"Task name": "capture_sc"`（Python 对应 `MainConfig(task_name="capture_sc")`），设置工程的 `run.task_name`，或修改 **运行** 页的 **任务名称**。该字段初始直接显示实际值 `default`，已有自定义名称会保留；`Output directory` / `output_dir` 仍用于选择父级输出根目录。命令行覆盖方式为：
+
+```bash
+pass-run myproject.passproj --output results --task-name capture_sc
+```
+
+结果将保存在 `results/capture_sc/`，内部子目录和结果文件原有的 `HHMM_SS` 时间标记保持不变。任务名称省略、为 null、留空或为 `default` 时，使用精确到分钟的单层文件夹，例如 `output/2026_10_30_18_39/`。自动或自定义名称重名时均追加不补零的 `_1`、`_2`、`_3` 等后缀，例如 `2026_10_30_18_39_1` 或 `capture_sc_1`；`default` 在去除首尾空白后不区分大小写，例如 `" DEFAULT "` 具有相同效果。不会自动使用 Beam 0 文件名。存在 `run.task_name` 时，它优先于 Beam 0 字段；`--task-name` 优先于两者。名称只能是单个文件夹名，不能是路径。Python API 对应 `main(..., task_name="capture_sc")`；显式传入空字符串或 `default` 可覆盖已保存的自定义名称并恢复单层时间戳布局，例如 `--task-name default` 或 `main(..., task_name="default")`。
+
+每次普通运行都在本次结果目录的 `input/` 子目录保存输入快照，其中包含原始配置值、执行 JSON、复制的依赖文件和 `run.json` 运行记录。JSON、工程和 GUI 运行共用这些布局规则。已有结果目录保持不变；旧输入或旧快照重新运行时，按新的单层布局创建新目录。完整规则见[输入指南](https://changmx.github.io/PASS/zh/input_generation.html)和[工程文件](https://changmx.github.io/PASS/zh/project_files.html)。
 
 可以用文本编辑器直接修改 `myproject.passproj`、`beam0.json` 和文本依赖文件。在 GUI 中，外部修改后应先使用 **文件 → 重新加载项目**，再保存或运行；外部修改检查会避免覆盖修改或使用过期输入。移动或分享工程时，需要携带整个目录及其引用文件，单个 `.passproj` 描述文件并不包含完整工程。**导出可运行输入包** 可以将所选输入及依赖打包分享。
 
@@ -206,8 +214,8 @@ pass-run myproject.passproj --output "results/test run"
 也可以直接对已有结果目录绘图，无须重新运行模拟：
 
 ```bash
-python -m PASS.plot output/2026_1029/1036_59
-python -m PASS.plot output/2026_1029/1036_59 --format png pdf
+python -m PASS.plot output/2026_10_30_18_39
+python -m PASS.plot output/2026_10_30_18_39 --format png pdf
 ```
 
 默认输出 300 dpi PNG。再次绘图时使用未占用的文件名，保留已有图片。布局、单位、选项及绘图记录见[自动绘图](https://changmx.github.io/PASS/zh/monitor/plotting.html)。

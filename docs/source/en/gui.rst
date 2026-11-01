@@ -21,6 +21,19 @@ status does not prevent editing the configuration.
 4. Save the input or project, select inputs on **Run**, and start the simulation.
 5. Open the result directory or load outputs on **Plot**.
 
+On **Run**, **Output root directory** selects the parent path and the optional
+**Task name** selects a folder such as ``output/capture_sc/``. The latter
+initially contains the actual value ``default``, rather than placeholder text;
+saved custom names remain visible. Leave it blank or enter
+``default`` to use a single timestamp folder at minute precision, such as
+``output/2026_10_30_18_39/`` (``output/YYYY_MM_DD_HH_MM/``). The comparison ignores case
+and surrounding whitespace, so ``" DEFAULT "`` has the same effect.
+Existing subdirectories and result filename rules
+remain unchanged. Repeated automatic or custom names create siblings with
+unpadded suffixes ``_1``, ``_2``, and so on. The corresponding input parameter is ``Task name``; project runs
+save the run-page choice as ``run.task_name``. See :doc:`project_files` for
+setting precedence and rerunning.
+
 The configuration page edits the same input used by the tracking engine.
 For editable project files, old-project conversion, run snapshots, stopping, and
 rerunning, see :doc:`project_files`.

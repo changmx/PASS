@@ -56,7 +56,7 @@ pass-run --beam0 C:\path\to\beam0.json
 
 Use `pass-run --help` for input, output, and stop-file options. The batch helper
 also accepts `--output` and `--stop-file`. By default, each case uses
-`output/<case>/YYYY_MMDD/HHMM_SS/`, with its execution input and dependencies
+`output/<case>/YYYY_MM_DD_HH_MM/`, with its execution input and dependencies
 archived in the run's `input/` folder. To keep a separate set of inputs and
 results together, pass the same `--work-dir` to all three scripts:
 
@@ -71,6 +71,9 @@ subdirectories. Input generation rewrites the selected JSON files, so use a new
 work directory to preserve an earlier configuration. Each simulation creates a
 timestamped run. A raw `--output` override on the runner still changes the output
 root directly; the analyzer expects the `output/<case>/` layout.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+Automatic discovery selects the newest run with the required output tables, supporting both these single-level folders and existing `YYYY_MMDD/HHMM_SS/` results.
 
 ## Cases
 
@@ -150,7 +153,7 @@ consistent input structure, but it is not a simultaneous matching target.
 `analyze_results.py` finds the latest completed run for each selected case and writes:
 
 ```text
-output/<case>/<date>/<time>/
+output/<case>/YYYY_MM_DD_HH_MM/
     distribution/*_injection.h5
     analysis/<case>_summary.csv
     analysis/<case>_distributions.png

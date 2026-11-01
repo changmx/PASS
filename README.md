@@ -172,13 +172,13 @@ Relative command-line paths use the terminal's working directory. Quote paths co
 
 ### Outputs and editing
 
-For the project description above, results go under `/home/myprojpath/output/<YYYY_MMDD>/<HHMM_SS>/`, regardless of the directory from which you launch it. Running `beam0.json` directly uses its own `Output directory` setting; if it is omitted or set to `default` (case-insensitive), the output root is also `/home/myprojpath/output`.
+For the project description above, results go under `/home/myprojpath/output/<YYYY_MM_DD_HH_MM>/` by default, regardless of the directory from which you launch it. Running `beam0.json` directly uses its own `Output directory` setting; if it is omitted or set to `default` (case-insensitive), the output root is also `/home/myprojpath/output`.
 
-| Launch mode | Output root | Results beneath that root |
+| Launch mode | Output root | Default results beneath that root |
 | --- | --- | --- |
-| JSON through `pass-run`, `python -m PASS`, or the Python API | The first JSON's `Output directory`, relative to that JSON's directory; if omitted or set to `default` (case-insensitive), use `output` beside that JSON | `<YYYY_MMDD>/<HHMM_SS>/` |
-| Project file or directory through the command line | The project's `run.output_directory`, or `output` if unset; relative paths are resolved beside the project description | `<YYYY_MMDD>/<HHMM_SS>/` |
-| GUI | The **Run** page's output directory, initially `output`; relative paths use the JSON/project directory (the working directory for an unsaved project) | `<YYYY_MMDD>/<HHMM_SS>/` |
+| JSON through `pass-run`, `python -m PASS`, or the Python API | The first JSON's `Output directory`, relative to that JSON's directory; if omitted or set to `default` (case-insensitive), use `output` beside that JSON | `<YYYY_MM_DD_HH_MM>/` |
+| Project file or directory through the command line | The project's `run.output_directory`, or `output` if unset; relative paths are resolved beside the project description | `<YYYY_MM_DD_HH_MM>/` |
+| GUI | The **Run** page's **Output root directory**, initially `output`; relative paths use the JSON/project directory (the working directory for an unsaved project) | `<YYYY_MM_DD_HH_MM>/` |
 
 `--output DIR` overrides the output root for any input mode, only for that run. An absolute path works from any working directory:
 
@@ -193,9 +193,17 @@ cd /home/myprojpath
 pass-run myproject.passproj --output "results/test run"
 ```
 
-This writes beneath `/home/myprojpath/results/test run/<YYYY_MMDD>/<HHMM_SS>/`. `--output` takes precedence over the JSON/project settings without changing their files. `python -m PASS` supports the same option.
+This writes beneath `/home/myprojpath/results/test run/<YYYY_MM_DD_HH_MM>/` when no custom output name is set. `--output` takes precedence over the JSON/project settings without changing their files. `python -m PASS` supports the same option.
 
-Each normal run saves an input snapshot in its result directory's `input/` subdirectory. It contains original configuration values, execution JSON, copied dependencies, and the `run.json` record. JSON, project, and GUI runs share the dated layout; a suffix is added when needed to avoid reusing a result directory. See the [input guide](https://changmx.github.io/PASS/en/input_generation.html) and [project guide](https://changmx.github.io/PASS/en/project_files.html) for details.
+To use a task name for the run folder instead of an automatic timestamp, set `"Task name": "capture_sc"` in Beam 0's JSON (`MainConfig(task_name="capture_sc")`), set the project's `run.task_name`, or edit **Task name** on **Run**. This field initially displays the actual value `default`; saved custom names are preserved. `Output directory` / `output_dir` continues to select the parent output root. The command-line override is:
+
+```bash
+pass-run myproject.passproj --output results --task-name capture_sc
+```
+
+Results then go into `results/capture_sc/`, preserving internal subdirectories and the existing `HHMM_SS` time labels in result filenames. Omitted, null, blank or `default` task names use a single folder at minute precision, for example `output/2026_10_30_18_39/`. Both automatic and custom names use unpadded collision suffixes `_1`, `_2`, `_3`, and so on, such as `2026_10_30_18_39_1` or `capture_sc_1`; `default` is case-insensitive after trimming whitespace, so `" DEFAULT "` has the same effect. There is no automatic Beam 0 filename default. `run.task_name`, when present, overrides the Beam 0 field; `--task-name` overrides both. Use a single folder name, not a path. The Python API accepts `main(..., task_name="capture_sc")`; an explicit empty or `default` override restores the single-level timestamp layout even when the saved name is custom, for example `--task-name default` or `main(..., task_name="default")`.
+
+Each normal run saves an input snapshot in its result directory's `input/` subdirectory. It contains original configuration values, execution JSON, copied dependencies, and the `run.json` record. JSON, project, and GUI runs share these layout rules. Existing result trees are unchanged; rerunning old inputs or snapshots creates a fresh directory using the new single-level layout. See the [input guide](https://changmx.github.io/PASS/en/input_generation.html) and [project guide](https://changmx.github.io/PASS/en/project_files.html) for details.
 
 Edit `myproject.passproj`, `beam0.json`, and text dependencies with a text editor. In the GUI, use **File → Reload project** after external edits and before saving or running; external-change checks protect against overwriting or running stale inputs. Move or share the directory with all referenced files, because the `.passproj` description alone is not a complete project. **Export runnable input bundle** can package the selected inputs and dependencies for sharing.
 
@@ -206,8 +214,8 @@ Set `"Is plot figure": true` in the beam input to generate figures after success
 You can also plot an existing result directory without repeating the simulation:
 
 ```bash
-python -m PASS.plot output/2026_1029/1036_59
-python -m PASS.plot output/2026_1029/1036_59 --format png pdf
+python -m PASS.plot output/2026_10_30_18_39
+python -m PASS.plot output/2026_10_30_18_39 --format png pdf
 ```
 
 The default is 300 dpi PNG. Repeated plotting preserves existing figures by choosing unused filenames. See [automatic plotting](https://changmx.github.io/PASS/en/monitor/plotting.html) for layouts, units, options, and the plotting manifest.

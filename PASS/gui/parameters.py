@@ -43,6 +43,7 @@ from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.structured import Column, NumberDelegate, NumericTable, StructuredField, _integer_input_state, _parse_integer
 from PASS.gui.widgets import Choice
 from PASS.gui.project import input_file_fields
+from PASS.utils.input_snapshot import canonicalize_task_name
 
 
 class IntegerValidator(QValidator):
@@ -76,6 +77,8 @@ def model_draft(model, supplied=None):
             value = value.model_dump(by_alias=True, mode="json")
         result[field.alias or name] = deepcopy(value)
     if supplied:
+        if "Task name" in result:
+            supplied = canonicalize_task_name(supplied, python_names=True)
         aliases = {str(field.alias or name).casefold(): field.alias or name for name, field in model.model_fields.items()}
         aliases.update({name.casefold(): field.alias or name for name, field in model.model_fields.items()})
         seen = {}
@@ -86,6 +89,13 @@ def model_draft(model, supplied=None):
             seen[alias] = key
             result[alias] = deepcopy(value)
     return result
+
+
+def format_task_name(value):
+    """Display the default sentinel without coercing stored input values."""
+    if value is None or isinstance(value, str) and value.strip().casefold() in {"", "default"}:
+        return "default"
+    return str(value)
 
 
 class ScalarField(StructuredField):
@@ -120,7 +130,8 @@ class ScalarField(StructuredField):
                 self.input.setChecked(value)
             self.input.stateChanged.connect(self.changed)
         else:
-            self.input = QLineEdit("" if value is None else str(value))
+            text = format_task_name(value) if label == "Task name" else "" if value is None else str(value)
+            self.input = QLineEdit(text)
             self.input.setPlaceholderText("必填" if value is None else "")
             if self.annotation is int:
                 self.input.setValidator(IntegerValidator(self.input))

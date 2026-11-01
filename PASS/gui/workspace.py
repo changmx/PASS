@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
 
 from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import Project, ProjectError, atomic_write, file_references, json_bytes, normalize_input, read_json, resolved_file
+from PASS.utils.input_snapshot import canonicalize_task_name
 
 
 def display_json(value) -> str:
@@ -178,7 +179,7 @@ def _relocate_standalone_inputs(states: list[dict], base: Path, destination: Pat
                 except ValueError:  # Different Windows volumes.
                     paths[source] = str(target)
             mapping[key] = paths[source]
-    return relocated
+    return [canonicalize_task_name(state) for state in relocated]
 
 
 class ResourceDialog(QDialog):

@@ -28,10 +28,13 @@ axis), `--k2l`, and `--output`. The default scan is 31 x 31 x 3 = 2,883 particle
 x/y from -20 to +20 mm, dp = -0.003, 0, +0.003, and 256 turns. A different output
 input path places its simulation output folder next to that input.
 
-`pass-run` saves results beneath that output folder in `YYYY_MMDD/HHMM_SS/`,
+`pass-run` saves results beneath that output folder in `YYYY_MM_DD_HH_MM/`,
 with the execution input and dependencies archived in `input/`. Use
 `pass-run --help` for CLI options. `run_simulation.py` remains a compatibility
 wrapper, accepting `--input` (or `--beam0`), `--output`, and `--stop-file`.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+The analyzer accepts an explicitly selected result path from either the new or legacy layout.
 
 The monitor is ordered after all physical operations at s = 100 m. Its turn 0
 sample is after the first complete map; its final turn 255 sample is after 256

@@ -6,7 +6,7 @@ Usage:
     python run_simulation.py --case all
     python run_simulation.py --beam0 path/to/input.json
 
-Each case reads beam0_<name>.json and writes output/<name>/YYYY_MMDD/HHMM_SS/.
+Each case reads beam0_<name>.json and writes output/<name>/YYYY_MM_DD_HH_MM/.
 """
 
 import argparse

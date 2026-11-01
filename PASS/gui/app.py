@@ -72,7 +72,7 @@ from PASS.gui.project import (complete_injection_slots, empty_injection_bunch, i
                               normalize_command, normalize_input, read_json, resize_injection_slots)
 from PASS.gui.run_page import RunPage
 from PASS.gui.tools import ToolsPage
-from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
+from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter, format_task_name
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 from PASS.gui.property_state import capture_field, draft_value, merge_draft, named_fields, restore_field, value_changes
 from PASS.gui.structured import (
@@ -92,6 +92,7 @@ from PASS.gui.structured import (
     format_scientific,
     _parse_integer,
 )
+from PASS.utils.input_snapshot import canonicalize_task_name
 
 # These values are constrained by PASS command implementations.  Unknown
 # string fields deliberately remain text fields so newer schemas stay usable.
@@ -3362,7 +3363,7 @@ class ConfigPage(QWidget):
             ("环参数", ("Transition Gamma", "Circumference (m)")),
             ("模拟控制", ("Number of turns", "Particle Precision")),
             ("计算后端", ("Backend (gpu/cpu)", "Number of GPU devices", "Device Id")),
-            ("输出与文件", ("Output directory", "Is plot figure")),
+            ("输出与文件", ("Output directory", "Task name", "Is plot figure")),
         )
         shown = set()
         for section_name, keys in sections:
@@ -4448,6 +4449,8 @@ class ConfigPage(QWidget):
 
     def _field_label(self, key: str, value: object) -> QLabel:
         short = {
+            "Output directory": "输出根目录",
+            "Task name": "任务名称",
             "S (m)": "位置 s / m",
             "SC length (m)": "作用长度 / m",
             "Interaction length (m)": "作用长度 / m",
@@ -4732,7 +4735,8 @@ class ConfigPage(QWidget):
             field.setToolTip(self._field_help(key, value))
             self._track_field(field)
             return field
-        field = QLineEdit("" if value is None else str(value))
+        text = format_task_name(value) if key == "Task name" else "" if value is None else str(value)
+        field = QLineEdit(text)
         field.setObjectName("valueField")
         field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         field.setMinimumWidth(100)
@@ -4763,6 +4767,10 @@ class ConfigPage(QWidget):
             field.setToolTip(FIELD_HELP.get(key, "文件路径，可直接输入绝对路径或相对输入 JSON 的路径。"))
         else:
             field.setToolTip(self._field_help(key, value))
+        if key == "Output directory":
+            field.setToolTip("所有运行结果的父目录；相对路径以输入 JSON 所在目录为基准。")
+        elif key == "Task name":
+            field.setToolTip("default 使用“输出根目录 / YYYY_MM_DD_HH_MM”；自定义名称使用“输出根目录 / 任务名称”，保留内部子目录和文件命名；重名时追加 _1、_2 等编号。")
         if key == "Kick angle (rad)" and getattr(self, "_field_context", {}).get("Command") == "Exciter":
             field.setValidator(QDoubleValidator(field))
             self._format_kick_angle(field)
@@ -5529,7 +5537,7 @@ class ConfigPage(QWidget):
             self._editor_stale = True
             return
         self._editor_syncing = True
-        self.editor.setPlainText(json.dumps(self.data, indent=4, ensure_ascii=False))
+        self.editor.setPlainText(json.dumps(canonicalize_task_name(self.data), indent=4, ensure_ascii=False))
         self._editor_syncing = False
         self._editor_stale = False
         self._json_dirty = False

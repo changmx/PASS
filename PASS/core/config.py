@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from copy import deepcopy
+from datetime import datetime
 from typing import Literal
 from pathlib import Path
 import json
@@ -14,7 +15,7 @@ import numpy as np
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.helper import convert_keys_to_lower
 from PASS.utils.program import LinearProgram
-from PASS.utils.input_snapshot import create_run_directory, json_bytes, resolve_output_base
+from PASS.utils.input_snapshot import canonicalize_task_name, create_run_directory, json_bytes, normalize_task_name, resolve_output_base
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ class Config:
     output_interval: int = 100
     output_ymd: str = ""
     output_hms: str = ""
+    task_name: str = ""
     output_dir: str = ""
     output_dir_log: str = ""
     output_dir_stat: str = ""
@@ -73,12 +75,12 @@ class Config:
 
         ``flat_output`` is a runtime option for isolated verification workflows.
         The caller must provide a separate output directory for every run.
-        Normal application runs retain the dated output layout.
+        Normal application runs use one task folder with a custom name or timestamp.
         Internal launchers pass _run_directory to reuse the directory reserved
         for the input archive, with the normal result filenames and subdirectories.
         """
         if flat_output and _run_directory is not None:
-            raise ValueError("A prepared dated run directory cannot be combined with flat_output")
+            raise ValueError("A prepared run directory cannot be combined with flat_output")
         self.flat_output = flat_output
         self.beam_name.clear()
         self.harmonic_number.clear()
@@ -93,7 +95,7 @@ class Config:
         if not path0.exists():
             raise FileNotFoundError(f"Input beam0 file not found: {path0}")
         with open(path0, 'r', encoding='utf-8-sig') as f:
-            raw0 = json.load(f)
+            raw0 = canonicalize_task_name(json.load(f))
             from PASS.validation.files import resolve_input_paths
             resolve_input_paths(raw0, path0.resolve().parent)
             parameters0 = deepcopy(raw0)
@@ -111,7 +113,7 @@ class Config:
             if not path1.exists():
                 raise FileNotFoundError(f"Input beam1 file not found: {path1}")
             with open(path1, 'r', encoding='utf-8-sig') as f:
-                raw1 = json.load(f)
+                raw1 = canonicalize_task_name(json.load(f))
                 resolve_input_paths(raw1, path1.resolve().parent)
                 parameters1 = deepcopy(raw1)
                 expand_wake_configurations(raw1)
@@ -210,6 +212,9 @@ class Config:
         self.is_plot = data0.get("is plot figure")
 
         output_base = resolve_output_base(data0.get("output directory"), beam0_path)
+        self.task_name = normalize_task_name(data0.get("task name"))
+        if flat_output and self.task_name:
+            raise ValueError("Task name cannot be combined with flat_output")
         parameters = [parameters0] if beam1_path is None else [parameters0, parameters1]
         for data in parameters:
             output_key = next((key for key in data if key.casefold() == "output directory"), "Output directory")
@@ -230,13 +235,15 @@ class Config:
             return
 
         if _run_directory is None:
-            results = create_run_directory(output_base)
+            results = create_run_directory(output_base, self.task_name)
         else:
             results = Path(_run_directory).resolve()
-            if len(results.relative_to(output_base).parts) != 2 or not results.is_dir():
-                raise ValueError("The prepared run directory must exist directly beneath the output root's date directory")
-        self.output_ymd = results.parent.name
-        self.output_hms = results.name
+            if len(results.relative_to(output_base).parts) != 1 or not results.is_dir():
+                raise ValueError("The prepared run directory must exist directly beneath the output root")
+        # Result filenames retain time labels independently of the task folder.
+        now = datetime.now()
+        self.output_ymd = now.strftime("%Y_%m%d")
+        self.output_hms = now.strftime("%H%M_%S")
         self.output_dir = str(results)
         self.output_dir_log = str(results)
         self.output_dir_stat = str(results)
@@ -262,7 +269,7 @@ class Config:
     @staticmethod
     def _write_parameter_snapshot(path, data):
         """Save loaded parameters with resolved paths, without rereading inputs."""
-        content = json_bytes(data)
+        content = json_bytes(canonicalize_task_name(data))
         with Path(path).open("xb") as stream:
             stream.write(content)
             stream.flush()

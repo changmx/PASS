@@ -141,6 +141,31 @@ snapshots and results both use the chosen root with the same layout below.
 rules, and examples, including ``--stop-file``;
 exit codes are documented in :doc:`input_generation`.
 
+On **Run**, **Output root directory** selects the parent path, and the optional
+**Task name** field selects a single directory under that root. The latter
+displays ``default`` as its initial value, rather than placeholder text; a saved
+custom name is displayed as-is. For example, ``capture_sc`` produces
+``<output>/capture_sc/``. Leaving it blank or entering ``default`` retains the
+single-level timestamp layout below. ``default`` is case-insensitive after trimming surrounding
+whitespace, so ``" DEFAULT "`` also selects that layout.
+The project saves this choice as ``run.task_name``. If that key is absent,
+execution uses Beam 0's ``Task name``; an explicit empty, null or ``default``
+setting selects the single-level timestamp layout even if Beam 0 specifies a custom name.
+It never derives a name from the Beam 0 filename or ``Beam Name``.
+``--task-name NAME`` overrides both saved settings, and ``--task-name ""``
+or ``--task-name default`` restores the single-level timestamp layout for that invocation.
+The Python entry point accepts the
+same override as ``main(..., task_name='capture_sc')``; ``task_name='default'``
+explicitly restores the single-level timestamp layout. See
+:doc:`input_generation` for allowed names and API details.
+
+Every new run uses one directory beneath the output root. Without a custom task
+name, its name is ``YYYY_MM_DD_HH_MM`` at minute precision, for example
+``2026_10_30_18_39``. Both automatic and custom names receive unpadded ``_1``, ``_2``,
+``_3``, and so on when occupied. The ``input/``, ``distribution/``, ``particle/``,
+``plot/`` and other component subdirectories retain their layout, and result
+filenames keep their ``HHMM_SS`` time labels. Previous results are preserved.
+
 The GUI freezes the selected configurations, then validates them, copies their
 dependencies using the same snapshot service as ``PASS.main.main``, and verifies
 the snapshot in a background worker before starting the child process.
@@ -150,12 +175,12 @@ cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.
 
 Each GUI run and command-line project run has its own result directory, with
-the input snapshot in its ``input`` subdirectory. This is the same dated layout
-as standalone JSON runs:
+the input snapshot in its ``input`` subdirectory. With no custom output name,
+it uses the same default single-level timestamp layout as standalone JSON runs:
 
 .. code-block:: text
 
-   <output>/<YYYY_MMDD>/<HHMM_SS>/       # simulation results for this run
+   <output>/<YYYY_MM_DD_HH_MM>/       # simulation results for this run
        input/
            beam0.json                  # fixed runtime input; optional beam1.json
            configuration0.json         # original configuration for comparison
@@ -163,10 +188,13 @@ as standalone JSON runs:
            run.json                    # run record
            gui.log                     # complete process log for GUI runs
 
+With a custom output name, the contents shown above are instead stored beneath
+``<output>/<task_name>/`` (or its numbered sibling).
+
 ``configuration0.json`` preserves the original parameter values and paths for
 comparing runs. ``beam0.json`` is the input actually consumed by tracking, with
 dependency paths redirected to the snapshot and an absolute output root. Without
-external dependencies, they may differ only in ``Output directory``. Run history
+external dependencies, they may differ only in output settings. Run history
 compares the configuration files, while rerunning checks both files against their
 recorded hashes before using the runtime inputs; retain both in the snapshot.
 
@@ -174,12 +202,14 @@ Dependencies are copied directly into ``assets/``, without numbered subdirectori
 Filenames are preserved; conflicts are checked without case sensitivity and
 resolved by appending a number before the extension, such as ``rf1.tfs`` or
 ``rf2.tfs``. Runtime JSON uses relative paths to these copied files and an absolute
-path to the output root. Preparation allocates the dated result directory before
+path to the output root. Preparation allocates the selected result directory before
 copying inputs and stores its path in ``run.json`` as ``results_directory``.
-Initialization uses that directory without adding another date/time level.
-A suffix is added to the time directory when needed to avoid reusing an existing
-result directory. The run ID remains in ``run.json`` rather than forming another
-directory level.
+Initialization uses that directory without adding another level. An occupied
+automatic or custom name receives ``_1``, ``_2``, and so on.
+``run.json`` also records the requested ``task_name`` (empty for the automatic
+timestamp name). The run ID remains in ``run.json`` rather than forming another
+directory level. Existing trees are unchanged; rerunning old inputs or snapshots
+creates a fresh directory using the new single-level layout.
 Tracking reads these copied inputs
 without creating a second snapshot. Editing the project later does not
 change the running task, and a new run does not share the preceding run's output
@@ -308,12 +338,16 @@ An example description selecting only Beam 0 is:
      "run": {
        "beam0": "beam0.json",
        "beam1": null,
-       "output_directory": "output"
+       "output_directory": "output",
+       "task_name": ""
      }
    }
 
 ``configs`` lists all candidate inputs, while ``run`` selects the inputs for one
 run. Set ``run.beam1`` to ``"beam1.json"`` to select a second, distinct input.
+The example explicitly selects the single-level timestamp layout. Set ``run.task_name``
+to ``"capture_sc"`` for a named run folder, or omit the key to use Beam 0's
+``Task name`` setting.
 The optional ``name`` is the project title. A minimal description may omit
 ``configs``; its inputs are then derived from ``active_config`` and the saved
 beam selections. Optional ``sources`` entries contain ``path`` and ``kind``;

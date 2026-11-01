@@ -57,24 +57,91 @@ def resolve_output_base(value, input_path) -> Path:
     return (path if path.is_absolute() else Path(input_path).resolve().parent / path).resolve()
 
 
-def create_run_directory(output_root) -> Path:
-    """Reserve a dated result directory before archiving inputs or loading Config."""
-    now = datetime.now()
-    day = Path(output_root).resolve() / now.strftime("%Y_%m%d")
-    day.mkdir(parents=True, exist_ok=True)
-    name = now.strftime("%H%M_%S")
-    milliseconds = now.microsecond // 1000
-    for attempt in range(1000):
-        suffix = "" if attempt == 0 else f".{milliseconds:03d}"
-        if attempt > 1:
-            suffix += f"_{attempt - 1}"
-        directory = day / (name + suffix)
+def read_task_name(data, *, settings=False, default=None):
+    """Read the canonical or legacy folder field without coercing its value."""
+    aliases = {"task_name", "output_subdirectory", "output_name"} if settings else {"task name", "output subdirectory", "output name"}
+    keys = [key for key in data if isinstance(key, str) and key.casefold() in aliases]
+    if len(keys) > 1:
+        raise ValueError("Specify Task name only once; do not combine it with legacy output-name fields")
+    return data[keys[0]] if keys else default
+
+
+def canonicalize_task_name(data, *, settings=False, python_names=False):
+    """Copy aliases, placing the task name directly after the output directory."""
+    aliases = {"task_name", "output_subdirectory", "output_name"} if settings else {"task name", "output subdirectory", "output name"}
+    if python_names:
+        aliases |= {"task_name", "output_subdirectory", "output_name"}
+    keys = [key for key in data if isinstance(key, str) and key.casefold() in aliases]
+    if len(keys) > 1:
+        raise ValueError("Specify Task name only once; do not combine it with legacy output-name fields")
+    if not keys:
+        return dict(data)
+    task_key = "task_name" if settings else "Task name"
+    output_keys = {"output_directory"} if settings else {"output directory"}
+    if python_names and not settings:
+        output_keys.add("output_dir")
+    has_output = any(isinstance(key, str) and key.casefold() in output_keys for key in data)
+    result = {}
+    for key, value in data.items():
+        if key == keys[0]:
+            if not has_output:
+                result[task_key] = value
+            continue
+        result[key] = value
+        if isinstance(key, str) and key.casefold() in output_keys:
+            result[task_key] = data[keys[0]]
+    return result
+
+
+def normalize_task_name(value) -> str:
+    """Validate a task name; empty/default values request an automatic timestamp."""
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError("Task name must be a string or null")
+    name = value.strip()
+    if not name or name.casefold() == "default":
+        return ""
+    if name in {".", ".."} or name.endswith(".") or re.search(r'[\x00-\x1f<>:"/\\|?*]', name):
+        raise ValueError("Task name must be a single folder name without path separators or invalid filename characters")
+    if re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\..*)?", name):
+        raise ValueError("Task name must not be a reserved device name")
+    return name
+
+
+def normalize_output_subdirectory(value) -> str:
+    """Compatibility alias for the former output-subdirectory validator."""
+    return normalize_task_name(value)
+
+
+def normalize_output_name(value) -> str:
+    """Compatibility alias for the former output-name validator."""
+    return normalize_task_name(value)
+
+
+def _resolve_task_name_override(task_name, output_subdirectory, output_name):
+    values = [value for value in (task_name, output_subdirectory, output_name) if value is not None]
+    if len(values) > 1:
+        raise ValueError("Use task_name only once; do not combine it with legacy output-name keywords")
+    return values[0] if values else None
+
+
+def create_run_directory(output_root, task_name=None, *, output_subdirectory=None, output_name=None) -> Path:
+    """Reserve one run folder, numbering collisions without reusing results."""
+    task_name = normalize_task_name(_resolve_task_name_override(task_name, output_subdirectory, output_name))
+    base_name = task_name or datetime.now().strftime("%Y_%m_%d_%H_%M")
+    root = Path(output_root).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    attempt = 0
+    while True:
+        name = base_name if attempt == 0 else f"{base_name}_{attempt}"
+        directory = root / name
         try:
             directory.mkdir()
         except FileExistsError:
+            attempt += 1
             continue
         return directory
-    raise FileExistsError(f"Cannot allocate a new run directory beneath {day}")
 
 
 def file_references(value: object, pointer: str = "") -> Iterator[tuple[dict, str, str]]:
@@ -109,7 +176,17 @@ def copy_input_file(source, destination, check=None):
     return digest.hexdigest()
 
 
-def archive_input_documents(documents, snapshot, output, *, comparison_documents=None, check=None, copy_file=None, record=None):
+def archive_input_documents(documents,
+                            snapshot,
+                            output,
+                            *,
+                            task_name=None,
+                            output_subdirectory=None,
+                            output_name=None,
+                            comparison_documents=None,
+                            check=None,
+                            copy_file=None,
+                            record=None):
     """Archive raw configurations and resolved execution inputs in one fresh directory.
 
     Callers validate before and after archiving. Missing inactive inputs remain
@@ -117,8 +194,13 @@ def archive_input_documents(documents, snapshot, output, *, comparison_documents
     Execution JSON paths are relative to the snapshot and never point at copied
     dependencies' original locations. Dependencies are direct files in assets/;
     filename collisions receive numeric suffixes. Original dictionaries are not mutated.
+    An explicit task_name overrides execution inputs only, including an empty
+    string to request an automatic timestamp; None preserves their stored names.
     """
     snapshot, output = Path(snapshot).resolve(), Path(output).resolve()
+    task_name = _resolve_task_name_override(task_name, output_subdirectory, output_name)
+    if task_name is not None:
+        task_name = normalize_task_name(task_name)
     if record is None:
         record = {}
     for name in ("inputs", "dependencies", "random_seeds", "unavailable_dependencies"):
@@ -129,7 +211,7 @@ def archive_input_documents(documents, snapshot, output, *, comparison_documents
     for index, (name, original, base) in enumerate(documents):
         if check is not None:
             check()
-        data = deepcopy(original)
+        data = canonicalize_task_name(deepcopy(original))
         configuration = snapshot / f"configuration{index}.json"
         path = snapshot / f"beam{index}.json"
         # Callers normally allocate a fresh directory; also reject accidental reuse.
@@ -165,7 +247,10 @@ def archive_input_documents(documents, snapshot, output, *, comparison_documents
         # Keep exactly one key even for inputs using accepted case variations.
         output_key = next((key for key in data if key.casefold() == "output directory"), "Output directory")
         data[output_key] = str(output)
-        content = json_bytes(data)
+        if task_name is not None:
+            name_key = next((key for key in data if key.casefold() == "task name"), "Task name")
+            data[name_key] = task_name
+        content = json_bytes(canonicalize_task_name(data))
         atomic_write(path, content)
         values = {str(key).casefold(): value for key, value in data.items()}
         record["inputs"].append({

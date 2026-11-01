@@ -29,6 +29,7 @@ Usage:
 import argparse
 import csv
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -63,19 +64,25 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def find_latest_output(case_name: str):
-    """Most recent complete output/<case_name>/YYYY_MMDD/HHMM_SS directory."""
+    """Find the newest run with required tables, including legacy dated layouts."""
     root = SCRIPT_DIR / "output" / case_name
-    if not root.exists():
-        return None
-    for date_dir in sorted(root.iterdir(), reverse=True):
-        if not date_dir.is_dir():
+
+    def _has_output(directory):
+        return (bool(find_table_files(directory / "particle", "*_beam*"))
+                and bool(find_table_files(directory, "*_stat_*") or list(directory.glob("*_stat_*.csv"))))
+
+    candidates = []
+    for directory in root.iterdir() if root.is_dir() else ():
+        if not directory.is_dir():
             continue
-        for time_dir in sorted(date_dir.iterdir(), reverse=True):
-            particle_dir = time_dir / "particle"
-            statistics = find_table_files(time_dir, "*_stat_*") or sorted(time_dir.glob("*_stat_*.csv"))
-            if time_dir.is_dir() and particle_dir.is_dir() and find_table_files(particle_dir) and statistics:
-                return time_dir
-    return None
+        if _has_output(directory):
+            candidates.append(directory)
+        elif re.fullmatch(r"\d{4}_\d{4}", directory.name):
+            # Only legacy time folders are runs; never descend into diagnostics.
+            for run in directory.iterdir():
+                if run.is_dir() and re.fullmatch(r"\d{4}_\d{2}(?:\.\d{3}(?:_\d+)?)?", run.name) and _has_output(run):
+                    candidates.append(run)
+    return max(candidates, key=lambda path: path.stat().st_mtime, default=None)
 
 
 def read_pass_tbt(output_dir, max_tag=20):

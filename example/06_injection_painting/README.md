@@ -44,9 +44,12 @@ workflow; it is not a statistically converged PIC simulation.
 
 The default backend is GPU; select `--backend cpu` if needed. `pass-run` validates
 the input and archives the execution input and dependencies before tracking.
-PASS creates a dated run directory under the case's `tracking` directory, with
+PASS creates a `YYYY_MM_DD_HH_MM` run directory under the case's `tracking` directory, with
 its input snapshot in `input/`. Use `pass-run --help` for options such as
 `--output` and `--stop-file`.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+The analyzer accepts an explicitly selected result path from either the new or legacy layout.
 
 For an additional `completed.json` summary, use the example wrapper in place of
 the `pass-run` command above:
@@ -159,7 +162,7 @@ To plot one completed run, use its dated directory, not a parent containing
 several runs:
 
 ```powershell
-python example/06_injection_painting/analyze_results.py runs/injection_painting/tracking/YYYY_MMDD/HHMM_SS
+python example/06_injection_painting/analyze_results.py runs/injection_painting/tracking/YYYY_MM_DD_HH_MM
 ```
 
 The analysis writes x-px, y-py and x-y panels for the injection history, a density

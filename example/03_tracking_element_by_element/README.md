@@ -52,11 +52,14 @@ This reads `fodo.tfs` and writes `beam0.json` with 17 test particles, 1024 turns
 pass-run --beam0 beam0.json
 ```
 
-Output is saved to `output/YYYY_MMDD/HHMM_SS/` with one TBT particle-monitor file per monitor and beam.
+Output is saved to `output/YYYY_MM_DD_HH_MM/` with one TBT particle-monitor file per monitor and beam.
 The run's `input/` folder archives its execution input and dependencies.
 Use `pass-run --help` for CLI options. `run_simulation.py` remains a compatibility
 wrapper around the same CLI, with `--beam0`, optional `--beam1`, `--output`, and
 `--stop-file` arguments.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+Automatic discovery selects the newest run with the required output tables, supporting both these single-level folders and existing `YYYY_MMDD/HHMM_SS/` results.
 
 ### 4. Analyze results
 
@@ -82,7 +85,7 @@ where $\bar{x}$ is the turn-averaged TBT coordinate. The betatron oscillation (i
 Options:
 
 ```bash
-python analyze_results.py --output-dir output/YYYY_MMDD/HHMM_SS
+python analyze_results.py --output-dir output/YYYY_MM_DD_HH_MM
 python analyze_results.py --twiss fodo_ptc.tfs
 python analyze_results.py --dp-list 5e-5,1e-4,5e-4,1e-3
 python analyze_results.py --adts-x 5e-3,10e-3 --adts-y 5e-3,10e-3

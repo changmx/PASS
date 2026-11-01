@@ -58,10 +58,13 @@ python generate_input.py
 pass-run --beam0 beam0.json
 ```
 
-Output is saved to `output/YYYY_MMDD/HHMM_SS/`, including the execution input
+Output is saved to `output/YYYY_MM_DD_HH_MM/`, including the execution input
 and its dependencies in `input/`. Use `pass-run --help` for CLI options.
 `run_simulation.py` remains a compatibility wrapper around the same CLI, with
 `--beam0`, optional `--beam1`, `--output`, and `--stop-file` arguments.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+Automatic discovery selects the newest run with the required output tables, supporting both these single-level folders and existing `YYYY_MMDD/HHMM_SS/` results.
 
 ### 4. Analyze results
 

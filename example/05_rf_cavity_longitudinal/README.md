@@ -50,10 +50,13 @@ It defaults to `--case all`; `--case <name>` selects one predefined input, and
 also accepts `--output` and `--stop-file`. Use `pass-run --help` for the standard
 CLI options.
 
-By default, results are saved to `output/<case>/YYYY_MMDD/HHMM_SS/`, with the
+By default, results are saved to `output/<case>/YYYY_MM_DD_HH_MM/`, with the
 execution input and copied dependencies, including the RF program, in `input/`. An output
 override changes where results are saved; the analyzer's automatic case lookup
 uses the original case folders.
+
+A missing or `default` `Task name` uses the timestamp folder shown above. Set `"Task name": "capture"` in the input JSON, or pass `--task-name capture` directly to `pass-run`, to use a named folder instead. Existing names receive `_1`, `_2`, and further suffixes; internal subdirectories and filenames are unchanged.
+Automatic discovery selects the newest run with the required output tables, supporting both these single-level folders and existing `YYYY_MMDD/HHMM_SS/` results.
 
 Statistics are read from the run's HDF5 tables by default, or TFS when selected.
 The analyzer also accepts CSV statistics when no HDF5/TFS table is available.
@@ -63,7 +66,7 @@ For a BLonD comparison with recorded reference states:
 ```bash
 python generate_input.py --case twiss_h1_fixed --include-reference
 pass-run --beam0 beam0_twiss_h1_fixed.json
-python blond_compare.py --case twiss_h1_fixed --output-dir output/twiss_h1_fixed/YYYY_MMDD/HHMM_SS
+python blond_compare.py --case twiss_h1_fixed --output-dir output/twiss_h1_fixed/YYYY_MM_DD_HH_MM
 ```
 
 Replace the dated path with the actual run directory printed by PASS. The
@@ -187,7 +190,7 @@ Use the saved reference state when reconstructing those times.
 ├── fodo.madx/.seq/.ps/.tfs  # FODO lattice from examples 03/04 (provides C and gamma_t)
 ├── rf_physical_h<h>_<lattice>_<mode>.tfs  # physical-time programs
 ├── beam0_<case>.json
-└── output/<case>/YYYY_MMDD/HHMM_SS/
+└── output/<case>/YYYY_MM_DD_HH_MM/
 ```
 
 ## Notes

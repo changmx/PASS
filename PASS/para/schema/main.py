@@ -8,9 +8,11 @@ Consumed by:
 All aliases must match the JSON keys the engine expects (case-insensitive).
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, ConfigDict, model_validator
+
+from PASS.utils.input_snapshot import canonicalize_task_name, normalize_task_name
 
 
 class TimingConfig(BaseModel):
@@ -49,6 +51,23 @@ class MainConfig(BaseModel):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_task_name_field(cls, value):
+        if isinstance(value, dict):
+            return canonicalize_task_name(value, python_names=True)
+        return value
+
+    @property
+    def output_name(self):
+        """Compatibility view of the renamed run-folder field."""
+        return self.task_name
+
+    @property
+    def output_subdirectory(self):
+        """Compatibility view of the former output-subdirectory field."""
+        return self.task_name
 
     @model_validator(mode="before")
     @classmethod
@@ -140,6 +159,12 @@ class MainConfig(BaseModel):
         default="./output",
         alias="Output directory",
         description="Root output directory (absolute or relative to input file)",
+    )
+    task_name: Annotated[str, BeforeValidator(normalize_task_name)] = Field(
+        default="default",
+        validate_default=True,
+        alias="Task name",
+        description="Task name used for its result folder; empty or 'default' (case-insensitive) generates YYYY_MM_DD_HH_MM",
     )
     is_plot: bool = Field(
         default=False,
