@@ -543,6 +543,10 @@ class RunPage(QWidget):
         self.log_timer.setSingleShot(True)
         self.log_timer.setInterval(100)
         self.log_timer.timeout.connect(self._refresh_log)
+        self.output_timer = QTimer(self)
+        self.output_timer.setSingleShot(True)
+        self.output_timer.setInterval(25)
+        self.output_timer.timeout.connect(self._read_output)
         self.refresh_inputs()
 
     @property
@@ -755,6 +759,7 @@ class RunPage(QWidget):
             self.shutdown_finished.emit()
 
     def _launch(self, prepared):
+        self.output_timer.stop()
         if self.process is not None:
             self.process.deleteLater()
         self.process = QProcess(self)
@@ -774,7 +779,7 @@ class RunPage(QWidget):
         ])
         self.process.setWorkingDirectory(str(Path(__file__).resolve().parents[2]))
         self.process.setProcessChannelMode(QProcess.MergedChannels)
-        self.process.readyReadStandardOutput.connect(self._read_output)
+        self.process.readyReadStandardOutput.connect(self._schedule_output)
         self.process.finished.connect(self._finished)
         self.process.errorOccurred.connect(self._process_error)
         self.process.started.connect(self._process_started)
@@ -826,6 +831,7 @@ class RunPage(QWidget):
 
     def _process_error(self, error):
         if self.process:
+            self._read_output(drain=True)
             self._append_output("ERROR " + self.process.errorString() + "\n")
         if error == QProcess.FailedToStart:
             self._finished(-1, QProcess.CrashExit)
@@ -834,9 +840,18 @@ class RunPage(QWidget):
         if self.started_at:
             self.elapsed.setText(f"耗时：{time.monotonic() - self.started_at:.1f} s")
 
-    def _read_output(self) -> None:
+    def _schedule_output(self) -> None:
+        if not self._finish_recorded and not self.output_timer.isActive():
+            self.output_timer.start(25)
+
+    def _read_output(self, *, drain=False) -> None:
+        self.output_timer.stop()
         if self.process:
-            self._append_output(self._log_decoder.decode(bytes(self.process.readAllStandardOutput())))
+            # Batch small writes and bound each live read so controls can process events.
+            output = self.process.readAllStandardOutput() if drain else self.process.read(256 * 1024)
+            self._append_output(self._log_decoder.decode(bytes(output)))
+            if not drain and self.process.bytesAvailable():
+                self.output_timer.start(0)
 
     def _append_output(self, output: str) -> None:
         if not output:
@@ -983,6 +998,7 @@ class RunPage(QWidget):
         path, _filter = QFileDialog.getSaveFileName(self, "导出完整运行日志", "pass-run.log", "Log (*.log);;Text (*.txt)")
         if path:
             try:
+                self._read_output(drain=True)
                 if self._log_path is not None and self._log_path.is_file():
                     if Path(path).resolve() != self._log_path.resolve():
                         shutil.copyfile(self._log_path, path)
@@ -1011,7 +1027,7 @@ class RunPage(QWidget):
         if self._finish_recorded:
             return
         self._finish_recorded = True
-        self._read_output()
+        self._read_output(drain=True)
         self._append_output(self._log_decoder.decode(b"", final=True))
         self._refresh_log()
         self.timer.stop()
@@ -1081,4 +1097,5 @@ class RunPage(QWidget):
             self.stop_run()
             return False
         self.log_timer.stop()
+        self.output_timer.stop()
         return True

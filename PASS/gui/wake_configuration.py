@@ -60,7 +60,7 @@ class WakeConfigurationEditor(StructuredField):
         self.name.setEnabled(name is not None)
         self.editor = None
         if name is not None:
-            self.editor = SchemaEditor(WakeResourceConfig, self.resources[name], self.base_dir)
+            self.editor = SchemaEditor(WakeResourceConfig, self.resources[name], self.base_dir, parent=self)
             self.editor.changed.connect(self.changed)
             self.root.addWidget(self.editor)
 

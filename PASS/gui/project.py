@@ -446,6 +446,10 @@ class Project:
                     asset.kind = kind
                     self.dirty = True
                 return asset
+        return self._import_asset(source, kind, context=context)
+
+    def _import_asset(self, source: Path, kind: str = "input", *, context=None) -> Asset:
+        """Capture one external file after checking known project paths."""
         # Copy first, then hash the snapshot rather than a changing external file.
         asset_id = uuid4().hex
         name = source.name
@@ -504,7 +508,12 @@ class Project:
             })
         for mapping, key, _ in file_references(value):
             source = resolved_file(mapping[key], base)
-            asset = by_path.get(source) or self.add_asset(source, context=context)
+            asset = by_path.get(source)
+            if asset is None:
+                asset = self._import_asset(source, context=context)
+                # Reuse this operation's immutable snapshot, including repeated
+                # external references. A later capture reads external files anew.
+                by_path[source] = asset
             mapping[key] = "../" + asset.path
         # Validate JSON before publishing a change to the project.
         json_bytes(value)

@@ -12,8 +12,8 @@ from PASS.gui.structured import Column, NumericTable, StructuredField
 
 class FrozenProfileEditor(SchemaEditor):
 
-    def __init__(self, value, base_dir, solver):
-        super().__init__(FrozenParameters, value, base_dir)
+    def __init__(self, value, base_dir, solver, parent=None):
+        super().__init__(FrozenParameters, value, base_dir, parent=parent)
         self.set_solver(solver)
 
     def set_solver(self, solver):
@@ -30,8 +30,9 @@ class FrozenProfileEditor(SchemaEditor):
 
 class SliceProfilesEditor(StructuredField):
 
-    def __init__(self, value, base_dir, solver):
+    def __init__(self, value, base_dir, solver, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.base_dir, self.solver, self.entries = base_dir, solver, []
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(0, 0, 0, 0)
@@ -47,7 +48,7 @@ class SliceProfilesEditor(StructuredField):
             index = 0
             while index in used:
                 index += 1
-        group = QGroupBox("切片参数")
+        group = QGroupBox("切片参数", self)
         layout = QVBoxLayout(group)
         row = QHBoxLayout()
         row.addWidget(QLabel("切片编号（从 0 开始）"))
@@ -56,7 +57,7 @@ class SliceProfilesEditor(StructuredField):
         remove = QPushButton("删除")
         row.addWidget(remove)
         layout.addLayout(row)
-        profile = FrozenProfileEditor(value, self.base_dir, self.solver)
+        profile = FrozenProfileEditor(value, self.base_dir, self.solver, parent=group)
         layout.addWidget(profile)
         entry = (group, key, profile)
         self.entries.append(entry)
@@ -101,8 +102,9 @@ class SliceProfilesEditor(StructuredField):
 
 class CollisionSourceEditor(StructuredField):
 
-    def __init__(self, value, base_dir):
+    def __init__(self, value, base_dir, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.fields, self.rows = {}, {}
         self.form = QFormLayout(self)
         self.form.setContentsMargins(0, 0, 0, 0)
@@ -122,11 +124,11 @@ class CollisionSourceEditor(StructuredField):
             if key in {"Method", "Solver"}:
                 continue
             if key == "Frozen parameters":
-                field = FrozenProfileEditor(values[key], base_dir, values["Solver"] or "gaussian_ellipse_free_space")
+                field = FrozenProfileEditor(values[key], base_dir, values["Solver"] or "gaussian_ellipse_free_space", parent=self)
             elif key == "Slice parameters":
-                field = SliceProfilesEditor(values[key], base_dir, values["Solver"] or "gaussian_ellipse_free_space")
+                field = SliceProfilesEditor(values[key], base_dir, values["Solver"] or "gaussian_ellipse_free_space", parent=self)
             else:
-                field = make_editor(info.annotation, values[key], key, base_dir)
+                field = make_editor(info.annotation, values[key], key, base_dir, parent=self)
             self.fields[key] = field
             label = QLabel(key)
             label.setWordWrap(True)
@@ -208,15 +210,17 @@ class CollisionSourceEditor(StructuredField):
 
 class CollisionSettingsEditor(StructuredField):
 
-    def __init__(self, value, base_dir):
+    def __init__(self, value, base_dir, parent=None):
         super().__init__()
+        self.setParent(parent)
         self.original = model_draft(BeamBeamConfiguration, value)
         self.fields = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget(self)
         root.addWidget(self.tabs)
         general = StructuredField()
+        general.setParent(self.tabs)
         form = QFormLayout(general)
         self.general_form = form
         form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
@@ -234,7 +238,7 @@ class CollisionSettingsEditor(StructuredField):
                 self.automatic_pairs.toggled.connect(lambda enabled, field=field: self.general_form.setRowVisible(field, not enabled))
                 self.automatic_pairs.toggled.connect(self.changed)
             else:
-                field = make_editor(info.annotation, self.original[key], key, base_dir)
+                field = make_editor(info.annotation, self.original[key], key, base_dir, parent=general)
             self.fields[key] = field
             form.addRow(key, field)
             if key == "Bunch pairs":
@@ -243,10 +247,12 @@ class CollisionSettingsEditor(StructuredField):
         self.tabs.addTab(general, "碰撞")
         self.sources = {}
         for side in ("0", "1"):
-            self.sources[side] = CollisionSourceEditor((self.original["Sources"] or {}).get(side, {"Slice set": "collision"}), base_dir)
+            self.sources[side] = CollisionSourceEditor((self.original["Sources"] or {}).get(side, {"Slice set": "collision"}),
+                                                       base_dir,
+                                                       parent=self.tabs)
             self.tabs.addTab(self.sources[side], "beam" + side + " 源")
             self.sources[side].changed.connect(self.changed)
-        self.luminosity = SchemaEditor(BeamBeamLuminosityConfig, self.original["Luminosity"], base_dir)
+        self.luminosity = SchemaEditor(BeamBeamLuminosityConfig, self.original["Luminosity"], base_dir, parent=self.tabs)
         for label in self.luminosity.labels.values():
             label.setMinimumWidth(190)
             label.setMaximumWidth(300)
@@ -354,7 +360,7 @@ class BeamBeamConfigurationEditor(StructuredField):
         self.name.setEnabled(name is not None)
         self.editor = None
         if name is not None:
-            self.editor = CollisionSettingsEditor(self.resources[name], self.base_dir)
+            self.editor = CollisionSettingsEditor(self.resources[name], self.base_dir, parent=self)
             self.editor.changed.connect(self.changed)
             self.root.addWidget(self.editor)
 
