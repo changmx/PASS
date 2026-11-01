@@ -75,7 +75,7 @@ class Beam:
                 import cupy as cp
             except (ImportError, OSError) as exc:
                 raise RuntimeError("The GPU backend was requested, but CuPy is unavailable. "
-                                   "Install PASS with the optional [cuda] extra or select "
+                                   "Install PASS with the optional [gpu] extra or select "
                                    "'cpu' in the input configuration.") from exc
             xp = cp
         else:

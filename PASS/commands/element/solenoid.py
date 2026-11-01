@@ -613,7 +613,7 @@ def launch_solenoid(element, sim, mode):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU solenoid tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU solenoid tracking requires the optional 'gpu' dependencies.") from exc
     beam = sim.beams[element.beam_id]
     p = beam.particles
     kernel = _get_solenoid_kernel(p.dtype.str)

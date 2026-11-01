@@ -445,15 +445,28 @@ class Config:
             import cupy as cp
         except (ImportError, OSError) as exc:
             raise RuntimeError("The GPU backend was requested, but CuPy is unavailable. "
-                               "Install PASS with the optional [cuda] extra.") from exc
+                               "Install PASS with the [gpu] extra and check the CUDA environment, "
+                               "or select 'cpu' in the input configuration.") from exc
 
         selected_gpu_id = int(self.gpu_id[0])
-        device_count = cp.cuda.runtime.getDeviceCount()
+        try:
+            device_count = cp.cuda.runtime.getDeviceCount()
+        except Exception as exc:
+            raise RuntimeError("The GPU backend was requested, but CUDA device discovery failed. "
+                               "Check the NVIDIA GPU, compatible driver and CUDA runtime libraries, "
+                               "or select 'cpu' in the input configuration.") from exc
+        if device_count == 0:
+            raise RuntimeError("The GPU backend was requested, but no CUDA devices are visible. "
+                               "Check the NVIDIA GPU and device visibility, or select 'cpu' in the input configuration.")
         if selected_gpu_id < 0 or selected_gpu_id >= device_count:
             raise ValueError(f"Configured GPU device id {selected_gpu_id} is out of range "
                              f"for {device_count} visible CUDA device(s)")
 
-        cp.cuda.Device(selected_gpu_id).use()
+        try:
+            cp.cuda.Device(selected_gpu_id).use()
+        except Exception as exc:
+            raise RuntimeError(f"The GPU backend was requested, but CUDA device {selected_gpu_id} could not be initialized. "
+                               "Check the NVIDIA driver and CUDA environment, or select 'cpu' in the input configuration.") from exc
 
     def get_stat_path(self, beam_name, bunch_id):
         return Path(self.output_dir_stat / f"{beam_name}_bunch{bunch_id}_stat_{self.output_hms}")

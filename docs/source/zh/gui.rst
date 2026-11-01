@@ -1,9 +1,12 @@
 图形界面
 ========
 
-使用 ``python -m pip install "pass-sim[gui]"`` 从 PyPI 安装界面。
+使用 ``python -m pip install pass-sim`` 从 PyPI 安装界面。
+默认安装和 ``pass-sim[cpu]`` 均包含 CPU 计算功能与 GUI。
+使用 ``pass-sim[gpu]`` 或等价的 ``pass-sim[cpu,gpu]`` 增加 NVIDIA GPU 依赖。
+模拟后端需在输入配置中单独选择，安装 GPU 依赖不会自动启用 GPU 运行。
 也可以从 GitHub 克隆仓库或下载并解压源码，在包含 ``pyproject.toml`` 的目录中
-执行 ``python -m pip install --editable ".[gui]"`` 安装。
+执行 ``python -m pip install --editable .`` 安装。
 通过 ``python -m PASS.gui`` 或 ``pass-gui`` 启动。
 
 启动时优先准备输入 schema，配置页无需加载跟踪命令即可进入可编辑状态。
@@ -724,7 +727,7 @@ RF 命令属性使用 Components 列表配置规定的物理时间波形。
 本地编译需要完整 PASS 源码，并在启动 GUI 的同一个 Python 环境中安装文档依赖。
 在源码目录执行::
 
-   python -m pip install --editable ".[gui,docs]"
+   python -m pip install --editable ".[docs]"
 
 每次点击 **重新编译本地文档** 都使用 GUI 的 Python 解释器，对中英文文档进行完整的
 Sphinx HTML 构建。编译在独立进程中运行，界面仍可操作。进度窗口显示实时日志，

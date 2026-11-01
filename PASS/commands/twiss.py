@@ -516,7 +516,7 @@ def _get_twiss_kernel(dtype, has_dispersion):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU Twiss tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU Twiss tracking requires the optional 'gpu' dependencies.") from exc
     dtype = np.dtype(dtype)
     return cp.RawKernel(
         TWISS_SOURCE,

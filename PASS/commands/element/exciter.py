@@ -467,7 +467,7 @@ def launch_exciter(element, sim, bunch):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU Exciter tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU Exciter tracking requires the optional 'gpu' dependencies.") from exc
     p = sim.beams[element.beam_id].particles
     key = (cp.cuda.runtime.getDevice(), np.dtype(p.dtype))
     if key not in element._gpu_cache:

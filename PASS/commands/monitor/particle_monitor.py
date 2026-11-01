@@ -626,7 +626,7 @@ def _get_monitor_kernels(dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU ParticleMonitor requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU ParticleMonitor requires the optional 'gpu' dependencies.") from exc
 
     dtype = np.dtype(dtype)
     return (

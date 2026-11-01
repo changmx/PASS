@@ -1285,7 +1285,7 @@ def _get_fused_kernel(dtype, model=0, integrator=0, thin=0):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU SBend tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU SBend tracking requires the optional 'gpu' dependencies.") from exc
     dtype = np.dtype(dtype)
     options = (
         "--std=c++14",
@@ -1303,7 +1303,7 @@ def launch_dipole(element, sim):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU SBend tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU SBend tracking requires the optional 'gpu' dependencies.") from exc
     beam = sim.beams[element.beam_id]
     p = beam.particles
     real = np.float64 if element.model == "rot-kick-rot" else p.real

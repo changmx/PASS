@@ -517,8 +517,8 @@ class Slicer(Command):
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError("GPU Slicer requires the optional 'cuda' dependencies "
-                               "(install PASS with the [cuda] extra).") from exc
+            raise RuntimeError("GPU Slicer requires the optional 'gpu' dependencies "
+                               "(install PASS with the [gpu] extra).") from exc
 
         beam = sim.beams[self.beam_id]
         turn = int(sim.state.turn)
@@ -1066,8 +1066,8 @@ def _get_slicer_kernels(dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU Slicer requires the optional 'cuda' dependencies "
-                           "(install PASS with the [cuda] extra).") from exc
+        raise RuntimeError("GPU Slicer requires the optional 'gpu' dependencies "
+                           "(install PASS with the [gpu] extra).") from exc
     dtype = np.dtype(dtype)
     use_float = dtype == np.dtype(np.float32)
     options = ("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}")

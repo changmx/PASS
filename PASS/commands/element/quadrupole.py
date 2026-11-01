@@ -609,7 +609,7 @@ def _get_quadrupole_kernel(dtype, fringe_active=False):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU quadrupole tracking requires the optional 'cuda' dependencies.") from exc
+        raise RuntimeError("GPU quadrupole tracking requires the optional 'gpu' dependencies.") from exc
 
     dtype = np.dtype(dtype)
     return cp.RawKernel(

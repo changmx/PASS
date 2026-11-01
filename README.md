@@ -8,36 +8,34 @@ PASS (Particle Accelerator Simulation Studio) is a Python program for six-dimens
 
 ## Install
 
-Use Python **3.11 or newer**. Choose PyPI or GitHub, then select one of the three configurations listed under that method.
-The full installation includes CPU, NVIDIA GPU, and GUI support. GPU execution requires a compatible NVIDIA GPU, driver, and CUDA environment. CPU-only and GUI installations do not require CUDA.
+Use Python **3.11 or newer**. The default installation includes CPU computation and the GUI.
+The `cpu` extra explicitly selects the same dependencies; the `gpu` extra adds NVIDIA GPU support while retaining CPU and GUI functionality.
+All configurations install the GUI dependencies, including Qt. Command-line CPU execution does not load Qt or require a graphical display or CUDA.
 
 ### Install from PyPI
 
-**Full installation (CPU + GPU + GUI):**
-
-```bash
-python -m pip install "pass-sim[gui,cuda]"
-```
-
-**CPU computation only (command line and Python API):**
+**Default installation (CPU + GUI):**
 
 ```bash
 python -m pip install pass-sim
 ```
 
-**GUI installation (includes CPU computation):**
+**Explicit CPU installation (also includes the GUI):**
 
 ```bash
-python -m pip install "pass-sim[gui]"
+python -m pip install "pass-sim[cpu]"
 ```
 
-After installing one configuration, run the following command to display the installed PASS version:
+**GPU installation (CPU + GPU + GUI):**
 
 ```bash
-pass-run --version
+python -m pip install "pass-sim[gpu]"
 ```
 
-If you installed the GUI, launch it with `pass-gui`.
+`python -m pip install "pass-sim[cpu,gpu]"` is equivalent to the GPU installation.
+The former `gui`, `cuda`, and `conversion` extras are no longer provided; use the commands above.
+
+After installation, run `pass-run --version` to display the installed PASS version, or `pass-gui` to launch the interface.
 
 ### Install from GitHub
 
@@ -51,34 +49,38 @@ cd PASS
 Alternatively, open the [GitHub repository](https://github.com/changmx/PASS), select **Code → Download ZIP**, and extract it. Enter the directory containing `pyproject.toml`.
 From that directory, select one of the following configurations:
 
-**Full installation (CPU + GPU + GUI):**
-
-```bash
-python -m pip install --editable ".[gui,cuda]"
-```
-
-**CPU computation only (command line and Python API):**
+**Default installation (CPU + GUI):**
 
 ```bash
 python -m pip install --editable .
 ```
 
-**GUI installation (includes CPU computation):**
+**Explicit CPU installation (also includes the GUI):**
 
 ```bash
-python -m pip install --editable ".[gui]"
+python -m pip install --editable ".[cpu]"
 ```
 
+**GPU installation (CPU + GPU + GUI):**
+
+```bash
+python -m pip install --editable ".[gpu]"
+```
+
+`python -m pip install --editable ".[cpu,gpu]"` is equivalent to the GPU installation.
 An editable installation uses the code in this source directory directly; Python source edits take effect in subsequent runs.
-After installation, run the following command to display the installed PASS version:
-
-```bash
-pass-run --version
-```
-
-If you installed the GUI, launch it with `pass-gui`.
+After installation, use `pass-run --version` to display the installed PASS version, or `pass-gui` to launch the interface.
 
 Both installation methods also support `python -m PASS --version`. Run `pass-run --help` or `pass-run -h` to see input modes, options, path rules, and examples.
+
+### GPU requirements and backend selection
+
+Installing GPU dependencies does not select the simulation backend. Choose `cpu` or `gpu` using `backend (gpu/cpu)` in the input configuration.
+GPU execution requires a compatible NVIDIA GPU, driver, and CUDA environment; the current GPU dependencies target CUDA 13.x.
+The GPU extra does not install an NVIDIA driver or guarantee a complete CUDA Toolkit installation.
+On a supported platform, GPU packages may install without a GPU, but installation success does not establish GPU availability.
+CPU computation and the GUI can still be used without CUDA. Explicit GPU execution fails with a diagnostic if CuPy, device discovery, or device initialization is unavailable; PASS does not silently fall back to CPU.
+CUDA library or kernel-compilation errors can also occur later when a particular GPU feature is first used.
 
 ## Run a simulation
 

@@ -68,7 +68,7 @@ class DocumentationBuilder(QObject):
         missing = [name for name in ("sphinx", "sphinx_rtd_theme") if importlib.util.find_spec(name) is None]
         if missing:
             raise ValueError("缺少文档编译依赖：" + ", ".join(missing) + f'\n请使用以下 Python 环境，在 PASS 源码目录安装依赖：\n{sys.executable}' +
-                             '\npython -m pip install --editable ".[gui,docs]"')
+                             '\npython -m pip install --editable ".[docs]"')
         name = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:8]
         self.output_dir = self.root / "docs" / "build" / "gui" / name
         self.output_dir.mkdir(parents=True, exist_ok=False)

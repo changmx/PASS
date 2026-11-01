@@ -335,8 +335,8 @@ class StatMonitor(Command):
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError("GPU StatMonitor requires the optional 'cuda' dependencies "
-                               "(install PASS with the [cuda] extra).") from exc
+            raise RuntimeError("GPU StatMonitor requires the optional 'gpu' dependencies "
+                               "(install PASS with the [gpu] extra).") from exc
         cfg = sim.cfg
         beam = sim.beams[self.beam_id]
         p = beam.particles
@@ -577,8 +577,8 @@ def _get_stat_kernels(dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU StatMonitor requires the optional 'cuda' dependencies "
-                           "(install PASS with the [cuda] extra).") from exc
+        raise RuntimeError("GPU StatMonitor requires the optional 'gpu' dependencies "
+                           "(install PASS with the [gpu] extra).") from exc
 
     dtype = np.dtype(dtype)
     use_float = dtype == np.dtype(np.float32)

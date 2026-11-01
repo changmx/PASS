@@ -284,7 +284,7 @@ def _cufftdx_kernel(length, dtype, device):
     try:
         package = distribution("nvidia-mathdx")
     except PackageNotFoundError as exc:
-        raise RuntimeError("cuFFTDx requires nvidia-mathdx; install the PASS [cuda] extra") from exc
+        raise RuntimeError("cuFFTDx requires nvidia-mathdx; install the PASS [gpu] extra") from exc
     include = next(
         (Path(package.locate_file(p)).parent for p in package.files if str(p).replace("\\", "/").endswith("include/cufftdx.hpp")),
         None,

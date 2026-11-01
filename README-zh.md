@@ -8,36 +8,34 @@ PASS（Particle Accelerator Simulation Studio）是用于六维粒子跟踪与�
 
 ## 安装
 
-需要 **Python 3.11 或更高版本**。先选择 PyPI 或 GitHub，再选择所需功能；每类中的三种配置任选一种。
-完整安装包含 CPU、NVIDIA GPU 和 GUI；GPU 功能需要兼容的 NVIDIA GPU、驱动和 CUDA 环境。仅 CPU 和 GUI 安装不需要 CUDA。
+需要 **Python 3.11 或更高版本**。默认安装包含 CPU 计算功能和 GUI。
+`cpu` 选项明确表达 CPU 用途，安装内容与默认相同；`gpu` 选项增加 NVIDIA GPU 支持，同时保留 CPU 和 GUI 功能。
+所有配置均安装 GUI 依赖（包括 Qt）。命令行 CPU 运行不加载 Qt，也不要求图形显示环境或 CUDA。
 
 ### 从 PyPI 安装
 
-**完整安装（CPU + GPU + GUI）：**
-
-```bash
-python -m pip install "pass-sim[gui,cuda]"
-```
-
-**仅安装 CPU 计算功能（命令行和 Python API）：**
+**默认安装（CPU + GUI）：**
 
 ```bash
 python -m pip install pass-sim
 ```
 
-**安装 GUI（包含 CPU 计算功能）：**
+**显式选择 CPU（同样包含 GUI）：**
 
 ```bash
-python -m pip install "pass-sim[gui]"
+python -m pip install "pass-sim[cpu]"
 ```
 
-选择一种配置安装后，执行以下命令，查看已安装的 PASS 版本信息：
+**GPU 安装（CPU + GPU + GUI）：**
 
 ```bash
-pass-run --version
+python -m pip install "pass-sim[gpu]"
 ```
 
-安装了 GUI 后，使用 `pass-gui` 启动界面。
+`python -m pip install "pass-sim[cpu,gpu]"` 与 GPU 安装等价。
+不再提供原来的 `gui`、`cuda` 和 `conversion` 可选依赖入口，请使用上述命令。
+
+安装后执行 `pass-run --version` 查看已安装的 PASS 版本，或使用 `pass-gui` 启动界面。
 
 ### 从 GitHub 安装
 
@@ -51,34 +49,38 @@ cd PASS
 也可以打开 [GitHub 仓库](https://github.com/changmx/PASS)，选择 **Code → Download ZIP** 下载并解压，然后进入包含 `pyproject.toml` 的目录。
 在该目录中选择以下一种配置安装：
 
-**完整安装（CPU + GPU + GUI）：**
-
-```bash
-python -m pip install --editable ".[gui,cuda]"
-```
-
-**仅安装 CPU 计算功能（命令行和 Python API）：**
+**默认安装（CPU + GUI）：**
 
 ```bash
 python -m pip install --editable .
 ```
 
-**安装 GUI（包含 CPU 计算功能）：**
+**显式选择 CPU（同样包含 GUI）：**
 
 ```bash
-python -m pip install --editable ".[gui]"
+python -m pip install --editable ".[cpu]"
 ```
 
+**GPU 安装（CPU + GPU + GUI）：**
+
+```bash
+python -m pip install --editable ".[gpu]"
+```
+
+`python -m pip install --editable ".[cpu,gpu]"` 与 GPU 安装等价。
 可编辑安装直接使用这份源码目录中的代码，修改 Python 源码后会在后续运行中生效。
-安装后执行以下命令，查看已安装的 PASS 版本信息：
-
-```bash
-pass-run --version
-```
-
-安装了 GUI 后，使用 `pass-gui` 启动界面。
+安装后执行 `pass-run --version` 查看已安装的 PASS 版本，或使用 `pass-gui` 启动界面。
 
 两种安装方式均支持 `python -m PASS --version` 查看版本信息。执行 `pass-run --help` 或 `pass-run -h` 可查看输入方式、选项、路径规则和示例。
+
+### GPU 环境要求与后端选择
+
+安装 GPU 依赖不会自动选择模拟后端。请通过输入配置中的 `backend (gpu/cpu)` 选择 `cpu` 或 `gpu`。
+GPU 运行需要兼容的 NVIDIA GPU、驱动和 CUDA 环境；当前 GPU 依赖面向 CUDA 13.x。
+GPU 选项不安装 NVIDIA 驱动，也不保证安装完整的 CUDA Toolkit。
+在支持的平台上，没有 GPU 也可能成功安装 GPU 软件包，但安装成功不代表 GPU 可用。
+没有 CUDA 时仍可使用 CPU 计算和 GUI。显式选择 GPU 后，如果 CuPy 不可用、设备查询失败或设备初始化失败，PASS 会给出错误提示，不会静默回退到 CPU。
+具体 GPU 功能首次使用时，还可能出现 CUDA 库加载或内核编译错误。
 
 ## 运行模拟
 

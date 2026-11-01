@@ -1,9 +1,12 @@
 Graphical interface
 ===================
 
-Install the interface from PyPI with ``python -m pip install "pass-sim[gui]"``.
+Install the interface from PyPI with ``python -m pip install pass-sim``.
+The default installation and ``pass-sim[cpu]`` both include CPU computation and the GUI.
+Use ``pass-sim[gpu]`` or the equivalent ``pass-sim[cpu,gpu]`` to add NVIDIA GPU dependencies.
+Select the simulation backend separately in the input configuration; installing GPU dependencies does not enable GPU execution automatically.
 To install from a GitHub clone or extracted source archive, run
-``python -m pip install --editable ".[gui]"`` from the directory containing ``pyproject.toml``.
+``python -m pip install --editable .`` from the directory containing ``pyproject.toml``.
 Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
 Startup prepares the input schemas first, so the configuration page can become
@@ -954,7 +957,7 @@ HTML pages open in the system's default browser.
 To enable local builds, install the documentation dependencies in the same Python
 environment used to launch the GUI, from a complete PASS source checkout::
 
-   python -m pip install --editable ".[gui,docs]"
+   python -m pip install --editable ".[docs]"
 
 Every click on **Rebuild local documentation** starts a full Sphinx HTML build of
 both languages, using the GUI's Python interpreter. The build runs in a separate

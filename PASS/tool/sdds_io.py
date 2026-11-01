@@ -12,7 +12,7 @@ def _backend():
     try:
         import sdds
     except ImportError as exc:
-        raise ImportError('OMC3 SDDS conversion requires: python -m pip install --editable ".[conversion]"') from exc
+        raise ImportError('OMC3 SDDS conversion requires: python -m pip install pass-sim') from exc
     if not hasattr(sdds, "SddsFile") or not hasattr(sdds, "classes"):
         raise ImportError("OMC3 conversion requires the PyLHC sdds package, not another package named sdds")
     return sdds

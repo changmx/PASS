@@ -257,8 +257,8 @@ def _get_transfer_drift_kernel(dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU Drift tracking requires the optional 'cuda' dependencies "
-                           "(install PASS with the [cuda] extra).") from exc
+        raise RuntimeError("GPU Drift tracking requires the optional 'gpu' dependencies "
+                           "(install PASS with the [gpu] extra).") from exc
 
     dtype = np.dtype(dtype)
     use_float = dtype == np.dtype(np.float32)

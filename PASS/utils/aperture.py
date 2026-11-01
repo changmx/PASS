@@ -658,8 +658,8 @@ def _get_kernel(name, dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU aperture checks require the optional 'cuda' dependencies "
-                           "(install PASS with the [cuda] extra).") from exc
+        raise RuntimeError("GPU aperture checks require the optional 'gpu' dependencies "
+                           "(install PASS with the [gpu] extra).") from exc
     use_float = np.dtype(dtype) == np.dtype(np.float32)
     return cp.RawKernel(
         _APERTURE_CUDA,
@@ -719,8 +719,8 @@ def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError("GPU aperture checks require the optional 'cuda' dependencies "
-                               "(install PASS with the [cuda] extra).") from exc
+            raise RuntimeError("GPU aperture checks require the optional 'gpu' dependencies "
+                               "(install PASS with the [gpu] extra).") from exc
         vertx = cp.asarray([v[0] for v in aperture_value], dtype=beam.particles.dtype)
         verty = cp.asarray([v[1] for v in aperture_value], dtype=beam.particles.dtype)
         nvert = len(aperture_value)
