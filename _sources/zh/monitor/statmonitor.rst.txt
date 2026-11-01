@@ -1,7 +1,7 @@
 统计监视器（StatMonitor）
 ====================================
 
-``StatMonitor`` 在指定晶格位置逐圈记录各束团的质心、标准差、RMS 发射度、统计 Twiss 参数及粒子损失。统计矩仅使用存活粒子（``tag > 0``）；每个监视器为各束团输出 CSV 及所选格式的统计历史。
+``StatMonitor`` 在指定晶格位置逐圈记录各束团的质心、标准差、RMS 发射度、统计 Twiss 参数及粒子损失。统计矩仅使用存活粒子（``tag > 0``）；每个监视器在跟踪期间为各束团输出 HDF5 统计历史。选择 TFS 时，在结束清理阶段额外导出该历史。不生成 CSV 文件。
 
 配置示例
 ------------
@@ -43,7 +43,7 @@
     - ``"Output format"``
     - str
     - ``"hdf5-gzip1"``
-    - ``"hdf5-gzip1"``（gzip-1 + shuffle）、``"hdf5"``（不压缩）或 ``"tfs"``；始终额外提供 CSV
+    - ``"hdf5-gzip1"`` （gzip-1 + shuffle）、 ``"hdf5"`` （不压缩）或 ``"tfs"`` （跟踪期间保存不压缩的 HDF5，结束时导出 TFS）；不生成 CSV
   * - ``write_interval_turns``
     - ``"Write interval (turns)"``
     - 正整数
@@ -58,11 +58,10 @@
 输出文件
 --------
 
-每个束团、每条监视器命令生成一对文件：
+每个束团、每条监视器命令输出 HDF5 统计历史。选择 TFS 时，在结束清理阶段额外生成文本文件，并保留 HDF5 文件：
 
-- **CSV** （分批追加） ： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv``
-- **HDF5** （默认，与 CSV 同批追加）： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
-- **TFS** （选择后代替 HDF5，结束时生成） ： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
+- **HDF5** （分批追加；选择 TFS 时不压缩）： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5``
+- **TFS** （选择后，在结束清理阶段由 HDF5 导出） ： ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs``
 
 输出目录为 ``output_dir_stat`` 。
 
@@ -229,7 +228,7 @@ beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母
 已分配的粒子群若无存活粒子，CPU/GPU 都输出零矩与明确的零存活计数；
 声明为空的 bunch 仍沿用不输出行的行为。
 
-批量写入、最后不足一批的处理、运行中查看 CSV 和 HDF5 结构见
+批量写入、最后不足一批的处理、运行中查看数据和 HDF5 结构见
 :doc:`table_output`。
 工作原理
 --------

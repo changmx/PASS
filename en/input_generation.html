@@ -256,6 +256,40 @@ Relative configuration paths are resolved beside that JSON. If the field is
 omitted or set to <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive), the output root is <code class="docutils literal notranslate"><span class="pre">output</span></code>
 beside the first JSON. Generated inputs still default to <code class="docutils literal notranslate"><span class="pre">./output</span></code>. The
 repository or installation directory is no longer used as a fallback.</p>
+<p>The optional <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> field (<code class="docutils literal notranslate"><span class="pre">MainConfig.task_name</span></code>) names the run
+folder inside that root. <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> / <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> still specifies
+the output root. For example, <code class="docutils literal notranslate"><span class="pre">output_dir=&quot;output&quot;,</span>
+<span class="pre">task_name=&quot;capture_sc&quot;</span></code> writes to <code class="docutils literal notranslate"><span class="pre">output/capture_sc/</span></code>. Omit the field or
+use <code class="docutils literal notranslate"><span class="pre">null</span></code>, an empty string, whitespace, or <code class="docutils literal notranslate"><span class="pre">default</span></code> to select a single
+folder named <code class="docutils literal notranslate"><span class="pre">YYYY_MM_DD_HH_MM</span></code> at minute precision, for example
+<code class="docutils literal notranslate"><span class="pre">output/2026_10_30_18_39/</span></code>. <code class="docutils literal notranslate"><span class="pre">default</span></code> is case-insensitive after trimming
+surrounding whitespace, so <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">DEFAULT</span> <span class="pre">&quot;</span></code> has the same effect. There is no
+separate date parent directory and no automatic Beam 0 name fallback.
+The <code class="docutils literal notranslate"><span class="pre">input/</span></code>, <code class="docutils literal notranslate"><span class="pre">distribution/</span></code>, <code class="docutils literal notranslate"><span class="pre">particle/</span></code>, <code class="docutils literal notranslate"><span class="pre">plot/</span></code> and other component
+subdirectories keep their names and layout. Result filenames retain their
+existing <code class="docutils literal notranslate"><span class="pre">HHMM_SS</span></code> time labels, independently of the task folder name.
+Both automatic and custom names use unpadded collision suffixes <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_3</span></code>, and so on: for example, <code class="docutils literal notranslate"><span class="pre">2026_10_30_18_39_1</span></code> or <code class="docutils literal notranslate"><span class="pre">capture_sc_1</span></code>.
+Earlier results are never reused or overwritten.</p>
+<p>Use a single folder name, not a path: path separators, <code class="docutils literal notranslate"><span class="pre">.</span></code>/<code class="docutils literal notranslate"><span class="pre">..</span></code>, invalid
+filename characters and reserved operating-system names are rejected. Leading
+and trailing whitespace is removed. Date-shaped custom names are allowed;
+<code class="docutils literal notranslate"><span class="pre">YYYY_MMDD</span></code> is no longer reserved. The command-line <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">NAME</span></code>
+overrides the stored name without changing the input. An explicitly empty
+override or <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">default</span></code> selects the single-level timestamp layout:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json --task-name capture_sc</span>
+<span class="go">pass-run example.passproj --output results --task-name capture_sc</span>
+<span class="go">pass-run input/beam0.json --task-name ""</span>
+<span class="go">pass-run input/beam0.json --task-name default</span>
+</pre></div>
+</div>
+<p>Compatibility inputs still accept the former JSON fields <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">subdirectory</span></code>
+and <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">name</span></code>, Python arguments or project settings <code class="docutils literal notranslate"><span class="pre">output_subdirectory</span></code>
+and <code class="docutils literal notranslate"><span class="pre">output_name</span></code>, and CLI options <code class="docutils literal notranslate"><span class="pre">--output-subdirectory</span></code> and <code class="docutils literal notranslate"><span class="pre">--output-name</span></code>.
+New JSON, project files and execution snapshots use <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> or <code class="docutils literal notranslate"><span class="pre">task_name</span></code>
+as appropriate. Supplying multiple aliases for the same setting is rejected;
+use one spelling when migrating. Existing result trees are not moved or renamed.
+New runs, including reruns of old inputs or snapshots, use the single-level layout.</p>
 <p>Use either help command to display input modes, options, path rules, and examples
 without starting a simulation:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run --help</span>
@@ -271,7 +305,13 @@ To override output in a Python integration, use
 <code class="docutils literal notranslate"><span class="pre">PASS.main.main('input/beam0.json',</span> <span class="pre">output_dir='results',</span> <span class="pre">raise_errors=True)</span></code>.
 Relative <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> paths use the working directory when <code class="docutils literal notranslate"><span class="pre">main()</span></code> is called.
 This override requires the default <code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>; it cannot be combined
-with <code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> for an already prepared snapshot.</p>
+with <code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> for an already prepared snapshot.
+The Python <code class="docutils literal notranslate"><span class="pre">task_name</span></code> argument similarly overrides the configured folder
+name, for example <code class="docutils literal notranslate"><span class="pre">main('input/beam0.json',</span> <span class="pre">task_name='capture_sc')</span></code>.
+<code class="docutils literal notranslate"><span class="pre">task_name=None</span></code> leaves the saved setting in effect; <code class="docutils literal notranslate"><span class="pre">task_name=''</span></code> or
+<code class="docutils literal notranslate"><span class="pre">task_name='default'</span></code> restores the single-level timestamp layout even when the saved name is
+custom. The same case-insensitive, whitespace-trimming rule applies. An explicit
+override requires <code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>.</p>
 <p>The script writes <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code>. Its relative output directory resolves to <code class="docutils literal notranslate"><span class="pre">input/output</span></code>; each run creates a run directory beneath it. The run directory contains a CSV file and an HDF5 file with 64 statistics rows (turns 0–63). Log output gives the exact run path. Read the newest statistics file after the run:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
@@ -294,9 +334,9 @@ the JSON configuration and referenced input files, validates the resulting
 snapshot, and initializes tracking from that snapshot. This includes particle
 distributions, RF programs, offset tables, wakefield models, and magnet ramping
 tables. Later changes to their original files do not affect the run.</p>
-<p>JSON, saved project, and GUI runs all use the same dated result layout by default.
+<p>JSON, saved project, and GUI runs all use the same single-level timestamp layout by default.
 The input snapshot is stored in the run’s <code class="docutils literal notranslate"><span class="pre">input</span></code> subdirectory:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # simulation results for this run
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MM_DD_HH_MM&gt;/       # simulation results for this run
     input/
         configuration0.json         # original configuration values
         beam0.json                  # execution input; optional beam1.json
@@ -304,8 +344,11 @@ The input snapshot is stored in the run’s <code class="docutils literal notran
         run.json                    # paths, SHA-256 hashes and run status
 </pre></div>
 </div>
-<p>The result directory is allocated before inputs are copied. A suffix is added
-to the time directory when needed to avoid reusing an existing result directory.
+<p>With <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name:</span> <span class="pre">capture_sc</span></code>, the same contents live beneath
+<code class="docutils literal notranslate"><span class="pre">&lt;output&gt;/capture_sc/</span></code> instead of the automatic timestamp folder. If that
+folder already exists, a numbered sibling is allocated as described above.</p>
+<p>The result directory is allocated before inputs are copied. Both automatic and
+custom names receive <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>, and so on when the requested folder exists.
 The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code>; it is not another directory level.
 Copied dependencies are placed directly in <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without numbered
 subdirectories. Filenames are preserved; name conflicts, compared without
@@ -318,7 +361,7 @@ directory can be moved together. The output root, including any <code class="doc
 Python <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> override, is resolved before copying and stored as an
 absolute <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> in the execution snapshot; moving the snapshot
 does not redirect its results. An override changes the root for both snapshots
-and results while preserving the layout above. The original JSON and input
+and results while preserving the selected layout. The original JSON and input
 files remain unchanged. <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> serializes the original
 configuration values; copied dependency files preserve their exact bytes.
 The GUI and command-line project runs use the same input-copying, hashing, and
@@ -337,8 +380,9 @@ Missing references point to uncreated paths inside the snapshot, so restoring
 an original file later cannot make it an unarchived runtime input.
 The record follows preparation and execution status. <code class="docutils literal notranslate"><span class="pre">output_root</span></code> stores the
 chosen output root, and <code class="docutils literal notranslate"><span class="pre">output_directory</span></code> stores the output path written into
-the execution configuration. <code class="docutils literal notranslate"><span class="pre">results_directory</span></code> stores the allocated result
-directory, including the dated subdirectories, from preparation onward.
+the execution configuration. <code class="docutils literal notranslate"><span class="pre">task_name</span></code> stores the requested custom name,
+or an empty string for the single-level timestamp layout. <code class="docutils literal notranslate"><span class="pre">results_directory</span></code> stores the actual
+allocated result directory, including any collision suffix, from preparation onward.
 The <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> callback can read
 <code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> to locate this run’s <code class="docutils literal notranslate"><span class="pre">run.json</span></code>. A preparation
 failure is recorded as <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code> when a record has already been created.</p>
@@ -363,7 +407,10 @@ for integrations: results remain directly in the specified output directory,
 and snapshots are placed in its parent’s <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>.
 If the result directory itself is named <code class="docutils literal notranslate"><span class="pre">input_snapshots</span></code>, the sibling
 <code class="docutils literal notranslate"><span class="pre">input_snapshots_archive/&lt;run-id&gt;</span></code> is used instead, keeping the flat result
-directory free of snapshot subdirectories.</p>
+directory free of snapshot subdirectories.
+<code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code> cannot be combined with a custom <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code>; clear
+the configured name or pass <code class="docutils literal notranslate"><span class="pre">task_name=''</span></code> or <code class="docutils literal notranslate"><span class="pre">task_name='default'</span></code> for
+that verification workflow.</p>
 </section>
 <section id="json-file-structure">
 <h2>JSON File Structure<a class="headerlink" href="#json-file-structure" title="Link to this heading"></a></h2>
@@ -380,6 +427,7 @@ directory free of snapshot subdirectories.</p>
 <span class="w">    </span><span class="nt">"Number of GPU devices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
 <span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Task name"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -500,21 +548,27 @@ directory free of snapshot subdirectories.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'./output'</span></code></p></td>
-<td><p>Output directory; relative paths resolve against the input JSON directory. Omitted or <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive) uses <code class="docutils literal notranslate"><span class="pre">output</span></code> beside the first JSON.</p></td>
+<td><p>Output root directory; relative paths resolve against the input JSON directory. Omitted or <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive) uses <code class="docutils literal notranslate"><span class="pre">output</span></code> beside the first JSON.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'default'</span></code> (displayed)</p></td>
+<td><p>Optional task name, used as the run-folder name beneath <code class="docutils literal notranslate"><span class="pre">output_dir</span></code>. Omitted, null, blank or <code class="docutils literal notranslate"><span class="pre">default</span></code> (case-insensitive after trimming whitespace) selects the single-level <code class="docutils literal notranslate"><span class="pre">YYYY_MM_DD_HH_MM</span></code> layout and normalizes to an empty string. Both automatic and custom names use collision suffixes <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>, and so on. Subdirectories and result filename rules are unchanged.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p>Generate <a class="reference internal" href="monitor/plotting.html"><span class="doc">monitor figures</span></a> from saved results after successful tracking; default output is the run’s <code class="docutils literal notranslate"><span class="pre">plot/</span></code> directory.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig()</span></code></p></td>
 <td><p>TimingConfig: mode=command, log_interval=10, warmup_turns=1, include_io=True.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>

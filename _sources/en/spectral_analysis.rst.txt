@@ -173,9 +173,12 @@ different particles must be organized into separate trajectories first.
 GUI workflow
 ------------
 
-1. Open **Analysis**, choose **Spectrum** or **Frequency map analysis** in the left sidebar, then select a data file.
-2. Inspect the columns/datasets and choose signal(s), sample axis, coordinate
-   column or spacing, and the desired sample/object ranges.
+1. Open **Analysis**, choose **Statistical data spectrum**, **PM particle spectrum** or **Frequency map analysis** in the left sidebar,
+   then drop one or more files onto the page or select them through the top **Open files…** dialog.
+   Each file opens in an independent tab using the current analysis type, with available columns/arrays scanned automatically.
+2. For statistical spectra choose a statistic and sample interval; for PM spectra choose
+   a trajectory coordinate, sample interval and particle-index range. Select a sampling
+   coordinate or spacing as appropriate. **Advanced settings** shows options relevant to the selected entry.
 3. For a spectrum choose basic or refined FFT. Refined settings include the
    window, padding, interpolation and peak search band.
 4. For FMA select the paired signals, two equal-length windows and frequency
@@ -184,12 +187,60 @@ GUI workflow
    numerical data or the figure. **Copy Python call** reproduces the selected
    data and calculation parameters in a script.
 
+Opening a file lists its available signals; it does not start FFT/FMA automatically.
+Each tab retains its own settings, results, figure and zoom state. Switching tabs
+does not recompute or reset a plot. Reopening the same file creates an independent
+view with different settings. Export and Copy Python call use the current tab's
+result only. Tabs can be reordered or closed individually; closing a busy tab first
+cancels and waits for its background work.
+**Refresh columns / arrays** rescans the same file when its contents have changed.
+Editing the file path or text parsing settings also refreshes the list automatically.
+Selections are retained when refreshing the same file if the fields still exist.
+**Statistical data spectrum** accepts StatMonitor files and ordinary one-dimensional
+numeric columns or arrays. It defaults to ``xAverage`` and omits particle ranges,
+alive markers and multidimensional sample axes. **PM particle spectrum** offers
+``x``, ``px``, ``y``, ``py``, ``z`` and ``dp`` trajectories and a particle-index range,
+defaulting to ``x``. Native particle identities, alive markers and the sample axis
+are handled automatically. Both entries retain separate files, settings and results;
+opening a recognized native file in the wrong entry reports which entry to use.
+StatMonitor and ParticleMonitor both default to ``turn`` as the sampling coordinate.
+FMA retains paired signals, object ranges and external-array settings. Native single-file
+ParticleMonitor input fixes the sample axis to 0; other multidimensional arrays keep an
+explicit sample axis, where -1 means the last dimension.
+
+Sample and object ranges are array-position indices with an excluded end; they are
+not physical turn numbers or particle IDs. The sampling-unit choice changes labels
+only: choosing seconds does not convert turn coordinates into time. Tooltips explain
+each input and method option. Spectrum defaults are refined FFT, Hann window, eightfold
+padding, parabolic peak interpolation and one peak, without mean subtraction; FMA
+defaults to subtracting the mean. Padding refines the displayed frequency grid but
+does not add observation time or physical resolving power. A peak-search band limits
+peak selection, not the full displayed spectrum.
+
+The **Crosshair / data values** toolbar action toggles thin full-width and full-height
+crosshairs that always follow the pointer, with values beside the intersection.
+Signal and spectrum curves separately mark the actual sample nearest the vertical
+line; nearby refined peaks take priority. FMA highlights nearby actual scatter points.
+The label reports the marked point's values, or pointer coordinates when no point is
+selected. Markers do not move the crosshair or create interpolated samples.
+Signal and spectrum queries use full selected arrays,
+including samples omitted from the display preview. The spectrum plots the first
+selected object; the complete numerical result still includes all selected objects.
+Cursor overlays hide while dragging to pan or zoom and resume on release, even
+when the toolbar's pan or zoom mode remains selected. Image exports omit the overlay.
+
 Reading and calculation run in a background worker. Display previews may be
 bounded, but calculation uses the selected full-resolution arrays. Cancellation
 waits for the current numerical operation to finish and discards its result.
 During FMA, cancellation is checked before and after each object's frequency
 estimate in each plane and window, without waiting for all objects to finish.
 Ordinary file opening does not change the tracking configuration.
+
+The result notice shows the complete source path used by the displayed graph,
+exports and copied Python call. Selecting another file or changing settings
+keeps the last completed result available and displays a request to rerun the
+analysis. Scanning columns does not recompute that result; the notice remains
+visible after scanning, export or a failed operation.
 
 NPZ export retains result arrays, selected input arrays, coordinates and
 metadata. CSV exports complete numeric results with a metadata comment;

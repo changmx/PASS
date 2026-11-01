@@ -252,6 +252,29 @@ snapshots and results both use the chosen root with the same layout below.
 <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">--help</span></code> or <code class="docutils literal notranslate"><span class="pre">pass-run</span> <span class="pre">-h</span></code> displays the input modes, options, path
 rules, and examples, including <code class="docutils literal notranslate"><span class="pre">--stop-file</span></code>;
 exit codes are documented in <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>.</p>
+<p>On <strong>Run</strong>, <strong>Output root directory</strong> selects the parent path, and the optional
+<strong>Task name</strong> field selects a single directory under that root. The latter
+displays <code class="docutils literal notranslate"><span class="pre">default</span></code> as its initial value, rather than placeholder text; a saved
+custom name is displayed as-is. For example, <code class="docutils literal notranslate"><span class="pre">capture_sc</span></code> produces
+<code class="docutils literal notranslate"><span class="pre">&lt;output&gt;/capture_sc/</span></code>. Leaving it blank or entering <code class="docutils literal notranslate"><span class="pre">default</span></code> retains the
+single-level timestamp layout below. <code class="docutils literal notranslate"><span class="pre">default</span></code> is case-insensitive after trimming surrounding
+whitespace, so <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">DEFAULT</span> <span class="pre">&quot;</span></code> also selects that layout.
+The project saves this choice as <code class="docutils literal notranslate"><span class="pre">run.task_name</span></code>. If that key is absent,
+execution uses Beam 0’s <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code>; an explicit empty, null or <code class="docutils literal notranslate"><span class="pre">default</span></code>
+setting selects the single-level timestamp layout even if Beam 0 specifies a custom name.
+It never derives a name from the Beam 0 filename or <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">Name</span></code>.
+<code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">NAME</span></code> overrides both saved settings, and <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">&quot;&quot;</span></code>
+or <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">default</span></code> restores the single-level timestamp layout for that invocation.
+The Python entry point accepts the
+same override as <code class="docutils literal notranslate"><span class="pre">main(...,</span> <span class="pre">task_name='capture_sc')</span></code>; <code class="docutils literal notranslate"><span class="pre">task_name='default'</span></code>
+explicitly restores the single-level timestamp layout. See
+<a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a> for allowed names and API details.</p>
+<p>Every new run uses one directory beneath the output root. Without a custom task
+name, its name is <code class="docutils literal notranslate"><span class="pre">YYYY_MM_DD_HH_MM</span></code> at minute precision, for example
+<code class="docutils literal notranslate"><span class="pre">2026_10_30_18_39</span></code>. Both automatic and custom names receive unpadded <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_3</span></code>, and so on when occupied. The <code class="docutils literal notranslate"><span class="pre">input/</span></code>, <code class="docutils literal notranslate"><span class="pre">distribution/</span></code>, <code class="docutils literal notranslate"><span class="pre">particle/</span></code>,
+<code class="docutils literal notranslate"><span class="pre">plot/</span></code> and other component subdirectories retain their layout, and result
+filenames keep their <code class="docutils literal notranslate"><span class="pre">HHMM_SS</span></code> time labels. Previous results are preserved.</p>
 <p>The GUI freezes the selected configurations, then validates them, copies their
 dependencies using the same snapshot service as <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code>, and verifies
 the snapshot in a background worker before starting the child process.
@@ -260,9 +283,9 @@ duplicate starts are disabled during preparation and execution. Failed or
 cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.</p>
 <p>Each GUI run and command-line project run has its own result directory, with
-the input snapshot in its <code class="docutils literal notranslate"><span class="pre">input</span></code> subdirectory. This is the same dated layout
-as standalone JSON runs:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # simulation results for this run
+the input snapshot in its <code class="docutils literal notranslate"><span class="pre">input</span></code> subdirectory. With no custom output name,
+it uses the same default single-level timestamp layout as standalone JSON runs:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MM_DD_HH_MM&gt;/       # simulation results for this run
     input/
         beam0.json                  # fixed runtime input; optional beam1.json
         configuration0.json         # original configuration for comparison
@@ -271,22 +294,26 @@ as standalone JSON runs:</p>
         gui.log                     # complete process log for GUI runs
 </pre></div>
 </div>
+<p>With a custom output name, the contents shown above are instead stored beneath
+<code class="docutils literal notranslate"><span class="pre">&lt;output&gt;/&lt;task_name&gt;/</span></code> (or its numbered sibling).</p>
 <p><code class="docutils literal notranslate"><span class="pre">configuration0.json</span></code> preserves the original parameter values and paths for
 comparing runs. <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> is the input actually consumed by tracking, with
 dependency paths redirected to the snapshot and an absolute output root. Without
-external dependencies, they may differ only in <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code>. Run history
+external dependencies, they may differ only in output settings. Run history
 compares the configuration files, while rerunning checks both files against their
 recorded hashes before using the runtime inputs; retain both in the snapshot.</p>
 <p>Dependencies are copied directly into <code class="docutils literal notranslate"><span class="pre">assets/</span></code>, without numbered subdirectories.
 Filenames are preserved; conflicts are checked without case sensitivity and
 resolved by appending a number before the extension, such as <code class="docutils literal notranslate"><span class="pre">rf1.tfs</span></code> or
 <code class="docutils literal notranslate"><span class="pre">rf2.tfs</span></code>. Runtime JSON uses relative paths to these copied files and an absolute
-path to the output root. Preparation allocates the dated result directory before
+path to the output root. Preparation allocates the selected result directory before
 copying inputs and stores its path in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> as <code class="docutils literal notranslate"><span class="pre">results_directory</span></code>.
-Initialization uses that directory without adding another date/time level.
-A suffix is added to the time directory when needed to avoid reusing an existing
-result directory. The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> rather than forming another
-directory level.
+Initialization uses that directory without adding another level. An occupied
+automatic or custom name receives <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>, and so on.
+<code class="docutils literal notranslate"><span class="pre">run.json</span></code> also records the requested <code class="docutils literal notranslate"><span class="pre">task_name</span></code> (empty for the automatic
+timestamp name). The run ID remains in <code class="docutils literal notranslate"><span class="pre">run.json</span></code> rather than forming another
+directory level. Existing trees are unchanged; rerunning old inputs or snapshots
+creates a fresh directory using the new single-level layout.
 Tracking reads these copied inputs
 without creating a second snapshot. Editing the project later does not
 change the running task, and a new run does not share the preceding run’s output
@@ -399,13 +426,17 @@ same project directory. New projects and legacy conversions do not create
 <span class="w">  </span><span class="nt">"run"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"beam0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam0.json"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"beam1"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"output_directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"output"</span>
+<span class="w">    </span><span class="nt">"output_directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"output"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"task_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">configs</span></code> lists all candidate inputs, while <code class="docutils literal notranslate"><span class="pre">run</span></code> selects the inputs for one
 run. Set <code class="docutils literal notranslate"><span class="pre">run.beam1</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;beam1.json&quot;</span></code> to select a second, distinct input.
+The example explicitly selects the single-level timestamp layout. Set <code class="docutils literal notranslate"><span class="pre">run.task_name</span></code>
+to <code class="docutils literal notranslate"><span class="pre">&quot;capture_sc&quot;</span></code> for a named run folder, or omit the key to use Beam 0’s
+<code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> setting.
 The optional <code class="docutils literal notranslate"><span class="pre">name</span></code> is the project title. A minimal description may omit
 <code class="docutils literal notranslate"><span class="pre">configs</span></code>; its inputs are then derived from <code class="docutils literal notranslate"><span class="pre">active_config</span></code> and the saved
 beam selections. Optional <code class="docutils literal notranslate"><span class="pre">sources</span></code> entries contain <code class="docutils literal notranslate"><span class="pre">path</span></code> and <code class="docutils literal notranslate"><span class="pre">kind</span></code>;

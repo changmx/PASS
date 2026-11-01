@@ -533,10 +533,10 @@ Data format conversion
 Open or drop OMC3 SDDS, HDF5, CSV or TFS, select data, preview, then **Save as**.
 Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
 HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
-outside the scope. Install the GUI extra or, for scripts only,
-``python -m pip install "pass-sim[conversion]"`` for PyLHC ``sdds`` and
-``turn-by-turn`` support. When installing from a GitHub clone or extracted source
-archive, use ``python -m pip install --editable ".[conversion]"`` from the directory
+outside the scope. The default ``python -m pip install pass-sim`` installation
+includes PyLHC ``sdds`` and ``turn-by-turn`` support for both the GUI and scripts.
+When installing from a GitHub clone or extracted source
+archive, use ``python -m pip install --editable .`` from the directory
 containing ``pyproject.toml``.
 
 SDDS support is specifically the OMC3 **LHC/TbT SDDS1 array layout**, read through

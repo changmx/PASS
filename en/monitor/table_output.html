@@ -184,7 +184,7 @@ HDF5 options; their event and histogram tables do not offer TFS output.</p>
 </tr>
 <tr class="row-odd"><td><p>StatMonitor</p></td>
 <td><p>One statistics history per bunch and monitor position</p></td>
-<td><p>CSV with the same rows</p></td>
+<td><p>TFS output retains its uncompressed HDF5 backing file; no CSV</p></td>
 </tr>
 <tr class="row-even"><td><p>SlowExtraction</p></td>
 <td><p>One append-only particle-event table per source and run</p></td>
@@ -210,7 +210,7 @@ set <code class="docutils literal notranslate"><span class="pre">output_format</
 </tbody>
 </table>
 <p>HDF5 tables use <code class="docutils literal notranslate"><span class="pre">.h5</span></code>; TFS tables use <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> with the same filename stem.
-For <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a>, the CSV, HDF5 and TFS stem is
+For <a class="reference internal" href="statmonitor.html"><span class="doc">StatMonitor</span></a>, the HDF5 and TFS stem is
 <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}</span></code>.
 StatMonitor, DistMonitor, PhaseAdvanceMonitor, ParticleMonitor and
 SlowExtractionMonitor omit numeric
@@ -268,8 +268,8 @@ Shuffle rearranges bytes before compression without changing stored values
 or particle order. <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> disables both compression and shuffle.
 Both choices use the same <code class="docutils literal notranslate"><span class="pre">.h5</span></code> extension, logical layout and reader;
 no separate compression parameter is needed. The choice applies to the
-table producers above. CSV is unchanged, and SpaceCharge uses its
-separate field writer. For example, to request uncompressed HDF5:</p>
+table producers above. Existing CSV outputs are uncompressed, and SpaceCharge
+uses its separate field writer. For example, to request uncompressed HDF5:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitorItem</span>
 
 <span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">)</span>
@@ -319,17 +319,16 @@ collects all pending bunch records; finalization also transfers any partial batc
 Reference quantities are recorded on the CPU every turn, preserving their full
 history. After transfer, the CPU formulas calculate the derived output
 columns for each record. CPU mode buffers its completed rows in CPU memory.</p>
-<p>HDF5 and CSV receive the same batch and are closed after each write.
-With <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>, CSV is still appended in batches, and the complete TFS is
-generated during finalization. CSV is available during tracking once the
-first batch has been written. It contains all recorded rows, not a sampled
-subset. The two files are written sequentially, not as an atomic pair.</p>
-<p>Use CSV for live text inspection, for example <code class="docutils literal notranslate"><span class="pre">tail</span> <span class="pre">-n</span> <span class="pre">10</span> <span class="pre">-f</span> <span class="pre">path.csv</span></code> on
-Linux or <code class="docutils literal notranslate"><span class="pre">Get-Content</span> <span class="pre">path.csv</span> <span class="pre">-Tail</span> <span class="pre">10</span> <span class="pre">-Wait</span></code> in PowerShell. HDF5 is binary
-and cannot be inspected meaningfully with <code class="docutils literal notranslate"><span class="pre">tail</span></code>. Read HDF5 after completion
-or while the simulation is paused between writes. This writer does not use
-SWMR; holding the HDF5 file open in another process can block a later write,
-and copying it during a write is not a consistent snapshot.</p>
+<p>StatMonitor appends each batch to HDF5 and closes the file after the write.
+No CSV file is generated for any output format. Reopen the HDF5 file to inspect
+the completed batches after the run or while the simulation is paused between writes. Close the
+reader before resuming tracking. This writer does not use SWMR; holding the
+HDF5 file open in another process can block a later write, and copying it
+during a write is not a consistent snapshot.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>, the monitor writes an uncompressed <code class="docutils literal notranslate"><span class="pre">.h5</span></code> file during tracking,
+then reads that history to generate the complete <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> file during finalization.
+Both files use the same filename stem, and the HDF5 file is retained after export.
+HDF5 is binary and cannot be inspected meaningfully with <code class="docutils literal notranslate"><span class="pre">tail</span></code>.</p>
 </section>
 <section id="reading-tables">
 <h2>Reading tables<a class="headerlink" href="#reading-tables" title="Link to this heading"></a></h2>

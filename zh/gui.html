@@ -148,9 +148,12 @@
              
   <section id="id1">
 <h1>图形界面<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
-<p>使用 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pass-sim[gui]&quot;</span></code> 从 PyPI 安装界面。
+<p>使用 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pass-sim</span></code> 从 PyPI 安装界面。
+默认安装和 <code class="docutils literal notranslate"><span class="pre">pass-sim[cpu]</span></code> 均包含 CPU 计算功能与 GUI。
+使用 <code class="docutils literal notranslate"><span class="pre">pass-sim[gpu]</span></code> 或等价的 <code class="docutils literal notranslate"><span class="pre">pass-sim[cpu,gpu]</span></code> 增加 NVIDIA GPU 依赖。
+模拟后端需在输入配置中单独选择，安装 GPU 依赖不会自动启用 GPU 运行。
 也可以从 GitHub 克隆仓库或下载并解压源码，在包含 <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> 的目录中
-执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> 安装。
+执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">.</span></code> 安装。
 通过 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> 或 <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> 启动。</p>
 <p>启动时优先准备输入 schema，配置页无需加载跟踪命令即可进入可编辑状态。
 计算、绘图和格式转换依赖随后继续在后台加载；这些资源的准备状态不影响编辑配置。</p>
@@ -165,10 +168,21 @@
 <li><p>保存输入或工程，在 <strong>运行</strong> 页面选择输入并启动模拟。</p></li>
 <li><p>打开结果目录，或在 <strong>绘图</strong> 页面载入输出。</p></li>
 </ol>
+<p><strong>运行</strong> 页的 <strong>输出根目录</strong> 设置父目录路径，旁边可选的 <strong>任务名称</strong> 可指定
+<code class="docutils literal notranslate"><span class="pre">output/capture_sc/</span></code> 这样的目录。后者初始直接填写 <code class="docutils literal notranslate"><span class="pre">default</span></code>，并非占位提示；
+已有自定义名称保持显示。
+留空或填写 <code class="docutils literal notranslate"><span class="pre">default</span></code> 时使用精确到分钟的单层 <code class="docutils literal notranslate"><span class="pre">output/YYYY_MM_DD_HH_MM/</span></code>，
+例如 <code class="docutils literal notranslate"><span class="pre">output/2026_10_30_18_39/</span></code>；比较时去除首尾空白且不区分大小写，
+例如 <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">DEFAULT</span> <span class="pre">&quot;</span></code> 具有相同效果。内部子目录及结果文件命名规则不变，
+自动或自定义名称重名时均创建带不补零的 <code class="docutils literal notranslate"><span class="pre">_1</span></code>、<code class="docutils literal notranslate"><span class="pre">_2</span></code> 等后缀的同级目录。
+对应的输入参数为 <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code>，
+项目将运行页的选择保存为 <code class="docutils literal notranslate"><span class="pre">run.task_name</span></code>。设置优先级和重新运行规则见 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p>配置页编辑跟踪引擎使用的同一份输入。可编辑工程文件、旧工程转换、运行快照、停止和重新运行见
 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。独立计算工具位于 <strong>工具</strong> 页面，详见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。
-<strong>分析</strong> 页面采用与 <strong>工具</strong> 相同的图标与文字左侧导航，三个并列入口为
-<strong>频谱分析</strong>、<strong>频率图分析</strong> 和 <strong>动力学孔径</strong>。
+<strong>分析</strong> 页面采用与 <strong>工具</strong> 相同的图标与文字左侧导航，四个并列入口为
+<strong>统计数据频谱</strong>、<strong>PM 粒子频谱</strong>、<strong>频率图分析</strong> 和 <strong>动力学孔径</strong>。
+统计数据频谱用于 StatMonitor 的质心、束宽等逐圈统计量；PM 粒子频谱用于
+ParticleMonitor 的逐粒子轨迹。各入口分别保留文件、参数和分析结果。
 FFT 频谱与频率图可读取模拟结果或外部数值文件；共用 Python 函数、支持格式
 和数值约定见 <a class="reference internal" href="spectral_analysis.html"><span class="doc">频谱分析与频率图</span></a>。
 <strong>分析 → 动力学孔径</strong> 用于分析在 <strong>Injection</strong> 中配置的扫描粒子的观测存活区域。</p>
@@ -213,11 +227,30 @@ dp 列表初始全选，可逐项勾选或使用全选/清空按钮。内部丢�
 作为另一份配置加入项目，或作为独立文档打开。配置选择器显示输入数量，
 <strong>导入配置…</strong> 可向同一项目添加配置。这些配置是独立方案；运行页的
 <strong>Beam 1</strong> 专指双束运行时可选的第二束，并不等于项目中的第二份配置。</p>
-<p>OMC3 SDDS/HDF5 拖入后打开转换工具（见 <a class="reference internal" href="gui_tools.html#gui-data-conversion-zh"><span class="std std-ref">数据格式转换</span></a>），不替换束流参数。
-CSV/TFS 可选择用于转换、绘图或频谱分析，直接拖入转换页则选择转换。
+<p>在绘图和分析页外拖入单个 OMC3 SDDS/HDF5 文件会打开转换工具（见 <a class="reference internal" href="gui_tools.html#gui-data-conversion-zh"><span class="std std-ref">数据格式转换</span></a>），不替换束流参数。
+CSV/TFS 可选择用于转换、绘图、统计数据频谱或 PM 粒子频谱，直接拖入转换页则选择转换。
 NPY/NPZ/TSV/TXT/DAT 拖入后打开分析页，直接向分析页拖入 CSV/TFS/HDF5 也用于分析。
-每次拖放接受一个文件。
+绘图或分析页处于活动状态时，拖到窗口空白处或标签栏也由当前页面处理。
+频谱和 FMA 自动扫描列与数组，选择信号和参数后点击运行分析。
+动力学孔径保持在当前页面，并按已选终点圈数自动读取、分析当前 ParticleMonitor
+HDF5 或完成导出的 TFS 文件。
+<strong>绘图</strong> 和 <strong>分析</strong> 均支持一次拖入多个数据文件，以及通过顶部 <strong>打开文件…</strong> 多选文件。
+每个文件打开为独立标签页，分别保存数据选择、参数、图形、缩放位置和导出结果。
+新分析标签沿用当前分析类型，随后可独立调整。再次拖入同一文件也会新建标签，便于绘制不同视图。
+标签显示文件名，悬停可查看完整路径；支持拖动排序和单独关闭。关闭正在读取或计算的标签时，
+先取消并等待该页后台任务结束，其他标签仍可使用。关闭全部标签后可继续新建或打开文件。
+在单个绘图标签内仍可添加比较文件，用于叠加、差值等比较；批量拖入用于建立独立图形。
+工程、输入 JSON 和转换工具仍采用单文件入口；不能把工程或 JSON 与数据文件混合批量打开。
 如需同时打开另一个项目，在命令行再次启动 <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> 进程即可。</p>
+<p>绘图和分析视图提供贯穿当前绘图区的细水平、垂直十字线，始终跟随鼠标位置。
+曲线在竖线对应的最近实际样本处单独显示标记；散点图突出鼠标附近的实际数据点。
+数值框位于十字线交点附近，显示所标记点的数值；没有对应数据时显示鼠标坐标。
+数据标记不会移动十字线，也不生成插值样本。
+即使绘图减少了显示点数，取值仍使用底层完整数据。
+频谱提示包括频率、幅值和相位；FMA 包括对象标识和频率漂移；动力学孔径包括初始坐标、
+dp、粒子标识及存活/丢失信息。十字线可关闭，在离开图轴或按住鼠标拖动平移、缩放时隐藏，
+松开后恢复悬停取值，无需退出工具栏的平移或缩放模式；
+导出图片不包含十字线和鼠标提示。</p>
 </section>
 <section id="id4">
 <h2>属性顺序与分区<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
@@ -231,6 +264,14 @@ Injection、空间电荷、尾场与电子云的表单以整体方式应用，�
 <p>序列命令（包括 Injection 和 SortBunch）均显示 <code class="docutils literal notranslate"><span class="pre">Order</span></code>。
 留空或输入 <code class="docutils literal notranslate"><span class="pre">null</span></code> 使用默认命令优先级；若同一 <code class="docutils literal notranslate"><span class="pre">s</span></code> 位置的任一命令指定了
 Order，该位置所有命令都须填写互不重复的整数顺序。</p>
+<p>插入或复制命令、插入生成的光学传输点、导入 MAD-X 项目后，JSON 中的 <code class="docutils literal notranslate"><span class="pre">Sequence</span></code>
+也会按执行顺序自动排序：先按引擎容差分组后的位置，再按 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 或默认命令优先级。
+排序条件相同的命令保留原有相对顺序。排序成功后，每个具有显式 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 的位置组
+按原有执行顺序重新编号为 <code class="docutils literal notranslate"><span class="pre">10、20、30……</span></code>，每个位置容差组均重新起号。
+若一组的 Order 全部省略或为 <code class="docutils literal notranslate"><span class="pre">null</span></code>，则保留默认优先级行为，不自动赋予显式编号。
+如果排序字段无效或不完整，例如同位置的 Order 缺失或重复，则保留 JSON 当前顺序和数值，
+由校验报告问题。仅打开文件或应用 JSON 源码不会触发此自动排序或重新编号；
+撤销操作会同时恢复此前的序列排列和 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 数值。</p>
 <p>例如二极磁铁 <code class="docutils literal notranslate"><span class="pre">SBend</span></code> 的顺序为：名称、<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">K0L</span></code>、
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Fint</span></code>、<code class="docutils literal notranslate"><span class="pre">Fintx</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、
 <code class="docutils literal notranslate"><span class="pre">Integrator</span></code>、<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>，之后依次为 <strong>场误差</strong>、<strong>安装误差</strong>、<strong>孔径</strong>、<strong>Ramping</strong>、
@@ -759,7 +800,7 @@ RF 命令属性使用 Components 列表配置规定的物理时间波形。</p>
 网页链接和本地 HTML 均使用系统默认浏览器打开。</p>
 <p>本地编译需要完整 PASS 源码，并在启动 GUI 的同一个 Python 环境中安装文档依赖。
 在源码目录执行:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">editable</span> <span class="s2">".[gui,docs]"</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">editable</span> <span class="s2">".[docs]"</span>
 </pre></div>
 </div>
 <p>每次点击 <strong>重新编译本地文档</strong> 都使用 GUI 的 Python 解释器，对中英文文档进行完整的

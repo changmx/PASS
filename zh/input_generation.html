@@ -249,6 +249,34 @@ Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
 配置内的相对路径以该 JSON 所在目录为基准。字段缺省或设为 <code class="docutils literal notranslate"><span class="pre">default</span></code>
 （不区分大小写）时，输出根目录为第一份 JSON 旁的 <code class="docutils literal notranslate"><span class="pre">output</span></code>。
 生成输入的默认值仍为 <code class="docutils literal notranslate"><span class="pre">./output</span></code>，不再回退到仓库或安装目录。</p>
+<p>可选字段 <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name``（``MainConfig.task_name</span></code>）设置任务名称，并用作输出根目录内的本次运行文件夹名称。
+<code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> / <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> 仍用于指定输出根目录。
+例如 <code class="docutils literal notranslate"><span class="pre">output_dir=&quot;output&quot;,</span> <span class="pre">task_name=&quot;capture_sc&quot;</span></code> 写入 <code class="docutils literal notranslate"><span class="pre">output/capture_sc/</span></code>。
+省略字段，或填写 <code class="docutils literal notranslate"><span class="pre">null</span></code>、空字符串、纯空白或 <code class="docutils literal notranslate"><span class="pre">default</span></code> 时，使用精确到分钟的
+单层文件夹 <code class="docutils literal notranslate"><span class="pre">YYYY_MM_DD_HH_MM</span></code>，例如 <code class="docutils literal notranslate"><span class="pre">output/2026_10_30_18_39/</span></code>。
+<code class="docutils literal notranslate"><span class="pre">default</span></code> 在去除首尾空白后不区分大小写，例如 <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">DEFAULT</span> <span class="pre">&quot;</span></code> 具有相同效果。
+不再单独创建日期父目录，也不会自动使用 Beam 0 的名称。
+<code class="docutils literal notranslate"><span class="pre">input/</span></code>、<code class="docutils literal notranslate"><span class="pre">distribution/</span></code>、<code class="docutils literal notranslate"><span class="pre">particle/</span></code>、<code class="docutils literal notranslate"><span class="pre">plot/</span></code> 等内部子目录及其结构保持不变；
+结果文件继续使用原有 <code class="docutils literal notranslate"><span class="pre">HHMM_SS</span></code> 时间标记，与任务文件夹名称独立。
+自动名称和自定义名称重名时均追加不补零的 <code class="docutils literal notranslate"><span class="pre">_1</span></code>、<code class="docutils literal notranslate"><span class="pre">_2</span></code>、<code class="docutils literal notranslate"><span class="pre">_3</span></code> 等后缀，
+例如 <code class="docutils literal notranslate"><span class="pre">2026_10_30_18_39_1</span></code> 或 <code class="docutils literal notranslate"><span class="pre">capture_sc_1</span></code>，不复用或覆盖之前的结果。</p>
+<p>此字段只能填写单个文件夹名称，不能填写路径；路径分隔符、<code class="docutils literal notranslate"><span class="pre">.</span></code>/<code class="docutils literal notranslate"><span class="pre">..</span></code>、
+非法文件名字符和操作系统保留名称会被拒绝，首尾空白会被去除。
+允许使用日期形式的自定义名称，<code class="docutils literal notranslate"><span class="pre">YYYY_MMDD</span></code> 不再是保留名称。
+命令行 <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">NAME</span></code> 覆盖已保存的名称，但不修改输入。
+显式传入空字符串或 <code class="docutils literal notranslate"><span class="pre">--task-name</span> <span class="pre">default</span></code> 可恢复单层时间戳布局：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run input/beam0.json --task-name capture_sc</span>
+<span class="go">pass-run example.passproj --output results --task-name capture_sc</span>
+<span class="go">pass-run input/beam0.json --task-name ""</span>
+<span class="go">pass-run input/beam0.json --task-name default</span>
+</pre></div>
+</div>
+<p>为兼容已有输入，仍接受原 JSON 字段 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">subdirectory</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">name</span></code>、
+Python 参数或项目设置 <code class="docutils literal notranslate"><span class="pre">output_subdirectory</span></code> 和 <code class="docutils literal notranslate"><span class="pre">output_name</span></code>，以及命令行选项
+<code class="docutils literal notranslate"><span class="pre">--output-subdirectory</span></code> 和 <code class="docutils literal notranslate"><span class="pre">--output-name</span></code>。新生成的 JSON、项目文件和执行快照
+分别使用规范名称 <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> 或 <code class="docutils literal notranslate"><span class="pre">task_name</span></code>。同一设置同时提供多个别名时会被拒绝；
+迁移时只保留其中一种写法。已有结果目录不会移动或重命名；新运行以及旧输入、
+旧快照的重新运行均使用新的单层布局。</p>
 <p>以下两条帮助命令均显示输入方式、选项、路径规则和示例，不启动仿真：</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pass-run --help</span>
 <span class="go">pass-run -h</span>
@@ -262,7 +290,12 @@ Python 集成可使用
 <code class="docutils literal notranslate"><span class="pre">PASS.main.main('input/beam0.json',</span> <span class="pre">output_dir='results',</span> <span class="pre">raise_errors=True)</span></code>
 覆盖输出根目录；相对 <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> 路径以调用 <code class="docutils literal notranslate"><span class="pre">main()</span></code> 时的工作目录为基准。
 此覆盖要求保留默认的 <code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>，不能与供已有快照使用的
-<code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> 组合。</p>
+<code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> 组合。
+Python 的 <code class="docutils literal notranslate"><span class="pre">task_name</span></code> 参数同样覆盖配置中的文件夹名称，例如
+<code class="docutils literal notranslate"><span class="pre">main('input/beam0.json',</span> <span class="pre">task_name='capture_sc')</span></code>。
+<code class="docutils literal notranslate"><span class="pre">task_name=None</span></code> 沿用已保存设置；<code class="docutils literal notranslate"><span class="pre">task_name=''</span></code> 或 <code class="docutils literal notranslate"><span class="pre">task_name='default'</span></code>
+显式恢复单层时间戳布局，即使已保存配置使用自定义名称。这里同样先去除首尾空白，再忽略大小写比较。
+显式覆盖同样要求 <code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>。</p>
 <p>脚本生成 <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code>，其中的相对输出目录解析为 <code class="docutils literal notranslate"><span class="pre">input/output</span></code>，每次运行在其下创建独立运行目录。运行目录包含 CSV 与 HDF5 统计表，共 64 行（圈号 0–63）；具体目录由日志给出。运行完成后可读取最新统计文件：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
@@ -283,9 +316,9 @@ Python 集成可使用
 （<code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>）。检查原始配置后，复制 JSON 配置及引用的输入文件，
 校验生成的快照，再从快照初始化跟踪。依赖包括粒子分布、RF 程序、偏移表、
 尾场模型和磁铁 ramping 表。之后修改原始文件不会影响本次运行。</p>
-<p>JSON、已保存项目和 GUI 运行默认统一使用按日期组织的结果目录，
+<p>JSON、已保存项目和 GUI 运行默认统一使用精确到分钟的单层时间戳结果目录，
 输入快照保存在本次结果目录的 <code class="docutils literal notranslate"><span class="pre">input</span></code> 子目录中：</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/       # 本次仿真结果
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/&lt;YYYY_MM_DD_HH_MM&gt;/       # 本次仿真结果
     input/
         configuration0.json         # 原始配置值
         beam0.json                  # 执行输入；可选 beam1.json
@@ -293,7 +326,9 @@ Python 集成可使用
         run.json                    # 路径、SHA-256 校验和及运行状态
 </pre></div>
 </div>
-<p>复制输入前先创建本次结果目录；必要时为时间目录添加后缀，以避免复用已有结果目录。
+<p>设置 <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name:</span> <span class="pre">capture_sc</span></code> 后，相同内容改为保存在 <code class="docutils literal notranslate"><span class="pre">&lt;output&gt;/capture_sc/</span></code>，
+取代自动时间戳文件夹；该名称已存在时，按前述规则分配带编号的同级目录。</p>
+<p>复制输入前先创建本次结果目录；自动或自定义名称已存在时，均追加 <code class="docutils literal notranslate"><span class="pre">_1</span></code>、<code class="docutils literal notranslate"><span class="pre">_2</span></code> 等后缀。
 运行 ID 仍保存在 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 中，不再单独作为一层目录。
 已复制的依赖直接放在 <code class="docutils literal notranslate"><span class="pre">assets/</span></code> 中，不创建编号子目录。保留原文件名；
 检查重名时不区分大小写，发生冲突就在扩展名前依次追加 <code class="docutils literal notranslate"><span class="pre">1</span></code>、<code class="docutils literal notranslate"><span class="pre">2</span></code> 等编号，
@@ -303,7 +338,7 @@ Python 集成可使用
 相对路径 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code>，因此可以整体移动输入快照目录。
 输出根目录（包括 <code class="docutils literal notranslate"><span class="pre">--output</span></code> 或 Python <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> 的覆盖值）在复制前解析，
 并以绝对 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> 保存到执行快照；移动快照不会改变结果目的地。
-覆盖同时改变快照和结果的输出根目录，保留上述布局。原始 JSON 和输入文件保持不变。
+覆盖同时改变快照和结果的输出根目录，保留所选布局。原始 JSON 和输入文件保持不变。
 <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> 重新序列化原始配置值；依赖文件则逐字节原样复制。
 GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录规则，见 <a class="reference internal" href="project_files.html"><span class="doc">可编辑项目</span></a>。</p>
 <p>结果目录中的参数 JSON 保留原有文件名，并保存绝对输入路径和输出路径。
@@ -315,7 +350,8 @@ GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录�
 已启用功能所需输入缺失则阻止运行。缺失引用指向快照内未创建的路径，
 之后恢复原始文件也不会使其成为未经归档的运行输入。记录随准备及执行过程更新状态。
 <code class="docutils literal notranslate"><span class="pre">output_root</span></code> 保存选定的输出根目录，<code class="docutils literal notranslate"><span class="pre">output_directory</span></code> 保存写入执行配置的输出路径。
-<code class="docutils literal notranslate"><span class="pre">results_directory</span></code> 从准备阶段起保存已分配的结果目录，包括日期子目录。
+<code class="docutils literal notranslate"><span class="pre">task_name</span></code> 保存请求的自定义名称，单层时间戳布局时为空字符串。
+<code class="docutils literal notranslate"><span class="pre">results_directory</span></code> 从准备阶段起保存实际分配的结果目录，包括重名时追加的编号。
 <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> 回调可通过 <code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> 定位本次运行的 <code class="docutils literal notranslate"><span class="pre">run.json</span></code>。
 准备失败时，若记录已创建，则状态记为 <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code>。</p>
 <p>需要最终粒子状态来生成结果摘要时，<code class="docutils literal notranslate"><span class="pre">main()</span></code> 还接受 <code class="docutils literal notranslate"><span class="pre">on_completed(sim)</span></code>。
@@ -334,7 +370,9 @@ Python API 显式设置 <code class="docutils literal notranslate"><span class="
 结果仍直接写入指定输出目录，
 快照则位于该目录的父目录下的 <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>。
 若结果目录本身名为 <code class="docutils literal notranslate"><span class="pre">input_snapshots</span></code>，则改用旁边的 <code class="docutils literal notranslate"><span class="pre">input_snapshots_archive/&lt;run-id&gt;</span></code>，
-使 flat 结果目录不包含快照子目录。</p>
+使 flat 结果目录不包含快照子目录。
+<code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code> 不能与自定义 <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> 组合；该验证工作流应清空配置名称，
+或显式传入 <code class="docutils literal notranslate"><span class="pre">task_name=''</span></code> 或 <code class="docutils literal notranslate"><span class="pre">task_name='default'</span></code>。</p>
 </section>
 <section id="json">
 <h2>JSON 文件结构<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
@@ -351,6 +389,7 @@ Python API 显式设置 <code class="docutils literal notranslate"><span class="
 <span class="w">    </span><span class="nt">"Number of GPU devices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
 <span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Task name"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -471,21 +510,27 @@ Python API 显式设置 <code class="docutils literal notranslate"><span class="
 <td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'./output'</span></code></p></td>
-<td><p>输出目录；相对路径以输入 JSON 所在目录为基准。缺省或 <code class="docutils literal notranslate"><span class="pre">default``（不区分大小写）时使用第一份</span> <span class="pre">JSON</span> <span class="pre">旁的</span> <span class="pre">``output</span></code>。</p></td>
+<td><p>输出根目录；相对路径以输入 JSON 所在目录为基准。缺省或 <code class="docutils literal notranslate"><span class="pre">default``（不区分大小写）时使用第一份</span> <span class="pre">JSON</span> <span class="pre">旁的</span> <span class="pre">``output</span></code>。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'default'</span></code></p></td>
+<td><p>任务名称，用作 <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> 内的单个运行文件夹名称。省略、null、留空或 <code class="docutils literal notranslate"><span class="pre">default</span></code> 时使用单层 <code class="docutils literal notranslate"><span class="pre">YYYY_MM_DD_HH_MM</span></code> 布局，并规范化为空字符串；default 去除首尾空白后不区分大小写。自动或自定义名称重名时均追加 <code class="docutils literal notranslate"><span class="pre">_1</span></code>、<code class="docutils literal notranslate"><span class="pre">_2</span></code> 等后缀，内部子目录和结果文件命名规则不变。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p>跟踪正常结束后从已保存结果生成 <a class="reference internal" href="monitor/plotting.html"><span class="doc">监视器图片</span></a>；默认保存在本次运行的 <code class="docutils literal notranslate"><span class="pre">plot/</span></code> 目录。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Timing</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">TimingConfig()</span></code></p></td>
 <td><p>计时配置；默认 mode=command、log_interval=10、warmup_turns=1、include_io=True。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>

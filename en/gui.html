@@ -148,9 +148,12 @@
              
   <section id="graphical-interface">
 <h1>Graphical interface<a class="headerlink" href="#graphical-interface" title="Link to this heading"></a></h1>
-<p>Install the interface from PyPI with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pass-sim[gui]&quot;</span></code>.
+<p>Install the interface from PyPI with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pass-sim</span></code>.
+The default installation and <code class="docutils literal notranslate"><span class="pre">pass-sim[cpu]</span></code> both include CPU computation and the GUI.
+Use <code class="docutils literal notranslate"><span class="pre">pass-sim[gpu]</span></code> or the equivalent <code class="docutils literal notranslate"><span class="pre">pass-sim[cpu,gpu]</span></code> to add NVIDIA GPU dependencies.
+Select the simulation backend separately in the input configuration; installing GPU dependencies does not enable GPU execution automatically.
 To install from a GitHub clone or extracted source archive, run
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> from the directory containing <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">.</span></code> from the directory containing <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.
 Launch it with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> or <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code>.</p>
 <p>Startup prepares the input schemas first, so the configuration page can become
 editable without loading the tracking commands. Calculation, plotting and file
@@ -167,12 +170,28 @@ to commit each property form; unapplied forms and JSON text are drafts.</p></li>
 <li><p>Save the input or project, select inputs on <strong>Run</strong>, and start the simulation.</p></li>
 <li><p>Open the result directory or load outputs on <strong>Plot</strong>.</p></li>
 </ol>
+<p>On <strong>Run</strong>, <strong>Output root directory</strong> selects the parent path and the optional
+<strong>Task name</strong> selects a folder such as <code class="docutils literal notranslate"><span class="pre">output/capture_sc/</span></code>. The latter
+initially contains the actual value <code class="docutils literal notranslate"><span class="pre">default</span></code>, rather than placeholder text;
+saved custom names remain visible. Leave it blank or enter
+<code class="docutils literal notranslate"><span class="pre">default</span></code> to use a single timestamp folder at minute precision, such as
+<code class="docutils literal notranslate"><span class="pre">output/2026_10_30_18_39/</span></code> (<code class="docutils literal notranslate"><span class="pre">output/YYYY_MM_DD_HH_MM/</span></code>). The comparison ignores case
+and surrounding whitespace, so <code class="docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">DEFAULT</span> <span class="pre">&quot;</span></code> has the same effect.
+Existing subdirectories and result filename rules
+remain unchanged. Repeated automatic or custom names create siblings with
+unpadded suffixes <code class="docutils literal notranslate"><span class="pre">_1</span></code>, <code class="docutils literal notranslate"><span class="pre">_2</span></code>, and so on. The corresponding input parameter is <code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code>; project runs
+save the run-page choice as <code class="docutils literal notranslate"><span class="pre">run.task_name</span></code>. See <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a> for
+setting precedence and rerunning.</p>
 <p>The configuration page edits the same input used by the tracking engine.
 For editable project files, old-project conversion, run snapshots, stopping, and
 rerunning, see <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a>.
 Standalone calculations are available under <strong>Tools</strong>; see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a>.
 The <strong>Analysis</strong> workspace uses the same icon-and-text sidebar as <strong>Tools</strong>,
-with three entries: <strong>Spectrum</strong>, <strong>Frequency map analysis</strong> and <strong>Dynamic aperture</strong>.
+with four entries: <strong>Statistical data spectrum</strong>, <strong>PM particle spectrum</strong>,
+<strong>Frequency map analysis</strong> and <strong>Dynamic aperture</strong>. Statistical spectra use
+StatMonitor turn-by-turn quantities such as centroids and beam widths; PM spectra
+use individual ParticleMonitor trajectories. Each entry retains its own file,
+settings and analysis result.
 FFT spectra and frequency maps accept result files or external arrays;
 see <a class="reference internal" href="spectral_analysis.html"><span class="doc">Spectral analysis and frequency maps</span></a> for the shared Python functions, supported files
 and numerical conventions.
@@ -242,11 +261,40 @@ or open as a standalone document. The configuration selector displays the input
 count, and <strong>导入配置…</strong> (Import configuration) adds inputs to the same project.
 These configurations are independent alternatives; <strong>Beam 1</strong> on the run page
 specifically means the optional second beam in a two-beam simulation.</p>
-<p>OMC3 SDDS/HDF5 drops open the conversion tool (see <a class="reference internal" href="gui_tools.html#gui-data-conversion-en"><span class="std std-ref">Data format conversion</span></a>) without replacing beam parameters.
-CSV/TFS drops offer conversion, plotting or spectral analysis; dropping them directly into the
+<p>Outside Plot and Analysis, a single OMC3 SDDS/HDF5 drop opens the conversion tool
+(see <a class="reference internal" href="gui_tools.html#gui-data-conversion-en"><span class="std std-ref">Data format conversion</span></a>) without replacing beam parameters.
+CSV/TFS drops offer conversion, plotting, statistical spectra or PM particle spectra; dropping them directly into the
 converter selects conversion. NPY/NPZ/TSV/TXT/DAT drops open Analysis. Dropping
-CSV/TFS/HDF5 directly onto Analysis selects analysis. Only one file is accepted per drop. For another
-project window, launch another <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> process from a terminal.</p>
+CSV/TFS/HDF5 onto Analysis, or onto window margins or the tab bar while Analysis is active,
+uses the selected analysis tool. Plot also accepts drops onto its page, tab bar and active window margins.
+Spectrum and FMA automatically scan the available
+columns and arrays; select the signal and settings, then run the calculation.
+Dynamic aperture automatically reads and analyzes a current ParticleMonitor HDF5
+or finalized TFS file with the selected end turn. It remains on the aperture page.
+<strong>Plot</strong> and <strong>Analysis</strong> accept multiple data files per drop and through the top
+<strong>Open files…</strong> dialog. Each file opens in an independent tab with its own data
+selection, settings, figure, zoom state and exports. New analysis tabs inherit
+the current analysis type and can then be configured independently. Dropping the
+same file again creates another tab for a different view. Tabs show filenames,
+with full paths in tooltips, and support reordering and individual closing.
+Closing a busy tab cancels and waits for its work before releasing it; other tabs
+remain usable. New tabs and file opening remain available after all tabs are closed.
+An individual plot tab can still add comparison files for overlays and differences;
+batch drops create independent figures. Projects, input JSON and the conversion
+tool retain single-file entry points; projects or JSON cannot be mixed with data
+files in a batch. For another project window, launch another <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> process.</p>
+<p>Plot and analysis views offer thin horizontal and vertical crosshairs spanning the
+active plot area and always following the pointer. Curves separately mark the actual
+sample nearest the vertical line; scatter plots highlight nearby actual data points.
+A label near the crosshair intersection reports the marked point’s values, or pointer
+coordinates when no data point is selected. Marking data never moves the crosshair
+and does not create interpolated samples. Point
+lookup uses the underlying data even when the drawing reduces the displayed
+points. Spectrum hints include frequency, amplitude and phase; FMA hints include
+object identity and frequency drift; aperture hints include initial coordinates,
+dp, identity and survival/loss information. Crosshairs can be switched off,
+are hidden outside the axes and while dragging to pan or zoom, and resume on
+release without leaving the toolbar mode. Image exports omit the overlay.</p>
 </section>
 <section id="property-ordering-and-sections">
 <h2>Property ordering and sections<a class="headerlink" href="#property-ordering-and-sections" title="Link to this heading"></a></h2>
@@ -264,6 +312,19 @@ Presentation order is independent of schema inheritance and JSON key order.</p>
 Leave it blank or enter <code class="docutils literal notranslate"><span class="pre">null</span></code> to use the default command priority. If any
 command at the same <code class="docutils literal notranslate"><span class="pre">s</span></code> has an explicit order, all commands at that position
 must have distinct integer orders.</p>
+<p>Inserting or duplicating a command, inserting generated optics, or importing
+MAD-X items also sorts the JSON <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> in execution order: position using
+the engine’s tolerance bins, then <code class="docutils literal notranslate"><span class="pre">Order</span></code> or the default command priority.
+Commands with equal sorting keys keep their relative order. After successful
+sorting, each position group with explicit <code class="docutils literal notranslate"><span class="pre">Order</span></code> values is renumbered
+<code class="docutils literal notranslate"><span class="pre">10,</span> <span class="pre">20,</span> <span class="pre">30,</span> <span class="pre">...</span></code> in its existing execution order; numbering restarts in every
+position tolerance bin. Groups with all orders omitted or <code class="docutils literal notranslate"><span class="pre">null</span></code> retain
+their default-priority behavior and are not assigned explicit orders.
+If sorting fields are invalid or incomplete, such as missing or duplicate
+orders at one position, the JSON order and values are retained while validation
+reports the issue. Loading a file or applying raw JSON does not trigger this
+automatic sorting or renumbering. Undo restores both the previous sequence
+order and its <code class="docutils literal notranslate"><span class="pre">Order</span></code> values.</p>
 <p>For example, <code class="docutils literal notranslate"><span class="pre">SBend</span></code> displays name, <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">K0L</span></code>,
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Fint</span></code>, <code class="docutils literal notranslate"><span class="pre">Fintx</span></code>, <code class="docutils literal notranslate"><span class="pre">Model</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Integrator</span></code>, and <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>, followed by <strong>Field errors</strong>, <strong>Alignment errors</strong>, <strong>Aperture</strong>,
@@ -969,7 +1030,7 @@ English), <strong>Rebuild local documentation</strong>, and <strong>About PASS</
 HTML pages open in the system’s default browser.</p>
 <p>To enable local builds, install the documentation dependencies in the same Python
 environment used to launch the GUI, from a complete PASS source checkout:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">editable</span> <span class="s2">".[gui,docs]"</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">editable</span> <span class="s2">".[docs]"</span>
 </pre></div>
 </div>
 <p>Every click on <strong>Rebuild local documentation</strong> starts a full Sphinx HTML build of

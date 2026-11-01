@@ -485,11 +485,11 @@ V 是带符号极板间峰值电压差（V），踢角以 rad 为单位并保留
 <span id="id10"></span><h2>数据格式转换<a class="headerlink" href="#gui-data-conversion-zh" title="Link to this heading"></a></h2>
 <p>打开或拖入 OMC3 SDDS、HDF5、CSV、TFS，选择数据、预览后另存为。
 源文件保持只读，支持 OMC3 SDDS ↔ CSV/TFS、HDF5 ↔ CSV/TFS 及 CSV ↔ TFS。
-不提供数据编辑及 SDDS ↔ HDF5 直接互转。安装 GUI 可选依赖即可；
-脚本单独使用时执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pass-sim[conversion]&quot;</span></code>，
-安装 PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> 与 <code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code>。从 GitHub 克隆仓库或下载并解压源码后，
+不提供数据编辑及 SDDS ↔ HDF5 直接互转。默认执行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pass-sim</span></code>
+即包含 GUI 和脚本所需的 PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> 与 <code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code> 支持。
+从 GitHub 克隆仓库或下载并解压源码后，
 也可以在包含 <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> 的目录中执行
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[conversion]&quot;</span></code> 安装。</p>
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">.</span></code> 安装。</p>
 <p>SDDS 专门支持 OMC3 的 <strong>LHC/TbT SDDS1 数组结构</strong>，由 PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> 读写。
 <code class="docutils literal notranslate"><span class="pre">turn_by_turn</span></code> 是 OMC3 使用的 Python 读取库，并不是另一种文件格式。
 不支持其他 SDDS 结构、SPS 专用读取方式或旧版 ASCII TbT 文件。

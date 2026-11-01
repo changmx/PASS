@@ -1,9 +1,12 @@
 Graphical interface
 ===================
 
-Install the interface from PyPI with ``python -m pip install "pass-sim[gui]"``.
+Install the interface from PyPI with ``python -m pip install pass-sim``.
+The default installation and ``pass-sim[cpu]`` both include CPU computation and the GUI.
+Use ``pass-sim[gpu]`` or the equivalent ``pass-sim[cpu,gpu]`` to add NVIDIA GPU dependencies.
+Select the simulation backend separately in the input configuration; installing GPU dependencies does not enable GPU execution automatically.
 To install from a GitHub clone or extracted source archive, run
-``python -m pip install --editable ".[gui]"`` from the directory containing ``pyproject.toml``.
+``python -m pip install --editable .`` from the directory containing ``pyproject.toml``.
 Launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
 Startup prepares the input schemas first, so the configuration page can become
@@ -21,12 +24,29 @@ status does not prevent editing the configuration.
 4. Save the input or project, select inputs on **Run**, and start the simulation.
 5. Open the result directory or load outputs on **Plot**.
 
+On **Run**, **Output root directory** selects the parent path and the optional
+**Task name** selects a folder such as ``output/capture_sc/``. The latter
+initially contains the actual value ``default``, rather than placeholder text;
+saved custom names remain visible. Leave it blank or enter
+``default`` to use a single timestamp folder at minute precision, such as
+``output/2026_10_30_18_39/`` (``output/YYYY_MM_DD_HH_MM/``). The comparison ignores case
+and surrounding whitespace, so ``" DEFAULT "`` has the same effect.
+Existing subdirectories and result filename rules
+remain unchanged. Repeated automatic or custom names create siblings with
+unpadded suffixes ``_1``, ``_2``, and so on. The corresponding input parameter is ``Task name``; project runs
+save the run-page choice as ``run.task_name``. See :doc:`project_files` for
+setting precedence and rerunning.
+
 The configuration page edits the same input used by the tracking engine.
 For editable project files, old-project conversion, run snapshots, stopping, and
 rerunning, see :doc:`project_files`.
 Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
 The **Analysis** workspace uses the same icon-and-text sidebar as **Tools**,
-with three entries: **Spectrum**, **Frequency map analysis** and **Dynamic aperture**.
+with four entries: **Statistical data spectrum**, **PM particle spectrum**,
+**Frequency map analysis** and **Dynamic aperture**. Statistical spectra use
+StatMonitor turn-by-turn quantities such as centroids and beam widths; PM spectra
+use individual ParticleMonitor trajectories. Each entry retains its own file,
+settings and analysis result.
 FFT spectra and frequency maps accept result files or external arrays;
 see :doc:`spectral_analysis` for the shared Python functions, supported files
 and numerical conventions.
@@ -106,11 +126,41 @@ count, and **导入配置…** (Import configuration) adds inputs to the same pr
 These configurations are independent alternatives; **Beam 1** on the run page
 specifically means the optional second beam in a two-beam simulation.
 
-OMC3 SDDS/HDF5 drops open the conversion tool (see :ref:`gui-data-conversion-en`) without replacing beam parameters.
-CSV/TFS drops offer conversion, plotting or spectral analysis; dropping them directly into the
+Outside Plot and Analysis, a single OMC3 SDDS/HDF5 drop opens the conversion tool
+(see :ref:`gui-data-conversion-en`) without replacing beam parameters.
+CSV/TFS drops offer conversion, plotting, statistical spectra or PM particle spectra; dropping them directly into the
 converter selects conversion. NPY/NPZ/TSV/TXT/DAT drops open Analysis. Dropping
-CSV/TFS/HDF5 directly onto Analysis selects analysis. Only one file is accepted per drop. For another
-project window, launch another ``pass-gui`` process from a terminal.
+CSV/TFS/HDF5 onto Analysis, or onto window margins or the tab bar while Analysis is active,
+uses the selected analysis tool. Plot also accepts drops onto its page, tab bar and active window margins.
+Spectrum and FMA automatically scan the available
+columns and arrays; select the signal and settings, then run the calculation.
+Dynamic aperture automatically reads and analyzes a current ParticleMonitor HDF5
+or finalized TFS file with the selected end turn. It remains on the aperture page.
+**Plot** and **Analysis** accept multiple data files per drop and through the top
+**Open files…** dialog. Each file opens in an independent tab with its own data
+selection, settings, figure, zoom state and exports. New analysis tabs inherit
+the current analysis type and can then be configured independently. Dropping the
+same file again creates another tab for a different view. Tabs show filenames,
+with full paths in tooltips, and support reordering and individual closing.
+Closing a busy tab cancels and waits for its work before releasing it; other tabs
+remain usable. New tabs and file opening remain available after all tabs are closed.
+An individual plot tab can still add comparison files for overlays and differences;
+batch drops create independent figures. Projects, input JSON and the conversion
+tool retain single-file entry points; projects or JSON cannot be mixed with data
+files in a batch. For another project window, launch another ``pass-gui`` process.
+
+Plot and analysis views offer thin horizontal and vertical crosshairs spanning the
+active plot area and always following the pointer. Curves separately mark the actual
+sample nearest the vertical line; scatter plots highlight nearby actual data points.
+A label near the crosshair intersection reports the marked point's values, or pointer
+coordinates when no data point is selected. Marking data never moves the crosshair
+and does not create interpolated samples. Point
+lookup uses the underlying data even when the drawing reduces the displayed
+points. Spectrum hints include frequency, amplitude and phase; FMA hints include
+object identity and frequency drift; aperture hints include initial coordinates,
+dp, identity and survival/loss information. Crosshairs can be switched off,
+are hidden outside the axes and while dragging to pan or zoom, and resume on
+release without leaving the toolbar mode. Image exports omit the overlay.
 
 Property ordering and sections
 ------------------------------
@@ -131,6 +181,20 @@ Sequence commands, including Injection and SortBunch, expose ``Order``.
 Leave it blank or enter ``null`` to use the default command priority. If any
 command at the same ``s`` has an explicit order, all commands at that position
 must have distinct integer orders.
+
+Inserting or duplicating a command, inserting generated optics, or importing
+MAD-X items also sorts the JSON ``Sequence`` in execution order: position using
+the engine's tolerance bins, then ``Order`` or the default command priority.
+Commands with equal sorting keys keep their relative order. After successful
+sorting, each position group with explicit ``Order`` values is renumbered
+``10, 20, 30, ...`` in its existing execution order; numbering restarts in every
+position tolerance bin. Groups with all orders omitted or ``null`` retain
+their default-priority behavior and are not assigned explicit orders.
+If sorting fields are invalid or incomplete, such as missing or duplicate
+orders at one position, the JSON order and values are retained while validation
+reports the issue. Loading a file or applying raw JSON does not trigger this
+automatic sorting or renumbering. Undo restores both the previous sequence
+order and its ``Order`` values.
 
 For example, ``SBend`` displays name, ``S (m)``, ``Length (m)``, ``K0L``,
 ``E1 (rad)``, ``E2 (rad)``, ``Hgap (m)``, ``Fint``, ``Fintx``, ``Model``,
@@ -893,7 +957,7 @@ HTML pages open in the system's default browser.
 To enable local builds, install the documentation dependencies in the same Python
 environment used to launch the GUI, from a complete PASS source checkout::
 
-   python -m pip install --editable ".[gui,docs]"
+   python -m pip install --editable ".[docs]"
 
 Every click on **Rebuild local documentation** starts a full Sphinx HTML build of
 both languages, using the GUI's Python interpreter. The build runs in a separate

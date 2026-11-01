@@ -167,7 +167,7 @@ dimensions must match the solver geometry.
 GPU Interfaces and Precision
 --------------------------------------------------------
 
-GPU interfaces require a compatible CUDA environment and GPU dependencies; install the project with the ``cuda`` optional dependency. CPU interfaces do not require CuPy.
+GPU interfaces require a compatible CUDA environment and GPU dependencies; install the project with the ``gpu`` optional dependency. CPU interfaces do not require CuPy.
 
 ``build_pic_resources_gpu`` accepts the same geometry and low-level solver
 names as ``build_pic_resources``, plus ``dtype``, ``num_slices``,

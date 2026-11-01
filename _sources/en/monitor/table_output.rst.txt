@@ -39,7 +39,7 @@ HDF5 options; their event and histogram tables do not offer TFS output.
      - HDF5 arrays or a TFS long table; both include injection coordinates
    * - StatMonitor
      - One statistics history per bunch and monitor position
-     - CSV with the same rows
+     - TFS output retains its uncompressed HDF5 backing file; no CSV
    * - SlowExtraction
      - One append-only particle-event table per source and run
      - HDF5 only
@@ -58,7 +58,7 @@ HDF5 options; their event and histogram tables do not offer TFS output.
      - None; defaults to TFS
 
 HDF5 tables use ``.h5``; TFS tables use ``.tfs`` with the same filename stem.
-For :doc:`StatMonitor <statmonitor>`, the CSV, HDF5 and TFS stem is
+For :doc:`StatMonitor <statmonitor>`, the HDF5 and TFS stem is
 ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}``.
 StatMonitor, DistMonitor, PhaseAdvanceMonitor, ParticleMonitor and
 SlowExtractionMonitor omit numeric
@@ -120,8 +120,8 @@ Shuffle rearranges bytes before compression without changing stored values
 or particle order. ``"hdf5"`` disables both compression and shuffle.
 Both choices use the same ``.h5`` extension, logical layout and reader;
 no separate compression parameter is needed. The choice applies to the
-table producers above. CSV is unchanged, and SpaceCharge uses its
-separate field writer. For example, to request uncompressed HDF5:
+table producers above. Existing CSV outputs are uncompressed, and SpaceCharge
+uses its separate field writer. For example, to request uncompressed HDF5:
 
 .. code-block:: python
 
@@ -180,18 +180,17 @@ Reference quantities are recorded on the CPU every turn, preserving their full
 history. After transfer, the CPU formulas calculate the derived output
 columns for each record. CPU mode buffers its completed rows in CPU memory.
 
-HDF5 and CSV receive the same batch and are closed after each write.
-With ``"tfs"``, CSV is still appended in batches, and the complete TFS is
-generated during finalization. CSV is available during tracking once the
-first batch has been written. It contains all recorded rows, not a sampled
-subset. The two files are written sequentially, not as an atomic pair.
+StatMonitor appends each batch to HDF5 and closes the file after the write.
+No CSV file is generated for any output format. Reopen the HDF5 file to inspect
+the completed batches after the run or while the simulation is paused between writes. Close the
+reader before resuming tracking. This writer does not use SWMR; holding the
+HDF5 file open in another process can block a later write, and copying it
+during a write is not a consistent snapshot.
 
-Use CSV for live text inspection, for example ``tail -n 10 -f path.csv`` on
-Linux or ``Get-Content path.csv -Tail 10 -Wait`` in PowerShell. HDF5 is binary
-and cannot be inspected meaningfully with ``tail``. Read HDF5 after completion
-or while the simulation is paused between writes. This writer does not use
-SWMR; holding the HDF5 file open in another process can block a later write,
-and copying it during a write is not a consistent snapshot.
+With ``"tfs"``, the monitor writes an uncompressed ``.h5`` file during tracking,
+then reads that history to generate the complete ``.tfs`` file during finalization.
+Both files use the same filename stem, and the HDF5 file is retained after export.
+HDF5 is binary and cannot be inspected meaningfully with ``tail``.
 
 Reading tables
 --------------

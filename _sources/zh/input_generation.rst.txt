@@ -115,6 +115,38 @@ Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
 （不区分大小写）时，输出根目录为第一份 JSON 旁的 ``output``。
 生成输入的默认值仍为 ``./output``，不再回退到仓库或安装目录。
 
+可选字段 ``Task name``（``MainConfig.task_name``）设置任务名称，并用作输出根目录内的本次运行文件夹名称。
+``Output directory`` / ``output_dir`` 仍用于指定输出根目录。
+例如 ``output_dir="output", task_name="capture_sc"`` 写入 ``output/capture_sc/``。
+省略字段，或填写 ``null``、空字符串、纯空白或 ``default`` 时，使用精确到分钟的
+单层文件夹 ``YYYY_MM_DD_HH_MM``，例如 ``output/2026_10_30_18_39/``。
+``default`` 在去除首尾空白后不区分大小写，例如 ``" DEFAULT "`` 具有相同效果。
+不再单独创建日期父目录，也不会自动使用 Beam 0 的名称。
+``input/``、``distribution/``、``particle/``、``plot/`` 等内部子目录及其结构保持不变；
+结果文件继续使用原有 ``HHMM_SS`` 时间标记，与任务文件夹名称独立。
+自动名称和自定义名称重名时均追加不补零的 ``_1``、``_2``、``_3`` 等后缀，
+例如 ``2026_10_30_18_39_1`` 或 ``capture_sc_1``，不复用或覆盖之前的结果。
+
+此字段只能填写单个文件夹名称，不能填写路径；路径分隔符、``.``/``..``、
+非法文件名字符和操作系统保留名称会被拒绝，首尾空白会被去除。
+允许使用日期形式的自定义名称，``YYYY_MMDD`` 不再是保留名称。
+命令行 ``--task-name NAME`` 覆盖已保存的名称，但不修改输入。
+显式传入空字符串或 ``--task-name default`` 可恢复单层时间戳布局：
+
+.. code-block:: console
+
+   pass-run input/beam0.json --task-name capture_sc
+   pass-run example.passproj --output results --task-name capture_sc
+   pass-run input/beam0.json --task-name ""
+   pass-run input/beam0.json --task-name default
+
+为兼容已有输入，仍接受原 JSON 字段 ``Output subdirectory`` 和 ``Output name``、
+Python 参数或项目设置 ``output_subdirectory`` 和 ``output_name``，以及命令行选项
+``--output-subdirectory`` 和 ``--output-name``。新生成的 JSON、项目文件和执行快照
+分别使用规范名称 ``Task name`` 或 ``task_name``。同一设置同时提供多个别名时会被拒绝；
+迁移时只保留其中一种写法。已有结果目录不会移动或重命名；新运行以及旧输入、
+旧快照的重新运行均使用新的单层布局。
+
 以下两条帮助命令均显示输入方式、选项、路径规则和示例，不启动仿真：
 
 .. code-block:: console
@@ -131,6 +163,11 @@ Python 集成可使用
 覆盖输出根目录；相对 ``output_dir`` 路径以调用 ``main()`` 时的工作目录为基准。
 此覆盖要求保留默认的 ``archive_inputs=True``，不能与供已有快照使用的
 ``archive_inputs=False`` 组合。
+Python 的 ``task_name`` 参数同样覆盖配置中的文件夹名称，例如
+``main('input/beam0.json', task_name='capture_sc')``。
+``task_name=None`` 沿用已保存设置；``task_name=''`` 或 ``task_name='default'``
+显式恢复单层时间戳布局，即使已保存配置使用自定义名称。这里同样先去除首尾空白，再忽略大小写比较。
+显式覆盖同样要求 ``archive_inputs=True``。
 
 脚本生成 ``input/beam0.json``，其中的相对输出目录解析为 ``input/output``，每次运行在其下创建独立运行目录。运行目录包含 CSV 与 HDF5 统计表，共 64 行（圈号 0–63）；具体目录由日志给出。运行完成后可读取最新统计文件：
 
@@ -156,19 +193,22 @@ Python 集成可使用
 校验生成的快照，再从快照初始化跟踪。依赖包括粒子分布、RF 程序、偏移表、
 尾场模型和磁铁 ramping 表。之后修改原始文件不会影响本次运行。
 
-JSON、已保存项目和 GUI 运行默认统一使用按日期组织的结果目录，
+JSON、已保存项目和 GUI 运行默认统一使用精确到分钟的单层时间戳结果目录，
 输入快照保存在本次结果目录的 ``input`` 子目录中：
 
 .. code-block:: text
 
-   <output>/<YYYY_MMDD>/<HHMM_SS>/       # 本次仿真结果
+   <output>/<YYYY_MM_DD_HH_MM>/       # 本次仿真结果
        input/
            configuration0.json         # 原始配置值
            beam0.json                  # 执行输入；可选 beam1.json
            assets/<filename>           # 已复制的输入依赖
            run.json                    # 路径、SHA-256 校验和及运行状态
 
-复制输入前先创建本次结果目录；必要时为时间目录添加后缀，以避免复用已有结果目录。
+设置 ``Task name: capture_sc`` 后，相同内容改为保存在 ``<output>/capture_sc/``，
+取代自动时间戳文件夹；该名称已存在时，按前述规则分配带编号的同级目录。
+
+复制输入前先创建本次结果目录；自动或自定义名称已存在时，均追加 ``_1``、``_2`` 等后缀。
 运行 ID 仍保存在 ``run.json`` 中，不再单独作为一层目录。
 已复制的依赖直接放在 ``assets/`` 中，不创建编号子目录。保留原文件名；
 检查重名时不区分大小写，发生冲突就在扩展名前依次追加 ``1``、``2`` 等编号，
@@ -179,7 +219,7 @@ JSON、已保存项目和 GUI 运行默认统一使用按日期组织的结果�
 相对路径 ``assets/...``，因此可以整体移动输入快照目录。
 输出根目录（包括 ``--output`` 或 Python ``output_dir`` 的覆盖值）在复制前解析，
 并以绝对 ``Output directory`` 保存到执行快照；移动快照不会改变结果目的地。
-覆盖同时改变快照和结果的输出根目录，保留上述布局。原始 JSON 和输入文件保持不变。
+覆盖同时改变快照和结果的输出根目录，保留所选布局。原始 JSON 和输入文件保持不变。
 ``configurationN.json`` 重新序列化原始配置值；依赖文件则逐字节原样复制。
 GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录规则，见 :doc:`project_files`。
 
@@ -193,7 +233,8 @@ GUI 与命令行项目运行使用相同的依赖复制、哈希和结果目录�
 已启用功能所需输入缺失则阻止运行。缺失引用指向快照内未创建的路径，
 之后恢复原始文件也不会使其成为未经归档的运行输入。记录随准备及执行过程更新状态。
 ``output_root`` 保存选定的输出根目录，``output_directory`` 保存写入执行配置的输出路径。
-``results_directory`` 从准备阶段起保存已分配的结果目录，包括日期子目录。
+``task_name`` 保存请求的自定义名称，单层时间戳布局时为空字符串。
+``results_directory`` 从准备阶段起保存实际分配的结果目录，包括重名时追加的编号。
 ``on_initialized(cfg)`` 回调可通过 ``cfg.input_snapshot_path`` 定位本次运行的 ``run.json``。
 准备失败时，若记录已创建，则状态记为 ``preparation_failed``。
 
@@ -216,6 +257,8 @@ Python API 显式设置 ``flat_output=True`` 时，为兼容已有集成保留�
 快照则位于该目录的父目录下的 ``input_snapshots/<run-id>``。
 若结果目录本身名为 ``input_snapshots``，则改用旁边的 ``input_snapshots_archive/<run-id>``，
 使 flat 结果目录不包含快照子目录。
+``flat_output=True`` 不能与自定义 ``Task name`` 组合；该验证工作流应清空配置名称，
+或显式传入 ``task_name=''`` 或 ``task_name='default'``。
 
 JSON 文件结构
 -------------
@@ -236,6 +279,7 @@ JSON 文件结构
        "Number of GPU devices": 1,
        "Device Id": [0],
        "Output directory": "./output",
+       "Task name": "",
        "Is plot figure": false,
        "Sequence": {
            "injection": {
@@ -339,7 +383,12 @@ MainConfig（全局参数）
      - ``Output directory``
      - ``str``
      - ``'./output'``
-     - 输出目录；相对路径以输入 JSON 所在目录为基准。缺省或 ``default``（不区分大小写）时使用第一份 JSON 旁的 ``output``。
+     - 输出根目录；相对路径以输入 JSON 所在目录为基准。缺省或 ``default``（不区分大小写）时使用第一份 JSON 旁的 ``output``。
+   * - ``task_name``
+     - ``Task name``
+     - ``str``
+     - ``'default'``
+     - 任务名称，用作 ``output_dir`` 内的单个运行文件夹名称。省略、null、留空或 ``default`` 时使用单层 ``YYYY_MM_DD_HH_MM`` 布局，并规范化为空字符串；default 去除首尾空白后不区分大小写。自动或自定义名称重名时均追加 ``_1``、``_2`` 等后缀，内部子目录和结果文件命名规则不变。
    * - ``is_plot``
      - ``Is plot figure``
      - ``bool``

@@ -143,7 +143,7 @@
              
   <section id="statmonitor">
 <h1>统计监视器（StatMonitor）<a class="headerlink" href="#statmonitor" title="Link to this heading"></a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 在指定晶格位置逐圈记录各束团的质心、标准差、RMS 发射度、统计 Twiss 参数及粒子损失。统计矩仅使用存活粒子（<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>）；每个监视器为各束团输出 CSV 及所选格式的统计历史。</p>
+<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 在指定晶格位置逐圈记录各束团的质心、标准差、RMS 发射度、统计 Twiss 参数及粒子损失。统计矩仅使用存活粒子（<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>）；每个监视器在跟踪期间为各束团输出 HDF5 统计历史。选择 TFS 时，在结束清理阶段额外导出该历史。不生成 CSV 文件。</p>
 <section id="id1">
 <h2>配置示例<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitorItem</span>
@@ -190,7 +190,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;``（gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）、</span></code>”hdf5”<code class="docutils literal notranslate"><span class="pre">（不压缩）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；始终额外提供 CSV</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> （gzip-1 + shuffle）、 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> （不压缩）或 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> （跟踪期间保存不压缩的 HDF5，结束时导出 TFS）；不生成 CSV</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Write</span> <span class="pre">interval</span> <span class="pre">(turns)&quot;</span></code></p></td>
@@ -207,11 +207,10 @@
 </section>
 <section id="id3">
 <h2>输出文件<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>每个束团、每条监视器命令生成一对文件：</p>
+<p>每个束团、每条监视器命令输出 HDF5 统计历史。选择 TFS 时，在结束清理阶段额外生成文本文件，并保留 HDF5 文件：</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> （分批追加） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>HDF5</strong> （默认，与 CSV 同批追加）： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
-<li><p><strong>TFS</strong> （选择后代替 HDF5，结束时生成） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><strong>HDF5</strong> （分批追加；选择 TFS 时不压缩）： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
+<li><p><strong>TFS</strong> （选择后，在结束清理阶段由 HDF5 导出） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>输出目录为 <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code> 。</p>
 <p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> 省略导入名称中的数字 MAD-X 实例后缀及末尾的位置标签。
@@ -415,7 +414,7 @@ ParticleMonitor 和 Distribution 保存的连续 z_rel。</p>
 beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母。
 已分配的粒子群若无存活粒子，CPU/GPU 都输出零矩与明确的零存活计数；
 声明为空的 bunch 仍沿用不输出行的行为。</p>
-<p>批量写入、最后不足一批的处理、运行中查看 CSV 和 HDF5 结构见
+<p>批量写入、最后不足一批的处理、运行中查看数据和 HDF5 结构见
 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。
 工作原理
 ——–</p>

@@ -89,13 +89,24 @@
 <li class="toctree-l2"><a class="reference internal" href="#id3">静态云的场与动量约定</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pic">PIC 归一化与边界条件</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id4">动态模型与物理时间</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id5">预设驱动与电子推进</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">耦合 PIC 场与束流响应</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">初级源与二次发射</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">初态分布与归一化</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">切片时序</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">预设驱动与电子推进</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">耦合 PIC 场与束流响应</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">初级源与二次发射</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">输出与状态</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id9">可运行示例</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id10">输出与状态</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id11">可运行示例</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#electron-cloud-models-zh">电子云模型与响应工作流</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id13">规定驱动、自场与真空室</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">初级电子产生</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">壁面发射</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">宏粒子管理与诊断</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">响应提取与回放</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18">数值与物理验证</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
@@ -141,13 +152,14 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 对束流施加预设静止均匀电子圆盘产生的横向薄透镜踢角，
 场采用自由空间解析式，或对宏电子采样后通过 PIC 求解一次。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 在圆形真空室中跟踪受预设束流切片及外加磁场驱动的电子，
+<li><p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 跟踪受预设束流切片及外加磁场驱动的电子，可选自场、多种初级源、多通道材料及不同真空室几何，
 包括壁面初级电子产生、吸收及简化真二次发射；不对束流施加踢角。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> 加入电子云 PIC 自场和横向束流踢角，
-在接地圆形真空室内使用已保存束流切片的真实粒子分布驱动电子。</p></li>
+在接地真空室内使用已保存束流切片的真实粒子分布驱动电子，壁面事件和场边界使用同一几何。</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 属于外驱动低密度近似，不包含电子云自场、束流反作用或物理空间电荷饱和机制。
-<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 是首个准静态横向薄透镜耦合模型，尚未完成不稳定性阈值或平衡电子云密度的验证。
+<p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 默认保留外驱动低密度近似；设置 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Electron</span> <span class="pre">self</span> <span class="pre">fields=true</span></code> 可加入云自场。
+<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 始终计算自场。新增物理模型、响应提取、回放和分析见 <a class="reference internal" href="#electron-cloud-models-zh"><span class="std std-ref">电子云模型与响应工作流</span></a>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> 是首个准静态横向薄透镜耦合模型，尚未完成不稳定性阈值或平衡电子云密度的验证。
 这三种模式需显式选择。</p>
 <section id="id1">
 <h2>配置与执行<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
@@ -161,7 +173,8 @@
 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 要求当前 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet，并保持全部束流粒子坐标不变。
 <code class="docutils literal notranslate"><span class="pre">coupled</span></code> 同样要求该 SliceSet，且只改变 <code class="docutils literal notranslate"><span class="pre">px</span></code> 和 <code class="docutils literal notranslate"><span class="pre">py</span></code>。
 坐标约定见 <a class="reference internal" href="injection.html"><span class="doc">注入与粒子生成（Injection）</span></a>。
-给定密度确定静态云或初始化动态云，不从束流强度或束团分组推算。</p>
+给定密度确定静态云或初始化动态云，动态模式也可直接指定初始电子线密度；
+两种强度均不从束流强度或束团分组推算。</p>
 <p>以下为输入片段，还需另行提供注入与输运：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"Electron cloud"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -201,8 +214,8 @@
 <h2>配置参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>顶层块包含 <code class="docutils literal notranslate"><span class="pre">Enabled``（布尔值，默认</span> <span class="pre">``false</span></code>）和 <code class="docutils literal notranslate"><span class="pre">Configurations</span></code>
 （名称到下列配置对象的映射）。关闭顶层开关时跳过配置及全部电子云操作。</p>
-<table class="docutils align-default" id="id10">
-<caption><span class="caption-text">命名配置</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id19">
+<caption><span class="caption-text">命名配置</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 30.0%" />
 <col style="width: 18.0%" />
@@ -225,11 +238,11 @@
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">density</span> <span class="pre">(1/m^3)</span></code> / <code class="docutils literal notranslate"><span class="pre">electron_density</span></code></p></td>
 <td><p>必填</p></td>
-<td><p>圆盘内非负物理电子数密度；动态模式仅用其初始化云。</p></td>
+<td><p>圆盘内非负物理电子数密度；动态非圆盘初态将其作为等效参考圆盘密度。直接指定初始电子线密度时须设为零。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
 <td><p>必填</p></td>
-<td><p>均匀圆盘的正半径，动态模式为初始云半径；不是束流 RMS 尺寸。</p></td>
+<td><p>均匀圆盘正半径，或动态初态默认总电子数归一化的参考半径；不是高斯 RMS 尺寸。非圆盘分布仍须填写，但不以此确定空间尺寸。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">center_x</span></code>、<code class="docutils literal notranslate"><span class="pre">center_y</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0</span></code>、<code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
@@ -245,7 +258,7 @@
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Nx</span></code>、<code class="docutils literal notranslate"><span class="pre">Ny</span></code> / <code class="docutils literal notranslate"><span class="pre">nx</span></code>、<code class="docutils literal notranslate"><span class="pre">ny</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">65</span></code>、<code class="docutils literal notranslate"><span class="pre">65</span></code></p></td>
-<td><p>网格点数，均为至少 3 的整数；耦合模式要求至少 5 的奇数。</p></td>
+<td><p>网格点数，均为至少 3 的整数；动态 PIC 要求至少 5 的奇数。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">grid_width_x</span></code>、<code class="docutils literal notranslate"><span class="pre">grid_width_y</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code>、<code class="docutils literal notranslate"><span class="pre">0.1</span></code></p></td>
@@ -257,7 +270,7 @@
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code>、<code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code> / <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code>、<code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">default</span></code>、<code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
-<td><p>静态场计算区域的几何；动态模式要求 <code class="docutils literal notranslate"><span class="pre">default</span></code> 或 <code class="docutils literal notranslate"><span class="pre">off</span></code> 且参数为空，其圆形壁面由 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 定义。</p></td>
+<td><p>场与壁面共用的几何；动态模式支持 circle、ellipse、rectangle、racetrack、polygon；default/off 保留 Build up.Chamber radius (m) 定义的圆壁面。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> / <code class="docutils literal notranslate"><span class="pre">buildup</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
@@ -265,12 +278,12 @@
 </tr>
 </tbody>
 </table>
-<p>网格和沉积参数用于静态 PIC、静态场诊断和耦合 PIC；<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 不使用 PIC 网格。
-耦合模式要求两个网格宽度均覆盖完整真空室直径，每轴网格间距不超过真空室半径的一半。
+<p>网格和沉积参数用于静态 PIC、静态场诊断、耦合 PIC，以及启用自场、规定 Beam driver 或非圆真空室的 build_up。
+网格须覆盖并解析完整真空室；旧圆室每轴网格间距不超过半径的一半。
 这是最低可分辨性检查，不是充分收敛条件。
-圆形 Dirichlet 壁面由 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> 定义。</p>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">序列命令</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+显式 Aperture type/value 定义壁面；default/off 使用 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code>。</p>
+<table class="docutils align-default" id="id20">
+<caption><span class="caption-text">序列命令</span><a class="headerlink" href="#id20" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 30.0%" />
 <col style="width: 18.0%" />
@@ -384,10 +397,10 @@
 <p>选择 <code class="docutils literal notranslate"><span class="pre">Mode=&quot;build_up&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">Solver=&quot;round_gaussian_beam&quot;</span></code> 并提供
 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 对象。耦合 PIC 则选择 <code class="docutils literal notranslate"><span class="pre">Mode=&quot;coupled&quot;</span></code>、
 <code class="docutils literal notranslate"><span class="pre">Solver=&quot;fd_dirichlet&quot;</span></code>，使用相同嵌套对象。
-顶层电子密度、圆盘半径与中心描述初始电子云，
-整个初始圆盘必须严格位于圆形真空室内。
-初始方向在三维空间各向同性，动能为给定单能值。
-初始密度可以为零，之后由初级源产生电子。</p>
+默认情况下，顶层电子密度、圆盘半径与中心描述均匀初始圆盘，
+整个圆盘必须严格位于所选真空室内。初始方向在三维空间各向同性，
+动能为给定单能值。下述可选位置与速度分布适用于两种动态模式。
+初始强度可以为零，之后由初级源产生电子。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.electron_cloud</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">,</span> <span class="n">ElectronCloudConfiguration</span><span class="p">,</span>
 <span class="p">)</span>
@@ -404,8 +417,8 @@
 <span class="p">)</span>
 </pre></div>
 </div>
-<table class="docutils align-default" id="id12">
-<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 参数</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id21">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 参数</span><a class="headerlink" href="#id21" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 35.0%" />
 <col style="width: 15.0%" />
@@ -419,12 +432,12 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">chamber_radius</span></code></p></td>
-<td><p>必填</p></td>
-<td><p>以束流轴为中心的正圆形壁面半径。</p></td>
+<td><p>null</p></td>
+<td><p>default/off 孔径所用正圆壁面半径，此时必填；显式非圆几何省略。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">sigma</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code></p></td>
-<td><p>必填</p></td>
-<td><p>积累模式的正固定横向高斯 sigma；耦合模式为保持 schema 兼容仍要求填写，但其场与步长控制不使用此值。</p></td>
+<td><p>null</p></td>
+<td><p>未设 Beam driver 的积累模式必填正圆高斯 sigma；耦合模式可省略且不使用。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">time</span> <span class="pre">step</span> <span class="pre">(s)</span></code> / <code class="docutils literal notranslate"><span class="pre">max_time_step</span></code></p></td>
 <td><p>必填</p></td>
@@ -440,46 +453,111 @@
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">electron</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_energy_ev</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
-<td><p>每电子的非负初始动能。</p></td>
+<td><p>默认单能速度分布下，每电子的非负初始动能；均匀或高斯速度分布要求设为零。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">electrons</span> <span class="pre">per</span> <span class="pre">beam</span> <span class="pre">particle</span> <span class="pre">(1/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_electrons_per_particle_per_m</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">distribution</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_distribution</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_disk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_disk</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_chamber</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_rectangle</span></code> 或 <code class="docutils literal notranslate"><span class="pre">gaussian</span></code>。位置与速度分布独立选择。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">position</span> <span class="pre">spread</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_position_spread</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>uniform_rectangle 必填正 <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y]</span></code> 半宽；gaussian 必填截断前标准差；圆盘或全腔分布不填写。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">electron</span> <span class="pre">line</span> <span class="pre">density</span> <span class="pre">(1/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_line_density</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>可选非负真实电子总线密度，指腔室截断后每米的总电子数。要求顶层 Electron density = 0；null 保留参考圆盘归一化。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">velocity</span> <span class="pre">distribution</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_velocity_distribution</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">monoenergetic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">monoenergetic</span></code> 为各向同性固定动能，<code class="docutils literal notranslate"><span class="pre">uniform</span></code> 为独立均匀速度分量，<code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 为独立高斯速度分量。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">velocity</span> <span class="pre">spread</span> <span class="pre">(m/s)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_velocity_spread</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>uniform 必填非负 <code class="docutils literal notranslate"><span class="pre">[vx,</span> <span class="pre">vy,</span> <span class="pre">vz]</span></code> 半宽，gaussian 必填截断前标准差；单能分布不填写。零宽度分量保持为零。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">electrons</span> <span class="pre">per</span> <span class="pre">beam</span> <span class="pre">particle</span> <span class="pre">(1/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_electrons_per_particle_per_m</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
 <td><p>每真实束流粒子、每米的非负预设初级电子产额。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_macroparticles</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_macroparticles</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">64</span></code></p></td>
 <td><p>每个非零初级发射事件产生的宏电子样本数，须为正整数。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">yield</span> <span class="pre">max</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_yield_max</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">yield</span> <span class="pre">max</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_yield_max</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
 <td><p>未经能量截断的真二次产额曲线峰值，非负；零表示吸收壁。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">peak</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_peak_energy_ev</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">peak</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_peak_energy_ev</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
 <td><p>未截断曲线峰值处的入射动能，须为正值。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">shape</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_shape</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">shape</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_shape</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">1.35</span></code></p></td>
 <td><p>严格大于一的曲线形状参数。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Emission</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">emission_energy_ev</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Emission</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">emission_energy_ev</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
 <td><p>正的初级发射能量和名义二次发射能量。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">max_macroparticles</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">max_macroparticles</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
 <td><p>正整数粒子数上限；超过时报告错误，不丢弃电荷。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">steps</span></code> / <code class="docutils literal notranslate"><span class="pre">max_steps</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">steps</span></code> / <code class="docutils literal notranslate"><span class="pre">max_steps</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
 <td><p>每个物理时间区间内允许的积分步数，须为正整数。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">wall</span> <span class="pre">hits</span> <span class="pre">per</span> <span class="pre">step</span></code> / <code class="docutils literal notranslate"><span class="pre">max_wall_hits_per_step</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">wall</span> <span class="pre">hits</span> <span class="pre">per</span> <span class="pre">step</span></code> / <code class="docutils literal notranslate"><span class="pre">max_wall_hits_per_step</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">32</span></code></p></td>
 <td><p>每粒子在单个积分步内允许的壁面事件数，须为正整数。</p></td>
 </tr>
 </tbody>
 </table>
+<section id="id5">
+<h3>初态分布与归一化<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">uniform_chamber</span></code> 在所选完整腔室内按面积均匀采样，要求顶层中心坐标为零。
+<code class="docutils literal notranslate"><span class="pre">uniform_rectangle</span></code> 在以 <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X/Y</span></code> 为中心的矩形与腔室的交集中均匀采样。
+<code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 先定义以该中心为均值、两轴独立的高斯分布，再取腔室内的条件分布。
+拒绝采样保留指定宏电子数和总权重，不丢弃尾部电荷；因此截断后高斯分布的
+实际均值和 RMS 可以不同于输入中心和宽度。只有 <code class="docutils literal notranslate"><span class="pre">uniform_disk</span></code> 使用 Radius 定义空间尺寸。
+采样次数有上限：交集面积为零或达到采样上限仍未获得足够粒子时会报错，
+不会无限循环或丢弃粒子后继续运行。</p>
+<p>设顶层参考半径为 <span class="math notranslate nohighlight">\(a\)</span>，电子密度为 <span class="math notranslate nohighlight">\(n_e\)</span>。
+未指定 Initial electron line density 时，四种分布均保留
+<span class="math notranslate nohighlight">\(N_e/L_s=n_e\pi a^2\)</span>。对于非圆盘分布，<span class="math notranslate nohighlight">\(n_e\)</span> 是等效参考圆盘密度，
+不代表局部密度或峰值密度。直接指定线密度后，总电子数与 <span class="math notranslate nohighlight">\(a\)</span> 无关，
+且须设置 <span class="math notranslate nohighlight">\(n_e=0\)</span>，避免两套强度输入冲突。初始源长度为
+<span class="math notranslate nohighlight">\(L_s=1\,\mathrm m\)</span>，每个宏电子的权重均为
+<span class="math notranslate nohighlight">\(N_e/N_{\mathrm{macro}}\)</span>。总强度为零时创建空状态。</p>
+<p>均匀速度的各分量独立、零均值，范围为 <span class="math notranslate nohighlight">\([-w_i,w_i]\)</span>，因此
+<span class="math notranslate nohighlight">\(\langle v_i^2\rangle=w_i^2/3\)</span>，其最大合成速度必须严格小于 <span class="math notranslate nohighlight">\(c\)</span>。
+高斯速度的各分量以零为均值、输入值为标准差，取满足
+<span class="math notranslate nohighlight">\(|\boldsymbol v|&lt;c\)</span> 的条件分布；它是规定的速度分布，不是相对论热平衡分布。
+两者均按 <span class="math notranslate nohighlight">\(\boldsymbol u=\gamma\boldsymbol v/c\)</span> 精确转换为归一化机械动量，
+初始能量账本使用实际样本的相对论动能。不进行样本均值扣除或 RMS 重缩放。
+将某个宽度设为零即可保持对应速度为零，例如纵向速度为零。
+高斯速度中亚光速概率过低、在有限采样预算内无法填满指定粒子数时，同样会报错。</p>
+<p>椭圆高斯云配合独立横向高斯速度的示例：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">ElectronCloudConfiguration</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">"build_up"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"round_gaussian_beam"</span><span class="p">,</span>
+    <span class="n">electron_density</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_macroparticles</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+    <span class="n">center_x</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+    <span class="n">buildup</span><span class="o">=</span><span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">(</span>
+        <span class="n">chamber_radius</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">beam_sigma</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">max_time_step</span><span class="o">=</span><span class="mf">5e-11</span><span class="p">,</span>
+        <span class="n">initial_distribution</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span>
+        <span class="n">initial_position_spread</span><span class="o">=</span><span class="p">[</span><span class="mf">0.003</span><span class="p">,</span> <span class="mf">0.002</span><span class="p">],</span>
+        <span class="n">initial_line_density</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span>
+        <span class="n">initial_velocity_distribution</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span>
+        <span class="n">initial_velocity_spread</span><span class="o">=</span><span class="p">[</span><span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>CPU 与 GPU 初始化均使用相同的主机 PCG64 采样，再一次性复制到所选后端。
+旧圆盘/单能默认配置保持原有随机序列；这些选项不增加推进循环中的工作。</p>
+</section>
+<section id="id6">
+<h3>切片时序<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <p>在同一圈、同一位置执行指定 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code>，再调用云命令。
 只支持连续 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 区间，要求覆盖全部存活粒子且含粒子切片宽度为正；
 零宽度空切片会被跳过。
@@ -505,9 +583,10 @@ t_{\mathrm{end}}=t_0-\frac{z_{\min}}{\beta_0c},\qquad
 <p>参考时间由输运命令推进，不由执行器的圈计数推进，因此多圈输入需要真实闭合输运路径。
 必须使用 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 与保存区间构造时间，不能用名义 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 或
 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 替代物理到达时间。</p>
-<section id="id5">
-<h3>预设驱动与电子推进<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<p>在 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 的每个切片内，横向源是位于轴心、在壁面半径 <span class="math notranslate nohighlight">\(R\)</span> 截断的圆高斯，
+</section>
+<section id="id7">
+<h3>预设驱动与电子推进<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>在未设 Beam driver 的旧圆室 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 的每个切片内，横向源是位于轴心、在壁面半径 <span class="math notranslate nohighlight">\(R\)</span> 截断的圆高斯，
 sigma 为给定 <span class="math notranslate nohighlight">\(\sigma_b\)</span>。当前切片粒子数确定带符号线电荷；
 跟踪束流的横向坐标不会改变源中心和尺寸。
 在 <span class="math notranslate nohighlight">\(0&lt;r&lt;R\)</span> 内，</p>
@@ -544,14 +623,14 @@ Boris 方法参见
 标准相对论 Boris 对相对论 <span class="math notranslate nohighlight">\(\boldsymbol E\times\boldsymbol B\)</span> 漂移也有已知限制，见
 <a class="reference external" href="https://arxiv.org/pdf/1701.05605">Higuera 与 Cary</a>。</p>
 </section>
-<section id="id6">
-<h3>耦合 PIC 场与束流响应<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>耦合 PIC 场与束流响应<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> 使用保存切片的存活粒子横向坐标及归属。
 每个束流宏粒子沉积线电荷 <span class="math notranslate nohighlight">\(q_{\ell,j}=r_b Z_b e/\Delta z\)</span>，
 其中 <span class="math notranslate nohighlight">\(r_b\)</span> 为真实粒子与宏粒子的数量比。
 在保存的物理切片时间区间内，横向源分布保持固定，不再用高斯轮廓替代；
 <code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code> 对本模式的物理计算没有影响。</p>
-<p>接地圆形 FD 求解器分别求束流场和云场。动态云粒子先沉积
+<p>接地 FD 求解器分别求束流场和云场。动态云粒子先沉积
 <span class="math notranslate nohighlight">\(q_{\ell,e,j}=-e w_j/L_s`（C/m），其中源长度 :math:`L_s\)</span> 初始为 1 m。
 除以网格面积后得到 C/m<sup>3</sup> 的密度，Poisson 直接给出 V 的电势与 V/m 的电场，
 不再额外除以源长度。恢复的快照可以包含其他源长度；电子权重随该长度同比缩放时，物理场不变。
@@ -580,8 +659,8 @@ Boris 方法参见
 这些控制不能证明收敛。得出物理结论前，应分别检查网格、宏电子与初级发射样本数、
 随机种子、切片宽度和时间步长。</p>
 </section>
-<section id="id7">
-<h3>初级源与二次发射<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="id9">
+<h3>初级源与二次发射<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <p>每个切片前沿产生预设初级电子数
 <span class="math notranslate nohighlight">\(N_{\mathrm{primary}}=Y_p N_{\mathrm{slice}}L_s\)</span>，
 使用沿壁面周向均匀采样、朝内发射的等权宏电子表示。
@@ -601,16 +680,17 @@ Boris 方法参见
 并在低能端保守地抑制发射。
 曲线使用
 <a class="reference external" href="https://www.classe.cornell.edu/~critten/cesrta/ecloud/doc/furmanpivi.pdf">Furman 与 Pivi 式 31–32</a>
-的真二次形状，并非完整概率模型：未实现弹性反射、再扩散、角度相关材料产额及联合二次能谱。
+的真二次形状，并非完整概率模型：这一旧选项不含弹性反射、再扩散、角度相关材料产额及联合二次能谱；这些能力由可选的 Surface emission 提供。
 宏粒子通过权重表示倍增，不采用整数分支。</p>
 <p>初级和二次发射方向均服从相对于朝内法向的三维余弦分布：
 <span class="math notranslate nohighlight">\(\mu=\cos\theta=\sqrt U\)</span>、<span class="math notranslate nohighlight">\(\phi=2\pi V\)</span>，
 其中 <span class="math notranslate nohighlight">\(U,V\)</span> 为独立均匀随机数。
-尽管只跟踪 x、y 位置，三个动量分量均保留；初始电子云方向则使用各向同性完整球面。</p>
+尽管只跟踪 x、y 位置，三个动量分量均保留；默认单能初态使用各向同性完整球面，
+可选初态速度分布独立于壁面发射模型。</p>
 </section>
 </section>
-<section id="id8">
-<h2>输出与状态<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id10">
+<h2>输出与状态<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
 <p>静态模式选定圈的 HDF5 诊断写入当前 PASS 运行目录下的
 <code class="docutils literal notranslate"><span class="pre">electron_cloud/&lt;run_id&gt;/beam&lt;id&gt;_&lt;command&gt;/turn_&lt;turn&gt;_call_&lt;call&gt;.h5</span></code>。
 运行标识包含新生成的唯一标识；调用编号区分同一圈的重复执行。
@@ -618,8 +698,8 @@ Boris 方法参见
 所需场输出写入成功后才提交暂存的束流动量踢角。写入失败时束流动量保持不变，
 重试会使用新的诊断文件名。文件格式标记为
 <code class="docutils literal notranslate"><span class="pre">PASS-electron-cloud-fields-1</span></code>，包含：</p>
-<table class="docutils align-default" id="id13">
-<caption><span class="caption-text">场快照数据集</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id22">
+<caption><span class="caption-text">场快照数据集</span><a class="headerlink" href="#id22" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 45.0%" />
 <col style="width: 20.0%" />
@@ -664,7 +744,7 @@ PIC 源元数据含所代表的源长度与随机数状态。
 执行后的 <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code> 提供存活粒子数、最大电场与踢角以及逐束团记录。
 解析势采用上文给出的势参考。解释结果时，应区分 PIC 采样噪声、导体壁面像场与力归一化误差。</p>
 <p>两种动态模式采用相同的输出目录与选圈规则，保存
-<code class="docutils literal notranslate"><span class="pre">source/x,y,ux,uy,uz,weight</span></code> 数组和源元数据；<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 不保存云自场图。
+<code class="docutils literal notranslate"><span class="pre">source/x,y,ux,uy,uz,weight</span></code> 数组和源元数据；默认稀薄近似的 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 不保存云自场图。
 耦合输出还包含最终真实云场的 <code class="docutils literal notranslate"><span class="pre">grid</span></code> 和 <code class="docutils literal notranslate"><span class="pre">fields</span></code> 数据集，
 采用上表 SI 单位，并保存历史与最大踢角诊断。
 <code class="docutils literal notranslate"><span class="pre">ux,uy,uz</span></code> 为无量纲动量。源元数据包含 <code class="docutils literal notranslate"><span class="pre">source_length</span></code>、物理 <code class="docutils literal notranslate"><span class="pre">time</span></code>、
@@ -693,8 +773,8 @@ PIC 源元数据含所代表的源长度与随机数状态。
 耦合快照沿用动态状态格式，校验模式与配置标识，并重建场资源而不保存缓存。</p>
 <p>跟踪期间，动态电子数组驻留于所选 CPU 或 GPU 后端。
 暂存状态拥有独立粒子数据；耦合模式通过串行调用复用固定网格、场分解和数值工作区。
-读取公开云状态、写入源/场快照或捕获检查点时才构造经过校验的主机快照；
-GPU 上这会增加设备到主机的数据传输。输入字段与检查点格式保持不变。
+读取公开云状态、写入源/场快照或捕获组件快照时才构造经过校验的主机快照；
+GPU 上这会增加设备到主机的数据传输。输入字段与组件快照格式保持不变。
 标量诊断和发射采样仍可能引发主机与设备同步。
 比较 CPU/GPU 性能时，应先完成编译和求解器初始化预热，
 分别测量同步后的跟踪、初始化与快照输出耗时，并覆盖无碰壁和壁面发射负载；
@@ -706,20 +786,238 @@ GPU 上这会增加设备到主机的数据传输。输入字段与检查点格�
 <p>读取云快照只改变当前命令的源。跟踪入口从第 0 圈开始新运行，
 这些组件 API 不提供整机重启流程。</p>
 </section>
-<section id="id9">
-<h2>可运行示例<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">example/07_electron_cloud</span></code> 提供英文入门说明和六个串行单踢角算例：零密度、
-解析密度与双倍密度、自由空间 PIC、矩形 FD 和矩形 DST。
-显式探针粒子覆盖云内外区域。分析从作用前后分布快照读取踢角，与高斯定律比较，
-检查密度正比关系、坐标和参考时间不变，并在相同边界条件下比较 FD/DST。
-JSON、CSV 和科学绘图 PNG 输出位于 Git 忽略的
-<code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/example_output</span></code> 目录。</p>
-<p><code class="docutils literal notranslate"><span class="pre">example/08_electron_cloud_buildup</span></code> 提供四个串行束团列算例：初始云吸收、
-初级产生与吸收、初级产生与真二次发射，以及时间步长减半比较。
-真实单圈 Drift 推进参考时钟，同时保持预设驱动束流分布不变。
-分析检查粒子数/能量收支、时间连续性和束流坐标不变，
-在 <code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/buildup_example_output</span></code> 保存 JSON、CSV 和电子数历史图。
-时间步减半的差异作为分辨率比较报告，不表示物理饱和或统计收敛已被证明。</p>
+<section id="id11">
+<h2>可运行示例<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">example/09_electron_cloud_models</span></code> 提供英文入门说明和两个串行工作流。
+<code class="docutils literal notranslate"><span class="pre">run_models.py</span></code> 覆盖五种真空室、自场开关、椭圆偏轴与密度图驱动、
+四种初级源、三通道表面发射、宏粒子管理以及时间步长比较。
+五种几何主例及椭圆半步长例均禁用宏粒子管理；另外两个椭圆例以同一个
+无合并半步长结果为基线，分别比较粗、细相空间单元的合并影响。
+全部八条历史均保存；报告将积分步长变化与合并近似分开，并给出有效宏粒子数、
+合并次数和是否达到软目标。权重与动能守恒本身不能约束合并导致的后续轨道、
+能谱及壁面热负载误差。
+<code class="docutils literal notranslate"><span class="pre">run_response.py</span></code> 从真实 coupled PIC 提取 G 和四个 K 分量，
+并以独立直接跟踪检验响应重建。两者均支持 CPU/GPU，
+在 <code class="docutils literal notranslate"><span class="pre">tests/codex/ecloud_examples</span></code> 新建目录保存 HDF5/JSON；
+模型示例还生成 CSV 和 PNG。假设、单位与验证范围见 <a class="reference internal" href="#electron-cloud-models-zh"><span class="std std-ref">电子云模型与响应工作流</span></a>。</p>
+</section>
+<section id="electron-cloud-models-zh">
+<span id="id12"></span><h2>电子云模型与响应工作流<a class="headerlink" href="#electron-cloud-models-zh" title="Link to this heading"></a></h2>
+<p>以下选项扩展 <a class="reference internal" href="#"><span class="doc">电子云（ElectronCloud）</span></a>，旧输入仍使用稀薄云、圆高斯驱动和简化二次发射默认值。
+电子运动仍为 2D3V：推进 x/y 并保留三个机械动量分量，不包含纵向电子输运。</p>
+<section id="id13">
+<h3>规定驱动、自场与真空室<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Electron</span> <span class="pre">self</span> <span class="pre">fields</span></code> 为布尔值，默认 <code class="docutils literal notranslate"><span class="pre">false</span></code>。在 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 中打开后，
+受驱动区间和无束流间隙都计算电子空间电荷场；<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 始终包含自场。
+求场使用接地横向静电网格，应分别检查网格和时间步长收敛。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Beam</span> <span class="pre">driver</span></code> 可选 <code class="docutils literal notranslate"><span class="pre">ElectronCloudBeamDriver</span></code>：</p>
+<table class="docutils align-default" id="id23">
+<caption><span class="caption-text">规定横向驱动</span><a class="headerlink" href="#id23" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 或 <code class="docutils literal notranslate"><span class="pre">density_map</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>高斯 RMS 尺寸，均为正数，可以不相等。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>规定束流中心，独立于初始电子云中心。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Y</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">density</span></code></p></td>
+<td><p>严格递增坐标轴和 (y, x) 排列的非负相对密度图。</p></td>
+</tr>
+</tbody>
+</table>
+<p>驱动按每个已保存切片的带符号物理电荷归一化。<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 使用实际束流分布，不允许另设该驱动。
+为兼容旧输入，<code class="docutils literal notranslate"><span class="pre">round_gaussian_beam</span></code> 仍是 build_up 模式的求解器标签，
+即使可选驱动实际使用有限区域 PIC 求场。</p>
+<p>动态 <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type/value</span></code> 支持 circle、ellipse、rectangle、racetrack 和简单 polygon，
+尺寸约定与 <a class="reference internal" href="space_charge.html"><span class="doc">空间电荷效应（SpaceCharge）</span></a> 一致。碰壁交点、内法向、源位置与接地 Poisson 区域共用该几何。
+<code class="docutils literal notranslate"><span class="pre">default</span></code>/<code class="docutils literal notranslate"><span class="pre">off</span></code> 保留 <code class="docutils literal notranslate"><span class="pre">Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> 定义的圆壁面。
+整个初始均匀圆盘必须严格位于真空室内，其他初始空间分布取腔室内部的条件分布。
+非圆几何自动使用有限区域束流场；未设置 <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">driver</span></code> 时，
+将 <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">sigma</span> <span class="pre">(m)</span></code> 定义的轴心圆高斯密度投影至该区域。
+显式非圆孔径须省略 <code class="docutils literal notranslate"><span class="pre">Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code>，避免冲突的几何定义。</p>
+</section>
+<section id="id14">
+<h3>初级电子产生<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Primary</span> <span class="pre">sources</span></code> 是 <code class="docutils literal notranslate"><span class="pre">PrimarySourceConfiguration</span></code> 列表，
+不能与非零旧初级产额同时使用。每个源可设 <code class="docutils literal notranslate"><span class="pre">Macro</span> <span class="pre">electrons</span></code> （默认 64）、
+<code class="docutils literal notranslate"><span class="pre">Mean</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> （默认 2）、<code class="docutils literal notranslate"><span class="pre">Energy</span> <span class="pre">distribution</span></code> （monoenergetic 或 gamma）
+及 <code class="docutils literal notranslate"><span class="pre">Energy</span> <span class="pre">shape</span></code> （正 Gamma 形状参数，默认 2）。宏粒子权重表示真实电子数。
+出生时间在有限源区间内采样，仅推进出生后的运动。</p>
+<table class="docutils align-default" id="id24">
+<caption><span class="caption-text">源长度 L、持续时间 dt 下的物理电子数</span><a class="headerlink" href="#id24" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 40.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">Kind</span></code></p></th>
+<th class="head"><p>物理电子数</p></th>
+<th class="head"><p>参数</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gas_ionization</span></code></p></td>
+<td><p>N_b P sigma L / (k_B T)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Gas</span> <span class="pre">pressure</span> <span class="pre">(Pa)</span></code>、<code class="docutils literal notranslate"><span class="pre">Gas</span> <span class="pre">temperature</span> <span class="pre">(K)</span></code>、<code class="docutils literal notranslate"><span class="pre">Ionization</span> <span class="pre">cross</span> <span class="pre">section</span> <span class="pre">(m^2)</span></code>；位置跟随束流体分布。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prescribed_wall</span></code></p></td>
+<td><p>N_b Y L</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Electrons</span> <span class="pre">per</span> <span class="pre">beam</span> <span class="pre">particle</span> <span class="pre">(1/m)</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beam_loss</span></code></p></td>
+<td><p>N_b f_loss Y_loss L</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">loss</span> <span class="pre">fraction</span> <span class="pre">(1/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Electrons</span> <span class="pre">per</span> <span class="pre">lost</span> <span class="pre">particle</span></code>；使用给定损失率，不自动从跟踪丢粒子推断。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">photoelectric</span></code></p></td>
+<td><p>photon_rate QE L dt</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Photon</span> <span class="pre">rate</span> <span class="pre">(1/m/s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Quantum</span> <span class="pre">efficiency</span></code>；输入规定照射，不追踪光子路径。</p></td>
+</tr>
+</tbody>
+</table>
+<p>壁面源的 <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">angle</span> <span class="pre">min</span> <span class="pre">(rad)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">angle</span> <span class="pre">max</span> <span class="pre">(rad)</span></code> 限定发射区域。
+这里是相对于真空室原点的极角范围；在该区域内按壁面弧长均匀采样，椭圆上并非极角均匀。
+光照源在无束流间隙也持续产生电子；N_b 为当前区间通过的真实束流粒子数。
+气压、电离截面、损失率与照射量须来自目标运行工况。</p>
+</section>
+<section id="id15">
+<h3>壁面发射<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Surface</span> <span class="pre">emission</span></code> 选择 <code class="docutils literal notranslate"><span class="pre">SurfaceEmissionConfiguration</span></code>，
+不能与非零旧 <code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">yield</span> <span class="pre">max</span></code> 同时使用。这是三通道经验模型，不是完整的 Furman-Pivi 材料拟合。</p>
+<ul class="simple">
+<li><p>真二次通道参数为 <code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">yield</span> <span class="pre">max</span></code>、<code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">peak</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code>、<code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">shape</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Yield</span> <span class="pre">angle</span> <span class="pre">coefficient</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Peak</span> <span class="pre">angle</span> <span class="pre">coefficient</span></code>。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">energy</span> <span class="pre">distribution</span></code> 选择 gamma 或 monoenergetic；
+<code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">mean</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">energy</span> <span class="pre">shape</span></code> 定义未加能量条件的谱。
+有限入射能量会改变加条件后的实际平均出射能量。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Elastic</span> <span class="pre">probability</span> <span class="pre">at</span> <span class="pre">zero</span> <span class="pre">energy</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Elastic</span> <span class="pre">energy</span> <span class="pre">scale</span> <span class="pre">(eV)</span></code> 定义弹性支路；
+<code class="docutils literal notranslate"><span class="pre">Rediffused</span> <span class="pre">probability</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Rediffused</span> <span class="pre">energy</span> <span class="pre">shape</span></code> 定义再扩散支路。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Sampling</span></code> 为 stochastic_event 或 weighted_channels；
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">secondaries</span> <span class="pre">per</span> <span class="pre">impact</span></code> 限制单次事件多重性。</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">yield</span> <span class="pre">energy</span> <span class="pre">table</span> <span class="pre">(eV)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">True</span> <span class="pre">yield</span> <span class="pre">table</span></code> 可替代解析真次级产额曲线，
+使用线性插值；<code class="docutils literal notranslate"><span class="pre">Yield</span> <span class="pre">table</span> <span class="pre">outside</span></code> 指定区间外为 zero（默认）或 constant。
+角度系数仍作用于能轴与产额。</p>
+<p>各通道共享入射能量预算。随机真二次支路先采样有条件总能量，再采样联合能量分配；
+不把独立谱样本事后裁剪到入射能量，避免产生非物理尖峰。余弦发射保留正负两种纵向动量。
+单能随机发射的 Poisson 多重性以 N 乘发射能量不超过入射能量为条件，
+因此低能区实际平均产额可能不同于未加此条件的输入曲线。
+实际材料、表面处理历史及能区仍需实验标定。</p>
+</section>
+<section id="id16">
+<h3>宏粒子管理与诊断<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Population</span> <span class="pre">control</span></code> 选择 <code class="docutils literal notranslate"><span class="pre">PopulationControlConfiguration</span></code>。
+局域相空间单元内使用两个代表动量合并，保持总权重、加权动量与相对论动能；
+过重代表粒子可以拆分。参数为 <code class="docutils literal notranslate"><span class="pre">Target</span> <span class="pre">macro</span> <span class="pre">electrons</span></code>、<code class="docutils literal notranslate"><span class="pre">Spatial</span> <span class="pre">cell</span> <span class="pre">size</span> <span class="pre">(m)</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Normalized</span> <span class="pre">momentum</span> <span class="pre">cell</span> <span class="pre">size</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">weight</span> <span class="pre">to</span> <span class="pre">mean</span> <span class="pre">ratio</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">split</span> <span class="pre">children</span></code>。
+目标数量为软目标：不会为凑数量任意合并相隔较远的单元。
+独立的 <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> 仍是硬资源上限。</p>
+<p>守恒低阶矩不等于保持所有空间结构和高阶矩。应与更多宏粒子、更细单元下的密度及电场比较。
+有效宏粒子数为 <span class="math notranslate nohighlight">\(N_\mathrm{eff}=(\sum w)^2/\sum w^2\)</span>。
+同状态粒子的拆分会增大这个权重指标，但不会创造统计独立的相空间样本。
+<code class="docutils literal notranslate"><span class="pre">PASS.commands.ecloud.diagnostics</span></code> 提供带权粒子数、线密度、动能、核心密度及 RMS 统计。
+HDF5 <code class="docutils literal notranslate"><span class="pre">diagnostics</span></code> 谱各自包含带单位的 <code class="docutils literal notranslate"><span class="pre">edges</span></code>、<code class="docutils literal notranslate"><span class="pre">centers</span></code> 和 <code class="docutils literal notranslate"><span class="pre">values</span></code>。
+云谱以 electrons/bin 描述快照时刻；壁面谱另提供净动能沉积的 J/bin 权重，按 <code class="docutils literal notranslate"><span class="pre">scope</span></code> 标识的记录范围累计。
+壁面位置轴为 atan2(y,x) 极角而非弧长。壁面能谱末 bin 包含全部不低于 1 MeV 的事件，
+有限的 10 MeV 绘图边界不是能量上限。GUI 保留这些属性，支持读取、绘制和导出。</p>
+<p>壁面净沉积能量为入射动能减去出射动能。<code class="docutils literal notranslate"><span class="pre">wall_power</span></code> 再除以观测持续时间与源长度得到 W/m。
+可选周长用于计算平均 W/m2，不表示已解析局部热点。</p>
+<p>CPU/GPU 使用相同物理分布与能量约束。GPU 材料采样在设备上使用 Philox，
+每次发射调用从组件已保存的 PCG64 状态取得一个种子。
+同一后端与软件栈上的克隆、恢复可以重现抽样，但不要求 CPU/GPU 的具体样本相同。
+随机样本可复现并不意味着 GPU 墙谱逐位一致：双精度原子加归约在权重不同时可能产生末位舍入差异，
+但不会反馈到粒子轨迹或 RNG。
+仅条件 CDF 下溢或极端 Dirichlet 参数下的少量样本进入 host 退路。
+初级源保留 host 随机发生器，但从 GPU 仅提取被抽中的束流坐标；
+宏粒子管理和壁面谱归约留在 GPU，只传回小规模诊断结果。</p>
+<p>Sequence 命令只在启用 <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">fields</span></code> 时累计墙谱；始终启用时为 <code class="docutils literal notranslate"><span class="pre">scope=cumulative_since_state_origin</span></code>。
+无论是否保存输出，标量粒子数与能量收支始终保留，避免跟踪为未使用的谱付出代价。
+低层 <code class="docutils literal notranslate"><span class="pre">BuildUpCloud</span></code> API 默认保留墙谱；显式传入 <code class="docutils literal notranslate"><span class="pre">record_wall_spectra=False</span></code>
+可关闭，恢复状态时也丢弃旧谱，不改变物理粒子与 RNG。</p>
+<p>若快照中已经发生过碰壁但未记录墙谱，恢复时重新启用记录会开始新的累计范围，
+标记为 <code class="docutils literal notranslate"><span class="pre">scope=cumulative_since_recording_restart</span></code>。后续累计及再次保存、恢复均保留此范围。
+标量粒子数与能量账本仍包含完整物理历史，因此不能将重新记录的墙谱当作全历史壁面能量。</p>
+</section>
+<section id="id17">
+<h3>响应提取与回放<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.commands.ecloud.response</span></code> 提供 <code class="docutils literal notranslate"><span class="pre">ResponseSlice</span></code>、<code class="docutils literal notranslate"><span class="pre">extract_response</span></code>、
+<code class="docutils literal notranslate"><span class="pre">write_response</span></code>、<code class="docutils literal notranslate"><span class="pre">read_response</span></code> 和 <code class="docutils literal notranslate"><span class="pre">make_periodic_response</span></code>。
+提取器从克隆的物理云及 RNG 状态驱动真实 <code class="docutils literal notranslate"><span class="pre">BuildUpCloud</span></code> 求解器，
+测量空间背景踢角 G 和四个源到见证束片横向响应分量 K。
+只扰动源质心，见证探针保持不变。epsilon 与 epsilon/2 的中心差分须在指定容差内一致，
+并相对基准检查偶对称残差，捕获仅用中心差分可能漏掉的二次响应。
+有限宽度切片在自身持续时间内可以已有响应，因此不强制因果矩阵对角元为零。</p>
+<div class="math notranslate nohighlight">
+\[\Delta \mathbf p_{\perp,i}(x,y)
+= \mathbf G_i(x,y) + \sum_{j\le i}\mathbf K_{ij}\Delta\mathbf r_j.\]</div>
+<p>p_perp 为横向机械动量除以参考动量；G 无量纲，K 单位为 1/m。
+束流电荷、作用长度和带符号见证束参考因子已包含在文件中。
+G 已给出背景聚焦，不应再另加相同冻结云踢角。
+该近似描述已标定见证束分布的相干响应，不覆盖任意变化的束流分布及非线性运动。</p>
+<p><code class="docutils literal notranslate"><span class="pre">ElectronCloudResponseItem</span></code> 可加入 Sequence：</p>
+<table class="docutils align-default" id="id25">
+<caption><span class="caption-text">响应作用点</span><a class="headerlink" href="#id25" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON 键</p></th>
+<th class="head"><p>默认</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Response</span> <span class="pre">file</span></code>、<code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>标定 HDF5 和在本位置刚执行的 general/z_rel 切片。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Timeline</span> <span class="pre">mode</span></code></p></td>
+<td><p>finite</p></td>
+<td><p>完整已测因果历史，或经过验证的 periodic 复用。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Maximum</span> <span class="pre">centroid</span> <span class="pre">displacement</span> <span class="pre">(m)</span></code></p></td>
+<td><p>null</p></td>
+<td><p>使用文件中的标定范围，或设定更严格范围。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Profile</span> <span class="pre">tolerance</span></code></p></td>
+<td><p>null</p></td>
+<td><p>中心化横向协方差的相对 Frobenius 容差；使用文件值或更严格值。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Order</span></code>、<code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
+<td><p>0、null、true</p></td>
+<td><p>标准位置、执行顺序和开关。</p></td>
+</tr>
+</tbody>
+</table>
+<p>有限时间线可以包含多个束团与多个圈，不要求平稳核。
+周期回放要求记录多个周期，并验证 G、各滞后 K 及被截断记忆尾部的一致性。
+局部云状态不是整个模拟检查点；每次跟踪仍从新初始条件开始，响应文件不会恢复其他命令或时钟。</p>
+<p><code class="docutils literal notranslate"><span class="pre">capture_response_slices</span></code> 可捕获实际保存切片的时间线。自动空束团可能产生零宽观测点，
+这种点不是有限响应区间；含空组时应使用有限 explicit Slicer 范围，捕获器会拒绝零宽观测点。
+协方差检查不能检测所有高阶矩或细结构变化；束流超出固定分布假设时须重新标定，
+即使协方差恰好保持不变也不例外。</p>
+</section>
+<section id="id18">
+<h3>数值与物理验证<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<p>应在指定小位移范围内用直接 coupled 跟踪检查响应重建。
+分别细化电子时间步、网格、宏粒子数、响应探针网格和记忆长度。
+工作点与指数增长率需要明确拟合区间，阈值结论取决于实际扫描参数和增长模型。
+数值一致性不能替代材料与机器实测输入，也不能证明完整三维、电磁或边缘场有效性。</p>
+</section>
 </section>
 </section>
 

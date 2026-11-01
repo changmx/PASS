@@ -156,7 +156,7 @@ Python 接口
 GPU 接口与精度
 ------------------
 
-GPU 接口要求兼容的 CUDA 环境及 GPU 依赖；安装项目时选择 ``cuda`` 可选依赖。CPU 接口不要求 CuPy。
+GPU 接口要求兼容的 CUDA 环境及 GPU 依赖；安装项目时选择 ``gpu`` 可选依赖。CPU 接口不要求 CuPy。
 
 ``build_pic_resources_gpu`` 使用与 ``build_pic_resources`` 相同的几何和底层
 求解器名称，另提供 ``dtype``、``num_slices``、``dst_implementation``、

@@ -596,10 +596,10 @@ or energy-dependent amplitude.</p>
 <p>Open or drop OMC3 SDDS, HDF5, CSV or TFS, select data, preview, then <strong>Save as</strong>.
 Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
 HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
-outside the scope. Install the GUI extra or, for scripts only,
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pass-sim[conversion]&quot;</span></code> for PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> and
-<code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code> support. When installing from a GitHub clone or extracted source
-archive, use <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[conversion]&quot;</span></code> from the directory
+outside the scope. The default <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pass-sim</span></code> installation
+includes PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code> and <code class="docutils literal notranslate"><span class="pre">turn-by-turn</span></code> support for both the GUI and scripts.
+When installing from a GitHub clone or extracted source
+archive, use <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">.</span></code> from the directory
 containing <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
 <p>SDDS support is specifically the OMC3 <strong>LHC/TbT SDDS1 array layout</strong>, read through
 PyLHC <code class="docutils literal notranslate"><span class="pre">sdds</span></code>. <code class="docutils literal notranslate"><span class="pre">turn_by_turn</span></code> is the Python reader used by OMC3, not another

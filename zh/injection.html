@@ -624,7 +624,8 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 <
 <td><p>str</p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'turn'</span></code></p></td>
-<td><p>时间列类型，可选： <code class="docutils literal notranslate"><span class="pre">turn</span></code> 、 <code class="docutils literal notranslate"><span class="pre">time</span></code></p></td>
+<td><p>历史兼容字段，保存时保留原值。偏移表的 <code class="docutils literal notranslate"><span class="pre">turn</span></code> 或 <code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">(s)</span></code>
+列决定实际时间轴；此值不会覆盖表头，GUI 显示为自动识别。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_position</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">Position</span> <span class="pre">(m)</span></code></p></td>
@@ -1175,6 +1176,28 @@ p_u=\frac{r_u}{\sqrt{\beta_u}}
 </div></blockquote>
 <p>匹配求根使用完整 RF 桶内连续分布的归一化中心矩，使其 RMS 满足输入目标。动量积分先用不完全伽马函数解析计算，再对按分布自然宽度缩放后的 z 自适应积分，并显式划分积分区间以捕捉窄峰。这提高了矩的计算精度，不改变分布密度、RF 势能或匹配目标。粒子采样随后另行施加截断，因此最终有限样本的 RMS 仍可能与该目标不同。</p>
 <p>RF 匹配采样还施加 bucket 哈密顿量接受范围的 0.9 比例限制。超过模型最大尺度的请求会调整为该最大值的 0.99 倍。这些条件与 z 截断共同作用，所得样本 RMS 不一定等于输入匹配目标。</p>
+<p>两种匹配分布均分批生成候选点，仍在相同的 RF 桶外接矩形内均匀抽样。
+每个候选点按相同顺序消耗三个均匀随机数，分别用于 z、动量偏差和接受阈值。
+每批候选数不超过尚需生成的粒子数，因此不会在填满束团后额外消耗候选点。
+在兼容条件下，经检查的 MT19937 状态转移使 NumPy 能批量生成原有 Python
+随机数流，再将推进后的状态及缓存的高斯随机值写回；否则直接使用 Python
+随机数生成器。种子语义和后续随机数流保持不变。</p>
+<p>仅依赖动量的概率上界可提前排除必然被拒绝的候选点，省去这些点的 RF 势能计算。
+在稳定的单谐波 RF 桶内，将正定符号下的哈密顿量写为</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{E}=\operatorname{sgn}(H_{\max})H
+   =U(z)+K\delta^2,\qquad U(z)\ge0,\qquad
+K=\pi h f_0|\eta|&gt;0,\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>、<span class="math notranslate nohighlight">\(f_0=\beta c/C\)</span>。令
+<span class="math notranslate nohighlight">\(T=|H_0|&gt;0\)</span>、<span class="math notranslate nohighlight">\(B=|H_{\max}|&gt;0\)</span>，原有接受密度满足</p>
+<div class="math notranslate nohighlight">
+\[\psi(z,\delta)=
+\frac{e^{-\mathcal{E}/T}-e^{-B/T}}{1-e^{-B/T}}
+\le e^{-\mathcal{E}/T}\le e^{-K\delta^2/T}.\]</div>
+<p>若候选点已有的随机阈值超过该上界，完整密度判断也必然拒绝它。实现保留了保守的
+浮点舍入余量，并在上界所需的数值条件不适合时回退到完整判断。其余候选点仍使用
+原有密度和哈密顿量条件判断；已有 z 截断也可提前检查。这改变计算开销，保持
+匹配目标、分布密度和截断条件不变。</p>
 <section id="zh-injection-matching-phase">
 <span id="id22"></span><h3>匹配计算中的射频相位和电荷符号<a class="headerlink" href="#zh-injection-matching-phase" title="Link to this heading"></a></h3>
 <p>对于 <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code>，<code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code> 表示参考粒子在匹配 RF

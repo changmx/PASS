@@ -38,7 +38,7 @@
      - HDF5 数组或 TFS 长表；均包含注入初值
    * - StatMonitor
      - 每个束团、每个监视器位置一个统计历史文件
-     - 包含相同行的 CSV
+     - TFS 输出保留不压缩的 HDF5 中间文件；不生成 CSV
    * - SlowExtraction
      - 每个 source、每次运行一个追加式逐粒子事件表
      - 仅 HDF5
@@ -57,7 +57,7 @@
      - 无；默认 TFS
 
 HDF5 表格使用 ``.h5``，TFS 表格使用 ``.tfs``，文件名主体保持一致。
-:doc:`StatMonitor <statmonitor>` 的 CSV、HDF5 和 TFS 使用文件名主体
+:doc:`StatMonitor <statmonitor>` 的 HDF5 和 TFS 使用文件名主体
 ``{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}``。
 StatMonitor、DistMonitor、PhaseAdvanceMonitor、ParticleMonitor 和 SlowExtractionMonitor 省略命令名中的数字
 MAD-X 实例后缀及末尾的位置标签，文件名仅保留一次当前位置。其他特殊字符继续百分号转义。
@@ -105,7 +105,7 @@ PM 读取器要求一个当前第 2 版文件。完成状态元数据与各格�
 shuffle 在压缩前重排字节，不改变保存的数值或粒子顺序。
 ``"hdf5"`` 同时关闭压缩和 shuffle。两者使用相同的 ``.h5`` 扩展名、
 逻辑结构和读取器，无需单独的压缩参数。此选项适用于上表中的表格输出；
-CSV 保持不变，SpaceCharge 继续使用独立的场数据写入器。
+现有 CSV 输出不压缩，SpaceCharge 继续使用独立的场数据写入器。
 例如，选择不压缩的 HDF5：
 
 .. code-block:: python
@@ -160,17 +160,15 @@ GPU 模式下，监视器根据指定圈数间隔和初始束团数预分配统�
 传回后逐条使用 CPU 公式计算派生输出列。
 CPU 模式则在 CPU 内存中缓存已计算完毕的各行。
 
-HDF5 与 CSV 写入同一批记录，每批写完关闭文件。选择 ``"tfs"`` 时，
-CSV 同样按批追加，完整 TFS 在结束清理时生成。
-CSV 在第一批写入后即可查看，保存全部记录，而非每批只保留一行。
-两个文件依次写入，不是原子提交的一对文件。
+StatMonitor 将记录按批追加到 HDF5，每批写完关闭文件；所有输出格式均不生成 CSV 文件。
+在模拟结束后，或暂停于两批写入之间时，重新打开 HDF5 即可查看已写入的批次。
+恢复跟踪前应关闭读取文件的程序句柄。此写入器不启用 SWMR；
+其他进程长期打开 HDF5 可能阻止后续写入，写入过程中直接复制也不能保证得到一致快照。
 
-运行中查看统计值建议使用 CSV，例如 Linux 的 ``tail -n 10 -f path.csv``，
-或 PowerShell 的 ``Get-Content path.csv -Tail 10 -Wait``。
+选择 ``"tfs"`` 时，监视器在跟踪期间写入不压缩的 ``.h5`` 文件，
+结束清理时读取该统计历史并导出完整的 ``.tfs`` 文件。
+两个文件使用相同的文件名主体，导出后保留 HDF5 文件。
 HDF5 是二进制文件，不能用 ``tail`` 直接查看有意义的数值。
-应在模拟完成后，或暂停于两批写入之间时读取 HDF5。
-此写入器不启用 SWMR；其他进程长期打开 HDF5 可能阻止后续写入，
-写入过程中直接复制也不能保证得到一致快照。
 
 读取表格
 --------

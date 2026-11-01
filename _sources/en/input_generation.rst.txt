@@ -122,6 +122,44 @@ omitted or set to ``default`` (case-insensitive), the output root is ``output``
 beside the first JSON. Generated inputs still default to ``./output``. The
 repository or installation directory is no longer used as a fallback.
 
+The optional ``Task name`` field (``MainConfig.task_name``) names the run
+folder inside that root. ``Output directory`` / ``output_dir`` still specifies
+the output root. For example, ``output_dir="output",
+task_name="capture_sc"`` writes to ``output/capture_sc/``. Omit the field or
+use ``null``, an empty string, whitespace, or ``default`` to select a single
+folder named ``YYYY_MM_DD_HH_MM`` at minute precision, for example
+``output/2026_10_30_18_39/``. ``default`` is case-insensitive after trimming
+surrounding whitespace, so ``" DEFAULT "`` has the same effect. There is no
+separate date parent directory and no automatic Beam 0 name fallback.
+The ``input/``, ``distribution/``, ``particle/``, ``plot/`` and other component
+subdirectories keep their names and layout. Result filenames retain their
+existing ``HHMM_SS`` time labels, independently of the task folder name.
+Both automatic and custom names use unpadded collision suffixes ``_1``, ``_2``,
+``_3``, and so on: for example, ``2026_10_30_18_39_1`` or ``capture_sc_1``.
+Earlier results are never reused or overwritten.
+
+Use a single folder name, not a path: path separators, ``.``/``..``, invalid
+filename characters and reserved operating-system names are rejected. Leading
+and trailing whitespace is removed. Date-shaped custom names are allowed;
+``YYYY_MMDD`` is no longer reserved. The command-line ``--task-name NAME``
+overrides the stored name without changing the input. An explicitly empty
+override or ``--task-name default`` selects the single-level timestamp layout:
+
+.. code-block:: console
+
+   pass-run input/beam0.json --task-name capture_sc
+   pass-run example.passproj --output results --task-name capture_sc
+   pass-run input/beam0.json --task-name ""
+   pass-run input/beam0.json --task-name default
+
+Compatibility inputs still accept the former JSON fields ``Output subdirectory``
+and ``Output name``, Python arguments or project settings ``output_subdirectory``
+and ``output_name``, and CLI options ``--output-subdirectory`` and ``--output-name``.
+New JSON, project files and execution snapshots use ``Task name`` or ``task_name``
+as appropriate. Supplying multiple aliases for the same setting is rejected;
+use one spelling when migrating. Existing result trees are not moved or renamed.
+New runs, including reruns of old inputs or snapshots, use the single-level layout.
+
 Use either help command to display input modes, options, path rules, and examples
 without starting a simulation:
 
@@ -140,6 +178,12 @@ To override output in a Python integration, use
 Relative ``output_dir`` paths use the working directory when ``main()`` is called.
 This override requires the default ``archive_inputs=True``; it cannot be combined
 with ``archive_inputs=False`` for an already prepared snapshot.
+The Python ``task_name`` argument similarly overrides the configured folder
+name, for example ``main('input/beam0.json', task_name='capture_sc')``.
+``task_name=None`` leaves the saved setting in effect; ``task_name=''`` or
+``task_name='default'`` restores the single-level timestamp layout even when the saved name is
+custom. The same case-insensitive, whitespace-trimming rule applies. An explicit
+override requires ``archive_inputs=True``.
 
 The script writes ``input/beam0.json``. Its relative output directory resolves to ``input/output``; each run creates a run directory beneath it. The run directory contains a CSV file and an HDF5 file with 64 statistics rows (turns 0–63). Log output gives the exact run path. Read the newest statistics file after the run:
 
@@ -167,20 +211,24 @@ snapshot, and initializes tracking from that snapshot. This includes particle
 distributions, RF programs, offset tables, wakefield models, and magnet ramping
 tables. Later changes to their original files do not affect the run.
 
-JSON, saved project, and GUI runs all use the same dated result layout by default.
+JSON, saved project, and GUI runs all use the same single-level timestamp layout by default.
 The input snapshot is stored in the run's ``input`` subdirectory:
 
 .. code-block:: text
 
-   <output>/<YYYY_MMDD>/<HHMM_SS>/       # simulation results for this run
+   <output>/<YYYY_MM_DD_HH_MM>/       # simulation results for this run
        input/
            configuration0.json         # original configuration values
            beam0.json                  # execution input; optional beam1.json
            assets/<filename>           # copied input dependencies
            run.json                    # paths, SHA-256 hashes and run status
 
-The result directory is allocated before inputs are copied. A suffix is added
-to the time directory when needed to avoid reusing an existing result directory.
+With ``Task name: capture_sc``, the same contents live beneath
+``<output>/capture_sc/`` instead of the automatic timestamp folder. If that
+folder already exists, a numbered sibling is allocated as described above.
+
+The result directory is allocated before inputs are copied. Both automatic and
+custom names receive ``_1``, ``_2``, and so on when the requested folder exists.
 The run ID remains in ``run.json``; it is not another directory level.
 Copied dependencies are placed directly in ``assets/``, without numbered
 subdirectories. Filenames are preserved; name conflicts, compared without
@@ -194,7 +242,7 @@ directory can be moved together. The output root, including any ``--output`` or
 Python ``output_dir`` override, is resolved before copying and stored as an
 absolute ``Output directory`` in the execution snapshot; moving the snapshot
 does not redirect its results. An override changes the root for both snapshots
-and results while preserving the layout above. The original JSON and input
+and results while preserving the selected layout. The original JSON and input
 files remain unchanged. ``configurationN.json`` serializes the original
 configuration values; copied dependency files preserve their exact bytes.
 The GUI and command-line project runs use the same input-copying, hashing, and
@@ -215,8 +263,9 @@ Missing references point to uncreated paths inside the snapshot, so restoring
 an original file later cannot make it an unarchived runtime input.
 The record follows preparation and execution status. ``output_root`` stores the
 chosen output root, and ``output_directory`` stores the output path written into
-the execution configuration. ``results_directory`` stores the allocated result
-directory, including the dated subdirectories, from preparation onward.
+the execution configuration. ``task_name`` stores the requested custom name,
+or an empty string for the single-level timestamp layout. ``results_directory`` stores the actual
+allocated result directory, including any collision suffix, from preparation onward.
 The ``on_initialized(cfg)`` callback can read
 ``cfg.input_snapshot_path`` to locate this run's ``run.json``. A preparation
 failure is recorded as ``preparation_failed`` when a record has already been created.
@@ -245,6 +294,9 @@ and snapshots are placed in its parent's ``input_snapshots/<run-id>``.
 If the result directory itself is named ``input_snapshots``, the sibling
 ``input_snapshots_archive/<run-id>`` is used instead, keeping the flat result
 directory free of snapshot subdirectories.
+``flat_output=True`` cannot be combined with a custom ``Task name``; clear
+the configured name or pass ``task_name=''`` or ``task_name='default'`` for
+that verification workflow.
 
 JSON File Structure
 -------------------
@@ -265,6 +317,7 @@ The abbreviated structure below shows the nesting; empty bunch objects and omitt
        "Number of GPU devices": 1,
        "Device Id": [0],
        "Output directory": "./output",
+       "Task name": "",
        "Is plot figure": false,
        "Sequence": {
            "injection": {
@@ -368,7 +421,12 @@ MainConfig (Global Parameters)
      - ``Output directory``
      - ``str``
      - ``'./output'``
-     - Output directory; relative paths resolve against the input JSON directory. Omitted or ``default`` (case-insensitive) uses ``output`` beside the first JSON.
+     - Output root directory; relative paths resolve against the input JSON directory. Omitted or ``default`` (case-insensitive) uses ``output`` beside the first JSON.
+   * - ``task_name``
+     - ``Task name``
+     - ``str``
+     - ``'default'`` (displayed)
+     - Optional task name, used as the run-folder name beneath ``output_dir``. Omitted, null, blank or ``default`` (case-insensitive after trimming whitespace) selects the single-level ``YYYY_MM_DD_HH_MM`` layout and normalizes to an empty string. Both automatic and custom names use collision suffixes ``_1``, ``_2``, and so on. Subdirectories and result filename rules are unchanged.
    * - ``is_plot``
      - ``Is plot figure``
      - ``bool``

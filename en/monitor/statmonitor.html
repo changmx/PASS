@@ -143,7 +143,7 @@
              
   <section id="statmonitor">
 <h1>StatMonitor<a class="headerlink" href="#statmonitor" title="Link to this heading"></a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> records each bunch’s centroid, standard deviations, RMS emittances, derived Twiss parameters and particle losses once per turn at a specified lattice position. Moments use live particles (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>). Each monitor writes a per-bunch history in CSV and the selected table format.</p>
+<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> records each bunch’s centroid, standard deviations, RMS emittances, derived Twiss parameters and particle losses once per turn at a specified lattice position. Moments use live particles (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>). Each monitor writes a per-bunch history in HDF5 during tracking. TFS output additionally exports that history at finalization. No CSV file is generated.</p>
 <section id="configuration-example">
 <h2>Configuration example<a class="headerlink" href="#configuration-example" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitorItem</span>
@@ -190,7 +190,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (gzip-1 + shuffle), <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>; CSV is always provided</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (gzip-1 + shuffle), <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> (uncompressed HDF5 during tracking, then TFS export); no CSV</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Write</span> <span class="pre">interval</span> <span class="pre">(turns)&quot;</span></code></p></td>
@@ -207,11 +207,10 @@
 </section>
 <section id="output-files">
 <h2>Output Files<a class="headerlink" href="#output-files" title="Link to this heading"></a></h2>
-<p>A pair of files is generated for each bunch and each monitor command:</p>
+<p>Each bunch and monitor command writes an HDF5 history. Selecting TFS also generates a text export at finalization; the HDF5 file is retained:</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> (appended in batches): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>HDF5</strong> (default, appended with CSV): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
-<li><p><strong>TFS</strong> (instead of HDF5 when selected, generated at finalization): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><strong>HDF5</strong> (appended in batches; uncompressed when TFS is selected): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.h5</span></code></p></li>
+<li><p><strong>TFS</strong> (when selected, generated from HDF5 at finalization): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{beam}_bunch{bunch}_Np_{Np}_cmd_{encoded_command_name}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>The output directory is <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">encoded_command_name</span></code> omits the imported numeric MAD-X occurrence suffix
@@ -422,7 +421,7 @@ reserved macro-particle counts. beamLossTotal excludes pending slots;
 lossPercent uses the injected population as its denominator. An allocated
 population with no survivors produces zero moments and explicit zero-survival
 counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.</p>
-<p>Batching, final partial batches, live CSV inspection and HDF5 layout are
+<p>Batching, final partial batches, live inspection and HDF5 layout are
 described in <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>.
 Working Principle
 —————–</p>
