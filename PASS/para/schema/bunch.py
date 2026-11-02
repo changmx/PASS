@@ -106,6 +106,13 @@ class BunchConfig(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_abbreviated_rf_position(cls, value):
+        if isinstance(value, dict) and any(str(key).casefold() == "rf s position refer to inj. point (m)" for key in value):
+            raise ValueError("Use 'RF S Position Refer to Injection Point (m)'; the abbreviated RF position key was removed")
+        return value
+
     # --- energy & intensity ---
     kinetic_energy: float = Field(
         ...,
@@ -196,7 +203,7 @@ class BunchConfig(BaseModel):
     harmonic_id: int = Field(default=0, ge=0, alias="Harmonic ID of this bunch")
     rf_s_position: float = Field(
         default=0.0,
-        alias="RF S Position Refer to Inj. Point (m)",
+        alias="RF S Position Refer to Injection Point (m)",
     )
 
     # --- momentum offset (ddp / dde, mutually exclusive) ---

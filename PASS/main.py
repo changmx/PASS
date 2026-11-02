@@ -37,7 +37,7 @@ def _is_project_input(path):
 
 
 @contextmanager
-def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_documents=None):
+def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_documents=None, input_overrides=None):
     """Keep project assets alive until the selected runtime inputs are archived.
 
     The optional comparison_documents list receives editable project values;
@@ -47,6 +47,25 @@ def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_docum
 
     # Command-line overrides belong to the invoking directory, unlike saved paths.
     output = Path(output_dir).expanduser().resolve() if output_dir is not None else None
+
+    def override_documents(documents):
+        nonlocal output, task_name
+        if comparison_documents is not None and not comparison_documents:
+            comparison_documents.extend(data for _label, data, _base in documents)
+        if not input_overrides:
+            return documents
+        from PASS.utils.cli_overrides import apply_overrides
+        documents, shared = apply_overrides(documents, input_overrides)
+        if "Task name" in shared:
+            if task_name is not None:
+                raise ValueError("Task name was specified more than once")
+            task_name = normalize_task_name(shared["Task name"])
+        if "Output directory" in shared:
+            if output_dir is not None:
+                raise ValueError("Output directory was specified more than once")
+            output = Path(shared["Output directory"])
+        return documents
+
     if _is_project_input(paths[0]):
         from PASS.gui.project import Project
 
@@ -67,6 +86,7 @@ def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_docum
             documents = [(project.configs[identifier].name, project.configs[identifier].data, project.config_base) for identifier in identifiers]
             if comparison_documents is not None:
                 comparison_documents.extend(project.editable_input(identifier)[0] for identifier in identifiers)
+            documents = override_documents(documents)
             if output is None:
                 value = settings.get("output_directory", "output")
                 if value in (None, ""):
@@ -93,6 +113,7 @@ def _load_run_inputs(paths, *, output_dir=None, task_name=None, comparison_docum
         if not parsed.ok:
             raise ValueError(f"{path}: {parsed.text()}")
         documents.append((str(path), data, path.parent))
+    documents = override_documents(documents)
     values = {str(key).casefold(): value for key, value in documents[0][1].items()}
     if output is None:
         output = resolve_output_base(values.get("output directory"), documents[0][0])
@@ -198,6 +219,7 @@ def main(beam0_path: str,
          task_name: str | None = None,
          output_subdirectory: str | None = None,
          output_name: str | None = None,
+         input_overrides=None,
          _run_directory: str | Path | None = None):
     """Run one/two JSON inputs or the saved selection in a project file/directory.
 
@@ -220,6 +242,9 @@ def main(beam0_path: str,
     """
     from PASS.validation.rules import validate_documents
 
+    if input_overrides and not archive_inputs:
+        raise ValueError("Input overrides require archive_inputs=True to record the effective configuration")
+
     names = [value for value in (task_name, output_subdirectory, output_name) if value is not None]
     if len(names) > 1:
         raise ValueError("Use task_name only once; do not combine it with legacy output-name keywords")
@@ -239,8 +264,11 @@ def main(beam0_path: str,
     record_path, record = None, None
     run_directory = _run_directory
     comparison_documents = []
-    with _load_run_inputs(paths, output_dir=output_dir, task_name=task_name,
-                          comparison_documents=comparison_documents) as (documents, output, project_path, name):
+    with _load_run_inputs(paths,
+                          output_dir=output_dir,
+                          task_name=task_name,
+                          comparison_documents=comparison_documents,
+                          input_overrides=input_overrides) as (documents, output, project_path, name):
         if project_path is not None and not archive_inputs:
             raise ValueError("Project runs require archive_inputs=True to preserve their input dependencies")
         if flat_output and name:
@@ -249,13 +277,14 @@ def main(beam0_path: str,
         for index, (label, data, base) in enumerate(documents):
             runtime_data = canonicalize_task_name(data)
             runtime_data["Task name"] = name
-            if output_dir is not None or project_path is not None or index > 0:
+            if output_dir is not None or input_overrides or project_path is not None or index > 0:
                 output_key = next((key for key in runtime_data if key.casefold() == "output directory"), "Output directory")
                 runtime_data[output_key] = str(output)
             validation_documents.append((label, runtime_data, base))
         report = validate_documents(validation_documents)
         if not report.ok:
             raise ValueError("JSON preflight failed before initialization:\n" + report.text())
+        documents = validation_documents
         for issue in report.warnings:
             logger.warning("JSON preflight: %s", issue)
         if archive_inputs:
@@ -360,6 +389,7 @@ def cli_main(argv: list[str] | None = None, *, on_completed=None) -> int:
     from PASS import __version__
 
     parser = argparse.ArgumentParser(prog="pass-run",
+                                     allow_abbrev=False,
                                      description="Run one or two PASS JSON inputs, or a .passproj file/project directory, without loading Qt.",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      epilog="""Examples:
@@ -387,6 +417,18 @@ Task name or --task-name specifies a custom name. Empty or 'default'
 Input snapshots live in the result directory's input/ folder.
 Existing task folders receive _1, _2, ... suffixes; result filenames stay unchanged.
 Relative --output paths use the current working directory.
+
+JSON overrides: --number-of-turns=100 --backend=gpu --device-id=1
+Use JSON keys with spaces replaced by hyphens and parenthesized units removed.
+Nested fields: --timing.log-interval=20
+Named elements: '--sequence[QF1_s1.000].length=0.5'
+Array entries: '--device-id[0]=1'
+Use beam0. or beam1. prefixes to select an input; the default is beam0.
+Task name and output directory are shared run settings (beam0 only).
+Exact paths: --set '["Sequence","QF1_s1.000","Length (m)"]' 0.5
+Values use JSON types; plain strings are accepted for string fields.
+Overrides are validated and saved in the run snapshot; source files stay unchanged.
+Relative file paths supplied as overrides use the current working directory.
 """)
     parser.add_argument("--version", action="version", version=f"PASS {__version__}", help="Show the PASS version and exit")
     parser.add_argument("input", nargs="?", metavar="INPUT", help="Beam 0 JSON input, .passproj file or project directory")
@@ -399,6 +441,8 @@ Relative --output paths use the current working directory.
                        help="Run a .passproj file or project directory using its saved beam selection; cannot combine with --beam1")
     named.add_argument("--beam1", metavar="JSON", help="Beam 1 JSON input; requires --beam0")
     parser.add_argument("--output", metavar="DIR", help="Override the output root for this run; relative paths use the current working directory")
+    parser.add_argument("--output-directory", metavar="DIR", help="JSON-key spelling of --output")
+    parser.add_argument("--set", nargs=2, metavar=("KEY_PATH", "VALUE"), help="Override an exact JSON key-path array")
     output_options = parser.add_mutually_exclusive_group()
     output_options.add_argument("--task-name",
                                 metavar="NAME",
@@ -406,7 +450,12 @@ Relative --output paths use the current working directory.
     output_options.add_argument("--output-subdirectory", dest="task_name", metavar="NAME", help=argparse.SUPPRESS)
     output_options.add_argument("--output-name", dest="task_name", metavar="NAME", help=argparse.SUPPRESS)
     parser.add_argument("--stop-file", help="Stop before initialization or at a turn boundary when this file exists")
-    args = parser.parse_args(argv)
+    from PASS.utils.cli_overrides import extract_overrides
+    try:
+        remaining, input_overrides = extract_overrides(list(sys.argv[1:] if argv is None else argv), parser._option_string_actions)
+    except ValueError as exc:
+        parser.error(str(exc))
+    args = parser.parse_args(remaining)
     if args.output is not None and not args.output.strip():
         parser.error("--output must not be empty")
     if args.task_name is not None:
@@ -450,7 +499,8 @@ Relative --output paths use the current working directory.
                          on_completed=on_completed,
                          raise_errors=True,
                          output_dir=args.output,
-                         task_name=args.task_name)
+                         task_name=args.task_name,
+                         input_overrides=input_overrides)
     except KeyboardInterrupt:
         logger.warning("Run interrupted; the current turn may be incomplete")
         return RunExitCode.INTERRUPTED

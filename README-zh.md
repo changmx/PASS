@@ -172,6 +172,20 @@ python -m PASS /home/myprojpath
 
 命令行中的相对路径以终端当前工作目录为基准，路径包含空格时需要加引号。执行 `pass-run --help` 或 `python -m PASS --help` 可查看全部选项。
 
+### 在命令行覆盖本次运行的 JSON 参数
+
+```bash
+pass-run beam0.json --backend=gpu --device-id=1 --task-name=test
+pass-run beam0.json --number-of-turns=100 --timing.log-interval=20
+pass-run beam0.json '--sequence[QF1_s1.000].length=0.5'
+```
+
+参数名采用 JSON key，空格替换为连字符，移除括号及其中的单位说明；数值仍使用 JSON 规定的单位和类型。点号表示嵌套层级，`[完整名称]` 保留元件名中的点号。单个设备编号既可写为整数（`--device-id=1`），也可写为数组（`--device-id="[1]"`）；执行快照统一保存为数组。无前缀覆盖 Beam 0，使用 `--beam1.<路径>` 覆盖 Beam 1；双束流共享的运行设置仍须一致。任务名和输出目录作用于整次运行，`--output-directory` 与 `--output` 等价。
+
+覆盖值在执行前接受校验并保存到执行输入快照，原文件保持不变。命令行文件路径以启动时工作目录为基准。重复或重叠覆盖、未知字段和非法值会被拒绝。精确路径、对象、数组及支持范围详见[命令行输入指南](https://changmx.github.io/PASS/zh/input_generation.html)。
+
+RF 注入字段已统一为 `RF S Position Refer to Injection Point (m)`；使用旧缩写名称的输入需要重新生成或重命名。
+
 ### 输出与编辑
 
 按上述工程描述运行时，无论从哪个目录启动，结果默认保存在 `/home/myprojpath/output/<YYYY_MM_DD_HH_MM>/` 下。直接运行 `beam0.json` 时使用它自己的 `Output directory` 设置；如果缺省或值为 `default`（不区分大小写），输出根目录同样为 `/home/myprojpath/output`。

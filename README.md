@@ -172,6 +172,20 @@ python -m PASS /home/myprojpath
 
 Relative command-line paths use the terminal's working directory. Quote paths containing spaces. Run `pass-run --help` or `python -m PASS --help` for all options.
 
+### Override JSON parameters for one run
+
+```bash
+pass-run beam0.json --backend=gpu --device-id=1 --task-name=test
+pass-run beam0.json --number-of-turns=100 --timing.log-interval=20
+pass-run beam0.json '--sequence[QF1_s1.000].length=0.5'
+```
+
+Use JSON key names with spaces replaced by hyphens and parentheses (including units) removed. Values retain the JSON units and types. Dots separate nested fields; `[exact name]` preserves element names containing dots. A single device ID may be an integer (`--device-id=1`) or an array (`--device-id="[1]"`); execution snapshots always store an array. Unqualified overrides target Beam 0; use `--beam1.<path>` for Beam 1. Shared simulation settings must still agree between beams. Task names and output directories apply to the whole run; `--output-directory` is equivalent to `--output`.
+
+Overrides are validated before execution and saved in the execution input snapshots; source files remain unchanged. Command-line file paths are relative to the caller's working directory. Duplicate or overlapping overrides, unknown fields and invalid values are rejected. For exact paths, objects, arrays and supported scope, see the [command-line input guide](https://changmx.github.io/PASS/en/input_generation.html).
+
+The RF injection key is now `RF S Position Refer to Injection Point (m)`; older inputs using the abbreviated spelling must be regenerated or renamed.
+
 ### Outputs and editing
 
 For the project description above, results go under `/home/myprojpath/output/<YYYY_MM_DD_HH_MM>/` by default, regardless of the directory from which you launch it. Running `beam0.json` directly uses its own `Output directory` setting; if it is omitted or set to `default` (case-insensitive), the output root is also `/home/myprojpath/output`.

@@ -105,6 +105,62 @@ old ZIP project descriptions are both readable. Invalid saved selections or
 duplicate beams are errors. See
 :doc:`project_files` for project selection and output paths.
 
+JSON parameter overrides
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Override input fields for this run without editing the source JSON or project::
+
+   pass-run beam0.json --backend=gpu --device-id=1 --task-name=test
+   pass-run beam0.json --number-of-turns=100 --particle-precision=float32
+   pass-run beam0.json --timing.log-interval=20
+   pass-run beam0.json '--sequence[QF1_s1.000].length=0.5'
+   pass-run beam0.json '--device-id[0]=1'
+
+Fixed field names come from the JSON keys: remove parentheses and their contents,
+replace spaces with hyphens, and ignore case. Units remain those of the JSON key:
+``Circumference (m)`` becomes ``--circumference`` and still takes metres.
+``Sigma dp/p`` retains its slash. Nested fields use dots. Named elements and
+resources use ``[exact name]``; their case, dots and other characters are preserved.
+Quote arguments containing shell punctuation, particularly ``$``. Arrays use
+zero-based indices; replacing an entire array is also supported.
+
+Values use JSON types (numbers, ``true``, ``false``, ``null``, arrays and objects).
+String fields also accept plain text. Use ``--path=VALUE`` or ``--path VALUE``;
+use the equals form when a string begins with ``--``. ``--device-id=1`` and ``--device-id="[1]"`` are equivalent; a single integer
+is normalized to an array before validation and archiving. Booleans and decimal
+values such as ``true`` and ``1.0`` are rejected. Choosing a device does not switch the backend to GPU.
+For names containing brackets, or any ambiguous abbreviated field, use exact
+original keys in a JSON path array::
+
+   pass-run beam0.json --set '["Sequence","QF1_s1.000","Length (m)"]' 0.5
+
+Unqualified paths target Beam 0. Prefix paths with ``beam0.`` or ``beam1.`` to
+select an input; exact paths may start with ``"beam0"`` or ``"beam1"``.
+The existing shared-run checks still apply: turns, backend, precision, devices,
+timing and plot settings must agree in both inputs. For example::
+
+   pass-run beam0.json beam1.json --number-of-turns=100 --beam1.number-of-turns=100
+
+``Task name`` and ``Output directory`` apply to the whole run; do not put them
+under Beam 1. ``--output-directory`` and ``--output`` are equivalent.
+Overrides take precedence over saved input/project settings, are applied before
+preflight and archiving, and are recorded in ``input/beam0.json`` and optional
+``beam1.json``. Original configurations remain in ``configuration*.json``.
+Relative file paths supplied by the command line use the caller's working
+directory; unchanged paths retain their original input/project base directory.
+
+All schema-declared input fields are eligible, including omitted optional fields.
+Whole configuration blocks replace rather than merge the previous value.
+The interface does not edit external file contents or internal computed variables,
+add/remove named elements or resources, delete keys, or append array entries via
+indices. Unknown fields, ambiguous normalized names, invalid types or indices,
+duplicate targets and parent/child overlaps are errors. Full input and physics
+consistency validation must pass before execution.
+
+The injection field is now ``RF S Position Refer to Injection Point (m)``;
+the former abbreviated spelling is no longer accepted. Regenerate older inputs
+or rename that key before running them.
+
 Use ``--output DIR`` to choose the output root for this run. It takes precedence
 over the JSON or saved project setting and works with one JSON, two JSON files,
 or one project. Relative command-line output paths are resolved from the working
@@ -601,7 +657,7 @@ BunchConfig (Bunch Parameters)
      - int
      - Bunch-group index; its nominal slot is :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
    * - ``rf_s_position``
-     - ``RF S Position Refer to Inj. Point (m)``
+     - ``RF S Position Refer to Injection Point (m)``
      - float
      - RF-cavity position relative to injection, used to linearly back-propagate a matched distribution to :math:`s=0`
    * - ``momentum_offset_dp``

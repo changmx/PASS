@@ -1245,7 +1245,9 @@ class InjectionBunchInfo:
         self.rf_phi = kwargs.get("rf phase (rad)", 0.0)
         self.harmonic_num = kwargs.get("harmonic number", 0)
         self.harmonic_id = kwargs.get("harmonic id of this bunch", 0)
-        self.rf_position = kwargs.get("rf s position refer to inj. point (m)", 0.0)
+        if "rf s position refer to inj. point (m)" in kwargs:
+            raise ValueError("Use 'RF S Position Refer to Injection Point (m)'; the abbreviated RF position key was removed")
+        self.rf_position = kwargs.get("rf s position refer to injection point (m)", 0.0)
 
         # Momentum offset: support both dp offset and kinetic energy offset
         ddp = kwargs.get("momentum offset dp", 0.0)
