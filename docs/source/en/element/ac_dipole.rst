@@ -14,8 +14,15 @@ For ``Direction = x`` (replace :math:`x` by :math:`y` for vertical excitation),
 .. math::
 
    t_i=t_0-\frac{z_i}{\beta_0c},\qquad
-   \Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
-   \qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).
+   t_{\mathrm{eval},i}=\begin{cases}
+      t_i, & \texttt{real\_z},\\
+      t_0, & \texttt{ideal\_z},
+   \end{cases}
+
+.. math::
+
+   \Phi(t_{\mathrm{eval},i})=\phi_0+2\pi\int_{t_*}^{t_{\mathrm{eval},i}} f_{\rm ac}(u)\,du,
+   \qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_{\mathrm{eval},i})\sin\Phi(t_{\mathrm{eval},i}).
 
 Here ``Kick angle (rad)`` specifies the signed amplitude :math:`\theta`,
 ``Phase (rad)`` specifies :math:`\phi_0`, and ``Phase epoch (s)`` specifies
@@ -24,8 +31,10 @@ Do not divide it by :math:`1+\delta`. Only the paraxial slope increment is
 :math:`\Delta x'\simeq\Delta p_x/(1+\delta)`.
 
 Positive ``z`` means earlier passage. The actual bunch reference passage time
-``bunch.t0`` and continuous bunch-relative ``p.z`` determine the sampled time;
+``bunch.t0`` and continuous bunch-relative ``p.z`` determine the physical arrival time;
 nominal bunch-slot positions are not part of this formula.
+``Excitation mode`` selects the waveform evaluation time: ``real_z`` uses the
+physical particle arrival, while ``ideal_z`` uses the ideal reference arrival.
 The model leaves positions, ``dp``, the reference energy and ``bunch.t0`` unchanged.
 It models the ideal transverse excitation, without the longitudinal induction
 terms of a complete time-dependent electromagnetic field, and therefore does
@@ -73,6 +82,12 @@ The model is ``PASS.para.schema.elements.ACDipoleItem``. The name is supplied by
      - —
      - Required
      - Excited transverse plane.
+   * - ``excitation_mode``
+     - ``Excitation mode``
+     - ``'real_z' | 'ideal_z'``
+     - —
+     - ``'real_z'``
+     - Excitation operating mode: use the actual particle z, or use z = 0 only when evaluating the waveform.
    * - ``kick_angle``
      - ``Kick angle (rad)``
      - ``float | list[float]``
@@ -140,6 +155,26 @@ The model is ``PASS.para.schema.elements.ACDipoleItem``. The name is supplied by
      - ``[]``
      - Standard aperture dimensions.
 
+Excitation operating mode
+-------------------------
+
+Omitting ``excitation_mode`` (JSON ``Excitation mode``) is equivalent to
+explicit ``real_z`` and preserves old inputs. Only ``real_z`` and ``ideal_z``
+are accepted; an empty string, an unknown value or explicit ``null`` is an error.
+The command log reports the effective mode.
+
+In ``ideal_z``, z is treated as zero only for evaluating the excitation;
+stored particle coordinates are unchanged. Each bunch uses its own
+``bunch.t0`` at every passage through this element, rather than a common value
+for all bunches or a measured longitudinal centroid. Phase, amplitude and the
+active kick window all use this time, so all alive particles in a bunch receive
+the same prescribed normalized momentum increment. Frequency is still integrated
+over physical time; the mode does not reset phase each turn.
+
+This mode removes the direct effect of longitudinal arrival offsets on the
+excitation, including a bunch-centroid offset; other beam dynamics remain active.
+The field name, values and default are shared with :doc:`exciter`.
+
 Time tables and phase
 ---------------------
 
@@ -151,8 +186,9 @@ a constant value; it may also be paired with time samples.
 With ``Kick time (s)``, the kick is zero outside the closed interval from the
 first to last sample. Both endpoints remain active; a one-time-point interval
 is active only at that instant. Without kick times, a scalar amplitude operates
-continuously. Each particle is gated at its own arrival time, so a bunch can
-straddle a boundary. Frequency samples hold their endpoint values outside their
+continuously. In ``real_z``, each particle is gated at its own arrival time, so
+a bunch can straddle a boundary. In ``ideal_z``, the whole bunch is gated at
+``bunch.t0``. Frequency samples hold their endpoint values outside their
 interval, and phase remains continuous through every knot and amplitude boundary.
 
 ``LinearProgram`` integrates each linear frequency segment exactly. For a sweep
@@ -198,7 +234,7 @@ For a fixed-energy ring set :math:`f_{\rm rev}=\beta_0c/C` and
 :math:`f_{\rm ac}=q_d f_{\rm rev}`. Choose the physical drive-frequency branch:
 adding an integer to :math:`q_d` produces identical samples for a single ideal
 reference passage per turn, but generally changes the phase seen by other
-bunches and by particles with different arrival times.
+bunches and, in ``real_z``, by particles with different arrival times.
 
 The following example assumes :math:`f_{\rm rev}=10^6` Hz and a first reference
 passage at the element at :math:`t=0`. Substitute the actual prescribed clock
@@ -213,6 +249,7 @@ and first-passage time for the configured ring.
    ac = ACDipoleItem(
        s=0.0,
        direction="x",
+       excitation_mode="real_z",
        kick_angle=[0.0, 1.0e-6, 1.0e-6, 0.0],
        kick_times=[first_passage_time + n / f_rev for n in (0, 2000, 6000, 8000)],
        frequency=0.31 * f_rev,
@@ -220,6 +257,9 @@ and first-passage time for the configured ring.
        phase_epoch=first_passage_time,
    )
    sequence.add("ac_x", ac)
+
+Omitting ``excitation_mode`` gives the same result. Set ``excitation_mode="ideal_z"``
+to apply the reference particle's waveform value throughout each bunch.
 
 Use a drive tune separated from the beam tune footprint for the measurement
 plateau, and ramp the amplitude slowly compared with the inverse tune separation
@@ -250,9 +290,10 @@ zero, then applies its first kick at turn one. Align PASS physical sampling at
 the PASS turn counter alone does not establish this time origin.
 For strictly increasing ``RAMP1`` through ``RAMP4``, use their values divided by
 :math:`f_{\rm rev}` as kick times and amplitudes
-:math:`[0,\theta_0,\theta_0,0]`. PASS additionally
-samples individual physical arrival times and supports continuous frequency
-programs. MAD-X ``PTC`` has different AC-dipole conventions and is not covered
+:math:`[0,\theta_0,\theta_0,0]`. PASS defaults to individual physical arrival
+times (``real_z``); ``ideal_z`` applies the reference sample to the whole bunch.
+Both modes support continuous frequency programs. MAD-X ``PTC`` has different
+AC-dipole conventions and is not covered
 by this ``TRACK`` mapping.
 
 See the `MAD-X AC-dipole manual source

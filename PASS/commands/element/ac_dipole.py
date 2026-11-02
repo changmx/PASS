@@ -13,13 +13,14 @@ from PASS.utils.program import LinearProgram
 
 @Command.register('acdipole')
 class ACDipole(Command):
-    """Add a prescribed transverse momentum / P0 at each particle's arrival."""
+    """Add prescribed momentum / P0 using particle or reference arrival times."""
 
     def __init__(self, beam_id, sim, **command_kwargs):
         parameters = ACDipoleItem.model_validate(command_kwargs)
         self.beam_id, self.s, self.order = beam_id, parameters.s, parameters.order
         self.cmd_name, self.cmd_type, self.length = parameters.name, 'ACDipole', 0.
         self.direction, self.is_enabled = parameters.direction, parameters.is_enabled
+        self.excitation_mode = parameters.excitation_mode
         self.cpu_chunk_size = parameters.cpu_chunk_size
         self.aperture_type, self.aperture_value = parameters.aperture_type.lower(), parameters.aperture_value
         self.kick = LinearProgram(parameters.kick_angle, parameters.kick_times)
@@ -31,8 +32,9 @@ class ACDipole(Command):
         self._gpu_cache = {}
 
     def print(self):
-        logging.getLogger(__name__).info('S=%g, Command=ACDipole, Name=%s, Direction=%s, Kick=%s rad, Frequency=%s Hz, Enabled=%s', self.s,
-                                         self.cmd_name, self.direction, self.kick.values, self.frequency.values, self.is_enabled)
+        logging.getLogger(__name__).info(
+            'S=%g, Command=ACDipole, Name=%s, Direction=%s, Kick=%s rad, Frequency=%s Hz, Enabled=%s, excitation_mode=%s', self.s, self.cmd_name,
+            self.direction, self.kick.values, self.frequency.values, self.is_enabled, self.excitation_mode)
 
     def execute_cpu(self, sim):
         return self._execute(sim, False)
@@ -74,7 +76,11 @@ class ACDipole(Command):
             valid &= np.isfinite(p.x[indices]) & np.isfinite(p.y[indices])
         active = alive & valid
         # Keep the small particle offset separate from the absolute clock epoch.
-        offset = np.where(active, np.asarray(z, dtype=np.float64), 0.) * (-1. / (bunch.beta * const.c))
+        if self.excitation_mode == 'real_z':
+            offset = np.where(active, np.asarray(z, dtype=np.float64), 0.) * (-1. / (bunch.beta * const.c))
+        else:
+            # Only the waveform uses z=0; preserve the tracked coordinates.
+            offset = np.zeros(end - start, dtype=np.float64)
         phase = self.frequency.phase_cycles(bunch.t0, offset)
         phase *= 2 * np.pi
         phase += self.phase
@@ -109,9 +115,9 @@ class ACDipole(Command):
         kernel(((n + 255) // 256, ), (256, ),
                (p.px, p.py, p.z, p.dp, p.x, p.y, p.tag, p.lost_position, p.lost_turn, np.int32(bunch.start_idx), np.int32(bunch.end_idx), kick_table,
                 np.int32(len(self.kick.times)), frequency_table, np.int32(len(self.frequency.times)), np.float64(bunch.t0),
-                np.float64(-1. / (bunch.beta * const.c)), np.float64(base), np.float64(frequency), np.int32(index), np.float64(
-                    self.phase), np.float64(self.time_min - bunch.t0), np.float64(self.time_max - bunch.t0), np.float64(
-                        self.s), np.int32(turn), np.int32(self.direction == 'y')))
+                np.float64(-1. / (bunch.beta * const.c)), np.int32(self.excitation_mode == 'real_z'), np.float64(base), np.float64(frequency),
+                np.int32(index), np.float64(self.phase), np.float64(self.time_min - bunch.t0), np.float64(self.time_max - bunch.t0), np.float64(
+                    self.s), np.int32(turn), np.int32(self.direction == 'y')))
 
 
 _CUDA_SOURCE = r'''
@@ -185,6 +191,7 @@ extern "C" __global__ void track_ac_dipole(
     int frequency_count,
     double reference,
     double inverse_velocity,
+    int use_real_z,
     double base,
     double frequency,
     int reference_index,
@@ -202,7 +209,7 @@ extern "C" __global__ void track_ac_dipole(
     double ps2 = momentum_ratio * momentum_ratio - (double)px[i] * px[i] - (double)py[i] * py[i];
     bool valid = momentum_ratio > 0. && ps2 > 0. && isfinite(ps2) && isfinite(z[i]) && isfinite(x[i]) && isfinite(y[i]);
     if (valid) {
-        double offset = (double)z[i] * inverse_velocity;
+        double offset = use_real_z ? (double)z[i] * inverse_velocity : 0.;
         if (offset >= time_min && offset <= time_max) {
             double amplitude = kick_table[1];
             if (kick_count > 1) {

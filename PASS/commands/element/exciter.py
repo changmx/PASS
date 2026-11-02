@@ -98,6 +98,10 @@ class Exciter(Command):
             raise ValueError(f"Unknown exciter mode '{self.mode}' in {self.cmd_name}. "
                              f"Must be one of: {sorted(valid_modes)}")
 
+        self.excitation_mode: str = kwargs.get("excitation mode", kwargs.get("excitation_mode", "real_z"))
+        if not isinstance(self.excitation_mode, str) or self.excitation_mode not in ("real_z", "ideal_z"):
+            raise ValueError(f"Excitation mode must be 'real_z' or 'ideal_z' in {self.cmd_name}, got {self.excitation_mode!r}")
+
         valid_directions = {"x", "y"}
         self.direction: str = kwargs["direction"].lower()
         if self.direction not in valid_directions:
@@ -181,6 +185,7 @@ class Exciter(Command):
                          f"freq_mode=frequency")
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
                     f"is_enabled={self.is_enabled}, Mode={self.mode:s}, Direction={self.direction:s}, "
+                    f"excitation_mode={self.excitation_mode}, "
                     f"start_turn={self.start_turn:d}, end_turn={self.end_turn:d}, "
                     f"kick_angle={self.kick_angle:.6e} rad, "
                     f"{freq_info}, "
@@ -244,7 +249,7 @@ class Exciter(Command):
     # Exciter kick (CPU)
 
     def _exciter_kick_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        """Apply the prescribed waveform at each particle arrival time."""
+        """Apply the waveform at particle or bunch reference arrival times."""
         if not 0 < bunch.beta < 1:
             raise ValueError("Exciter requires a finite reference velocity with 0 < beta < 1")
         v0 = bunch.beta * const.c
@@ -269,7 +274,11 @@ class Exciter(Command):
         alive = tag > 0
 
         # Positive z arrives earlier; all bunches sample the same DDS history.
-        offset = -np.where(alive, np.asarray(z, dtype=np.float64), 0.) / v0
+        if self.excitation_mode == "real_z":
+            offset = -np.where(alive, np.asarray(z, dtype=np.float64), 0.) / v0
+        else:
+            # Only the waveform uses z=0; preserve the tracked coordinates.
+            offset = np.zeros(end - start, dtype=np.float64)
         # Like Kicker, the nominal angle is an increment of momentum / P0.
         kick = self.kick_angle * self.waveform.value(bunch.t0, offset, dual=self.mode.startswith("dual"))
         if self.mode.endswith("_am"):
@@ -401,6 +410,7 @@ extern "C" __global__ void track_exciter(
     double carrier_frequency,
     int carrier_index,
     double v0,
+    int use_real_z,
     double period,
     double width,
     double shift,
@@ -426,7 +436,7 @@ extern "C" __global__ void track_exciter(
         return;
     }
     // Keep the local arrival offset separate from the large reference epoch.
-    double offset = -(double)z[i] / v0;
+    double offset = use_real_z ? -(double)z[i] / v0 : 0.;
     if (offset < -elapsed)
         return;
     double carrier = _carrier_phase(carrier_table, carrier_count, reference_time, offset, carrier_base, carrier_frequency, carrier_index);
@@ -498,8 +508,9 @@ def launch_exciter(element, sim, bunch):
     kernel((blocks, ), (threads, ),
            (p.px, p.py, p.z, p.dp, p.x, p.y, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), sweep_table,
             np.int32(len(waveform.times)), carrier_table, np.int32(len(waveform.carrier.times)), real(bunch.t0), real(bunch.t0 - waveform.trigger),
-            real(base), real(frequency), np.int32(index), real(bunch.beta * const.c), real(waveform.period), real(waveform.width),
-            real(waveform.shifts[0]), np.int32(element.mode.startswith("dual")), np.int32(am), real(element.am_t_ext), real(exponent),
-            real(complement), real(scale), real(element.s), np.int32(sim.state.turn), real(element.kick_angle), np.int32(0 if element.is_x else 1)))
+            real(base), real(frequency), np.int32(index), real(bunch.beta * const.c), np.int32(element.excitation_mode == "real_z"),
+            real(waveform.period), real(waveform.width), real(waveform.shifts[0]), np.int32(
+                element.mode.startswith("dual")), np.int32(am), real(element.am_t_ext), real(exponent), real(complement), real(scale), real(
+                    element.s), np.int32(sim.state.turn), real(element.kick_angle), np.int32(0 if element.is_x else 1)))
     from PASS.utils.aperture import check_aperture_gpu
     check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type, element.aperture_value, element.s, sim.state.turn)

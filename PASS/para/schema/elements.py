@@ -547,6 +547,11 @@ class ExciterItem(ElementBase):
     length: float = Field(default=0.0, ge=0, le=0, alias="Length (m)", exclude=True)
     is_enabled: bool = Field(default=True, alias="Enable")
     mode: str = Field(alias="Mode")
+    excitation_mode: Literal["real_z", "ideal_z"] = Field(
+        default="real_z",
+        alias="Excitation mode",
+        description="Use particle arrival times (real_z) or the bunch reference arrival time (ideal_z).",
+    )
     direction: str = Field(alias="Direction")
     start_turn: int = Field(alias="Start turn")
     end_turn: int = Field(alias="End turn")
@@ -589,6 +594,11 @@ class ACDipoleItem(ElementBase):
     command: str = Field(default="ACDipole", alias="Command")
     length: float = Field(default=0.0, ge=0, le=0, alias="Length (m)")
     direction: Literal["x", "y"] = Field(alias="Direction")
+    excitation_mode: Literal["real_z", "ideal_z"] = Field(
+        default="real_z",
+        alias="Excitation mode",
+        description="Use particle arrival times (real_z) or the bunch reference arrival time (ideal_z).",
+    )
     kick_angle: float | list[float] = Field(alias="Kick angle (rad)", description="Signed normalized momentum amplitude ΔP/P0; scalar or samples.")
     kick_times: list[float] | None = Field(default=None,
                                            alias="Kick time (s)",

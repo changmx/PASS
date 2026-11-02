@@ -177,6 +177,7 @@ FIELD_HELP = {
     "Coordinate": "SC 使用 z_periodic；尾场使用 z_rel 或 arrival_phase。均不改写粒子连续 z_rel。",
     "Max phase slip": "到达相位切片允许的相位滑移，范围 (0, 0.1]。",
     "Time mode": "reference：规定时钟在当前 turn 的逆积分；particle：实际局部 kick 中心的 t0-z_rel/(beta*c)。",
+    "Excitation mode": "激励工作模式：real_z 按粒子实际到达时刻 t0−z_rel/(βc) 计算；ideal_z 按本束团理想粒子的 t0 统一计算相位、幅度和时间窗口。缺省 real_z；不改写粒子 z，也不使用实测质心。",
     "Waveform file": "TFS 列 TIME、HKICK、VKICK；时间为秒，kick 是积分 Delta P/P0；时间递增，各平面范围外保持最近端点值并警告。",
     "Include injection metadata": "输出 particle_id、injection_turn、injection_batch；未注入粒子计入 NumPending。",
     "Include reference": "保存每行 referenceTime、referenceBeta、referenceMomentum；用配套参考量重建活粒子物理时间。",
@@ -3567,13 +3568,16 @@ class ConfigPage(QWidget):
         elif target.get("Command") == "Kicker":
             self.form_hint.setText("作用圈数为从 0 开始的 [Start turn, End turn)，End turn 不指定时持续到运行结束；0、1 表示只踢第一圈。窗口外仍保留漂移、孔径和内部空间电荷。")
         elif target.get("Command") == "Exciter":
-            self.form_hint.setText("Kick angle 为每路 DDS 的有符号标称踢角（rad），与 Kicker 相同按 ΔP/P0 使用。电压、极板长度和间隙可在工具栏的激励工具中换算。")
+            self.form_hint.setText(
+                "Kick angle 为每路 DDS 的有符号标称踢角（rad），与 Kicker 相同按 ΔP/P0 使用。电压、极板长度和间隙可在工具栏的激励工具中换算。real_z 使用各粒子到达时刻；ideal_z 使用本束团理想粒子的 t0，统一 FM、AM 和启动判断。"
+            )
             if any(key in target for key in ("Voltage (V)", "Gap (m)", "Plate length (m)")):
                 self.form_hint.setText(self.form_hint.text() + " 旧输入需先换算；编辑 Kick angle 并应用后，将替换旧电压、极板长度和间隙参数。")
         elif target.get("Command") == "RFCavity":
             self.form_hint.setText("分量在同一实际粒子时刻 t0−z_rel/(βc) 采样并相加。RF 谐波与 Injection 分组数独立。旧腔级参数和按圈 RF data file 需按物理时间重建 Components。")
         elif target.get("Command") == "ACDipole":
-            self.form_hint.setText("Kick angle 是有符号 ΔP/P0 振幅；幅度与频率可使用独立物理时间表。Kick time 区间外踢为零，频率端值延拓并积分为相位。所有粒子按 t0−z_rel/(βc) 取样。")
+            self.form_hint.setText(
+                "Kick angle 是有符号 ΔP/P0 振幅；幅度与频率可使用独立物理时间表。Kick time 区间外踢为零，频率端值延拓并积分为相位。real_z 按 t0−z_rel/(βc) 计算；ideal_z 按本束团的 t0 统一计算相位、幅度和时间窗口。")
         elif target.get("Command") == "Slicer":
             self.form_hint.setText("保存当前切片区间与成员；RF 不会自动重切片。SortBunch/ReorganizeBunch 后必须再次执行 Slicer。")
         elif target.get("Command") == "WakeField":
@@ -4277,7 +4281,7 @@ class ConfigPage(QWidget):
             self.form_layout.insertRow(0, "频率输入方式", selector)
             self._exciter_frequency_mode = selector
 
-            def excitation_mode():
+            def _update_waveform_fields():
                 tune = selector.currentText() == "tune"
                 for key in ("Excite tune", "Sweep tune"):
                     fields[key].setEnabled(tune)
@@ -4291,10 +4295,10 @@ class ConfigPage(QWidget):
                 for key in ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const"):
                     fields[key].setEnabled(am)
 
-            selector.currentTextChanged.connect(excitation_mode)
+            selector.currentTextChanged.connect(_update_waveform_fields)
             selector.currentTextChanged.connect(self._mark_form_dirty)
-            fields["Mode"].currentTextChanged.connect(excitation_mode)
-            excitation_mode()
+            fields["Mode"].currentTextChanged.connect(_update_waveform_fields)
+            _update_waveform_fields()
         devices = fields.get("Device Id")
         count = fields.get("Number of GPU devices")
         backend = fields.get("Backend (gpu/cpu)")
@@ -4513,8 +4517,11 @@ class ConfigPage(QWidget):
             "Dp aperture": "动量接受范围",
             "Device Id": "GPU 设备列表",
             "Explicit": "显式切片范围",
+            "Excitation mode": "激励工作模式",
             "Space charge": "内部空间电荷"
         }
+        if getattr(self, "_field_context", {}).get("Command") == "Exciter":
+            short["Mode"] = "波形模式"
         hardware = {}
         if getattr(self, "_field_context", {}).get("Command") == "ElSeparator":
             hardware = {
@@ -4537,6 +4544,8 @@ class ConfigPage(QWidget):
         return label
 
     def _field_help(self, key: str, value: object) -> str:
+        if key == "Mode" and getattr(self, "_field_context", {}).get("Command") == "Exciter":
+            return "波形模式：选择单路或双路 DDS，以及是否使用 AM 包络；与激励工作模式 real_z / ideal_z 独立。"
         if key in FIELD_HELP:
             return FIELD_HELP[key]
         model = getattr(self, "_field_model", None)
@@ -4627,6 +4636,9 @@ class ConfigPage(QWidget):
         if key == "Groups" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             from PASS.para.schema.wake_field import WakeSolverGroup
             structured = make_editor(list[WakeSolverGroup], value or [], key, self.base_dir)
+        elif key == "Excitation mode" and spec is not None and getattr(self, "_field_context", {}).get("Command") in {"Exciter", "ACDipole"}:
+            structured = make_editor(spec.annotation, value, key, self.base_dir)
+            structured.setToolTip(self._field_help(key, value))
         elif (getattr(self, "_field_context", {}).get("Command") == "ACDipole" and spec is not None
               and key in {"Direction", "Kick angle (rad)", "Kick time (s)", "Frequency (Hz)", "Frequency time (s)", "CPU chunk size"}):
             structured = make_editor(spec.annotation, value, key, self.base_dir)
