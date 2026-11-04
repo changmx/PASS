@@ -184,7 +184,7 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
     - ``0``
     - 束团分组编号 :math:`h_{\mathrm{id}}` ，决定名义分组位置 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
   * - ``rf_s_position``
-    - ``RF S Position Refer to Inj. Point (m)``
+    - ``RF S Position Refer to Injection Point (m)``
     - float
     - m
     - ``0.0``
@@ -442,7 +442,7 @@ RF 另行计入电荷符号，因此物理能量增量采用带符号的系数 :
                   "RF Voltage (V)": 100e3,
                   "RF Phase (rad)": 0.5235987755982988,
                   "Harmonic ID of this bunch": 0,
-                  "RF S Position Refer to Inj. Point (m)": 0.0,
+                  "RF S Position Refer to Injection Point (m)": 0.0,
                   "Offset x": {
                       "Is Offset": false,
                       "Is Load From File": false,

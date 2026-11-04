@@ -189,7 +189,7 @@ Longitudinal parameters
     - ``0``
     - Bunch-group index :math:`h_{\mathrm{id}}`, defining the nominal grouping slot :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
   * - ``rf_s_position``
-    - ``RF S Position Refer to Inj. Point (m)``
+    - ``RF S Position Refer to Injection Point (m)``
     - float
     - m
     - ``0.0``
@@ -448,7 +448,7 @@ Input file
                   "RF Voltage (V)": 100e3,
                   "RF Phase (rad)": 0.5235987755982988,
                   "Harmonic ID of this bunch": 0,
-                  "RF S Position Refer to Inj. Point (m)": 0.0,
+                  "RF S Position Refer to Injection Point (m)": 0.0,
                   "Offset x": {
                       "Is Offset": false,
                       "Is Load From File": false,

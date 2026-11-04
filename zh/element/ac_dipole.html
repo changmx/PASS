@@ -88,9 +88,10 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ACDipole</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">物理约定</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">输入接口</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">时间表与相位</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">激励工作模式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">时间表与相位</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cpu">CPU 分块大小</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">固定频率光学测量示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">固定频率光学测量示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x">与 MAD-X 的比较</a></li>
 </ul>
 </li>
@@ -159,15 +160,22 @@
 <h2>物理约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>对于 <code class="docutils literal notranslate"><span class="pre">Direction</span> <span class="pre">=</span> <span class="pre">x</span></code> （垂直激励时将 <span class="math notranslate nohighlight">\(x\)</span> 换为 <span class="math notranslate nohighlight">\(y\)</span>），</p>
 <div class="math notranslate nohighlight">
-\[t_i=t_0-\frac{z_i}{\beta_0c},\qquad
-\Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
-\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).\]</div>
+\[\begin{split}t_i=t_0-\frac{z_i}{\beta_0c},\qquad
+t_{\mathrm{eval},i}=\begin{cases}
+   t_i, &amp; \texttt{real\_z},\\
+   t_0, &amp; \texttt{ideal\_z},
+\end{cases}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\Phi(t_{\mathrm{eval},i})=\phi_0+2\pi\int_{t_*}^{t_{\mathrm{eval},i}} f_{\rm ac}(u)\,du,
+\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_{\mathrm{eval},i})\sin\Phi(t_{\mathrm{eval},i}).\]</div>
 <p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> 指定有符号振幅 <span class="math notranslate nohighlight">\(\theta\)</span>，<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 指定
 <span class="math notranslate nohighlight">\(\phi_0\)</span>，<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> 指定 <span class="math notranslate nohighlight">\(t_*\)</span>。PASS 存储的是
 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>，因此直接加上这个 kick，不再除以 <span class="math notranslate nohighlight">\(1+\delta\)</span>。
 只有傍轴近似下的斜率增量才满足 <span class="math notranslate nohighlight">\(\Delta x'\simeq\Delta p_x/(1+\delta)\)</span>。</p>
 <p>正 <code class="docutils literal notranslate"><span class="pre">z</span></code> 表示更早通过。实际 bunch 参考通过时刻 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 和连续的束内相对
-坐标 <code class="docutils literal notranslate"><span class="pre">p.z</span></code> 决定取样时间；名义束团槽位位置不进入这个公式。
+坐标 <code class="docutils literal notranslate"><span class="pre">p.z</span></code> 决定实际到达时间；名义束团槽位位置不进入这个公式。
+<code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code> 选择波形求值时间：<code class="docutils literal notranslate"><span class="pre">real_z</span></code> 使用粒子实际到达时刻，
+<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> 使用理想参考粒子到达时刻。
 该模型不改变位置、<code class="docutils literal notranslate"><span class="pre">dp</span></code>、参考能量和 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>。
 它描述理想横向激励，不包含完整时变电磁场的纵向感应项，因此不声称是完整的六维辛映射。</p>
 <p>在右手 <span class="math notranslate nohighlight">\((x,y,s)\)</span> 坐标系中沿 <span class="math notranslate nohighlight">\(+s\)</span> 运动时，洛伦兹力给出
@@ -220,77 +228,84 @@
 <td><p>必填</p></td>
 <td><p>激励横向平面。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span> <span class="pre">|</span> <span class="pre">'ideal_z'</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span></code></p></td>
+<td><p>激励工作模式：使用粒子实际 z，或仅在计算波形时取 z = 0。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
 <td><p>rad</p></td>
 <td><p>必填</p></td>
 <td><p>有符号归一化动量振幅。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>幅度采样时刻及有效时间区间。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
 <td><p>Hz</p></td>
 <td><p>必填</p></td>
 <td><p>非负载波频率，允许为零。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>独立的频率采样时刻。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>相位原点时刻的载波相位。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>频率积分的下限。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
 <td><p>启用激励。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>粒子数</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">65536</span></code></p></td>
 <td><p>每个 CPU 批次的最大粒子数，必须为正整数。<code class="docutils literal notranslate"><span class="pre">None</span></code> 表示整束一次处理。GPU 忽略此参数。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>同一位置命令的显式顺序。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
 <td><p>标准横向损失孔径。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>m / rad</p></td>
@@ -301,12 +316,26 @@
 </table>
 </section>
 <section id="id3">
-<h2>时间表与相位<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<h2>激励工作模式<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>省略 <code class="docutils literal notranslate"><span class="pre">excitation_mode``（JSON</span> <span class="pre">``Excitation</span> <span class="pre">mode</span></code>）与显式填写 <code class="docutils literal notranslate"><span class="pre">real_z</span></code> 等价，
+保持旧输入的行为。仅接受 <code class="docutils literal notranslate"><span class="pre">real_z</span></code> 和 <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>；空字符串、未知值或显式
+<code class="docutils literal notranslate"><span class="pre">null</span></code> 均报错。命令日志显示实际生效的模式。</p>
+<p><code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> 仅在计算激励时将 z 视为零，不修改存储的粒子坐标。
+每个束团每次通过本元件时使用自己的 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>，不对所有束团共用一个值，
+也不改用测量得到的纵向质心。相位、幅度和踢动有效时间窗口使用同一求值时间，
+因此同一束团的所有存活粒子获得相同的规定归一化动量增量。
+频率仍对物理时间积分，不会因选择此模式而逐圈重置相位。</p>
+<p>该模式消除纵向到达偏移对激励的直接影响，其中也包括束团纵向质心偏移；
+其他束流动力学继续保留。字段名、取值和默认值与 <a class="reference internal" href="exciter.html"><span class="doc">激励器（Exciter）</span></a> 一致。</p>
+</section>
+<section id="id4">
+<h2>时间表与相位<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <p>每个提供的时间数组都必须非空且严格递增。包含多个数值的数组必须具有等长的对应时间数组，
 采样点之间采用线性插值。标量或只有一个数值的数组表示常量，也可以同时指定时间采样点。</p>
 <p>提供 <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code> 时，首尾采样点构成的闭区间之外 kick 为零。
 两个端点仍有效；单时间点区间仅在该时刻有效。不提供 kick 时间表时，标量幅度连续有效。
-每个粒子按自己的到达时刻判断有效区间，因此一个 bunch 可以跨越边界。
+<code class="docutils literal notranslate"><span class="pre">real_z</span></code> 下每个粒子按自己的到达时刻判断有效区间，因此一个 bunch 可以跨越边界；
+<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> 下整束团按 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 统一判断。
 频率表在区间外保持端点值，相位在所有频率节点及幅度边界处连续。</p>
 <p><code class="docutils literal notranslate"><span class="pre">LinearProgram</span></code> 精确积分每个线性频率段。在某一段内若
 <span class="math notranslate nohighlight">\(f(t)=f_a+\dot f(t-t_a)\)</span>，则</p>
@@ -331,12 +360,12 @@
 NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NUMA 调度。应依据目标
 服务器上测得的吞吐量与峰值内存选择，而不是套用另一台机器的计时结果。</p>
 </section>
-<section id="id4">
-<h2>固定频率光学测量示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h2>固定频率光学测量示例<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <p>固定能量环中设 <span class="math notranslate nohighlight">\(f_{\rm rev}=\beta_0c/C\)</span>，并使用
 <span class="math notranslate nohighlight">\(f_{\rm ac}=q_d f_{\rm rev}\)</span>。需要选择实际物理激励频率所在的支路：
-给 <span class="math notranslate nohighlight">\(q_d\)</span> 加整数时，单个理想参考粒子的逐圈取样相同，但其他 bunch 及不同到达时刻
-的粒子所见相位一般不同。</p>
+给 <span class="math notranslate nohighlight">\(q_d\)</span> 加整数时，单个理想参考粒子的逐圈取样相同，但其他 bunch 以及
+<code class="docutils literal notranslate"><span class="pre">real_z</span></code> 下不同到达时刻的粒子所见相位一般不同。</p>
 <p>以下例子假设 <span class="math notranslate nohighlight">\(f_{\rm rev}=10^6\)</span> Hz，且参考粒子首次通过元件的时刻为 <span class="math notranslate nohighlight">\(t=0\)</span>。
 实际使用时替换为所配置环的规定时钟和首次通过时刻。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACDipoleItem</span>
@@ -346,6 +375,7 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
 <span class="n">ac</span> <span class="o">=</span> <span class="n">ACDipoleItem</span><span class="p">(</span>
     <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">direction</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span>
+    <span class="n">excitation_mode</span><span class="o">=</span><span class="s2">"real_z"</span><span class="p">,</span>
     <span class="n">kick_angle</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
     <span class="n">kick_times</span><span class="o">=</span><span class="p">[</span><span class="n">first_passage_time</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="n">f_rev</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">)],</span>
     <span class="n">frequency</span><span class="o">=</span><span class="mf">0.31</span> <span class="o">*</span> <span class="n">f_rev</span><span class="p">,</span>
@@ -355,6 +385,8 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
 <span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ac_x"</span><span class="p">,</span> <span class="n">ac</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>省略 <code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code> 的结果相同。设为 <code class="docutils literal notranslate"><span class="pre">excitation_mode=&quot;ideal_z&quot;</span></code> 时，
+每个束团内统一使用其参考粒子的波形值。</p>
 <p>测量平台期应选择与束流 tune 分布有间隔的激励 tune。幅度升降时间（以圈计）应明显长于
 该 tune 间隔的倒数。在将受迫轨迹用于线性光学分析前，应检查关断后的自由振荡残余和
 响应的幅度依赖。实正弦激励包含两个旋转分量，受迫光学需要考虑双边带响应，不能直接等同于自由 betatron 运动。
@@ -374,7 +406,8 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
 取样，并使用 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span> <span class="pre">=</span> <span class="pre">0</span></code>；仅凭 PASS 圈数计数器不能确定这个时间原点。
 若 <code class="docutils literal notranslate"><span class="pre">RAMP1</span></code> 至 <code class="docutils literal notranslate"><span class="pre">RAMP4</span></code> 严格递增，可将其除以 <span class="math notranslate nohighlight">\(f_{\rm rev}\)</span> 后作为 kick
 采样时刻，振幅取 <span class="math notranslate nohighlight">\([0,\theta_0,\theta_0,0]\)</span>。
-PASS 进一步按各粒子的实际物理到达时刻取样，并支持连续频率程序。
+PASS 默认使用各粒子的实际物理到达时刻（<code class="docutils literal notranslate"><span class="pre">real_z</span></code>），<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> 则将参考取样值应用于整束团。
+两种模式都支持连续频率程序。
 MAD-X <code class="docutils literal notranslate"><span class="pre">PTC</span></code> 的 AC dipole 约定不同，不属于上述 <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> 对应关系。</p>
 <p>逐圈幅度升降参数及 <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> 与 <code class="docutils literal notranslate"><span class="pre">PTC</span></code> 的差异见
 <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X-User-Manual/blob/master/elements.tex">MAD-X AC dipole 手册源码</a>。</p>

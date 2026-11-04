@@ -88,9 +88,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#parameter-list">Parameter List</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kick-convention">Kick Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#particle-arrival-time-and-excitation-mode">Particle Arrival Time and Excitation Mode</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#frequency-input-modes">Frequency Input Modes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#waveform-modes">Waveform Modes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kick-application">Kick Application</a></li>
 </ul>
@@ -162,7 +162,8 @@ Its length is fixed internally and is not an input parameter.</p>
 <li><p>Core features:</p>
 <ul>
 <li><p>Thin lens element (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changes only the particle’s transverse momentum, without changing position coordinates;</p></li>
-<li><p>Supports 4 excitation modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code>);</p></li>
+<li><p>Supports 4 waveform modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code>);</p></li>
+<li><p>Supports excitation at each particle’s arrival (<code class="docutils literal notranslate"><span class="pre">real_z</span></code>) or at the ideal reference arrival (<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>);</p></li>
 <li><p>Frequency parameters support both tune mode and frequency mode input methods;</p></li>
 <li><p>Supports aperture checking, consistent with other elements.</p></li>
 </ul>
@@ -215,9 +216,16 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Excitation mode, options: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
+<td><p>Waveform mode, options: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span> <span class="pre">|</span> <span class="pre">'ideal_z'</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span></code></p></td>
+<td><p>Excitation operating mode: use the actual particle z, or use z = 0 only when evaluating the waveform.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><ul class="simple">
@@ -227,7 +235,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation direction, options: <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -237,7 +245,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation start turn (inclusive)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 <td><ul class="simple">
@@ -247,14 +255,14 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
 <td><p>Excitation end turn (exclusive)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
 <td><p>Aperture type (default <code class="docutils literal notranslate"><span class="pre">off</span></code>, available values in the Aperture chapter)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>m / rad</p></td>
@@ -489,6 +497,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Exciter"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Enable"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"single_fm"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Excitation mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"real_z"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Direction"</span><span class="p">:</span><span class="w"> </span><span class="s2">"x"</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
@@ -506,6 +515,9 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>Omitting <code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code> gives the same <code class="docutils literal notranslate"><span class="pre">real_z</span></code> behavior. Set it to
+<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> to give all alive particles in each bunch the waveform value at
+that bunch’s ideal reference arrival. <code class="docutils literal notranslate"><span class="pre">Mode</span></code> still selects the FM/AM waveform.</p>
 <p>If using frequency mode, replace <code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span></code> with:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="nt">"Central frequency (Hz)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1743.0</span><span class="p">,</span>
@@ -514,13 +526,13 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 </pre></div>
 </div>
 </section>
-<section id="mode-selection-guide">
-<h3>Mode Selection Guide<a class="headerlink" href="#mode-selection-guide" title="Link to this heading"></a></h3>
+<section id="waveform-mode-selection-guide">
+<h3>Waveform Mode Selection Guide<a class="headerlink" href="#waveform-mode-selection-guide" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Tune measurement</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> is recommended; simple and effective, sweep covers the working point</p></li>
 <li><p><strong>Emittance growth study</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> supplies a time-varying excitation amplitude</p></li>
 <li><p><strong>Two DDS channels</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> sums two independent continuous-phase sweeps, offset by half a sweep period by default</p></li>
-<li><p><strong>Complex instability study</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> is recommended; the most complete excitation mode</p></li>
+<li><p><strong>Complex instability study</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> is recommended; the most complete waveform mode</p></li>
 </ul>
 </section>
 <section id="parameter-selection-recommendations">
@@ -540,7 +552,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 normalized transverse momentum increment, using the same nominal small-angle
 convention as <a class="reference internal" href="kicker.html"><span class="doc">Kicker</span></a>:</p>
 <div class="math notranslate nohighlight">
-\[\Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
+\[\Delta p_{u,i}=\theta_0 F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
 <p>For an on-momentum paraxial reference particle, <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>,
 which gives the input its angle unit. This is not an exact geometric rotation
 by the same angle for every off-momentum or non-paraxial particle. The sign of
@@ -548,15 +560,16 @@ by the same angle for every off-momentum or non-paraxial particle. The sign of
 contains any intended charge-sign convention; tracking does not multiply it by
 charge sign, rigidity or a particle velocity factor.</p>
 <p>The configured coefficient stays fixed when beam energy changes. Particles
-with the same arrival time receive the same prescribed momentum increment,
-subject to the mode’s shared AM factor. Different arrival times sample different
-waveform phases and AM values. Tune-mode frequencies use the shared reference
-clock, not a separate oscillator frequency for each particle.</p>
+with the same waveform evaluation time receive the same prescribed momentum
+increment, subject to the waveform mode’s shared AM factor. In <code class="docutils literal notranslate"><span class="pre">real_z</span></code>,
+different arrival times sample different phases and AM values; in <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>,
+each bunch receives the value at its reference arrival. Tune-mode frequencies
+use the shared reference clock, not a separate oscillator frequency for each particle.</p>
 <p>This is a zero-length kick: x, y, z, dp and t0 do not change. It does not model
 transit through electrodes, longitudinal electromagnetic forces, energy exchange,
 fringe fields or transmission-line propagation. FM phases remain continuous
-across sweep resets. AM uses the same physical particle time measured from the
-common trigger. Invalid incident states or non-forward post-kick states are
+across sweep resets. AM uses the same waveform evaluation time as FM, measured
+from the common trigger. Invalid incident states or non-forward post-kick states are
 removed at this plane, preserving previous loss records. CPU and GPU use the
 same equations.</p>
 <section id="migrating-voltage-based-inputs">
@@ -570,22 +583,38 @@ angle does not reproduce the old electric-field model’s per-particle velocity
 factor or its automatic amplitude change with reference energy.</p>
 </section>
 </section>
-<section id="particle-arrival-time">
-<h2>Particle Arrival Time<a class="headerlink" href="#particle-arrival-time" title="Link to this heading"></a></h2>
+<section id="particle-arrival-time-and-excitation-mode">
+<h2>Particle Arrival Time and Excitation Mode<a class="headerlink" href="#particle-arrival-time-and-excitation-mode" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> is the reference particle’s actual arrival at the current exciter
 location. The continuous coordinate is <span class="math notranslate nohighlight">\(z=\beta_b c(T_b-t_i)\)</span>.
-Exciter directly evaluates <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span> without adding
-nominal slot offsets or folding stored z. Different arrival times sample
-different signal phases. Scaling z when RF changes the reference velocity
-preserves this time; see <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+The physical arrival is <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span>, without adding nominal
+slot offsets or folding stored z. Scaling z when RF changes the reference
+velocity preserves this time; see <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code> selects the time used for the entire excitation waveform:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}t_{\mathrm{eval},i}=\begin{cases}
+   T_b-z_i/(\beta_b c), &amp; \texttt{real\_z},\\
+   T_b, &amp; \texttt{ideal\_z}.
+\end{cases}\end{split}\]</div>
+<p>The default <code class="docutils literal notranslate"><span class="pre">real_z</span></code> preserves old inputs when the field is omitted.
+Only <code class="docutils literal notranslate"><span class="pre">real_z</span></code> and <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> are accepted; an empty string, an unknown value
+or explicit <code class="docutils literal notranslate"><span class="pre">null</span></code> is an error. The command log reports the effective mode.
+The existing <code class="docutils literal notranslate"><span class="pre">Mode</span></code> field independently selects the FM/AM waveform.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>, z is treated as zero only for evaluating the excitation;
+stored particle coordinates are unchanged. Every bunch uses its own
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> at each passage through this element, rather than a common value
+for all bunches or a measured longitudinal centroid. FM, AM and the trigger
+gate all use this same time. Thus the trigger acts on the whole bunch together.
+This mode removes the direct effect of longitudinal arrival offsets on the
+excitation, including a bunch-centroid offset; other beam dynamics remain active.</p>
 <p>All bunches sample one waveform with a common trigger time <span class="math notranslate nohighlight">\(t_*\)</span>.
 For the shared prescribed clock <span class="math notranslate nohighlight">\(f_0(t)\)</span>, the trigger is the time at which
 its accumulated turns reach <span class="math notranslate nohighlight">\(n_{\rm start}+s/C\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
-\qquad u_i=t_i-t_*.\]</div>
-<p>Both DDS phases start at zero at <span class="math notranslate nohighlight">\(u=0\)</span>; arrivals before the trigger receive
-zero excitation. The existing <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> command gate also
+\qquad u_i=t_{\mathrm{eval},i}-t_*.\]</div>
+<p>Both DDS phases start at zero at <span class="math notranslate nohighlight">\(u=0\)</span>; evaluation times before the trigger
+give zero excitation. The existing <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> command gate also
 applies. Only the sweep position is reduced modulo <span class="math notranslate nohighlight">\(T\)</span>; accumulated phase
 is not reset. Changing the absolute time origin does not change this waveform.</p>
 </section>
@@ -612,9 +641,9 @@ provided as a pair.</p>
 <p>Choose one of the two modes. If <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> is provided, tune mode is used; otherwise, frequency mode is used. In tune mode, <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> must be provided as a pair.</p>
 </div>
 </section>
-<section id="excitation-modes">
-<h2>Excitation Modes<a class="headerlink" href="#excitation-modes" title="Link to this heading"></a></h2>
-<p>The exciter has 4 operating modes, formed by combining two dimensions: frequency modulation (FM) method and amplitude modulation (AM) method:</p>
+<section id="waveform-modes">
+<h2>Waveform Modes<a class="headerlink" href="#waveform-modes" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">Mode</span></code> field selects one of 4 waveforms, formed by combining two dimensions: frequency modulation (FM) method and amplitude modulation (AM) method:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -709,9 +738,10 @@ configured kick angle, independent of particle velocity or reference energy.</p>
 <p>where <span class="math notranslate nohighlight">\(\text{am\_factor}(u)\)</span> is a dimensionless time-varying scaling factor:</p>
 <div class="math notranslate nohighlight">
 \[\text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}\]</div>
-<p>The AM argument is the same physical elapsed time as FM,
-<span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span>. It is evaluated continuously, including each particle’s
-arrival offset, without rounding to a turn. The fixed normalization frequency
+<p>The AM argument is the same elapsed time as FM,
+<span class="math notranslate nohighlight">\(u_i=t_{\mathrm{eval},i}-t_*\)</span>. In <code class="docutils literal notranslate"><span class="pre">real_z</span></code> it includes each particle’s
+arrival offset; in <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> it uses the reference arrival. It is evaluated
+continuously without rounding to a turn. The fixed normalization frequency
 <span class="math notranslate nohighlight">\(f_{0,*}=f_0(t_*)\)</span> comes from the shared prescribed reference clock at
 startup; it does not follow tracked bunch energy changes or subsequent clock
 ramps. AM is zero before startup.</p>
@@ -730,7 +760,7 @@ ramps. AM is zero before startup.</p>
 <span class="math notranslate nohighlight">\(\mathrm{m}^2/\mathrm{s}\)</span> and <span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> has units
 <span class="math notranslate nohighlight">\(\mathrm{m}^2\)</span>, making <span class="math notranslate nohighlight">\(\text{am\_factor}\)</span> dimensionless.</p>
 <p>The diffusion law is unchanged and diverges at <span class="math notranslate nohighlight">\(u=t_{\text{ext}}\)</span>.
-Choose an excitation window that keeps particle elapsed times below this limit.
+Choose an excitation window that keeps the evaluated elapsed times below this limit.
 The GUI rejects previews reaching it; input validation warns about reference
 windows reaching it. Tracking does not add an amplitude cutoff.</p>
 <p>Physical meaning:</p>
@@ -769,9 +799,9 @@ the lattice and the sampled excitation phases.</p>
 </ol>
 <div class="math notranslate nohighlight">
 \[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
-<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(u_i=t_i-t_*\)</span> and <span class="math notranslate nohighlight">\(\theta_0\)</span> is the
+<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(u_i=t_{\mathrm{eval},i}-t_*\)</span> and <span class="math notranslate nohighlight">\(\theta_0\)</span> is the
 configured signed kick angle. The kick is zero for <span class="math notranslate nohighlight">\(u_i&lt;0\)</span>. FM and AM
-sample the same physical elapsed time <span class="math notranslate nohighlight">\(u_i\)</span>. These are the final normalized
+use the same evaluated elapsed time <span class="math notranslate nohighlight">\(u_i\)</span>. These are the final normalized
 momentum increments; tracking applies no additional amplitude conversion.</p>
 </section>
 <section id="kick-application">

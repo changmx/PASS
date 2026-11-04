@@ -13,8 +13,15 @@ ACDipole
 .. math::
 
    t_i=t_0-\frac{z_i}{\beta_0c},\qquad
-   \Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
-   \qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).
+   t_{\mathrm{eval},i}=\begin{cases}
+      t_i, & \texttt{real\_z},\\
+      t_0, & \texttt{ideal\_z},
+   \end{cases}
+
+.. math::
+
+   \Phi(t_{\mathrm{eval},i})=\phi_0+2\pi\int_{t_*}^{t_{\mathrm{eval},i}} f_{\rm ac}(u)\,du,
+   \qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_{\mathrm{eval},i})\sin\Phi(t_{\mathrm{eval},i}).
 
 ``Kick angle (rad)`` 指定有符号振幅 :math:`\theta`，``Phase (rad)`` 指定
 :math:`\phi_0`，``Phase epoch (s)`` 指定 :math:`t_*`。PASS 存储的是
@@ -22,7 +29,9 @@ ACDipole
 只有傍轴近似下的斜率增量才满足 :math:`\Delta x'\simeq\Delta p_x/(1+\delta)`。
 
 正 ``z`` 表示更早通过。实际 bunch 参考通过时刻 ``bunch.t0`` 和连续的束内相对
-坐标 ``p.z`` 决定取样时间；名义束团槽位位置不进入这个公式。
+坐标 ``p.z`` 决定实际到达时间；名义束团槽位位置不进入这个公式。
+``Excitation mode`` 选择波形求值时间：``real_z`` 使用粒子实际到达时刻，
+``ideal_z`` 使用理想参考粒子到达时刻。
 该模型不改变位置、``dp``、参考能量和 ``bunch.t0``。
 它描述理想横向激励，不包含完整时变电磁场的纵向感应项，因此不声称是完整的六维辛映射。
 
@@ -66,6 +75,12 @@ ACDipole
      - —
      - 必填
      - 激励横向平面。
+   * - ``excitation_mode``
+     - ``Excitation mode``
+     - ``'real_z' | 'ideal_z'``
+     - —
+     - ``'real_z'``
+     - 激励工作模式：使用粒子实际 z，或仅在计算波形时取 z = 0。
    * - ``kick_angle``
      - ``Kick angle (rad)``
      - ``float | list[float]``
@@ -133,6 +148,22 @@ ACDipole
      - ``[]``
      - 标准孔径尺寸。
 
+激励工作模式
+------------
+
+省略 ``excitation_mode``（JSON ``Excitation mode``）与显式填写 ``real_z`` 等价，
+保持旧输入的行为。仅接受 ``real_z`` 和 ``ideal_z``；空字符串、未知值或显式
+``null`` 均报错。命令日志显示实际生效的模式。
+
+``ideal_z`` 仅在计算激励时将 z 视为零，不修改存储的粒子坐标。
+每个束团每次通过本元件时使用自己的 ``bunch.t0``，不对所有束团共用一个值，
+也不改用测量得到的纵向质心。相位、幅度和踢动有效时间窗口使用同一求值时间，
+因此同一束团的所有存活粒子获得相同的规定归一化动量增量。
+频率仍对物理时间积分，不会因选择此模式而逐圈重置相位。
+
+该模式消除纵向到达偏移对激励的直接影响，其中也包括束团纵向质心偏移；
+其他束流动力学继续保留。字段名、取值和默认值与 :doc:`exciter` 一致。
+
 时间表与相位
 ------------
 
@@ -141,7 +172,8 @@ ACDipole
 
 提供 ``Kick time (s)`` 时，首尾采样点构成的闭区间之外 kick 为零。
 两个端点仍有效；单时间点区间仅在该时刻有效。不提供 kick 时间表时，标量幅度连续有效。
-每个粒子按自己的到达时刻判断有效区间，因此一个 bunch 可以跨越边界。
+``real_z`` 下每个粒子按自己的到达时刻判断有效区间，因此一个 bunch 可以跨越边界；
+``ideal_z`` 下整束团按 ``bunch.t0`` 统一判断。
 频率表在区间外保持端点值，相位在所有频率节点及幅度边界处连续。
 
 ``LinearProgram`` 精确积分每个线性频率段。在某一段内若
@@ -178,8 +210,8 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
 
 固定能量环中设 :math:`f_{\rm rev}=\beta_0c/C`，并使用
 :math:`f_{\rm ac}=q_d f_{\rm rev}`。需要选择实际物理激励频率所在的支路：
-给 :math:`q_d` 加整数时，单个理想参考粒子的逐圈取样相同，但其他 bunch 及不同到达时刻
-的粒子所见相位一般不同。
+给 :math:`q_d` 加整数时，单个理想参考粒子的逐圈取样相同，但其他 bunch 以及
+``real_z`` 下不同到达时刻的粒子所见相位一般不同。
 
 以下例子假设 :math:`f_{\rm rev}=10^6` Hz，且参考粒子首次通过元件的时刻为 :math:`t=0`。
 实际使用时替换为所配置环的规定时钟和首次通过时刻。
@@ -193,6 +225,7 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
    ac = ACDipoleItem(
        s=0.0,
        direction="x",
+       excitation_mode="real_z",
        kick_angle=[0.0, 1.0e-6, 1.0e-6, 0.0],
        kick_times=[first_passage_time + n / f_rev for n in (0, 2000, 6000, 8000)],
        frequency=0.31 * f_rev,
@@ -200,6 +233,9 @@ NUMA 数据位置是不同因素；分块大小参数本身不提供多核或 NU
        phase_epoch=first_passage_time,
    )
    sequence.add("ac_x", ac)
+
+省略 ``excitation_mode`` 的结果相同。设为 ``excitation_mode="ideal_z"`` 时，
+每个束团内统一使用其参考粒子的波形值。
 
 测量平台期应选择与束流 tune 分布有间隔的激励 tune。幅度升降时间（以圈计）应明显长于
 该 tune 间隔的倒数。在将受迫轨迹用于线性光学分析前，应检查关断后的自由振荡残余和
@@ -223,7 +259,8 @@ MAD-X ``TRACK`` 中的 ``HACDIPOLE``/``VACDIPOLE`` 按圈取样，``FREQ`` 的�
 取样，并使用 ``Phase epoch (s) = 0``；仅凭 PASS 圈数计数器不能确定这个时间原点。
 若 ``RAMP1`` 至 ``RAMP4`` 严格递增，可将其除以 :math:`f_{\rm rev}` 后作为 kick
 采样时刻，振幅取 :math:`[0,\theta_0,\theta_0,0]`。
-PASS 进一步按各粒子的实际物理到达时刻取样，并支持连续频率程序。
+PASS 默认使用各粒子的实际物理到达时刻（``real_z``），``ideal_z`` 则将参考取样值应用于整束团。
+两种模式都支持连续频率程序。
 MAD-X ``PTC`` 的 AC dipole 约定不同，不属于上述 ``TRACK`` 对应关系。
 
 逐圈幅度升降参数及 ``TRACK`` 与 ``PTC`` 的差异见

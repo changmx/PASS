@@ -10,7 +10,8 @@ Its length is fixed internally and is not an input parameter.
 - Core features:
 
   - Thin lens element (``length = 0``), changes only the particle's transverse momentum, without changing position coordinates;
-  - Supports 4 excitation modes (``single_fm``, ``single_fm_am``, ``dual_fm``, ``dual_fm_am``);
+  - Supports 4 waveform modes (``single_fm``, ``single_fm_am``, ``dual_fm``, ``dual_fm_am``);
+  - Supports excitation at each particle's arrival (``real_z``) or at the ideal reference arrival (``ideal_z``);
   - Frequency parameters support both tune mode and frequency mode input methods;
   - Supports aperture checking, consistent with other elements.
 
@@ -50,7 +51,13 @@ General Parameters
      - ``str``
      - -
      - ``Required``
-     - Excitation mode, options: ``single_fm``, ``single_fm_am``, ``dual_fm``, ``dual_fm_am``
+     - Waveform mode, options: ``single_fm``, ``single_fm_am``, ``dual_fm``, ``dual_fm_am``
+   * - ``excitation_mode``
+     - ``Excitation mode``
+     - ``'real_z' | 'ideal_z'``
+     - —
+     - ``'real_z'``
+     - Excitation operating mode: use the actual particle z, or use z = 0 only when evaluating the waveform.
    * - ``direction``
      - ``Direction``
      - ``str``
@@ -254,6 +261,7 @@ The following example uses tune mode:
            "Command": "Exciter",
            "Enable": false,
            "Mode": "single_fm",
+           "Excitation mode": "real_z",
            "Direction": "x",
            "Start turn": 100,
            "End turn": 1000,
@@ -270,6 +278,10 @@ The following example uses tune mode:
        }
    }
 
+Omitting ``Excitation mode`` gives the same ``real_z`` behavior. Set it to
+``ideal_z`` to give all alive particles in each bunch the waveform value at
+that bunch's ideal reference arrival. ``Mode`` still selects the FM/AM waveform.
+
 If using frequency mode, replace ``Excite tune`` and ``Sweep tune`` with:
 
 .. code-block:: json
@@ -279,13 +291,13 @@ If using frequency mode, replace ``Excite tune`` and ``Sweep tune`` with:
    "Sweep width (Hz)": 79.2
    }
 
-Mode Selection Guide
-~~~~~~~~~~~~~~~~~~~~
+Waveform Mode Selection Guide
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **Tune measurement**: ``single_fm`` is recommended; simple and effective, sweep covers the working point
 - **Emittance growth study**: ``single_fm_am`` supplies a time-varying excitation amplitude
 - **Two DDS channels**: ``dual_fm`` sums two independent continuous-phase sweeps, offset by half a sweep period by default
-- **Complex instability study**: ``dual_fm_am`` is recommended; the most complete excitation mode
+- **Complex instability study**: ``dual_fm_am`` is recommended; the most complete waveform mode
 
 Parameter Selection Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,7 +317,7 @@ convention as :doc:`kicker`:
 
 .. math::
 
-   \Delta p_{u,i}=\theta_0 F(t_i),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
+   \Delta p_{u,i}=\theta_0 F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
 
 For an on-momentum paraxial reference particle, :math:`\Delta u'\simeq\Delta p_u`,
 which gives the input its angle unit. This is not an exact geometric rotation
@@ -315,16 +327,17 @@ contains any intended charge-sign convention; tracking does not multiply it by
 charge sign, rigidity or a particle velocity factor.
 
 The configured coefficient stays fixed when beam energy changes. Particles
-with the same arrival time receive the same prescribed momentum increment,
-subject to the mode's shared AM factor. Different arrival times sample different
-waveform phases and AM values. Tune-mode frequencies use the shared reference
-clock, not a separate oscillator frequency for each particle.
+with the same waveform evaluation time receive the same prescribed momentum
+increment, subject to the waveform mode's shared AM factor. In ``real_z``,
+different arrival times sample different phases and AM values; in ``ideal_z``,
+each bunch receives the value at its reference arrival. Tune-mode frequencies
+use the shared reference clock, not a separate oscillator frequency for each particle.
 
 This is a zero-length kick: x, y, z, dp and t0 do not change. It does not model
 transit through electrodes, longitudinal electromagnetic forces, energy exchange,
 fringe fields or transmission-line propagation. FM phases remain continuous
-across sweep resets. AM uses the same physical particle time measured from the
-common trigger. Invalid incident states or non-forward post-kick states are
+across sweep resets. AM uses the same waveform evaluation time as FM, measured
+from the common trigger. Invalid incident states or non-forward post-kick states are
 removed at this plane, preserving previous loss records. CPU and GPU use the
 same equations.
 
@@ -339,15 +352,36 @@ The converter supplies the former nominal reference coefficient. A fixed input
 angle does not reproduce the old electric-field model's per-particle velocity
 factor or its automatic amplitude change with reference energy.
 
-Particle Arrival Time
----------------------
+Particle Arrival Time and Excitation Mode
+-----------------------------------------
 
 ``bunch.t0`` is the reference particle's actual arrival at the current exciter
 location. The continuous coordinate is :math:`z=\beta_b c(T_b-t_i)`.
-Exciter directly evaluates :math:`t_i=T_b-z_i/(\beta_b c)` without adding
-nominal slot offsets or folding stored z. Different arrival times sample
-different signal phases. Scaling z when RF changes the reference velocity
-preserves this time; see :ref:`en-longitudinal-reference`.
+The physical arrival is :math:`t_i=T_b-z_i/(\beta_b c)`, without adding nominal
+slot offsets or folding stored z. Scaling z when RF changes the reference
+velocity preserves this time; see :ref:`en-longitudinal-reference`.
+
+``Excitation mode`` selects the time used for the entire excitation waveform:
+
+.. math::
+
+   t_{\mathrm{eval},i}=\begin{cases}
+      T_b-z_i/(\beta_b c), & \texttt{real\_z},\\
+      T_b, & \texttt{ideal\_z}.
+   \end{cases}
+
+The default ``real_z`` preserves old inputs when the field is omitted.
+Only ``real_z`` and ``ideal_z`` are accepted; an empty string, an unknown value
+or explicit ``null`` is an error. The command log reports the effective mode.
+The existing ``Mode`` field independently selects the FM/AM waveform.
+
+In ``ideal_z``, z is treated as zero only for evaluating the excitation;
+stored particle coordinates are unchanged. Every bunch uses its own
+``bunch.t0`` at each passage through this element, rather than a common value
+for all bunches or a measured longitudinal centroid. FM, AM and the trigger
+gate all use this same time. Thus the trigger acts on the whole bunch together.
+This mode removes the direct effect of longitudinal arrival offsets on the
+excitation, including a bunch-centroid offset; other beam dynamics remain active.
 
 All bunches sample one waveform with a common trigger time :math:`t_*`.
 For the shared prescribed clock :math:`f_0(t)`, the trigger is the time at which
@@ -356,10 +390,10 @@ its accumulated turns reach :math:`n_{\rm start}+s/C`:
 .. math::
 
    \int_{t_{\rm origin}}^{t_*} f_0(t)\,dt=n_{\rm start}+\frac{s}{C},
-   \qquad u_i=t_i-t_*.
+   \qquad u_i=t_{\mathrm{eval},i}-t_*.
 
-Both DDS phases start at zero at :math:`u=0`; arrivals before the trigger receive
-zero excitation. The existing ``Start turn`` / ``End turn`` command gate also
+Both DDS phases start at zero at :math:`u=0`; evaluation times before the trigger
+give zero excitation. The existing ``Start turn`` / ``End turn`` command gate also
 applies. Only the sweep position is reduced modulo :math:`T`; accumulated phase
 is not reset. Changing the absolute time origin does not change this waveform.
 
@@ -396,10 +430,10 @@ Directly input the center frequency and sweep width (in Hz), suitable for scenar
 
   Choose one of the two modes. If ``excite tune`` is provided, tune mode is used; otherwise, frequency mode is used. In tune mode, ``excite tune`` and ``sweep tune`` must be provided as a pair.
 
-Excitation Modes
-----------------
+Waveform Modes
+--------------
 
-The exciter has 4 operating modes, formed by combining two dimensions: frequency modulation (FM) method and amplitude modulation (AM) method:
+The ``Mode`` field selects one of 4 waveforms, formed by combining two dimensions: frequency modulation (FM) method and amplitude modulation (AM) method:
 
 .. list-table::
   :header-rows: 1
@@ -516,9 +550,10 @@ where :math:`\text{am\_factor}(u)` is a dimensionless time-varying scaling facto
 
   \text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}
 
-The AM argument is the same physical elapsed time as FM,
-:math:`u_i=t_i-t_*`. It is evaluated continuously, including each particle's
-arrival offset, without rounding to a turn. The fixed normalization frequency
+The AM argument is the same elapsed time as FM,
+:math:`u_i=t_{\mathrm{eval},i}-t_*`. In ``real_z`` it includes each particle's
+arrival offset; in ``ideal_z`` it uses the reference arrival. It is evaluated
+continuously without rounding to a turn. The fixed normalization frequency
 :math:`f_{0,*}=f_0(t_*)` comes from the shared prescribed reference clock at
 startup; it does not follow tracked bunch energy changes or subsequent clock
 ramps. AM is zero before startup.
@@ -550,7 +585,7 @@ With lengths in metres and times in seconds, :math:`\delta^2(u)` has units
 :math:`\mathrm{m}^2`, making :math:`\text{am\_factor}` dimensionless.
 
 The diffusion law is unchanged and diverges at :math:`u=t_{\text{ext}}`.
-Choose an excitation window that keeps particle elapsed times below this limit.
+Choose an excitation window that keeps the evaluated elapsed times below this limit.
 The GUI rejects previews reaching it; input validation warns about reference
 windows reaching it. Tracking does not add an amplitude cutoff.
 
@@ -594,9 +629,9 @@ Complete Formulas for Each Mode
 
   \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-For particle :math:`i`, :math:`u_i=t_i-t_*` and :math:`\theta_0` is the
+For particle :math:`i`, :math:`u_i=t_{\mathrm{eval},i}-t_*` and :math:`\theta_0` is the
 configured signed kick angle. The kick is zero for :math:`u_i<0`. FM and AM
-sample the same physical elapsed time :math:`u_i`. These are the final normalized
+use the same evaluated elapsed time :math:`u_i`. These are the final normalized
 momentum increments; tracking applies no additional amplitude conversion.
 
 Kick Application

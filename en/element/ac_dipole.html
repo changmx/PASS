@@ -88,6 +88,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ACDipole</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#physics-convention">Physics convention</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#input-interface">Input interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#excitation-operating-mode">Excitation operating mode</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#time-tables-and-phase">Time tables and phase</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cpu-batch-size">CPU batch size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fixed-frequency-optics-example">Fixed-frequency optics example</a></li>
@@ -160,17 +161,24 @@ neither the turn counter nor <code class="docutils literal notranslate"><span cl
 <h2>Physics convention<a class="headerlink" href="#physics-convention" title="Link to this heading"></a></h2>
 <p>For <code class="docutils literal notranslate"><span class="pre">Direction</span> <span class="pre">=</span> <span class="pre">x</span></code> (replace <span class="math notranslate nohighlight">\(x\)</span> by <span class="math notranslate nohighlight">\(y\)</span> for vertical excitation),</p>
 <div class="math notranslate nohighlight">
-\[t_i=t_0-\frac{z_i}{\beta_0c},\qquad
-\Phi(t_i)=\phi_0+2\pi\int_{t_*}^{t_i} f_{\rm ac}(u)\,du,
-\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_i)\sin\Phi(t_i).\]</div>
+\[\begin{split}t_i=t_0-\frac{z_i}{\beta_0c},\qquad
+t_{\mathrm{eval},i}=\begin{cases}
+   t_i, &amp; \texttt{real\_z},\\
+   t_0, &amp; \texttt{ideal\_z},
+\end{cases}\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\Phi(t_{\mathrm{eval},i})=\phi_0+2\pi\int_{t_*}^{t_{\mathrm{eval},i}} f_{\rm ac}(u)\,du,
+\qquad p_{x,i}^{+}=p_{x,i}^{-}+\theta(t_{\mathrm{eval},i})\sin\Phi(t_{\mathrm{eval},i}).\]</div>
 <p>Here <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> specifies the signed amplitude <span class="math notranslate nohighlight">\(\theta\)</span>,
 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> specifies <span class="math notranslate nohighlight">\(\phi_0\)</span>, and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> specifies
 <span class="math notranslate nohighlight">\(t_*\)</span>. PASS stores <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>, so the kick is added directly.
 Do not divide it by <span class="math notranslate nohighlight">\(1+\delta\)</span>. Only the paraxial slope increment is
 <span class="math notranslate nohighlight">\(\Delta x'\simeq\Delta p_x/(1+\delta)\)</span>.</p>
 <p>Positive <code class="docutils literal notranslate"><span class="pre">z</span></code> means earlier passage. The actual bunch reference passage time
-<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and continuous bunch-relative <code class="docutils literal notranslate"><span class="pre">p.z</span></code> determine the sampled time;
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and continuous bunch-relative <code class="docutils literal notranslate"><span class="pre">p.z</span></code> determine the physical arrival time;
 nominal bunch-slot positions are not part of this formula.
+<code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code> selects the waveform evaluation time: <code class="docutils literal notranslate"><span class="pre">real_z</span></code> uses the
+physical particle arrival, while <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> uses the ideal reference arrival.
 The model leaves positions, <code class="docutils literal notranslate"><span class="pre">dp</span></code>, the reference energy and <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> unchanged.
 It models the ideal transverse excitation, without the longitudinal induction
 terms of a complete time-dependent electromagnetic field, and therefore does
@@ -227,77 +235,84 @@ prescribe the appropriate normalized amplitude explicitly.</p>
 <td><p>Required</p></td>
 <td><p>Excited transverse plane.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span> <span class="pre">|</span> <span class="pre">'ideal_z'</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'real_z'</span></code></p></td>
+<td><p>Excitation operating mode: use the actual particle z, or use z = 0 only when evaluating the waveform.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
 <td><p>rad</p></td>
 <td><p>Required</p></td>
 <td><p>Signed normalized momentum amplitude.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>Amplitude sample times and active time interval.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
 <td><p>Hz</p></td>
 <td><p>Required</p></td>
 <td><p>Nonnegative carrier frequency; zero is allowed.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency_times</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>Independent frequency sample times.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>Carrier phase at the phase epoch.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 <td><p>s</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
 <td><p>Lower limit of the frequency integral.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
 <td><p>Enable the excitation.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cpu_chunk_size</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">CPU</span> <span class="pre">chunk</span> <span class="pre">size</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>particles</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">65536</span></code></p></td>
 <td><p>Maximum particles per CPU batch; a positive integer. <code class="docutils literal notranslate"><span class="pre">None</span></code> processes the whole bunch. Ignored on GPU.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
 <td><p>Explicit order among commands at the same position.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
 <td><p>Standard transverse loss aperture.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
 <td><p>m / rad</p></td>
@@ -306,6 +321,23 @@ prescribe the appropriate normalized amplitude explicitly.</p>
 </tr>
 </tbody>
 </table>
+</section>
+<section id="excitation-operating-mode">
+<h2>Excitation operating mode<a class="headerlink" href="#excitation-operating-mode" title="Link to this heading"></a></h2>
+<p>Omitting <code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">Excitation</span> <span class="pre">mode</span></code>) is equivalent to
+explicit <code class="docutils literal notranslate"><span class="pre">real_z</span></code> and preserves old inputs. Only <code class="docutils literal notranslate"><span class="pre">real_z</span></code> and <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>
+are accepted; an empty string, an unknown value or explicit <code class="docutils literal notranslate"><span class="pre">null</span></code> is an error.
+The command log reports the effective mode.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>, z is treated as zero only for evaluating the excitation;
+stored particle coordinates are unchanged. Each bunch uses its own
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> at every passage through this element, rather than a common value
+for all bunches or a measured longitudinal centroid. Phase, amplitude and the
+active kick window all use this time, so all alive particles in a bunch receive
+the same prescribed normalized momentum increment. Frequency is still integrated
+over physical time; the mode does not reset phase each turn.</p>
+<p>This mode removes the direct effect of longitudinal arrival offsets on the
+excitation, including a bunch-centroid offset; other beam dynamics remain active.
+The field name, values and default are shared with <a class="reference internal" href="exciter.html"><span class="doc">Exciter</span></a>.</p>
 </section>
 <section id="time-tables-and-phase">
 <h2>Time tables and phase<a class="headerlink" href="#time-tables-and-phase" title="Link to this heading"></a></h2>
@@ -316,8 +348,9 @@ a constant value; it may also be paired with time samples.</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, the kick is zero outside the closed interval from the
 first to last sample. Both endpoints remain active; a one-time-point interval
 is active only at that instant. Without kick times, a scalar amplitude operates
-continuously. Each particle is gated at its own arrival time, so a bunch can
-straddle a boundary. Frequency samples hold their endpoint values outside their
+continuously. In <code class="docutils literal notranslate"><span class="pre">real_z</span></code>, each particle is gated at its own arrival time, so
+a bunch can straddle a boundary. In <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>, the whole bunch is gated at
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>. Frequency samples hold their endpoint values outside their
 interval, and phase remains continuous through every knot and amplitude boundary.</p>
 <p><code class="docutils literal notranslate"><span class="pre">LinearProgram</span></code> integrates each linear frequency segment exactly. For a sweep
 <span class="math notranslate nohighlight">\(f(t)=f_a+\dot f(t-t_a)\)</span> within one segment,</p>
@@ -355,7 +388,7 @@ throughput and peak memory on the target server, not a timing from another machi
 <span class="math notranslate nohighlight">\(f_{\rm ac}=q_d f_{\rm rev}\)</span>. Choose the physical drive-frequency branch:
 adding an integer to <span class="math notranslate nohighlight">\(q_d\)</span> produces identical samples for a single ideal
 reference passage per turn, but generally changes the phase seen by other
-bunches and by particles with different arrival times.</p>
+bunches and, in <code class="docutils literal notranslate"><span class="pre">real_z</span></code>, by particles with different arrival times.</p>
 <p>The following example assumes <span class="math notranslate nohighlight">\(f_{\rm rev}=10^6\)</span> Hz and a first reference
 passage at the element at <span class="math notranslate nohighlight">\(t=0\)</span>. Substitute the actual prescribed clock
 and first-passage time for the configured ring.</p>
@@ -366,6 +399,7 @@ and first-passage time for the configured ring.</p>
 <span class="n">ac</span> <span class="o">=</span> <span class="n">ACDipoleItem</span><span class="p">(</span>
     <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">direction</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span>
+    <span class="n">excitation_mode</span><span class="o">=</span><span class="s2">"real_z"</span><span class="p">,</span>
     <span class="n">kick_angle</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
     <span class="n">kick_times</span><span class="o">=</span><span class="p">[</span><span class="n">first_passage_time</span> <span class="o">+</span> <span class="n">n</span> <span class="o">/</span> <span class="n">f_rev</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">)],</span>
     <span class="n">frequency</span><span class="o">=</span><span class="mf">0.31</span> <span class="o">*</span> <span class="n">f_rev</span><span class="p">,</span>
@@ -375,6 +409,8 @@ and first-passage time for the configured ring.</p>
 <span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"ac_x"</span><span class="p">,</span> <span class="n">ac</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Omitting <code class="docutils literal notranslate"><span class="pre">excitation_mode</span></code> gives the same result. Set <code class="docutils literal notranslate"><span class="pre">excitation_mode=&quot;ideal_z&quot;</span></code>
+to apply the reference particle’s waveform value throughout each bunch.</p>
 <p>Use a drive tune separated from the beam tune footprint for the measurement
 plateau, and ramp the amplitude slowly compared with the inverse tune separation
 in turns. Check residual free oscillations after ramp-down and amplitude
@@ -401,9 +437,10 @@ zero, then applies its first kick at turn one. Align PASS physical sampling at
 the PASS turn counter alone does not establish this time origin.
 For strictly increasing <code class="docutils literal notranslate"><span class="pre">RAMP1</span></code> through <code class="docutils literal notranslate"><span class="pre">RAMP4</span></code>, use their values divided by
 <span class="math notranslate nohighlight">\(f_{\rm rev}\)</span> as kick times and amplitudes
-<span class="math notranslate nohighlight">\([0,\theta_0,\theta_0,0]\)</span>. PASS additionally
-samples individual physical arrival times and supports continuous frequency
-programs. MAD-X <code class="docutils literal notranslate"><span class="pre">PTC</span></code> has different AC-dipole conventions and is not covered
+<span class="math notranslate nohighlight">\([0,\theta_0,\theta_0,0]\)</span>. PASS defaults to individual physical arrival
+times (<code class="docutils literal notranslate"><span class="pre">real_z</span></code>); <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> applies the reference sample to the whole bunch.
+Both modes support continuous frequency programs. MAD-X <code class="docutils literal notranslate"><span class="pre">PTC</span></code> has different
+AC-dipole conventions and is not covered
 by this <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> mapping.</p>
 <p>See the <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD-X-User-Manual/blob/master/elements.tex">MAD-X AC-dipole manual source</a>
 for its turn ramps and the distinction between <code class="docutils literal notranslate"><span class="pre">TRACK</span></code> and <code class="docutils literal notranslate"><span class="pre">PTC</span></code>.</p>

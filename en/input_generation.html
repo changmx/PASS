@@ -60,7 +60,10 @@
     <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input File Generation (Command-Line Mode)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#json-parameter-overrides">JSON parameter overrides</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#input-snapshots-for-execution">Input snapshots for execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a><ul>
@@ -242,6 +245,57 @@ New plain JSON and
 old ZIP project descriptions are both readable. Invalid saved selections or
 duplicate beams are errors. See
 <a class="reference internal" href="project_files.html"><span class="doc">Editable projects</span></a> for project selection and output paths.</p>
+<section id="json-parameter-overrides">
+<h3>JSON parameter overrides<a class="headerlink" href="#json-parameter-overrides" title="Link to this heading"></a></h3>
+<p>Override input fields for this run without editing the source JSON or project:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">backend</span><span class="o">=</span><span class="n">gpu</span> <span class="o">--</span><span class="n">device</span><span class="o">-</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span> <span class="o">--</span><span class="n">task</span><span class="o">-</span><span class="n">name</span><span class="o">=</span><span class="n">test</span>
+<span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">number</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">turns</span><span class="o">=</span><span class="mi">100</span> <span class="o">--</span><span class="n">particle</span><span class="o">-</span><span class="n">precision</span><span class="o">=</span><span class="n">float32</span>
+<span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">timing</span><span class="o">.</span><span class="n">log</span><span class="o">-</span><span class="n">interval</span><span class="o">=</span><span class="mi">20</span>
+<span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="s1">'--sequence[QF1_s1.000].length=0.5'</span>
+<span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="s1">'--device-id[0]=1'</span>
+</pre></div>
+</div>
+<p>Fixed field names come from the JSON keys: remove parentheses and their contents,
+replace spaces with hyphens, and ignore case. Units remain those of the JSON key:
+<code class="docutils literal notranslate"><span class="pre">Circumference</span> <span class="pre">(m)</span></code> becomes <code class="docutils literal notranslate"><span class="pre">--circumference</span></code> and still takes metres.
+<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">dp/p</span></code> retains its slash. Nested fields use dots. Named elements and
+resources use <code class="docutils literal notranslate"><span class="pre">[exact</span> <span class="pre">name]</span></code>; their case, dots and other characters are preserved.
+Quote arguments containing shell punctuation, particularly <code class="docutils literal notranslate"><span class="pre">$</span></code>. Arrays use
+zero-based indices; replacing an entire array is also supported.</p>
+<p>Values use JSON types (numbers, <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code>, <code class="docutils literal notranslate"><span class="pre">null</span></code>, arrays and objects).
+String fields also accept plain text. Use <code class="docutils literal notranslate"><span class="pre">--path=VALUE</span></code> or <code class="docutils literal notranslate"><span class="pre">--path</span> <span class="pre">VALUE</span></code>;
+use the equals form when a string begins with <code class="docutils literal notranslate"><span class="pre">--</span></code>. <code class="docutils literal notranslate"><span class="pre">--device-id=1</span></code> and <code class="docutils literal notranslate"><span class="pre">--device-id=&quot;[1]&quot;</span></code> are equivalent; a single integer
+is normalized to an array before validation and archiving. Booleans and decimal
+values such as <code class="docutils literal notranslate"><span class="pre">true</span></code> and <code class="docutils literal notranslate"><span class="pre">1.0</span></code> are rejected. Choosing a device does not switch the backend to GPU.
+For names containing brackets, or any ambiguous abbreviated field, use exact
+original keys in a JSON path array:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="nb">set</span> <span class="s1">'["Sequence","QF1_s1.000","Length (m)"]'</span> <span class="mf">0.5</span>
+</pre></div>
+</div>
+<p>Unqualified paths target Beam 0. Prefix paths with <code class="docutils literal notranslate"><span class="pre">beam0.</span></code> or <code class="docutils literal notranslate"><span class="pre">beam1.</span></code> to
+select an input; exact paths may start with <code class="docutils literal notranslate"><span class="pre">&quot;beam0&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;beam1&quot;</span></code>.
+The existing shared-run checks still apply: turns, backend, precision, devices,
+timing and plot settings must agree in both inputs. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">pass</span><span class="o">-</span><span class="n">run</span> <span class="n">beam0</span><span class="o">.</span><span class="n">json</span> <span class="n">beam1</span><span class="o">.</span><span class="n">json</span> <span class="o">--</span><span class="n">number</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">turns</span><span class="o">=</span><span class="mi">100</span> <span class="o">--</span><span class="n">beam1</span><span class="o">.</span><span class="n">number</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">turns</span><span class="o">=</span><span class="mi">100</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Task</span> <span class="pre">name</span></code> and <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> apply to the whole run; do not put them
+under Beam 1. <code class="docutils literal notranslate"><span class="pre">--output-directory</span></code> and <code class="docutils literal notranslate"><span class="pre">--output</span></code> are equivalent.
+Overrides take precedence over saved input/project settings, are applied before
+preflight and archiving, and are recorded in <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code> and optional
+<code class="docutils literal notranslate"><span class="pre">beam1.json</span></code>. Original configurations remain in <code class="docutils literal notranslate"><span class="pre">configuration*.json</span></code>.
+Relative file paths supplied by the command line use the caller’s working
+directory; unchanged paths retain their original input/project base directory.</p>
+<p>All schema-declared input fields are eligible, including omitted optional fields.
+Whole configuration blocks replace rather than merge the previous value.
+The interface does not edit external file contents or internal computed variables,
+add/remove named elements or resources, delete keys, or append array entries via
+indices. Unknown fields, ambiguous normalized names, invalid types or indices,
+duplicate targets and parent/child overlaps are errors. Full input and physics
+consistency validation must pass before execution.</p>
+<p>The injection field is now <code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Injection</span> <span class="pre">Point</span> <span class="pre">(m)</span></code>;
+the former abbreviated spelling is no longer accepted. Regenerate older inputs
+or rename that key before running them.</p>
 <p>Use <code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">DIR</span></code> to choose the output root for this run. It takes precedence
 over the JSON or saved project setting and works with one JSON, two JSON files,
 or one project. Relative command-line output paths are resolved from the working
@@ -325,6 +379,7 @@ override requires <code class="docutils literal notranslate"><span class="pre">a
 </pre></div>
 </div>
 <p>For this uncoupled linear model, transverse RMS emittances should remain constant up to numerical rounding. The finite sampled initial values need not equal the requested emittances exactly. Longitudinal transfer is disabled here; this example does not model synchrotron oscillation or collective effects.</p>
+</section>
 </section>
 <section id="input-snapshots-for-execution">
 <h2>Input snapshots for execution<a class="headerlink" href="#input-snapshots-for-execution" title="Link to this heading"></a></h2>
@@ -737,7 +792,7 @@ the automatic design-clock phase while retaining unwrapped particle times.</p>
 <td><p>Bunch-group index; its nominal slot is <span class="math notranslate nohighlight">\(z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_s_position</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Inj.</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Injection</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>RF-cavity position relative to injection, used to linearly back-propagate a matched distribution to <span class="math notranslate nohighlight">\(s=0\)</span></p></td>
 </tr>

@@ -100,6 +100,54 @@ Beam 0 和可选 Beam 1 选择；未保存 Beam 0 时使用当前活动配置，
 新明文 JSON 工程和旧 ZIP 工程。已保存的选择失效或两束选择重复时会报错。
 项目选择和输出路径规则见 :doc:`project_files`。
 
+命令行覆盖 JSON 参数
+~~~~~~~~~~~~~~~~~~~~
+
+可在本次运行中覆盖输入字段，不修改原始 JSON 或项目文件::
+
+   pass-run beam0.json --backend=gpu --device-id=1 --task-name=test
+   pass-run beam0.json --number-of-turns=100 --particle-precision=float32
+   pass-run beam0.json --timing.log-interval=20
+   pass-run beam0.json '--sequence[QF1_s1.000].length=0.5'
+   pass-run beam0.json '--device-id[0]=1'
+
+固定字段名称由 JSON key 转换而来：移除括号及其内容，空格替换为连字符，
+不区分大小写。数值单位仍按 JSON 字段规定，例如 ``Circumference (m)``
+对应 ``--circumference``，数值仍以米为单位。``Sigma dp/p`` 保留斜杠。
+嵌套字段使用点号分层，元件或资源名称使用 ``[完整名称]``，保留大小写、点号及其他字符。
+包含 shell 特殊字符（尤其是 ``$``）的参数需要引用保护。
+数组下标从零开始，也可以整体替换数组。
+
+值采用 JSON 类型：数值、``true``、``false``、``null``、数组或对象；字符串字段也接受普通文本。
+支持 ``--path=VALUE`` 和 ``--path VALUE``，字符串以 ``--`` 开头时使用等号形式。
+``--device-id=1`` 与 ``--device-id="[1]"`` 等价；单个整数在校验和归档前转换为数组。
+不接受 ``true`` 或 ``1.0`` 等布尔值或小数。选择设备不会自动切换为 GPU 后端。
+名称本身含方括号，或规范化字段名存在歧义时，可使用原始 key 构成的 JSON 路径数组::
+
+   pass-run beam0.json --set '["Sequence","QF1_s1.000","Length (m)"]' 0.5
+
+无前缀路径作用于 Beam 0。使用 ``beam0.`` 或 ``beam1.`` 前缀选择输入；
+精确路径数组也可用 ``"beam0"`` 或 ``"beam1"`` 作为首项。
+现有双束流一致性检查仍然有效：圈数、后端、精度、设备、计时及绘图设置必须一致，例如::
+
+   pass-run beam0.json beam1.json --number-of-turns=100 --beam1.number-of-turns=100
+
+``Task name`` 和 ``Output directory`` 作用于整次运行，不允许放在 Beam 1 下。
+``--output-directory`` 与 ``--output`` 等价。
+命令行优先于输入和项目保存的设置，覆盖发生在预检和归档之前。
+生效配置写入 ``input/beam0.json`` 及可选的 ``beam1.json``，原始配置保存在
+``configuration*.json``。命令行指定的相对文件路径以启动时工作目录为基准；
+未覆盖的路径仍以原始输入或项目目录为基准。
+
+允许设置所有 schema 声明的输入字段，包括原文件省略的可选字段。
+整体设置配置块时会替换原值，不做合并。
+此接口不修改外部文件内容或内部计算变量，不增删命名元件或资源，不删除 key，
+也不通过越界下标追加数组元素。未知字段、规范化名称歧义、类型或下标错误、
+重复覆盖以及父子路径同时覆盖都会报错。执行前仍须通过完整输入与物理一致性校验。
+
+注入字段现已统一为 ``RF S Position Refer to Injection Point (m)``，不再接受原来的缩写名称。
+运行旧输入前，请重新生成输入或重命名该 key。
+
 使用 ``--output DIR`` 指定本次运行的输出根目录，优先于 JSON 或项目保存的设置，
 支持单份 JSON、双份 JSON 或一个项目。命令行指定的相对输出路径以启动时的工作目录
 为基准，原始 JSON 和项目文件保持不变：
@@ -547,7 +595,7 @@ BunchConfig（束团参数）
      - int
      - 束团分组编号；中心为 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
    * - ``rf_s_position``
-     - ``RF S Position Refer to Inj. Point (m)``
+     - ``RF S Position Refer to Injection Point (m)``
      - float
      - RF 腔相对注入点的位置，用于把匹配分布线性逆传输到 :math:`s=0`
    * - ``momentum_offset_dp``
