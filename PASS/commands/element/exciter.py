@@ -120,9 +120,14 @@ class Exciter(Command):
 
         if any(key in kwargs for key in ("voltage (v)", "gap (m)", "plate length (m)")):
             raise ValueError("Exciter uses 'Kick angle (rad)'; convert voltage and electrode parameters with the Exciter tool")
-        self.kick_angle: float = kwargs["kick angle (rad)"]
-        if not np.isfinite(self.kick_angle):
-            raise ValueError("Exciter Kick angle (rad) must be finite")
+        self.kick_angle: float | list[float] = kwargs["kick angle (rad)"]
+        kick_times = kwargs.get("kick time (s)", kwargs.get("kick_times"))
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            self.kick = LinearProgram(self.kick_angle, kick_times)
+        if not np.all(np.isfinite(self.kick.slopes)):
+            raise ValueError("Exciter kick program slopes must be finite")
+        self.time_min = -np.inf if kick_times is None else kick_times[0]
+        self.time_max = np.inf if kick_times is None else kick_times[-1]
         self._gpu_cache = {}
 
         # Tune mode follows the shared prescribed clock, not tracked energies.
@@ -187,7 +192,7 @@ class Exciter(Command):
                     f"is_enabled={self.is_enabled}, Mode={self.mode:s}, Direction={self.direction:s}, "
                     f"excitation_mode={self.excitation_mode}, "
                     f"start_turn={self.start_turn:d}, end_turn={self.end_turn:d}, "
-                    f"kick_angle={self.kick_angle:.6e} rad, "
+                    f"kick_angle={self.kick_angle} rad, "
                     f"{freq_info}, "
                     f"period={self.period:.6e}, dual_sweep_offset={self.dual_sweep_offset:g}, "
                     f"am_t_ext={self.am_t_ext:.6e}, am_r0={self.am_r0:.4f}, "
@@ -279,16 +284,18 @@ class Exciter(Command):
         else:
             # Only the waveform uses z=0; preserve the tracked coordinates.
             offset = np.zeros(end - start, dtype=np.float64)
+        active = alive & (offset >= self.time_min - bunch.t0) & (offset <= self.time_max - bunch.t0)
         # Like Kicker, the nominal angle is an increment of momentum / P0.
-        kick = self.kick_angle * self.waveform.value(bunch.t0, offset, dual=self.mode.startswith("dual"))
+        amplitude = self.kick.values[0] if len(self.kick.values) == 1 else self.kick.value(bunch.t0, offset)
+        kick = amplitude * self.waveform.value(bunch.t0, offset, dual=self.mode.startswith("dual"))
         if self.mode.endswith("_am"):
-            elapsed = np.where(alive, (bunch.t0 - self.waveform.trigger) + offset, -1.)
+            elapsed = np.where(active, (bunch.t0 - self.waveform.trigger) + offset, -1.)
             kick *= self._kick_am_vary(elapsed)
 
         if self.is_x:
-            px[alive] += kick[alive]
+            px[active] += kick[active]
         else:
-            py[alive] += kick[alive]
+            py[active] += kick[active]
         with np.errstate(over='ignore', invalid='ignore'):
             ps2 = (1 + dp)**2 - px.astype(np.float64)**2 - py.astype(np.float64)**2
         invalid = alive & (~np.isfinite(ps2) | (ps2 <= 0))
@@ -404,6 +411,10 @@ extern "C" __global__ void track_exciter(
     int sweep_count,
     const double* __restrict__ carrier_table,
     int carrier_count,
+    const double* __restrict__ kick_table,
+    int kick_count,
+    double time_min,
+    double time_max,
     double reference_time,
     double elapsed,
     double carrier_base,
@@ -422,7 +433,6 @@ extern "C" __global__ void track_exciter(
     double am_scale,
     double s0,
     int turn,
-    double kick_angle,
     int direction
 ) {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
@@ -437,8 +447,14 @@ extern "C" __global__ void track_exciter(
     }
     // Keep the local arrival offset separate from the large reference epoch.
     double offset = use_real_z ? -(double)z[i] / v0 : 0.;
-    if (offset < -elapsed)
+    if (offset < -elapsed || offset < time_min || offset > time_max)
         return;
+    double amplitude = kick_table[1];
+    if (kick_count > 1) {
+        int index = _find_interval(kick_table, kick_count, 3, reference_time, offset);
+        double dx = (reference_time - kick_table[3 * index]) + offset;
+        amplitude = kick_table[3 * index + 1] + kick_table[3 * index + 2] * dx;
+    }
     double carrier = _carrier_phase(carrier_table, carrier_count, reference_time, offset, carrier_base, carrier_frequency, carrier_index);
     int index = _find_interval(sweep_table, sweep_count, 5, elapsed, offset);
     const double* node = sweep_table + 5 * index;
@@ -456,7 +472,7 @@ extern "C" __global__ void track_exciter(
         double denominator = logarithm * logarithm * (am_t_ext * am_exponent + time * am_complement);
         waveform *= argument > 0 ? sqrt(am_scale / denominator) : 0.;
     }
-    double kick = kick_angle * waveform;
+    double kick = amplitude * waveform;
     if (direction == 0)
         px[i] += kick;
     else
@@ -490,7 +506,8 @@ def launch_exciter(element, sim, bunch):
         carrier = waveform.carrier
         sweep_table = cp.asarray(np.column_stack((waveform.times, waveform.values, waveform.slopes, waveform.phases.T)), order='C')
         carrier_table = cp.asarray(np.column_stack((carrier.times, carrier.values, carrier.slopes, carrier.phase_integrals)))
-        element._gpu_cache[key] = kernel, sweep_table, carrier_table
+        kick_table = cp.asarray(np.column_stack((element.kick.times, element.kick.values, element.kick.slopes)))
+        element._gpu_cache[key] = kernel, sweep_table, carrier_table, kick_table
     start, end = bunch.start_idx, bunch.end_idx
     n = end - start
     if n <= 0:
@@ -504,13 +521,13 @@ def launch_exciter(element, sim, bunch):
     exponent = np.exp(-(element.am_r0 / element.am_delta0)**2) if am else 0.
     complement = -np.expm1(-(element.am_r0 / element.am_delta0)**2) if am else 0.
     scale = element.am_r0**2 * complement / element.am_frequency / element.am_k_const if am else 0.
-    kernel, sweep_table, carrier_table = element._gpu_cache[key]
+    kernel, sweep_table, carrier_table, kick_table = element._gpu_cache[key]
     kernel((blocks, ), (threads, ),
            (p.px, p.py, p.z, p.dp, p.x, p.y, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), sweep_table,
-            np.int32(len(waveform.times)), carrier_table, np.int32(len(waveform.carrier.times)), real(bunch.t0), real(bunch.t0 - waveform.trigger),
-            real(base), real(frequency), np.int32(index), real(bunch.beta * const.c), np.int32(element.excitation_mode == "real_z"),
-            real(waveform.period), real(waveform.width), real(waveform.shifts[0]), np.int32(
-                element.mode.startswith("dual")), np.int32(am), real(element.am_t_ext), real(exponent), real(complement), real(scale), real(
-                    element.s), np.int32(sim.state.turn), real(element.kick_angle), np.int32(0 if element.is_x else 1)))
+            np.int32(len(waveform.times)), carrier_table, np.int32(len(waveform.carrier.times)), kick_table, np.int32(len(element.kick.times)),
+            real(element.time_min - bunch.t0), real(element.time_max - bunch.t0), real(bunch.t0), real(bunch.t0 - waveform.trigger), real(base),
+            real(frequency), np.int32(index), real(bunch.beta * const.c), np.int32(element.excitation_mode == "real_z"), real(waveform.period),
+            real(waveform.width), real(waveform.shifts[0]), np.int32(element.mode.startswith("dual")), np.int32(am), real(element.am_t_ext),
+            real(exponent), real(complement), real(scale), real(element.s), np.int32(sim.state.turn), np.int32(0 if element.is_x else 1)))
     from PASS.utils.aperture import check_aperture_gpu
     check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type, element.aperture_value, element.s, sim.state.turn)

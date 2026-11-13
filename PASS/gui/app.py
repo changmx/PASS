@@ -3569,7 +3569,7 @@ class ConfigPage(QWidget):
             self.form_hint.setText("作用圈数为从 0 开始的 [Start turn, End turn)，End turn 不指定时持续到运行结束；0、1 表示只踢第一圈。窗口外仍保留漂移、孔径和内部空间电荷。")
         elif target.get("Command") == "Exciter":
             self.form_hint.setText(
-                "Kick angle 为每路 DDS 的有符号标称踢角（rad），与 Kicker 相同按 ΔP/P0 使用。电压、极板长度和间隙可在工具栏的激励工具中换算。real_z 使用各粒子到达时刻；ideal_z 使用本束团理想粒子的 t0，统一 FM、AM 和启动判断。"
+                "Kick angle 为每路 DDS 的有符号 ΔP/P0 振幅，可填固定值或物理时间表；Kick time 区间内线性插值，区间外为零，启用 AM 时再乘 AM 包络。电压可在激励工具中换算。real_z 使用各粒子到达时刻；ideal_z 使用本束团的 t0，统一 FM、幅度和时间窗口判断。"
             )
             if any(key in target for key in ("Voltage (V)", "Gap (m)", "Plate length (m)")):
                 self.form_hint.setText(self.form_hint.text() + " 旧输入需先换算；编辑 Kick angle 并应用后，将替换旧电压、极板长度和间隙参数。")
@@ -4639,6 +4639,16 @@ class ConfigPage(QWidget):
         elif key == "Excitation mode" and spec is not None and getattr(self, "_field_context", {}).get("Command") in {"Exciter", "ACDipole"}:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
             structured.setToolTip(self._field_help(key, value))
+        elif (getattr(self, "_field_context", {}).get("Command") == "Exciter" and spec is not None and key in {"Kick angle (rad)", "Kick time (s)"}):
+            structured = make_editor(spec.annotation, value, key, self.base_dir)
+            structured.setToolTip(self._field_help(key, value))
+            if key == "Kick angle (rad)":
+                scalar = structured.ensure_editor(0).input
+                scalar.setValidator(QDoubleValidator(scalar))
+                self._format_kick_angle(scalar)
+                scalar.editingFinished.connect(lambda: self._format_kick_angle(scalar))
+            structured.setProperty("modified", False)
+            structured.changed.connect(lambda: structured.setProperty("modified", True))
         elif (getattr(self, "_field_context", {}).get("Command") == "ACDipole" and spec is not None
               and key in {"Direction", "Kick angle (rad)", "Kick time (s)", "Frequency (Hz)", "Frequency time (s)", "CPU chunk size"}):
             structured = make_editor(spec.annotation, value, key, self.base_dir)
@@ -4830,10 +4840,6 @@ class ConfigPage(QWidget):
             field.setToolTip("所有运行结果的父目录；相对路径以输入 JSON 所在目录为基准。")
         elif key == "Task name":
             field.setToolTip("default 使用“输出根目录 / YYYY_MM_DD_HH_MM”；自定义名称使用“输出根目录 / 任务名称”，保留内部子目录和文件命名；重名时追加 _1、_2 等编号。")
-        if key == "Kick angle (rad)" and getattr(self, "_field_context", {}).get("Command") == "Exciter":
-            field.setValidator(QDoubleValidator(field))
-            self._format_kick_angle(field)
-            field.editingFinished.connect(lambda: self._format_kick_angle(field))
         self._track_field(field)
         return field
 
@@ -5302,13 +5308,13 @@ class ConfigPage(QWidget):
                 }, "bunches": [target[k] for k in keys]
             }).to_sequence_dict()
         elif model is not None:
-            if target.get("Command") == "Exciter" and self._form_fields["Kick angle (rad)"].isModified():
+            if target.get("Command") == "Exciter" and self._form_fields["Kick angle (rad)"].property("modified"):
                 for key in ("Voltage (V)", "Gap (m)", "Plate length (m)"):
                     target.pop(key, None)
             model.model_validate(target)
             if target.get("Command") == "Exciter":
                 target.pop("Length (m)", None)
-                self._format_kick_angle(self._form_fields["Kick angle (rad)"])
+                self._format_kick_angle(self._form_fields["Kick angle (rad)"].ensure_editor(0).input)
             if target.get("Command") == "WakeField":
                 from PASS.para.schema.wake_field import WakeFieldConfig, resolve_wake_point
                 block = WakeFieldConfig.model_validate(self.data.get("Wake field", {}))

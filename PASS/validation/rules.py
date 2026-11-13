@@ -759,7 +759,6 @@ class Validator:
         self.choice(v, "Direction", {"x", "y"}, p)
         self.window(v, p)
         self.numeric(v, "Period (s)", p, positive=True)
-        self.numeric(v, "Kick angle (rad)", p)
         tune = [v.get(k) is not None for k in ("Excite tune", "Sweep tune")]
         freq = [v.get(k) is not None for k in ("Central frequency (Hz)", "Sweep width (Hz)")]
         if not (all(tune) and not any(freq) or all(freq) and not any(tune)):

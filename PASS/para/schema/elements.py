@@ -555,9 +555,11 @@ class ExciterItem(ElementBase):
     direction: str = Field(alias="Direction")
     start_turn: int = Field(alias="Start turn")
     end_turn: int = Field(alias="End turn")
-    kick_angle: float = Field(alias="Kick angle (rad)",
-                              allow_inf_nan=False,
-                              description="Signed nominal kick per DDS in rad (normalized momentum increment ΔP/P0, as in Kicker).")
+    kick_angle: float | list[float] = Field(
+        alias="Kick angle (rad)", description="Signed nominal kick per DDS in rad (normalized momentum increment ΔP/P0); scalar or samples.")
+    kick_times: list[float] | None = Field(default=None,
+                                           alias="Kick time (s)",
+                                           description="Physical sample times; kick is zero outside this interval. Multiplied by AM when enabled.")
 
     # frequency (two modes)
     excite_tune: float | None = Field(default=None, alias="Excite tune")
@@ -584,6 +586,15 @@ class ExciterItem(ElementBase):
                 raise ValueError("Exciter uses 'Kick angle (rad)'; convert voltage and electrode parameters with the Exciter tool, "
                                  "then remove Voltage (V), Gap (m) and Plate length (m)")
         return value
+
+    @model_validator(mode="after")
+    def validate_kick_program(self):
+        from PASS.utils.program import LinearProgram
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            kick = LinearProgram(self.kick_angle, self.kick_times)
+        if not np.all(np.isfinite(kick.slopes)):
+            raise ValueError("Exciter kick program slopes must be finite")
+        return self
 
 
 class ACDipoleItem(ElementBase):
