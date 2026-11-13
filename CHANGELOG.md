@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.3] - 2026-11-13
+
+### Added
+
+- Extended electron-cloud models and transverse response analysis.
+- Command-line parameter overrides and custom run names.
+- `ideal_z` excitation for Exciter and ACDipole.
+
+### Changed
+
+- Switched `.passproj` files to editable JSON and simplified output directories and filenames.
+- Improved GUI editing, plotting, responsiveness, and distribution generation speed.
+- Included GUI dependencies by default and simplified installation to `cpu` and `gpu` options.
+
+### Fixed
+
+- Corrected empty-bunch handling, particle IDs after fringe losses, and injection snapshots after regrouping.
+- Improved data conversion and file saving reliability.
+
+### Removed
+
+- Automatic StatMonitor CSV output. Use HDF5 or TFS.
+- The `gui`, `cuda`, and `conversion` installation extras.
+
+---
+
 ## [0.6.2] - 2026-10-28
 
 ### Added
