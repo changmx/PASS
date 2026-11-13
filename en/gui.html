@@ -535,9 +535,12 @@ The ES <strong>Hardware parameters</strong> (硬件参数) group labels V, VL, g
 septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.</p>
-<p>Exciter uses a signed <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> amplitude, displayed in scientific
-notation such as <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>, and exposes tune/frequency selection and FM/AM-dependent
-fields. Voltage, gap and length are not element inputs; the Exciter tool converts
+<p>Exciter offers fixed-value and table inputs for signed <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code>
+amplitudes, with scalar values displayed in scientific notation such as <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>.
+Pair table values with <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code> in absolute physical seconds, as for
+ACDipole; interpolation and the active interval follow <a class="reference internal" href="element/exciter.html"><span class="doc">Exciter</span></a>.
+It also exposes tune/frequency selection and FM/AM-dependent fields.
+Voltage, gap and length are not element inputs; the Exciter tool converts
 between voltage and kick angle at a chosen reference particle and energy. New drafts
 default to tune mode, with <code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.47</span></code> and <code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span> <span class="pre">=</span> <span class="pre">0.02</span></code>;
 existing frequency-mode inputs retain their Hz values.
@@ -557,7 +560,9 @@ a different offset produces a warning. Nominal bunch slots do not shift the prev
 Both DDS signals use one shared kick-angle setting. AM uses the same continuous
 particle elapsed time as FM and the reference-clock frequency at startup for
 its normalization. The angle is applied as a normalized transverse momentum
-increment and is not rescaled with tracked beam energy.</p>
+increment and is not rescaled with tracked beam energy.
+The standalone calculator previews a scalar kick amplitude; configured amplitude
+time tables are edited in the element properties and evaluated during tracking.</p>
 </section>
 <section id="transverse-feedback">
 <h2>Transverse feedback<a class="headerlink" href="#transverse-feedback" title="Link to this heading"></a></h2>

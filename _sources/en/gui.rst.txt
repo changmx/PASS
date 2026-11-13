@@ -422,9 +422,12 @@ septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.
 
-Exciter uses a signed ``Kick angle (rad)`` amplitude, displayed in scientific
-notation such as ``1e-6``, and exposes tune/frequency selection and FM/AM-dependent
-fields. Voltage, gap and length are not element inputs; the Exciter tool converts
+Exciter offers fixed-value and table inputs for signed ``Kick angle (rad)``
+amplitudes, with scalar values displayed in scientific notation such as ``1e-6``.
+Pair table values with ``Kick time (s)`` in absolute physical seconds, as for
+ACDipole; interpolation and the active interval follow :doc:`element/exciter`.
+It also exposes tune/frequency selection and FM/AM-dependent fields.
+Voltage, gap and length are not element inputs; the Exciter tool converts
 between voltage and kick angle at a chosen reference particle and energy. New drafts
 default to tune mode, with ``Excite tune = 0.47`` and ``Sweep tune = 0.02``;
 existing frequency-mode inputs retain their Hz values.
@@ -446,6 +449,8 @@ Both DDS signals use one shared kick-angle setting. AM uses the same continuous
 particle elapsed time as FM and the reference-clock frequency at startup for
 its normalization. The angle is applied as a normalized transverse momentum
 increment and is not rescaled with tracked beam energy.
+The standalone calculator previews a scalar kick amplitude; configured amplitude
+time tables are edited in the element properties and evaluated during tracking.
 
 Transverse feedback
 -------------------

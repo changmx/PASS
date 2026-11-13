@@ -163,6 +163,7 @@ Its length is fixed internally and is not an input parameter.</p>
 <ul>
 <li><p>Thin lens element (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changes only the particle’s transverse momentum, without changing position coordinates;</p></li>
 <li><p>Supports 4 waveform modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code>);</p></li>
+<li><p>Supports a signed amplitude time table in all four modes, with the same interface as <a class="reference internal" href="ac_dipole.html"><span class="doc">ACDipole</span></a>;</p></li>
 <li><p>Supports excitation at each particle’s arrival (<code class="docutils literal notranslate"><span class="pre">real_z</span></code>) or at the ideal reference arrival (<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>);</p></li>
 <li><p>Frequency parameters support both tune mode and frequency mode input methods;</p></li>
 <li><p>Supports aperture checking, consistent with other elements.</p></li>
@@ -295,13 +296,35 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kick_angle</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">|</span> <span class="pre">list[float]</span></code></p></td>
 <td><p>rad</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
-<td><p>Finite signed nominal kick amplitude shared by both DDS signals, applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.</p></td>
+<td><p>Finite signed nominal kick amplitude or samples, shared by both DDS signals and applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kick_times</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list[float]</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Absolute physical sample times and the closed active amplitude interval.</p></td>
 </tr>
 </tbody>
 </table>
+<p>As in <a class="reference internal" href="ac_dipole.html"><span class="doc">ACDipole</span></a>, multiple amplitude samples require a matching time array
+of equal length. All values must be finite; time arrays must be nonempty and
+strictly increasing. A scalar or one-value array denotes a constant amplitude
+and may also be paired with a time array.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, the amplitude is interpolated linearly between samples
+and is zero outside the closed interval from the first to last time. Both
+endpoints are active; a one-time-point interval is active only at that instant.
+Without kick times, a scalar amplitude preserves the existing behavior.
+The times are absolute physical seconds, not turns or elapsed time from
+<code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code>. <code class="docutils literal notranslate"><span class="pre">real_z</span></code> samples the table at each particle’s arrival;
+<code class="docutils literal notranslate"><span class="pre">ideal_z</span></code> samples it at the bunch reference arrival, just like FM and AM.</p>
+<p>This independent table works in all four modes. In <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> and
+<code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code>, its value is multiplied by the existing diffusion AM factor.
+It does not reset DDS phases. The <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> command gate
+and the common trigger still apply, so all active windows must overlap.</p>
 </section>
 <section id="frequency-parameters">
 <h3>Frequency Parameters<a class="headerlink" href="#frequency-parameters" title="Link to this heading"></a></h3>
@@ -482,7 +505,7 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">am_r0</span></code> and <code class="docutils literal notranslate"><span class="pre">am_delta0</span></code> should be of the same order of magnitude; otherwise <span class="math notranslate nohighlight">\(\exp(-r_0^2/\delta_0^2)\)</span> may suffer numerical underflow.</p>
-<p>In constant amplitude modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>), the AM parameters do not participate in the computation and can be set to 0.</p>
+<p>In modes without diffusion AM (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>), the AM parameters do not participate in the computation and can be set to 0. An amplitude time table may still vary the kick.</p>
 </div>
 </section>
 </section>
@@ -526,6 +549,22 @@ that bunch’s ideal reference arrival. <code class="docutils literal notranslat
 </pre></div>
 </div>
 </section>
+<section id="amplitude-time-table-example">
+<h3>Amplitude Time Table Example<a class="headerlink" href="#amplitude-time-table-example" title="Link to this heading"></a></h3>
+<p>To ramp the amplitude up, hold it, and ramp it down, replace the example’s
+<code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> and add <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code> as follows:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Kick angle (rad)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1e-4</span><span class="p">,</span><span class="w"> </span><span class="mf">1e-4</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Kick time (s)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.06</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The amplitude at 0.015 s is <span class="math notranslate nohighlight">\(5\times10^{-5}\)</span> rad; it is zero before
+0.01 s and after 0.06 s. Enable the element and choose its turn interval so
+that it covers the desired physical-time window. These times are not shifted
+automatically by the start turn. Use <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> or <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> for this table
+alone, or an <code class="docutils literal notranslate"><span class="pre">_am</span></code> mode to multiply it by the diffusion envelope as well.</p>
+</section>
 <section id="waveform-mode-selection-guide">
 <h3>Waveform Mode Selection Guide<a class="headerlink" href="#waveform-mode-selection-guide" title="Link to this heading"></a></h3>
 <ul class="simple">
@@ -548,21 +587,23 @@ that bunch’s ideal reference arrival. <code class="docutils literal notranslat
 </section>
 <section id="kick-convention">
 <h2>Kick Convention<a class="headerlink" href="#kick-convention" title="Link to this heading"></a></h2>
-<p>Let <span class="math notranslate nohighlight">\(\theta_0=\text{Kick angle (rad)}\)</span>. The element applies a prescribed
+<p>Let <span class="math notranslate nohighlight">\(\theta(t)\)</span> be the signed amplitude from <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> and its
+optional <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">time</span> <span class="pre">(s)</span></code> table; a scalar without times gives
+<span class="math notranslate nohighlight">\(\theta(t)=\theta_0\)</span>. The element applies a prescribed
 normalized transverse momentum increment, using the same nominal small-angle
 convention as <a class="reference internal" href="kicker.html"><span class="doc">Kicker</span></a>:</p>
 <div class="math notranslate nohighlight">
-\[\Delta p_{u,i}=\theta_0 F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
+\[\Delta p_{u,i}=\theta(t_{\mathrm{eval},i}) F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.\]</div>
 <p>For an on-momentum paraxial reference particle, <span class="math notranslate nohighlight">\(\Delta u'\simeq\Delta p_u\)</span>,
 which gives the input its angle unit. This is not an exact geometric rotation
 by the same angle for every off-momentum or non-paraxial particle. The sign of
-<span class="math notranslate nohighlight">\(\theta_0\)</span> specifies the selected transverse kick direction. It already
+<span class="math notranslate nohighlight">\(\theta(t)\)</span> specifies the selected transverse kick direction. It already
 contains any intended charge-sign convention; tracking does not multiply it by
 charge sign, rigidity or a particle velocity factor.</p>
-<p>The configured coefficient stays fixed when beam energy changes. Particles
+<p>The configured amplitude program does not change automatically with beam energy. Particles
 with the same waveform evaluation time receive the same prescribed momentum
 increment, subject to the waveform mode’s shared AM factor. In <code class="docutils literal notranslate"><span class="pre">real_z</span></code>,
-different arrival times sample different phases and AM values; in <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>,
+different arrival times sample different amplitudes, phases and AM values; in <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>,
 each bunch receives the value at its reference arrival. Tune-mode frequencies
 use the shared reference clock, not a separate oscillator frequency for each particle.</p>
 <p>This is a zero-length kick: x, y, z, dp and t0 do not change. It does not model
@@ -603,8 +644,9 @@ The existing <code class="docutils literal notranslate"><span class="pre">Mode</
 <p>In <code class="docutils literal notranslate"><span class="pre">ideal_z</span></code>, z is treated as zero only for evaluating the excitation;
 stored particle coordinates are unchanged. Every bunch uses its own
 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> at each passage through this element, rather than a common value
-for all bunches or a measured longitudinal centroid. FM, AM and the trigger
-gate all use this same time. Thus the trigger acts on the whole bunch together.
+for all bunches or a measured longitudinal centroid. The amplitude table, FM,
+AM and all physical-time gates use this same time. Thus each time gate acts on
+the whole bunch together.
 This mode removes the direct effect of longitudinal arrival offsets on the
 excitation, including a bunch-centroid offset; other beam dynamics remain active.</p>
 <p>All bunches sample one waveform with a common trigger time <span class="math notranslate nohighlight">\(t_*\)</span>.
@@ -616,7 +658,8 @@ its accumulated turns reach <span class="math notranslate nohighlight">\(n_{\rm 
 <p>Both DDS phases start at zero at <span class="math notranslate nohighlight">\(u=0\)</span>; evaluation times before the trigger
 give zero excitation. The existing <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> / <code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code> command gate also
 applies. Only the sweep position is reduced modulo <span class="math notranslate nohighlight">\(T\)</span>; accumulated phase
-is not reset. Changing the absolute time origin does not change this waveform.</p>
+is not reset. Shifting the clock origin and any amplitude sample times by the
+same amount does not change this waveform.</p>
 </section>
 <section id="frequency-input-modes">
 <h2>Frequency Input Modes<a class="headerlink" href="#frequency-input-modes" title="Link to this heading"></a></h2>
@@ -661,7 +704,7 @@ provided as a pair.</p>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm</span></code></p></td>
 <td><p>Single-segment sweep</p></td>
-<td><p>Constant amplitude</p></td>
+<td><p>No diffusion AM</p></td>
 <td><p>The most basic linear chirp</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code></p></td>
@@ -671,7 +714,7 @@ provided as a pair.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm</span></code></p></td>
 <td><p>Two DDS sweeps</p></td>
-<td><p>Constant amplitude</p></td>
+<td><p>No diffusion AM</p></td>
 <td><p>Sum of two independent continuous phases</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
@@ -712,7 +755,7 @@ cross. With <span class="math notranslate nohighlight">\(\alpha=\text{Dual sweep
 <span class="math notranslate nohighlight">\(\alpha=0.5\)</span> means DDS1 resets at half-period and DDS2 at full-period; it
 does not impose a half-cycle sine phase difference. A different offset produces
 a warning and remains valid. The two signals are added directly, with a peak
-bound of <span class="math notranslate nohighlight">\(2|\theta_0|\)</span> before AM. There is no separate imposed cosine envelope.
+bound of <span class="math notranslate nohighlight">\(2|\theta(t)|\)</span> before diffusion AM. There is no separate imposed cosine envelope.
 Both signals use the single <code class="docutils literal notranslate"><span class="pre">Kick</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code> setting and the same AM factor;
 there are no separate channel amplitudes or automatic division by two.</p>
 <p>For a time-dependent tune-mode clock the general definition is used instead:</p>
@@ -726,15 +769,16 @@ there are no separate channel amplitudes or automatic division by two.</p>
 </section>
 <section id="amplitude-modulation-am-dimension">
 <h3>Amplitude Modulation (AM) Dimension<a class="headerlink" href="#amplitude-modulation-am-dimension" title="Link to this heading"></a></h3>
-<p><strong>Constant amplitude</strong></p>
+<p><strong>Without diffusion AM</strong></p>
 <div class="math notranslate nohighlight">
-\[A(u) = \theta_0\]</div>
-<p>No time-varying AM envelope is applied. The signed coefficient is the fixed
-configured kick angle, independent of particle velocity or reference energy.</p>
+\[A(u) = \theta(t_*+u)\]</div>
+<p>No diffusion AM envelope is applied. The signed coefficient follows the
+configured amplitude table, or is constant without a table, independent of
+particle velocity or reference energy.</p>
 <p><strong>Time-varying amplitude (am)</strong></p>
 <p>Based on a beam diffusion/growth model, the excitation amplitude varies over time; it need not increase monotonically:</p>
 <div class="math notranslate nohighlight">
-\[A(u) = \theta_0 \cdot \text{am\_factor}(u)\]</div>
+\[A(u) = \theta(t_*+u) \cdot \text{am\_factor}(u)\]</div>
 <p>where <span class="math notranslate nohighlight">\(\text{am\_factor}(u)\)</span> is a dimensionless time-varying scaling factor:</p>
 <div class="math notranslate nohighlight">
 \[\text{am\_factor}(u) = \sqrt{\frac{\delta^2(u)}{f_{0,*} \cdot k_{\text{const}}}}\]</div>
@@ -780,27 +824,28 @@ the lattice and the sampled excitation phases.</p>
 <section id="complete-formulas-for-each-mode">
 <h2>Complete Formulas for Each Mode<a class="headerlink" href="#complete-formulas-for-each-mode" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>single_fm</strong> (one DDS + constant amplitude)</p></li>
+<li><p><strong>single_fm</strong> (one DDS, without diffusion AM)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}_i=\theta_0\sin\phi_2(u_i).\]</div>
+\[\text{kick}_i=\theta(t_{\mathrm{eval},i})\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="2">
 <li><p><strong>single_fm_am</strong> (one DDS + time-varying amplitude)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).\]</div>
+\[\text{kick}_i=\theta(t_{\mathrm{eval},i})\,\text{am\_factor}(u_i)\sin\phi_2(u_i).\]</div>
 <ol class="arabic simple" start="3">
-<li><p><strong>dual_fm</strong> (two DDS channels + constant amplitude)</p></li>
+<li><p><strong>dual_fm</strong> (two DDS channels, without diffusion AM)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
+\[\text{kick}_i=\theta(t_{\mathrm{eval},i})[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
 <ol class="arabic simple" start="4">
 <li><p><strong>dual_fm_am</strong> (two DDS channels + time-varying amplitude)</p></li>
 </ol>
 <div class="math notranslate nohighlight">
-\[\text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
-<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(u_i=t_{\mathrm{eval},i}-t_*\)</span> and <span class="math notranslate nohighlight">\(\theta_0\)</span> is the
-configured signed kick angle. The kick is zero for <span class="math notranslate nohighlight">\(u_i&lt;0\)</span>. FM and AM
+\[\text{kick}_i=\theta(t_{\mathrm{eval},i})\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].\]</div>
+<p>For particle <span class="math notranslate nohighlight">\(i\)</span>, <span class="math notranslate nohighlight">\(u_i=t_{\mathrm{eval},i}-t_*\)</span> and <span class="math notranslate nohighlight">\(\theta(t_{\mathrm{eval},i})\)</span> is the
+configured signed amplitude evaluated at its selected time. The kick is zero
+for <span class="math notranslate nohighlight">\(u_i&lt;0\)</span> and outside any specified kick-time interval. FM and AM
 use the same evaluated elapsed time <span class="math notranslate nohighlight">\(u_i\)</span>. These are the final normalized
 momentum increments; tracking applies no additional amplitude conversion.</p>
 </section>

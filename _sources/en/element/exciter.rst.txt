@@ -11,6 +11,7 @@ Its length is fixed internally and is not an input parameter.
 
   - Thin lens element (``length = 0``), changes only the particle's transverse momentum, without changing position coordinates;
   - Supports 4 waveform modes (``single_fm``, ``single_fm_am``, ``dual_fm``, ``dual_fm_am``);
+  - Supports a signed amplitude time table in all four modes, with the same interface as :doc:`ac_dipole`;
   - Supports excitation at each particle's arrival (``real_z``) or at the ideal reference arrival (``ideal_z``);
   - Frequency parameters support both tune mode and frequency mode input methods;
   - Supports aperture checking, consistent with other elements.
@@ -105,10 +106,34 @@ Kick Amplitude
      - Description
    * - ``kick_angle``
      - ``Kick angle (rad)``
-     - ``float``
+     - ``float | list[float]``
      - rad
      - ``Required``
-     - Finite signed nominal kick amplitude shared by both DDS signals, applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.
+     - Finite signed nominal kick amplitude or samples, shared by both DDS signals and applied as a normalized transverse momentum increment. Dual mode sums the signals without dividing by two.
+   * - ``kick_times``
+     - ``Kick time (s)``
+     - ``list[float] | None``
+     - s
+     - ``None``
+     - Absolute physical sample times and the closed active amplitude interval.
+
+As in :doc:`ac_dipole`, multiple amplitude samples require a matching time array
+of equal length. All values must be finite; time arrays must be nonempty and
+strictly increasing. A scalar or one-value array denotes a constant amplitude
+and may also be paired with a time array.
+
+With ``Kick time (s)``, the amplitude is interpolated linearly between samples
+and is zero outside the closed interval from the first to last time. Both
+endpoints are active; a one-time-point interval is active only at that instant.
+Without kick times, a scalar amplitude preserves the existing behavior.
+The times are absolute physical seconds, not turns or elapsed time from
+``Start turn``. ``real_z`` samples the table at each particle's arrival;
+``ideal_z`` samples it at the bunch reference arrival, just like FM and AM.
+
+This independent table works in all four modes. In ``single_fm_am`` and
+``dual_fm_am``, its value is multiplied by the existing diffusion AM factor.
+It does not reset DDS phases. The ``Start turn`` / ``End turn`` command gate
+and the common trigger still apply, so all active windows must overlap.
 
 
 Frequency Parameters
@@ -243,7 +268,7 @@ Amplitude Modulation (AM) Parameters
 
   ``am_r0`` and ``am_delta0`` should be of the same order of magnitude; otherwise :math:`\exp(-r_0^2/\delta_0^2)` may suffer numerical underflow.
 
-  In constant amplitude modes (``single_fm``, ``dual_fm``), the AM parameters do not participate in the computation and can be set to 0.
+  In modes without diffusion AM (``single_fm``, ``dual_fm``), the AM parameters do not participate in the computation and can be set to 0. An amplitude time table may still vary the kick.
 
 Usage Examples
 --------------
@@ -291,6 +316,25 @@ If using frequency mode, replace ``Excite tune`` and ``Sweep tune`` with:
    "Sweep width (Hz)": 79.2
    }
 
+Amplitude Time Table Example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To ramp the amplitude up, hold it, and ramp it down, replace the example's
+``Kick angle (rad)`` and add ``Kick time (s)`` as follows:
+
+.. code-block:: json
+
+   {
+       "Kick angle (rad)": [0.0, 1e-4, 1e-4, 0.0],
+       "Kick time (s)": [0.01, 0.02, 0.05, 0.06]
+   }
+
+The amplitude at 0.015 s is :math:`5\times10^{-5}` rad; it is zero before
+0.01 s and after 0.06 s. Enable the element and choose its turn interval so
+that it covers the desired physical-time window. These times are not shifted
+automatically by the start turn. Use ``single_fm`` or ``dual_fm`` for this table
+alone, or an ``_am`` mode to multiply it by the diffusion envelope as well.
+
 Waveform Mode Selection Guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -311,25 +355,27 @@ Parameter Selection Recommendations
 Kick Convention
 ---------------
 
-Let :math:`\theta_0=\text{Kick angle (rad)}`. The element applies a prescribed
+Let :math:`\theta(t)` be the signed amplitude from ``Kick angle (rad)`` and its
+optional ``Kick time (s)`` table; a scalar without times gives
+:math:`\theta(t)=\theta_0`. The element applies a prescribed
 normalized transverse momentum increment, using the same nominal small-angle
 convention as :doc:`kicker`:
 
 .. math::
 
-   \Delta p_{u,i}=\theta_0 F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
+   \Delta p_{u,i}=\theta(t_{\mathrm{eval},i}) F(t_{\mathrm{eval},i}),\qquad p_u=\frac{P_u}{P_0},\qquad u=x\ \text{or}\ y.
 
 For an on-momentum paraxial reference particle, :math:`\Delta u'\simeq\Delta p_u`,
 which gives the input its angle unit. This is not an exact geometric rotation
 by the same angle for every off-momentum or non-paraxial particle. The sign of
-:math:`\theta_0` specifies the selected transverse kick direction. It already
+:math:`\theta(t)` specifies the selected transverse kick direction. It already
 contains any intended charge-sign convention; tracking does not multiply it by
 charge sign, rigidity or a particle velocity factor.
 
-The configured coefficient stays fixed when beam energy changes. Particles
+The configured amplitude program does not change automatically with beam energy. Particles
 with the same waveform evaluation time receive the same prescribed momentum
 increment, subject to the waveform mode's shared AM factor. In ``real_z``,
-different arrival times sample different phases and AM values; in ``ideal_z``,
+different arrival times sample different amplitudes, phases and AM values; in ``ideal_z``,
 each bunch receives the value at its reference arrival. Tune-mode frequencies
 use the shared reference clock, not a separate oscillator frequency for each particle.
 
@@ -378,8 +424,9 @@ The existing ``Mode`` field independently selects the FM/AM waveform.
 In ``ideal_z``, z is treated as zero only for evaluating the excitation;
 stored particle coordinates are unchanged. Every bunch uses its own
 ``bunch.t0`` at each passage through this element, rather than a common value
-for all bunches or a measured longitudinal centroid. FM, AM and the trigger
-gate all use this same time. Thus the trigger acts on the whole bunch together.
+for all bunches or a measured longitudinal centroid. The amplitude table, FM,
+AM and all physical-time gates use this same time. Thus each time gate acts on
+the whole bunch together.
 This mode removes the direct effect of longitudinal arrival offsets on the
 excitation, including a bunch-centroid offset; other beam dynamics remain active.
 
@@ -395,7 +442,8 @@ its accumulated turns reach :math:`n_{\rm start}+s/C`:
 Both DDS phases start at zero at :math:`u=0`; evaluation times before the trigger
 give zero excitation. The existing ``Start turn`` / ``End turn`` command gate also
 applies. Only the sweep position is reduced modulo :math:`T`; accumulated phase
-is not reset. Changing the absolute time origin does not change this waveform.
+is not reset. Shifting the clock origin and any amplitude sample times by the
+same amount does not change this waveform.
 
 Frequency Input Modes
 ---------------------
@@ -445,7 +493,7 @@ The ``Mode`` field selects one of 4 waveforms, formed by combining two dimension
     - Description
   * - ``single_fm``
     - Single-segment sweep
-    - Constant amplitude
+    - No diffusion AM
     - The most basic linear chirp
   * - ``single_fm_am``
     - Single-segment sweep
@@ -453,7 +501,7 @@ The ``Mode`` field selects one of 4 waveforms, formed by combining two dimension
     - Sweep + time-varying amplitude
   * - ``dual_fm``
     - Two DDS sweeps
-    - Constant amplitude
+    - No diffusion AM
     - Sum of two independent continuous phases
   * - ``dual_fm_am``
     - Two DDS sweeps
@@ -507,7 +555,7 @@ The subtraction makes both initial phases zero for any sweep offset. The default
 :math:`\alpha=0.5` means DDS1 resets at half-period and DDS2 at full-period; it
 does not impose a half-cycle sine phase difference. A different offset produces
 a warning and remains valid. The two signals are added directly, with a peak
-bound of :math:`2|\theta_0|` before AM. There is no separate imposed cosine envelope.
+bound of :math:`2|\theta(t)|` before diffusion AM. There is no separate imposed cosine envelope.
 Both signals use the single ``Kick angle (rad)`` setting and the same AM factor;
 there are no separate channel amplitudes or automatic division by two.
 
@@ -527,14 +575,15 @@ This continuous waveform model does not implement hardware sample-and-hold steps
 Amplitude Modulation (AM) Dimension
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Constant amplitude**
+**Without diffusion AM**
 
 .. math::
 
-  A(u) = \theta_0
+  A(u) = \theta(t_*+u)
 
-No time-varying AM envelope is applied. The signed coefficient is the fixed
-configured kick angle, independent of particle velocity or reference energy.
+No diffusion AM envelope is applied. The signed coefficient follows the
+configured amplitude table, or is constant without a table, independent of
+particle velocity or reference energy.
 
 **Time-varying amplitude (am)**
 
@@ -542,7 +591,7 @@ Based on a beam diffusion/growth model, the excitation amplitude varies over tim
 
 .. math::
 
-  A(u) = \theta_0 \cdot \text{am\_factor}(u)
+  A(u) = \theta(t_*+u) \cdot \text{am\_factor}(u)
 
 where :math:`\text{am\_factor}(u)` is a dimensionless time-varying scaling factor:
 
@@ -605,32 +654,33 @@ the lattice and the sampled excitation phases.
 Complete Formulas for Each Mode
 -------------------------------
 
-1. **single_fm** (one DDS + constant amplitude)
+1. **single_fm** (one DDS, without diffusion AM)
 
 .. math::
 
-  \text{kick}_i=\theta_0\sin\phi_2(u_i).
+  \text{kick}_i=\theta(t_{\mathrm{eval},i})\sin\phi_2(u_i).
 
 2. **single_fm_am** (one DDS + time-varying amplitude)
 
 .. math::
 
-  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)\sin\phi_2(u_i).
+  \text{kick}_i=\theta(t_{\mathrm{eval},i})\,\text{am\_factor}(u_i)\sin\phi_2(u_i).
 
-3. **dual_fm** (two DDS channels + constant amplitude)
+3. **dual_fm** (two DDS channels, without diffusion AM)
 
 .. math::
 
-  \text{kick}_i=\theta_0[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
+  \text{kick}_i=\theta(t_{\mathrm{eval},i})[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
 4. **dual_fm_am** (two DDS channels + time-varying amplitude)
 
 .. math::
 
-  \text{kick}_i=\theta_0\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
+  \text{kick}_i=\theta(t_{\mathrm{eval},i})\,\text{am\_factor}(u_i)[\sin\phi_1(u_i)+\sin\phi_2(u_i)].
 
-For particle :math:`i`, :math:`u_i=t_{\mathrm{eval},i}-t_*` and :math:`\theta_0` is the
-configured signed kick angle. The kick is zero for :math:`u_i<0`. FM and AM
+For particle :math:`i`, :math:`u_i=t_{\mathrm{eval},i}-t_*` and :math:`\theta(t_{\mathrm{eval},i})` is the
+configured signed amplitude evaluated at its selected time. The kick is zero
+for :math:`u_i<0` and outside any specified kick-time interval. FM and AM
 use the same evaluated elapsed time :math:`u_i`. These are the final normalized
 momentum increments; tracking applies no additional amplitude conversion.
 
